@@ -13,3 +13,6 @@ ac_add_options --with-app-name=portico
 ac_add_options --with-app-basename=Portico
 mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-portico
 export MOZ_TELEMETRY_REPORTING=
+# menos memória e disco nas máquinas do GitHub
+ac_add_options --disable-debug-symbols
+mk_add_options MOZ_PARALLEL_BUILD=3
