@@ -69,7 +69,7 @@ jobs:
       - name: Empacotar
         run: |
           V=${{ needs.fonte.outputs.versao }}
-          PKG=$(ls src/obj-portico/dist/portico-*.tar.* | head -1)
+          PKG=$(ls src/obj-portico/dist/portico-*.linux-x86_64.tar.* | head -1)
           mkdir pk && tar -xf "$PKG" -C pk
           mkdir -p pk/portico/distribution/extensions && cp extras/*.xpi pk/portico/distribution/extensions/
           cd pk && tar -cJf "../Portico-$V-linux-x86_64.tar.xz" portico
@@ -99,10 +99,12 @@ jobs:
         shell: pwsh
         run: |
           $V = '${{ needs.fonte.outputs.versao }}'
-          $zip = Get-ChildItem src\obj-portico\dist\portico-*.zip | Select-Object -First 1
+          $zip = Get-ChildItem src\obj-portico\dist\portico-*.win64.zip | Select-Object -First 1
+          if (-not $zip) { throw 'Pacote do Windows não encontrado' }
           Expand-Archive $zip.FullName -DestinationPath pk
           New-Item -ItemType Directory -Force pk\portico\distribution\extensions | Out-Null
           Copy-Item extras\*.xpi pk\portico\distribution\extensions\
+          if (-not (Test-Path pk\portico\portico.exe)) { throw 'portico.exe não está no pacote' }
           Compress-Archive -Path pk\portico -DestinationPath "Portico-$V-windows-x64.zip"
       - uses: actions/upload-artifact@v4
         with: { name: portico-windows, path: "Portico-*.zip", retention-days: 14 }
