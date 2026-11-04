@@ -46,6 +46,12 @@ if [ "$WINDOWS" != "1" ]; then rm -f config/package-lists/windows.list.chroot; f
 mkdir -p "$INC/usr/share/portico"
 rm -rf "$INC/usr/share/portico/perfil" "$INC/usr/share/portico/inicio"
 cp -r "$ROOT/portico/perfil" "$ROOT/portico/inicio" "$INC/usr/share/portico/"
+# extensão do Pórtico (.xpi) com a página inicial dentro
+EXT_TMP=$(mktemp -d)
+cp -r "$ROOT/portico/extensao/." "$EXT_TMP/"
+cp "$ROOT/portico/inicio/inicio.html" "$ROOT/portico/inicio/inicio.js" "$EXT_TMP/"
+(cd "$EXT_TMP" && zip -qr -X "$INC/usr/share/portico/portico@atriumos.org.xpi" .)
+rm -rf "$EXT_TMP"
 
 # 3) ícones
 for s in 16 22 24 32 48 64 128 256 512; do

@@ -43,7 +43,7 @@ jobs:
               set -e
               apt-get update
               apt-get install -y --no-install-recommends live-build debootstrap xorriso squashfs-tools librsvg2-bin \
-                ca-certificates curl gnupg cpio dosfstools mtools
+                ca-certificates curl gnupg cpio dosfstools mtools zip
               ./build.sh
             '
 

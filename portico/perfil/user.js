@@ -56,3 +56,8 @@ user_pref("reader.parse-on-load.enabled", true);
 // --- Downloads ---
 user_pref("browser.download.useDownloadDir", true);
 user_pref("browser.download.always_ask_before_handling_new_types", false);
+
+// --- extensão do Pórtico (nova aba e cores) instalada junto com o perfil ---
+user_pref("extensions.autoDisableScopes", 0);
+user_pref("extensions.enabledScopes", 15);
+user_pref("xpinstall.signatures.required", false);   // vale no Firefox ESR, que é o motor desta prévia
