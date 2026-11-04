@@ -210,8 +210,76 @@ def android_estado(_):
         return {"ok": True, "estado": ""}
 
 
+# ---------- teclado e região ----------
+import re
+KB_OK = re.compile(r"^[a-z]{2,6}$")
+VAR_OK = re.compile(r"^[a-z0-9_]{0,16}$")
+CFG = os.path.join(HOME, ".config", "atriumos")
+
+
+def _ler_teclado():
+    l, v = "", ""
+    for f in ("/etc/default/keyboard", os.path.join(CFG, "teclado")):
+        try:
+            for linha in open(f):
+                k, _, val = linha.strip().partition("=")
+                val = val.strip().strip('"')
+                if k == "XKBLAYOUT":
+                    l = val.split(",")[0]
+                elif k == "XKBVARIANT":
+                    v = val.split(",")[0]
+        except OSError:
+            pass
+    return l, v
+
+
+def teclado_estado(_):
+    l, v = _ler_teclado()
+    tz = ""
+    try:
+        tz = os.path.realpath("/etc/localtime").split("zoneinfo/", 1)[1]
+    except (IndexError, OSError):
+        pass
+    return {"ok": True, "layout": l, "variante": v, "tz": tz}
+
+
+def teclado(d):
+    l, v = str(d.get("layout", "")), str(d.get("variante", ""))
+    if not KB_OK.match(l) or not VAR_OK.match(v):
+        return {"ok": False}
+    if DRY:
+        print("[teste] teclado", l, v, flush=True)
+        return {"ok": True}
+    os.makedirs(CFG, exist_ok=True)
+    with open(os.path.join(CFG, "teclado"), "w") as f:
+        f.write(f'XKBLAYOUT="{l}"\nXKBVARIANT="{v}"\n')
+    env = os.path.join(HOME, ".config", "labwc", "environment")
+    linhas = []
+    try:
+        linhas = [x for x in open(env).read().splitlines() if not x.startswith("XKB_DEFAULT_")]
+    except OSError:
+        pass
+    linhas += [f"XKB_DEFAULT_LAYOUT={l}"] + ([f"XKB_DEFAULT_VARIANT={v}"] if v else [])
+    os.makedirs(os.path.dirname(env), exist_ok=True)
+    with open(env, "w") as f:
+        f.write("\n".join(linhas) + "\n")
+    sh(["labwc", "--reconfigure"])
+    # também para o sistema (terminal de texto, instalador), quando houver permissão
+    sh(["sudo", "-n", "/usr/lib/atriumos/teclado-sistema", l, v])
+    return {"ok": True}
+
+
+def regiao(d):
+    tz = str(d.get("tz", ""))
+    if not re.match(r"^[A-Za-z_]+(/[A-Za-z0-9_+\-]+){0,2}$", tz) or not os.path.exists("/usr/share/zoneinfo/" + tz):
+        return {"ok": False}
+    ok, _ = sh(["timedatectl", "set-timezone", tz])
+    return {"ok": ok}
+
+
 ACTIONS2 = {"wifi_listar": wifi_listar, "wifi_conectar": wifi_conectar, "wifi_ligar": wifi_ligar,
-            "volume": volume, "arquivos": arquivos, "abrir": abrir, "android_estado": android_estado}
+            "volume": volume, "arquivos": arquivos, "abrir": abrir, "android_estado": android_estado,
+            "teclado": teclado, "teclado_estado": teclado_estado, "regiao": regiao}
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):

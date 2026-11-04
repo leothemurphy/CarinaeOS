@@ -17,6 +17,8 @@ echo "== vídeo: $MODO ($(systemd-detect-virt 2>/dev/null))" >>"$LOG"
 
 # teclado igual ao do sistema
 [ -f /etc/default/keyboard ] && . /etc/default/keyboard
+# escolha do usuário (Ajustes › Teclado) vale mais
+[ -f "$HOME/.config/atriumos/teclado" ] && . "$HOME/.config/atriumos/teclado"
 
 # tirar a barra da janela da interface (o comando mudou na versão 0.8 do labwc)
 V="$(labwc --version 2>/dev/null | grep -o '[0-9]*\.[0-9]*' | head -1)"

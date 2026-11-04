@@ -7,3 +7,10 @@ polkit.addRule(function (action, subject) {
     }
   }
 });
+
+// AtriumOS: o usuário da sessão pode escolher a região/fuso horário
+polkit.addRule(function (action, subject) {
+  if (action.id == "org.freedesktop.timedate1.set-timezone" && subject.local && subject.active) {
+    return polkit.Result.YES;
+  }
+});

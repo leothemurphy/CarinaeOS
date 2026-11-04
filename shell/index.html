@@ -592,6 +592,8 @@ body.hc{filter:contrast(1.3) saturate(1.1)}
 .su-net:hover{background:rgba(255,255,255,.14)}.su-net.sel{background:rgba(255,255,255,.22)}
 .su-net svg{width:20px;height:20px;flex:none}.su-net span{flex:1}.su-net small{display:block;opacity:.6;font-size:12px}
 .su-tz{font-size:12.5px;opacity:.8;margin-top:12px}
+.su-kbreg{margin-top:14px;display:grid;gap:8px;text-align:left}.su-kbreg label{font-size:12.5px;opacity:.85;display:grid;gap:4px}.su-kbreg select.su-in,.su-kbreg input.su-in{padding:9px 12px;font-size:14px}.su-kbreg select.su-in option{color:#000}
+.kb-sel{display:grid;gap:10px;padding:10px 0}.kb-sel label{display:grid;gap:4px;font-size:13px}.kb-sel select,.kb-sel input{width:100%;padding:6px 10px;border-radius:7px;border:1px solid var(--border);background:var(--input);color:inherit;font:inherit}
 .su-spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.2);border-top-color:#1d1d1f;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .su-av{width:104px;height:104px;border-radius:50%;margin:0 auto 18px;display:grid;place-items:center;font-size:46px;font-weight:700;box-shadow:0 10px 40px rgba(0,0,0,.35);cursor:pointer;transition:background .5s,transform .3s}
@@ -2562,7 +2564,7 @@ function setupRun(){
       H=card(`<h1>Vamos nos conectar</h1><p class="su-s">Escolha uma rede. Fuso horário e atualizações se ajustam sozinhos.</p>
       ${NETS.map(x=>`<div class="su-net${D.net===x[0]?' sel':''}" data-net="${x[0]}">${WIFI}<span>${x[0]}<small>${x[1]}</small></span>${D.net===x[0]&&D.netOk?'<b>✓</b>':x[2]?'🔒':''}</div>`).join('')}
       ${n&&n[2]&&!D.netOk?`<input class="su-in" type="password" placeholder="Senha de “${n[0]}”" data-pw>`:''}
-      <div class="su-tz">🌍 Fuso horário detectado: <b>${tz}</b> · ${new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})}</div>
+      <div class="su-kbreg">${kbRegHTML('su-in')}</div>
       <div class="su-nav"><button class="su-link" data-skip>Continuar sem internet</button><button class="su-btn" data-next${D.net?'':' disabled'}>${D.netOk?'Continuar':'Conectar'}</button></div>`,0,anim);
     }
     if(st===2){const s=strength(D.pass);
@@ -3825,8 +3827,21 @@ document.addEventListener('keyup',e=>{
   if((e.key==='Meta'||e.key==='OS')&&skMeta&&S.skSuper){skMeta=false;toggleSpot();return}
   if(e.key==='Shift'&&S.skShift){const n=Date.now();if(skShiftT&&n-skShiftT<380){skShiftT=0;toggleSpot()}else skShiftT=n}
 },true);
+
+// ---- Teclado e região (reais no AtriumOS) ----
+const KB_LAYOUTS=[['pt','','Português (Portugal)'],['pt','mac','Português (Portugal) — teclado Mac'],['br','','Português (Brasil) — ABNT2'],['us','','Inglês (EUA)'],['us','intl','Inglês (EUA, internacional com acentos)'],['us','mac','Inglês (EUA) — teclado Mac'],['gb','','Inglês (Reino Unido)'],['es','','Espanhol'],['latam','','Espanhol (América Latina)'],['fr','','Francês'],['de','','Alemão'],['it','','Italiano'],['ch','','Suíço']];
+const TZ_LIST=[['Europe/Lisbon','Portugal (Lisboa)'],['Atlantic/Azores','Portugal (Açores)'],['Atlantic/Madeira','Portugal (Madeira)'],['America/Sao_Paulo','Brasil (Brasília/São Paulo)'],['America/Manaus','Brasil (Manaus)'],['America/Fortaleza','Brasil (Nordeste)'],['America/Noronha','Brasil (Fernando de Noronha)'],['America/Rio_Branco','Brasil (Acre)'],['Africa/Luanda','Angola'],['Africa/Maputo','Moçambique'],['Atlantic/Cape_Verde','Cabo Verde'],['Europe/London','Reino Unido'],['Europe/Madrid','Espanha'],['Europe/Paris','França'],['Europe/Berlin','Alemanha'],['Europe/Rome','Itália'],['Europe/Zurich','Suíça'],['America/New_York','EUA (Leste)'],['America/Chicago','EUA (Centro)'],['America/Denver','EUA (Montanhas)'],['America/Los_Angeles','EUA (Pacífico)'],['America/Mexico_City','México'],['America/Argentina/Buenos_Aires','Argentina'],['UTC','UTC']];
+function kbCur(){return S.kb||((location.origin==='http://127.0.0.1:7777')?'':'pt|')}
+function tzCur(){try{return S.tz||Intl.DateTimeFormat().resolvedOptions().timeZone}catch(e){return S.tz||'Europe/Lisbon'}}
+function kbRegHTML(cls){const kb=kbCur(),tz=tzCur();const tzs=TZ_LIST.some(x=>x[0]===tz)?TZ_LIST:[[tz,tz.replace(/_/g,' ')],...TZ_LIST];
+  return `<label>⌨️ Teclado<select class="${cls}" onchange="kbSet(this.value)">${kb?'':'<option value="">Escolher…</option>'}${KB_LAYOUTS.map(([l,v,n])=>`<option value="${l}|${v}"${kb===l+'|'+v?' selected':''}>${n}</option>`).join('')}</select></label>
+  <label>Experimente aqui (ex.: @ € ç ã)<input class="${cls}" placeholder="Digite para testar o teclado"></label>
+  <label>🌍 Região e fuso horário<select class="${cls}" onchange="tzSet(this.value)">${tzs.map(([z,n])=>`<option value="${z}"${z===tz?' selected':''}>${n}</option>`).join('')}</select></label>`}
+async function kbSet(val){if(!val)return;S.kb=val;save();const [l,v]=val.split('|');if((location.origin==='http://127.0.0.1:7777')){const r=await sysCall('teclado',{layout:l,variante:v});if(!r.ok)notify('settings','Teclado','Não foi possível mudar o teclado.')}}
+async function tzSet(z){S.tz=z;save();if((location.origin==='http://127.0.0.1:7777')){const r=await sysCall('regiao',{tz:z});if(!r.ok)notify('settings','Região','Não foi possível mudar o fuso horário.')}}
+if((location.origin==='http://127.0.0.1:7777'))setTimeout(async()=>{const r=await sysCall('teclado_estado');if(r&&r.ok&&r.layout){S.kb=r.layout+'|'+(r.variante||'');if(r.tz)S.tz=r.tz;save()}},1500);
 function keysHTML(sw){
-  return `<h2>Teclado</h2><h3 class="sec" style="font-size:14px">Abrir a Busca Atrium</h3><div class="grp">${SK_LIST.map(([k,t,s])=>`<div class="row"><span>${t}<br><small>${s}</small></span>${sw(k,S[k])}</div>`).join('')}<div class="row"><span>Experimentar agora</span><button class="pbtn" data-a="trysk">Abrir a Busca</button></div></div>
+  return `<h2>Teclado</h2><h3 class="sec" style="font-size:14px">Layout e região</h3><div class="grp"><div class="kb-sel">${kbRegHTML('')}</div></div><h3 class="sec" style="font-size:14px">Abrir a Busca Atrium</h3><div class="grp">${SK_LIST.map(([k,t,s])=>`<div class="row"><span>${t}<br><small>${s}</small></span>${sw(k,S[k])}</div>`).join('')}<div class="row"><span>Experimentar agora</span><button class="pbtn" data-a="trysk">Abrir a Busca</button></div></div>
   <h3 class="sec" style="font-size:14px">Outros atalhos</h3><div class="grp kb-list">${[['Launchpad','F4'],['Mission Control','F3 ou Ctrl + ↑'],['Trocar de Área de Trabalho','Ctrl + ← / →'],['Encaixar janela','Ctrl + Alt + setas'],['Fechar janela','Ctrl + W'],['Bloquear a tela','Ctrl + Alt + L']].map(([a,b])=>`<div class="row"><span>${a}</span><kbd>${b}</kbd></div>`).join('')}</div>`;
 }
 

@@ -1,0 +1,13 @@
+#!/bin/sh
+# AtriumOS: grava o layout escolhido para o sistema todo (terminal de texto e instalador)
+set -e
+case "$1" in *[!a-z]*|"") exit 1;; esac
+case "$2" in *[!a-z0-9_]*) exit 1;; esac
+cat > /etc/default/keyboard <<K
+XKBMODEL="pc105"
+XKBLAYOUT="$1"
+XKBVARIANT="$2"
+XKBOPTIONS=""
+BACKSPACE="guess"
+K
+command -v setupcon >/dev/null && setupcon -k --force >/dev/null 2>&1 || true

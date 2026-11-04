@@ -1,0 +1,2 @@
+# AtriumOS: Ajustes › Teclado pode gravar o layout do sistema
+%sudo ALL=(root) NOPASSWD: /usr/lib/atriumos/teclado-sistema

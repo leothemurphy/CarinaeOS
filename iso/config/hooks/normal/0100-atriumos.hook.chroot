@@ -65,3 +65,6 @@ systemctl enable atrium-firstboot.service || true
 # --- caches ---
 gtk-update-icon-cache -f /usr/share/icons/hicolor >/dev/null 2>&1 || true
 update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+
+# sudoers do teclado com permissões corretas
+chmod 0440 /etc/sudoers.d/atriumos-teclado 2>/dev/null || true
