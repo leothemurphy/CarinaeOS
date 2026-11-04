@@ -54,9 +54,10 @@ dock.addWidget("org.kde.plasma.marginsseparator");
 dock.addWidget("org.kde.plasma.trash");
 
 // ---------- papel de parede ----------
-var ds = desktops();
-for (var i = 0; i < ds.length; i++) {
-  ds[i].wallpaperPlugin = "org.kde.image";
-  ds[i].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
-  ds[i].writeConfig("Image", "file:///usr/share/wallpapers/AtriumOS-Portal/");
+var all = desktopsForActivity(currentActivity());
+if (all.length === 0) all = desktops();
+for (var i = 0; i < all.length; i++) {
+  all[i].wallpaperPlugin = "org.kde.image";
+  all[i].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
+  all[i].writeConfig("Image", "file:///usr/share/wallpapers/AtriumOS-Portal/");
 }

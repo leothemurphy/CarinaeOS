@@ -68,6 +68,26 @@ for f in /usr/share/applications/firefox-esr.desktop /usr/share/applications/win
   hide "$f"
 done
 
+
+# --- instalador: "Instalar o AtriumOS" com o nosso logo ---
+for f in /usr/share/applications/install-debian.desktop /usr/share/applications/calamares*.desktop; do
+  [ -f "$f" ] || continue
+  sed -i -E '/^(Name|GenericName|Comment)\[[^]]*\]=/d' "$f"
+  sed -i -E 's/^Name=.*/Name=Instalar o AtriumOS/; s/^GenericName=.*/GenericName=Instalar o AtriumOS/; s/^Comment=.*/Comment=Instala o AtriumOS neste computador/; s/^Icon=.*/Icon=atriumos/' "$f"
+done
+
+# --- sem a tela de boas-vindas do KDE/Debian (o AtriumOS tem a sua) ---
+if dpkg -s plasma-welcome >/dev/null 2>&1; then
+  DEBIAN_FRONTEND=noninteractive apt-get purge -y plasma-welcome || true
+fi
+rm -f /etc/xdg/autostart/org.kde.plasma-welcome.desktop
+
+# --- papel de parede padrão: Portal ---
+for m in /usr/share/plasma/wallpapers/org.kde.image/contents/config/main.xml; do
+  [ -f "$m" ] || continue
+  perl -0pi -e 's#(<entry name="Image".*?<default>).*?(</default>)#${1}file:///usr/share/wallpapers/AtriumOS-Portal/${2}#s' "$m"
+done
+
 # --- serviços ---
 systemctl enable atrium-firstboot.service || true
 
