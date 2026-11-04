@@ -1,60 +1,70 @@
 #!/bin/sh
-# AtriumOS — abre a interface do AtriumOS em tela cheia.
+# AtriumOS — inicia a sessão: gerenciador de janelas (labwc) com a interface
+# do AtriumOS no fundo e os apps de verdade abrindo em janelas por cima.
 # Vídeo: em máquina virtual usa o modo de compatibilidade (desenho pelo
-# processador); num computador de verdade, a placa de vídeo. Para forçar,
-# crie /etc/atriumos/video com "compatibilidade" ou "aceleracao".
-# Vigia: se a interface não carregar em 2 minutos, reabre (até 3 vezes).
-# Registro em ~/.local/state/atriumos/sessao.log
+# processador). Para forçar: /etc/atriumos/video = compatibilidade | aceleracao
+CFG="${XDG_CONFIG_HOME:-$HOME/.config}/labwc"
 ESTADO="${XDG_STATE_HOME:-$HOME/.local/state}/atriumos"
-mkdir -p "$ESTADO"
+mkdir -p "$CFG" "$ESTADO"
 LOG="$ESTADO/sessao.log"
 : > "$LOG"
-OK="${XDG_RUNTIME_DIR:-/tmp}/atrium-interface-ok"
-
-export XDG_SESSION_TYPE=wayland
-export QT_QPA_PLATFORM=wayland
-export WLR_NO_HARDWARE_CURSORS=1
-
-if ! curl -s -o /dev/null http://127.0.0.1:7777/; then
-  python3 /usr/lib/atriumos/shell-server.py >>"$LOG" 2>&1 &
-  i=0
-  while [ $i -lt 30 ] && ! curl -s -o /dev/null http://127.0.0.1:7777/; do sleep 0.3; i=$((i+1)); done
-fi
 
 MODO="$(cat /etc/atriumos/video 2>/dev/null)"
 if [ -z "$MODO" ]; then
   if systemd-detect-virt -q || [ ! -e /dev/dri/card0 ]; then MODO=compatibilidade; else MODO=aceleracao; fi
 fi
+echo "== vídeo: $MODO ($(systemd-detect-virt 2>/dev/null))" >>"$LOG"
 
-DADOS="${XDG_DATA_HOME:-$HOME/.local/share}/atriumos/interface"
-mkdir -p "$DADOS"
+# teclado igual ao do sistema
+[ -f /etc/default/keyboard ] && . /etc/default/keyboard
 
-TENTATIVA=1
-while [ $TENTATIVA -le 3 ]; do
-  EXTRA=""
-  unset WLR_RENDERER
-  if [ "$MODO" = compatibilidade ]; then
-    export WLR_RENDERER=pixman
-    EXTRA="--disable-gpu --disable-gpu-compositing"
-  fi
-  echo "== tentativa $TENTATIVA · vídeo: $MODO ($(systemd-detect-virt 2>/dev/null))" >>"$LOG"
-  rm -f "$OK"
-  # shellcheck disable=SC2086
-  cage -d -s -- chromium --kiosk --noerrdialogs --disable-infobars \
-    --disable-session-crashed-bubble --no-first-run --no-default-browser-check \
-    --password-store=basic --disable-features=Translate --autoplay-policy=no-user-gesture-required \
-    --ozone-platform=wayland --user-data-dir="$DADOS" $EXTRA http://127.0.0.1:7777/ >>"$LOG" 2>&1 &
-  PID=$!
-  i=0
-  while [ $i -lt 120 ] && [ ! -f "$OK" ] && kill -0 $PID 2>/dev/null; do sleep 1; i=$((i+1)); done
-  if [ -f "$OK" ]; then
-    echo "== interface carregou em ${i}s" >>"$LOG"
-    wait $PID
-    exit 0
-  fi
-  echo "== a interface não carregou; reabrindo" >>"$LOG"
-  kill $PID 2>/dev/null; sleep 2; kill -9 $PID 2>/dev/null
-  MODO=compatibilidade
-  TENTATIVA=$((TENTATIVA+1))
-done
-exit 1
+# tirar a barra da janela da interface (o comando mudou na versão 0.8 do labwc)
+V="$(labwc --version 2>/dev/null | grep -o '[0-9]*\.[0-9]*' | head -1)"
+case "$V" in
+  0.[0-7]) SEMBARRA='<action name="ToggleDecorations"/>' ;;
+  *)       SEMBARRA='<action name="SetDecorations" decorations="none"/>' ;;
+esac
+
+cat > "$CFG/rc.xml" <<X
+<?xml version="1.0"?>
+<labwc_config>
+  <core><decoration>server</decoration><gap>0</gap></core>
+  <theme>
+    <name>AtriumOS</name>
+    <cornerRadius>10</cornerRadius>
+    <titlebar><layout>close,iconify,max:</layout><showTitle>yes</showTitle></titlebar>
+    <font place="ActiveWindow"><name>Inter</name><size>10</size><weight>bold</weight></font>
+    <font place="InactiveWindow"><name>Inter</name><size>10</size><weight>bold</weight></font>
+    <font place="MenuItem"><name>Inter</name><size>10</size></font>
+    <font place="OnScreenDisplay"><name>Inter</name><size>10</size></font>
+  </theme>
+  <placement><policy>center</policy></placement>
+  <keyboard><default/>
+    <keybind key="A-F4"><action name="Close"/></keybind>
+  </keyboard>
+  <windowRules>
+    <windowRule identifier="*127.0.0.1*" skipTaskbar="yes" skipWindowSwitcher="yes">
+      $SEMBARRA
+      <action name="Maximize"/>
+      <action name="ToggleAlwaysOnBottom"/>
+    </windowRule>
+  </windowRules>
+</labwc_config>
+X
+
+{
+  echo "XKB_DEFAULT_LAYOUT=${XKBLAYOUT:-pt}"
+  [ -n "$XKBVARIANT" ] && echo "XKB_DEFAULT_VARIANT=$XKBVARIANT"
+  echo "WLR_NO_HARDWARE_CURSORS=1"
+  echo "XCURSOR_THEME=Adwaita"
+  echo "MOZ_ENABLE_WAYLAND=1"
+  echo "QT_QPA_PLATFORM=wayland;xcb"
+  echo "ATRIUM_VIDEO=$MODO"
+  [ "$MODO" = compatibilidade ] && echo "WLR_RENDERER=pixman"
+} > "$CFG/environment"
+
+echo "atrium-interface &" > "$CFG/autostart"
+
+[ "$MODO" = compatibilidade ] && export WLR_RENDERER=pixman
+export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=AtriumOS:wlroots
+exec labwc >>"$LOG" 2>&1

@@ -1,7 +1,7 @@
 #!/bin/sh
 # Apps Android (Waydroid). Opcional: se falhar, o build continua.
 . /etc/atriumos-build.conf 2>/dev/null || true
-[ "${ANDROID:-0}" = "1" ] || exit 0
+[ "${ANDROID:-1}" = "1" ] || exit 0
 export DEBIAN_FRONTEND=noninteractive
 ok=0
 if curl -fsSL https://repo.waydro.id/waydroid.gpg -o /usr/share/keyrings/waydroid.gpg; then

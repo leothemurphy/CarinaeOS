@@ -1,0 +1,10 @@
+#!/bin/sh
+# AtriumOS — abre programas do Windows (.exe / .msi) sem mostrar o Wine.
+export WINEPREFIX="${XDG_DATA_HOME:-$HOME/.local/share}/atrium/windows"
+export WINEDEBUG=-all
+[ -d "$WINEPREFIX" ] || wineboot -i >/dev/null 2>&1
+[ $# -eq 0 ] && exit 0
+case "$1" in
+  *.msi|*.MSI) exec wine msiexec /i "$1" ;;
+  *) cd "$(dirname "$1")" && exec wine start /unix "$1" ;;
+esac

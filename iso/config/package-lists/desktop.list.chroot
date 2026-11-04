@@ -1,18 +1,27 @@
-# Interface do AtriumOS: o nosso projeto em tela cheia
-cage
+# Sessão do AtriumOS: gerenciador de janelas + a interface do projeto
+labwc
+xwayland
 chromium
 chromium-l10n
+foot
 fonts-inter
 fonts-noto-core
 fonts-noto-color-emoji
+adwaita-icon-theme
 python3
+curl
+xdg-user-dirs
+xdg-utils
+upower
+polkitd
 pipewire-audio
 wireplumber
 network-manager
 plymouth
 plymouth-themes
-mesa-utils
 libgl1-mesa-dri
+# dependências do Pórtico (navegador compilado em /opt/portico)
+firefox-esr
 # instalador (abre por cima da interface)
 calamares
 calamares-settings-debian

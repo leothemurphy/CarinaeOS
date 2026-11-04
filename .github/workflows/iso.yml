@@ -6,11 +6,11 @@ on:
       android:
         description: "Incluir Apps Android (Waydroid)"
         type: boolean
-        default: false
+        default: true
       windows:
         description: "Incluir Apps do Windows (Wine)"
         type: boolean
-        default: false
+        default: true
   push:
     tags: ["v*"]
     branches: ["construir/iso"]
@@ -37,12 +37,12 @@ jobs:
 
       - name: Construir a ISO (Debian 13 + live-build)
         env:
-          ATRIUM_ANDROID: ${{ github.event.inputs.android == 'true' && '1' || '0' }}
-          ATRIUM_WINDOWS: ${{ github.event.inputs.windows == 'true' && '1' || '0' }}
+          ATRIUM_ANDROID: ${{ github.event.inputs.android == 'false' && '0' || '1' }}
+          ATRIUM_WINDOWS: ${{ github.event.inputs.windows == 'false' && '0' || '1' }}
         run: |
           sudo docker run --rm --privileged \
             -v "$PWD":/work -w /work/iso \
-            -e ATRIUM_ANDROID -e ATRIUM_WINDOWS \
+            -e ATRIUM_ANDROID -e ATRIUM_WINDOWS -e GITHUB_REPOSITORY \
             debian:trixie bash -c '
               set -e
               apt-get update

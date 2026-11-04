@@ -2535,7 +2535,8 @@ function setupRun(){
   let st=0,greetIv=null,prevDock=[...DOCK];
   const LANGS=['Português (Brasil)','Português (Portugal)','English','Español','Français','Deutsch','Italiano'];
   const GREET=['Olá','Hello','Hola','Bonjour','Ciao','Hallo','こんにちは','Привет','Merhaba'];
-  const NETS=[['Casa-5G','Sinal excelente',1],['Café Atrium','Rede aberta',0],['Vizinho_2.4G','Sinal fraco',1]];
+  const NETS=REAL?realNets():[['Casa-5G','Sinal excelente',1],['Café Atrium','Rede aberta',0],['Vizinho_2.4G','Sinal fraco',1]];
+  if(REAL&&window.wifiScan)window.wifiScan().then(()=>{NETS.splice(0,NETS.length,...realNets());if(st===1)render(false)});
   const TITLES=['Olá','Rede','Você','Estilo','Uso','Privacidade','Bagagem','Pronto'];
   let tun='';for(let i=0;i<9;i++){const r=46*Math.pow(1.42,i),cx=800,base=500+r*1.15,top=500-r*.15;tun+=`<path d="M${cx-r} ${base}V${top}A${r} ${r} 0 0 1 ${cx+r} ${top}V${base}" fill="none" stroke="#fff" stroke-opacity="${(.04+.025*(9-i)/2).toFixed(3)}" stroke-width="${1.2+i*.25}"/>`}
   el.innerHTML=`<div class="su-bg"></div><svg class="su-tunnel" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">${tun}</svg><button class="su-a11y" title="Acessibilidade" aria-label="Acessibilidade">${A11Y}</button><div class="su-stage"></div><div class="su-arches"></div>`;
@@ -2634,7 +2635,10 @@ function setupRun(){
     if('next' in d){if(c.disabled)return;
       if(st===1&&!D.netOk){const n=NETS.find(x=>x[0]===D.net);const pw=$('[data-pw]',el);
         if(n[2]&&pw&&pw.value.length<4){pw.classList.remove('shake');void pw.offsetWidth;pw.classList.add('shake');pw.focus();return}
-        c.disabled=true;c.innerHTML='<span class="su-spin"></span> Conectando…';setTimeout(()=>{D.netOk=true;S.wifi=true;S.net=D.net;save();if(wifiEl)wifiEl.innerHTML=WIFI;render(false)},1100);return}
+        c.disabled=true;c.innerHTML='<span class="su-spin"></span> Conectando…';
+        if(REAL&&D.net==='Cabo de rede'){D.netOk=true;S.net=D.net;save();render(false);return}
+        if(REAL){window.realWifiConnect(D.net,pw?pw.value:'').then(r=>{if(r&&r.ok){D.netOk=true;S.wifi=true;S.net=D.net;save();render(false)}else{c.disabled=false;c.innerHTML='Conectar';if(pw){pw.value='';pw.classList.remove('shake');void pw.offsetWidth;pw.classList.add('shake');pw.focus()}notify('settings','Wi‑Fi','Não conectou. Confira a senha.')}});return}
+        setTimeout(()=>{D.netOk=true;S.wifi=true;S.net=D.net;save();if(wifiEl)wifiEl.innerHTML=WIFI;render(false)},1100);return}
       if(st===3&&D.uses)applyUses();
       go(st+1)}
   };
@@ -3904,6 +3908,58 @@ if(REAL){
     if(s.live)setTimeout(()=>notify('about','Gostou do AtriumOS?','Para instalar no computador: clique no logo, no canto de cima, › Instalar o AtriumOS.'),9000)}});
   /* sites do Pórtico abrem numa janela por cima; Ctrl+W volta */
   document.addEventListener('click',e=>{const a=e.target.closest('.br-ext a[target="_blank"]');if(a)notify('browser','Pórtico','O site abre por cima. Para voltar ao AtriumOS, aperte Ctrl + W.')},true);
+}
+
+/* ---------- AtriumOS de verdade: Wi‑Fi, volume, arquivos e apps reais ---------- */
+let WIFIL=[],WIFIINFO={ligado:true,cabo:false,temWifi:true};
+const realNets=()=>[...(WIFIINFO.cabo?[['Cabo de rede','Já conectado à internet',0]]:[]),...WIFIL.map(r=>[r.ssid,r.ativa?'Conectada':(r.sinal>66?'Sinal excelente':r.sinal>33?'Sinal bom':'Sinal fraco'),r.seg?1:0])];
+if(REAL){
+  async function wifiScan(){const r=await sysCall('wifi_listar');if(r&&r.ok){WIFIL=r.redes||[];WIFIINFO=r;S.wifi=!!r.ligado;const a=WIFIL.find(n=>n.ativa);S.net=a?a.ssid:(r.cabo?'Cabo de rede':'');if(wifiEl)wifiEl.innerHTML=(a||r.cabo)?WIFI:WIFI_OFF}return WIFIL}
+  window.wifiScan=wifiScan;wifiScan();setInterval(wifiScan,20000);
+  function pedirSenha(ssid){return new Promise(res=>{
+    const m=h('div','rq',`<div class="rq-b" style="width:340px">${WIFI}<b>Senha da rede “${esc(ssid)}”</b><input type="password" class="srch" style="width:100%;margin:10px 0" autocomplete="off"><div class="rq-btn"><button class="pbtn" data-n>Cancelar</button><button class="pbtn pri" data-y>Conectar</button></div></div>`);
+    document.body.appendChild(m);const i=$('input',m);setTimeout(()=>i.focus(),30);
+    const fim=v=>{m.remove();res(v)};$('[data-n]',m).onclick=()=>fim(null);$('[data-y]',m).onclick=()=>fim(i.value);i.onkeydown=e=>{if(e.key==='Enter')fim(i.value);if(e.key==='Escape')fim(null)}})}
+  async function wifiConnect(ssid,seg){let senha='';if(seg){senha=await pedirSenha(ssid);if(senha==null)return}
+    notify('settings','Wi‑Fi',`Conectando a “${ssid}”…`);const r=await sysCall('wifi_conectar',{ssid,senha});
+    notify('settings','Wi‑Fi',r.ok?`Ligado a “${ssid}”.`:`Não foi possível conectar a “${ssid}”. Confira a senha.`);wifiScan()}
+  wifiMenu=function(){
+    const it=[{head:'Wi‑Fi'},{label:WIFIINFO.ligado?'Desligar Wi‑Fi':'Ligar Wi‑Fi',action:()=>setWifi(!WIFIINFO.ligado)}];
+    if(WIFIINFO.cabo)it.push({label:'🔌 Conectado por cabo',disabled:1});
+    if(WIFIINFO.ligado){it.push({sep:1},{head:WIFIL.length?'Redes disponíveis':'Procurando redes…'});
+      WIFIL.slice(0,12).forEach(n=>it.push({label:n.ssid+(n.seg?'  🔒':'')+'  '+'▂▄▆█'.slice(0,Math.max(1,Math.ceil(n.sinal/25))),check:n.ativa,action:()=>n.ativa?0:wifiConnect(n.ssid,n.seg)}))}
+    it.push({sep:1},{label:'Procurar redes de novo',action:()=>{wifiScan();notify('settings','Wi‑Fi','Procurando redes…')}});return it};
+  setWifi=function(v){sysCall('wifi_ligar',{ligar:v}).then(()=>setTimeout(wifiScan,1500));notify('settings','Wi‑Fi',v?'Ligando o Wi‑Fi…':'Wi‑Fi desligado.')};
+  window.realWifiConnect=async(ssid,senha)=>{const r=await sysCall('wifi_conectar',{ssid,senha});await wifiScan();return r};
+  /* volume de verdade */
+  const _setVolume=setVolume;setVolume=function(){_setVolume();sysCall('volume',{v:S.vol})};
+  /* arquivos de verdade */
+  const PREAL={};
+  async function fsSync(){const r=await sysCall('arquivos');if(!r||!r.ok)return;
+    for(const k in r.pastas){PREAL[k]=r.pastas[k].caminho;FS[k]=r.pastas[k].itens}
+    wins.filter(w=>w.app==='finder').forEach(w=>w.refresh&&w.refresh())}
+  window.fsSync=fsSync;fsSync();setInterval(fsSync,15000);
+  const _openFile=openFile;openFile=function(it,folder){
+    if(!it||!it.caminho)return _openFile(it,folder);
+    if(it.k==='folder'){sysCall('arquivos',{caminho:it.caminho}).then(r=>{if(r.ok){FS[it.n]=r.itens}openApp('finder',{folder:it.n})});return}
+    sysCall('abrir',{arquivo:it.caminho}).then(r=>{if(!r.ok)notify('finder','Arquivos',`Não foi possível abrir “${it.n}”.`)});
+    if(it.k==='exe')notify('storeW','Apps do Windows',`Abrindo “${it.n}”… Na primeira vez leva alguns segundos.`);
+    if(it.k==='apk')notify('storeA','Apps Android',`Instalando “${it.n}” no Android…`);
+  };
+  /* apps de verdade: Pórtico, Terminal e Android */
+  const REAL_APPS={browser:'portico',terminal:'terminal',storeA:'android'};
+  let andIv=null;
+  function androidAcompanhar(){clearInterval(andIv);let ult='';andIv=setInterval(async()=>{const r=await sysCall('android_estado');const e=r&&r.estado;if(!e||e===ult)return;ult=e;
+    if(e==='preparando')notify('storeA','Apps Android','Preparando o Android pela primeira vez: baixa cerca de 1 GB. Pode levar alguns minutos.');
+    else if(e==='abrindo')notify('storeA','Apps Android','Abrindo o Android…');
+    else if(e==='pronto'){notify('storeA','Apps Android','Pronto! Procure apps na loja Aurora (ela instala apps da Google Play).');clearInterval(andIv)}
+    else if(e==='sem-android'){notify('storeA','Apps Android','Os Apps Android não vieram nesta versão do AtriumOS.');clearInterval(andIv)}
+    else if(e==='erro-preparar'){notify('storeA','Apps Android','Não deu para preparar o Android. Verifique a internet e tente de novo.');clearInterval(andIv)}},3000)}
+  const _openApp=openApp;openApp=function(id,o={}){
+    const r=REAL_APPS[id];
+    if(r&&!o.prototipo){closeMenu();sysCall('abrir',{app:r,url:o.q&&/^https?:/.test(o.q)?o.q:''}).then(x=>{if(!x.ok)notify(id,APPS[id].n,'Não foi possível abrir.')});
+      if(r==='android')androidAcompanhar();else notify(id,APPS[id].n,'Abrindo…');return}
+    return _openApp(id,o)};
 }
 
 /* ---------- desktop icons & context ---------- */

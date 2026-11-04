@@ -11,8 +11,8 @@ cd "$(dirname "$0")"
 ISO="$(pwd)"
 ROOT="$(cd .. && pwd)"
 INC="$ISO/config/includes.chroot"
-ANDROID="${ATRIUM_ANDROID:-0}"
-WINDOWS="${ATRIUM_WINDOWS:-0}"
+ANDROID="${ATRIUM_ANDROID:-1}"
+WINDOWS="${ATRIUM_WINDOWS:-1}"
 
 echo "==> AtriumOS 0.1 · Android=$ANDROID · Windows=$WINDOWS"
 
@@ -56,6 +56,17 @@ rm -rf "$EXT_TMP"
 # 2b) a interface do AtriumOS (o nosso projeto, igual ao protótipo)
 mkdir -p "$INC/usr/share/atriumos/shell"
 cp "$ROOT/shell/index.html" "$INC/usr/share/atriumos/shell/index.html"
+
+# 2c) Pórtico compilado (Linux) do último lançamento do repositório
+REPO="${GITHUB_REPOSITORY:-leothemurphy/atriumos}"
+URL=$(curl -fsSL "https://api.github.com/repos/$REPO/releases?per_page=30" | grep -o '"browser_download_url": *"[^"]*linux-x86_64\.tar\.xz"' | head -1 | sed 's/.*"\(http[^"]*\)"/\1/')
+if [ -n "$URL" ]; then
+  echo "==> Pórtico: $URL"
+  rm -rf "$INC/opt/portico"; mkdir -p "$INC/opt"
+  curl -fsSL "$URL" | tar -xJ -C "$INC/opt"
+else
+  echo "AVISO: Pórtico compilado não encontrado; o app Pórtico não vai abrir"
+fi
 
 # 3) ícones
 for s in 16 22 24 32 48 64 128 256 512; do
