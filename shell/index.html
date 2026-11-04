@@ -2542,7 +2542,7 @@ function setupRun(){
   const LANGS=['Português (Brasil)','Português (Portugal)','English','Español','Français','Deutsch','Italiano'];
   const GREET=['Olá','Hello','Hola','Bonjour','Ciao','Hallo','こんにちは','Привет','Merhaba'];
   const NETS=REAL?realNets():[['Casa-5G','Sinal excelente',1],['Café Atrium','Rede aberta',0],['Vizinho_2.4G','Sinal fraco',1]];
-  if(RS)sysCall('conta_info').then(r=>{if(r&&r.ok){D.login=r.usuario;if(!D.name&&r.nome&&r.nome!=='Live session user')D.name=r.nome;if(r.host&&!/^(debian|localhost|atrium)$/.test(r.host))D.host=r.host;if(st===2)render(false)}});
+  if(RS)sysCall('conta_info').then(r=>{if(r&&r.ok){D.login=r.usuario;if(!D.name&&r.nome&&!/live/i.test(r.nome))D.name=r.nome;if(r.host&&!/^(debian|localhost|atrium)$/.test(r.host))D.host=r.host;if(st===2)render(false)}});
   if(REAL&&window.wifiScan)window.wifiScan().then(()=>{NETS.splice(0,NETS.length,...realNets());if(st===1)render(false)});
   const TITLES=['Olá','Rede','Você','Estilo','Uso','Privacidade','Bagagem','Pronto'];
   let tun='';for(let i=0;i<9;i++){const r=46*Math.pow(1.42,i),cx=800,base=500+r*1.15,top=500-r*.15;tun+=`<path d="M${cx-r} ${base}V${top}A${r} ${r} 0 0 1 ${cx+r} ${top}V${base}" fill="none" stroke="#fff" stroke-opacity="${(.04+.025*(9-i)/2).toFixed(3)}" stroke-width="${1.2+i*.25}"/>`}

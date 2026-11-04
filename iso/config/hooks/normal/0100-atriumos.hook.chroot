@@ -3,6 +3,7 @@
 set -e
 
 # --- nome do sistema ---
+rm -f /etc/os-release
 cat > /usr/lib/os-release <<'OS'
 PRETTY_NAME="AtriumOS 0.1 (Pátio)"
 NAME="AtriumOS"
@@ -16,6 +17,7 @@ HOME_URL="https://github.com/atriumos/atriumos"
 SUPPORT_URL="https://github.com/atriumos/atriumos/issues"
 BUG_REPORT_URL="https://github.com/atriumos/atriumos/issues"
 OS
+ln -sf ../usr/lib/os-release /etc/os-release
 printf 'AtriumOS 0.1 \\n \\l\n\n' > /etc/issue
 echo "AtriumOS 0.1" > /etc/issue.net
 

@@ -312,7 +312,7 @@ def rede_info(_):
     ips = []
     for linha in out.splitlines():
         partes = linha.split()
-        if len(partes) > 3:
+        if len(partes) > 3 and not partes[1].startswith(("lxc", "waydroid", "docker", "virbr", "veth", "br-")):
             ips.append({"interface": partes[1], "ip": partes[3].split("/")[0]})
     _, rota = sh(["ip", "-4", "route", "show", "default"])
     gw = rota.split()[2] if rota.startswith("default via") else ""
@@ -337,6 +337,7 @@ def rede_descobrir(_):
              "_ipps._tcp": "impressora", "_webdavs._tcp": "davs", "_home-assistant._tcp": "ha",
              "_device-info._tcp": None}
     achados = {}
+    meus = [i["ip"] for i in rede_info(None)["ips"]]
     for t, kind in tipos.items():
         if kind is None:
             continue
@@ -345,14 +346,14 @@ def rede_descobrir(_):
             if not linha.startswith("="):
                 continue
             p = linha.split(";")
-            if len(p) < 9 or p[2] != "IPv4":
+            if len(p) < 9 or p[2] != "IPv4" or p[7].startswith("127."):
                 continue
             nome = p[3].replace("\\032", " ").replace("\\046", "&")
             chave = (p[7], kind)
             if chave in achados:
                 continue
             achados[chave] = {"nome": nome, "host": p[6], "ip": p[7], "porta": p[8], "tipo": kind,
-                              "local": p[7] in [i["ip"] for i in rede_info(None)["ips"]]}
+                              "local": p[7] in meus or p[6].split(".")[0] == os.uname().nodename}
     return {"ok": True, "dispositivos": [d for d in achados.values() if not d["local"]]}
 
 

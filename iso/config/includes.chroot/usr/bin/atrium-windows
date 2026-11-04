@@ -6,7 +6,7 @@ export WINEDEBUG=-all
 export WINEDLLOVERRIDES="mscoree=;mshtml="
 EST="${XDG_RUNTIME_DIR:-/tmp}/atrium-windows"
 LOG="${XDG_STATE_HOME:-$HOME/.local/state}/atriumos/windows.log"
-mkdir -p "$(dirname "$LOG")"
+mkdir -p "$(dirname "$LOG")" "$(dirname "$WINEPREFIX")"
 if [ ! -f "$WINEPREFIX/system.reg" ]; then
   echo preparando > "$EST"
   echo "== preparando o ambiente Windows $(date)" >>"$LOG"
