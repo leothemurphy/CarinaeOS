@@ -1626,7 +1626,7 @@ function buildRight(){
   const cc=h('div','mb',CCI);bindMb(cc,ccPanel);
   const clk=h('div','mb','<span id="clock"></span>');
   clk.addEventListener('pointerdown',e=>{e.stopPropagation();closeMenu();toggleNC()});
-  const ha=h('div','mb',sv(HOUSE,2));bindMb(ha,haMenu);
+  const ha=h('div','mb',sv(HOUSE,2));ha.id='mb-ha';bindMb(ha,haMenu);
   spill=h('div','mb spill opt','');bindMb(spill,spaceMenu);renderSpacePill();
   R.append(spill,ha,bat,wifiEl,sp,cc,clk);
 }
@@ -1801,7 +1801,7 @@ function rFinder(c,win,o){
       const d=h('div','fi',`<div class="gi">${fileGlyph(it)}</div><span>${esc(it.n)}</span>`);
       d.addEventListener('click',e=>{e.stopPropagation();$$('.fi',grid).forEach(x=>x.classList.remove('sel'));d.classList.add('sel');sel=it});
       d.addEventListener('dblclick',()=>{if(cur==='Lixeira')return;
-        if(it.k==='net'){const dv=it.dev&&NETDEV.find(x=>x.id===it.dev);if(dv)return netOpenDev(c,dv,go);return FS[it.n]?go(it.n):netConnect(c,go)}
+        if(it.k==='net'){if(it.srv&&window.abrirSrv)return abrirSrv(it.srv,go);const dv=it.dev&&NETDEV.find(x=>x.id===it.dev);if(dv)return netOpenDev(c,dv,go);return FS[it.n]?go(it.n):netConnect(c,go)}
         if(it.k==='share'){mountShare(it.n,it.dev);return go(it.n)}
         it.k==='folder'?go(it.n):openFile(it,cur)});
       d.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();d.click();
@@ -2116,7 +2116,7 @@ function rMon(c,win){
 }
 
 function rSettings(c,win,o){
-  const secs=[['updates','Atualizações','#0a84ff','<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4"/>'],['programs','Programas','#a855f7','<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M14 16.5h6"/>'],['wall','Papel de Parede','#0ea5e9',I16.img],['look','Aparência','#18181b',HALF.match(/<svg[^>]*>(.*)<\/svg>/)[1]],['dock','Dock e Mesa','#3f3f46','<rect x="3" y="15" width="18" height="5" rx="1.5"/><path d="M7 11h10"/>'],['keys','Teclado','#52525b','<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7.5 14h9"/>'],['net','Rede','#0a84ff','<path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.5a9.3 9.3 0 0 1 12.4 0M9 16a4.6 4.6 0 0 1 6 0"/>'],['secure','Pasta Segura','#d97706','<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'],['defapps','Apps padrão','#2563eb','<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'],['compat','Compatibilidade','#16a34a','<rect x="3" y="4" width="11" height="8" rx="1.5"/><rect x="11" y="11" width="10" height="9" rx="1.5"/>'],['sound','Som','#ef4444','<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/>'],['remote','Acesso Remoto','#4338ca','<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>'],['ha','Home Assistant','#0284c7',HOUSE],['restore','Restauração','#0f766e','<path d="M3 4.5v4h4"/><path d="M3.7 8.5A8.5 8.5 0 1 1 3.5 12"/><path d="M12 7.5V12l3 2"/>'],['about','Sobre','#6b7280',LOGO_P]];
+  const secs=[['updates','Atualizações','#0a84ff','<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4"/>'],['programs','Programas','#a855f7','<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M14 16.5h6"/>'],['wall','Papel de Parede','#0ea5e9',I16.img],['look','Aparência','#18181b',HALF.match(/<svg[^>]*>(.*)<\/svg>/)[1]],['dock','Dock e Mesa','#3f3f46','<rect x="3" y="15" width="18" height="5" rx="1.5"/><path d="M7 11h10"/>'],['keys','Teclado','#52525b','<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7.5 14h9"/>'],['net','Rede','#0a84ff','<path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.5a9.3 9.3 0 0 1 12.4 0M9 16a4.6 4.6 0 0 1 6 0"/>'],['secure','Pasta Segura','#d97706','<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'],['defapps','Apps padrão','#2563eb','<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'],['compat','Compatibilidade','#16a34a','<rect x="3" y="4" width="11" height="8" rx="1.5"/><rect x="11" y="11" width="10" height="9" rx="1.5"/>'],['sound','Som','#ef4444','<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/>'],['remote','Acesso Remoto','#4338ca','<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>'],['ha','Home Assistant','#0284c7',HOUSE],['restore','Restauração','#0f766e','<path d="M3 4.5v4h4"/><path d="M3.7 8.5A8.5 8.5 0 1 1 3.5 12"/><path d="M12 7.5V12l3 2"/>'],['about','Sobre','#6b7280',LOGO_P]].filter(x=>!(window.SEC_OCULTAS||[]).includes(x[0]))
   let sec=o.sec||'wall';
   c.innerHTML=`<div class="st"><div class="side"><div style="display:flex;align-items:center;gap:10px;padding:6px 8px 14px"><div class="avatar" style="width:36px;height:36px;font-size:16px;${avStyle()}">${esc(uName()[0].toUpperCase())}</div><div><b>${esc(uName())}</b><br><small style="color:var(--muted)">Conta local</small></div></div>${secs.map(s=>`<div class="si" data-s="${s[0]}"><span class="sic" style="background:${s[2]}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${s[3]}</svg></span>${s[1]}</div>`).join('')}</div><div class="st-main"></div></div>`;
   const M=$('.st-main',c);
@@ -2155,6 +2155,9 @@ function rSettings(c,win,o){
     if(sec==='keys')H=keysHTML(sw);
     if(sec==='about')H=`<div class="about" style="height:auto;padding:10px 0 20px"><div class="ab-brand">${brandTile()}</div><h1>AtriumOS</h1><div class="v">Versão ${S.ver} “Pátio” · prévia web</div></div>
       <div class="grp"><div class="row"><span>Nome do computador</span><small>atrium</small></div><div class="row"><span>Etapa atual</span><small>1 — protótipo visual</small></div><div class="row"><span>Próxima etapa</span><small>Base Linux + Atrium Shell</small></div><div class="row"><span>Atualização de Software</span><button class="pbtn" data-a="upd">Verificar</button></div></div>`;
+    if(window.netHTMLReal&&sec==='net')H=netHTMLReal(sw);
+    if(window.remoteSecReal&&sec==='remote')H=remoteSecReal();
+    if(window.aboutSecReal&&sec==='about')H=aboutSecReal();
     M.innerHTML=H;
   }
   c.querySelector('.side').addEventListener('click',e=>{const s=e.target.closest('[data-s]');if(s){sec=s.dataset.s;draw()}});
@@ -2533,11 +2536,13 @@ const miniArch='<svg viewBox="0 0 18 22"><path d="M2 21V9a7 7 0 0 1 14 0v12" fil
 function setupRun(){
   closeMenu();[...wins].forEach(closeWin);if(lp.classList.contains('open'))toggleLP(false);
   const el=$('#setup');
-  const D={lang:0,net:null,netOk:false,name:S.user||'',pass:'',av:S.av||0,uses:new Set(S.uses||['trab','music']),priv:{loc:true,crash:false,snap:S.autoSnap!==false},bag:null,theme:S.themeAuto?'auto':S.dark?'dark':'light',a11y:false};
+  const RS=(location.origin==='http://127.0.0.1:7777');const LOCS=['pt_BR','pt_PT','en_US','es_ES','fr_FR','de_DE','it_IT'];
+  const D={lang:S.langIdx!=null?S.langIdx:(navigator.language==='pt-BR'?0:1),host:'',pass2:'',login:'',express:false,net:null,netOk:false,name:S.user||'',pass:'',av:S.av||0,uses:new Set(S.uses||['trab','music']),priv:{loc:true,crash:false,snap:S.autoSnap!==false},bag:null,theme:S.themeAuto?'auto':S.dark?'dark':'light',a11y:false};
   let st=0,greetIv=null,prevDock=[...DOCK];
   const LANGS=['Português (Brasil)','Português (Portugal)','English','Español','Français','Deutsch','Italiano'];
   const GREET=['Olá','Hello','Hola','Bonjour','Ciao','Hallo','こんにちは','Привет','Merhaba'];
   const NETS=REAL?realNets():[['Casa-5G','Sinal excelente',1],['Café Atrium','Rede aberta',0],['Vizinho_2.4G','Sinal fraco',1]];
+  if(RS)sysCall('conta_info').then(r=>{if(r&&r.ok){D.login=r.usuario;if(!D.name&&r.nome&&r.nome!=='Live session user')D.name=r.nome;if(r.host&&!/^(debian|localhost|atrium)$/.test(r.host))D.host=r.host;if(st===2)render(false)}});
   if(REAL&&window.wifiScan)window.wifiScan().then(()=>{NETS.splice(0,NETS.length,...realNets());if(st===1)render(false)});
   const TITLES=['Olá','Rede','Você','Estilo','Uso','Privacidade','Bagagem','Pronto'];
   let tun='';for(let i=0;i<9;i++){const r=46*Math.pow(1.42,i),cx=800,base=500+r*1.15,top=500-r*.15;tun+=`<path d="M${cx-r} ${base}V${top}A${r} ${r} 0 0 1 ${cx+r} ${top}V${base}" fill="none" stroke="#fff" stroke-opacity="${(.04+.025*(9-i)/2).toFixed(3)}" stroke-width="${1.2+i*.25}"/>`}
@@ -2558,6 +2563,7 @@ function setupRun(){
     if(st===0){
       H=`<div class="su-hello"><div class="su-logo">${brandMark(1)}</div><div class="su-greet">Olá</div>
         <div class="su-langs">${LANGS.map((l,i)=>`<span class="su-pill${i===D.lang?' sel':''}" data-lang="${i}">${l}</span>`).join('')}</div>
+        ${RS&&D.lang>1?'<p class="su-s" style="font-size:12.5px;max-width:420px;text-align:center">Os programas (Pórtico, LibreOffice, Terminal…) vão usar este idioma. As telas do AtriumOS por enquanto estão em português.</p>':''}
         <button class="su-btn" data-next style="margin-top:10px">Começar →</button><button class="su-link" data-express>Configuração expressa (só o essencial)</button></div>`;
     }
     if(st===1){const n=NETS.find(x=>x[0]===D.net);
@@ -2570,9 +2576,10 @@ function setupRun(){
     if(st===2){const s=strength(D.pass);
       H=card(`<div class="su-av" data-av style="${avStyle(D.av)}">${init()}</div><h1 style="text-align:center">Como podemos te chamar?</h1>
       <input class="su-in" data-name placeholder="O seu nome" value="${esc(D.name)}" style="text-align:center;font-size:20px" maxlength="24">
-      <div style="text-align:center"><span class="su-chip">💻 Nome do computador: <b data-host>atrium-de-${slug(D.name)}</b></span></div>
-      <div class="su-pw"><input class="su-in" type="password" data-pass placeholder="Crie uma senha" value="${esc(D.pass)}"><svg viewBox="0 0 40 34"><path d="M5 32V18a15 15 0 0 1 30 0v14" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="4" stroke-linecap="round"/><path data-arc d="M5 32V18a15 15 0 0 1 30 0v14" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-dasharray="76" stroke-dashoffset="${76*(1-s/5)}"/></svg><small data-pws></small></div>
-      <p class="su-s" style="font-size:12px;margin:12px 0 0;text-align:center">Toque no círculo para mudar a cor. Sem conta online: tudo fica neste computador.</p>${nav('Continuar',!D.name.trim())}`,0,anim);
+      ${RS?`<div class="su-kbreg"><label>💻 Nome do computador na rede<input class="su-in" data-hostin value="${esc(D.host||'atrium-de-'+slug(D.name))}" maxlength="40"></label></div>${D.login?`<p class="su-s" style="font-size:12px;margin:6px 0 0;text-align:center">Usuário de acesso ao sistema: <b>${esc(D.login)}</b></p>`:''}`:`<div style="text-align:center"><span class="su-chip">💻 Nome do computador: <b data-host>atrium-de-${slug(D.name)}</b></span></div>`}
+      <div class="su-pw"><input class="su-in" type="password" data-pass placeholder="${RS?'Senha do sistema (mínimo 4 caracteres)':'Crie uma senha'}" value="${esc(D.pass)}"><svg viewBox="0 0 40 34"><path d="M5 32V18a15 15 0 0 1 30 0v14" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="4" stroke-linecap="round"/><path data-arc d="M5 32V18a15 15 0 0 1 30 0v14" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-dasharray="76" stroke-dashoffset="${76*(1-s/5)}"/></svg><small data-pws></small></div>
+      ${RS?`<input class="su-in" type="password" data-pass2 placeholder="Repita a senha" value="${esc(D.pass2)}" style="margin-top:8px"><small data-acerr style="display:block;text-align:center;color:#fca5a5;min-height:16px;margin-top:6px"></small>`:''}
+      <p class="su-s" style="font-size:12px;margin:12px 0 0;text-align:center">${RS?'Esta é a senha para entrar, desbloquear a tela e instalar programas. ':''}Toque no círculo para mudar a cor. Sem conta online: tudo fica neste computador.</p>${nav('Continuar',!D.name.trim()||(RS&&(D.pass.length<4||D.pass!==D.pass2)))}`,0,anim);
     }
     if(st===3){
       H=card(`<h1>Do seu jeito</h1><p class="su-s">Veja cada mudança ao vivo, atrás deste cartão.</p>
@@ -2587,7 +2594,13 @@ function setupRun(){
       <div class="su-uses">${USES.map(u=>`<div class="su-use${D.uses.has(u[0])?' sel':''}" data-use="${u[0]}"><b>${u[1]}</b>${u[2]}</div>`).join('')}</div>
       <div class="su-hint">↓ ${DOCK.length} ícones na Dock${D.uses.has('home')?' · Atrium Agent ligado ao seu Home Assistant':''}</div>${nav()}`,1,anim);
     }
-    if(st===5){const P=[['loc','Usar a localização aproximada','Só para acertar o fuso horário e o clima. Não sai deste computador.'],['crash','Enviar relatórios de erro anônimos','Ajuda a corrigir falhas. Desligado, a não ser que você ligue.'],['snap','Máquina do Tempo automática','Ponto de restauração antes de cada atualização ou instalação.']];
+    if(st===5&&RS){
+      H=card(`<h1>Seus dados, suas regras</h1><p class="su-big">Sem anúncios. Sem conta obrigatória. Sem rastreamento.</p>
+      <div class="su-row"><span>O AtriumOS não envia nenhum dado<small>Não há telemetria, relatórios automáticos nem conta online. O que você faz fica neste computador.</small></span><b>✓</b></div>
+      <div class="su-row"><span>Pontos de restauração antes de atualizar<small>Quando instalado no disco (Btrfs), o sistema guarda um ponto antes de cada atualização, para poder voltar atrás.</small></span><b>✓</b></div>
+      <div class="su-row"><span>Localização<small>Não é usada. O fuso horário é o que você escolheu no passo da rede.</small></span><b>✓</b></div>${nav()}`,0,anim);
+    }
+    else if(st===5){const P=[['loc','Usar a localização aproximada','Só para acertar o fuso horário e o clima. Não sai deste computador.'],['crash','Enviar relatórios de erro anônimos','Ajuda a corrigir falhas. Desligado, a não ser que você ligue.'],['snap','Máquina do Tempo automática','Ponto de restauração antes de cada atualização ou instalação.']];
       H=card(`<h1>Seus dados, suas regras</h1><p class="su-big">Sem anúncios. Sem conta obrigatória. Sem rastreamento.</p><p class="su-s">O que o AtriumOS pode fazer, sem letras miúdas:</p>
       ${P.map(p=>`<div class="su-row"><span>${p[1]}<small>${p[2]}</small></span><div class="switch${D.priv[p[0]]?' on':''}" data-priv="${p[0]}"></div></div>`).join('')}${nav()}`,0,anim);
     }
@@ -2597,19 +2610,19 @@ function setupRun(){
     }
     if(st===7){
       H=card(`<div class="su-av" style="${avStyle(D.av)}">${init()}</div><h1 style="text-align:center">Tudo pronto, ${esc(D.name.trim()||'você')}.</h1><p class="su-s" style="text-align:center">O seu átrio está à sua espera.</p>
-      <div class="su-sum"><span>🎨 ${WALLS[S.wall].n} · ${D.theme==='auto'?'Automático':D.theme==='dark'?'Escuro':'Claro'}</span><span>🧩 ${DOCK.length} apps na Dock</span><span>📶 ${D.netOk?esc(D.net):'Sem internet'}</span><span>🕰️ Máquina do Tempo ${D.priv.snap?'ligada':'desligada'}</span>${S.lite?'<span>⚡ Modo leve</span>':''}</div>
+      <div class="su-sum"><span>🎨 ${WALLS[S.wall].n} · ${D.theme==='auto'?'Automático':D.theme==='dark'?'Escuro':'Claro'}</span><span>🧩 ${DOCK.length} apps na Dock</span><span>📶 ${D.netOk?esc(D.net):'Sem internet'}</span>${RS?`<span>💻 ${esc(D.host||'atrium-de-'+slug(D.name))}</span><span>⌨️ ${esc((KB_LAYOUTS.find(k=>k[0]+'|'+k[1]===S.kb)||[0,0,'Teclado do sistema'])[2])}</span>`:`<span>🕰️ Máquina do Tempo ${D.priv.snap?'ligada':'desligada'}</span>`}${S.lite?'<span>⚡ Modo leve</span>':''}</div>
       <div style="text-align:center;margin-top:22px"><button class="su-btn" data-finish>Entrar no meu átrio →</button></div><div style="text-align:center;margin-top:10px"><button class="su-link" data-back>Voltar</button></div>`,0,anim);
     }
     stage.innerHTML=H;
     if(st===0){let gi=0;const g=$('.su-greet',el);greetIv=setInterval(()=>{g.classList.add('out');setTimeout(()=>{gi=(gi+1)%GREET.length;g.textContent=GREET[gi];g.classList.remove('out')},450)},1700)}
     const f=$('[data-name],[data-pw]',stage);if(f&&anim)setTimeout(()=>f.focus(),350);
   }
-  function go(n){st=n;render(true)}
+  function go(n){if(RS&&n===6)n=st>6?5:7;if(RS&&D.express&&n>=3&&n<7)n=st>=7?2:7;st=n;render(true)}
   function applyTheme(){S.themeAuto=D.theme==='auto';const hr=new Date().getHours();setDark(D.theme==='dark'||(D.theme==='auto'&&(hr<7||hr>=19)))}
   function applyUses(){const nd=dockFor(D.uses);const old=new Set(DOCK);DOCK=nd;S.dockApps=nd;applyDock();buildDock();nd.filter(k=>!old.has(k)).forEach(k=>{const d=dockItems[k];if(d)d.el.classList.add('pop')});
     if(D.uses.has('home'))S.agent=true;save()}
   function finish(){
-    S.user=D.name.trim()||'Leo';if(D.pass)S.loginPw=hsh(D.pass);S.av=D.av;S.autoSnap=D.priv.snap;S.uses=[...D.uses];S.setupDone=true;save();renderMenubar();
+    S.user=D.name.trim()||'Leo';if(D.pass&&!RS)S.loginPw=hsh(D.pass);S.av=D.av;S.autoSnap=D.priv.snap;S.uses=[...D.uses];S.setupDone=true;save();renderMenubar();
     el.classList.add('leaving');clearInterval(greetIv);
     setTimeout(()=>{el.className='';el.innerHTML='';welcomeNotes();if(D.bag==='win')setTimeout(()=>openApp('migrate'),700);if(D.bag==='android')setTimeout(()=>openApp('link'),700)},1500);
   }
@@ -2620,9 +2633,9 @@ function setupRun(){
       $('.su-ap',el).remove();return}
     if(d.go!=null){const n=+d.go;if(n<st)go(n);return}
     if('back' in d)return go(Math.max(0,st-1));
-    if('express' in d){D.netOk=true;D.net='Casa-5G';S.net='Casa-5G';return go(2)}
+    if('express' in d){if(RS){D.express=true;return go(1)}D.netOk=true;D.net='Casa-5G';S.net='Casa-5G';return go(2)}
     if('skip' in d)return go(2);
-    if(d.lang!=null){D.lang=+d.lang;$$('[data-lang]',el).forEach(x=>x.classList.toggle('sel',x===c));return}
+    if(d.lang!=null){D.lang=+d.lang;S.langIdx=D.lang;save();if(RS){sysCall('idioma',{locale:LOCS[D.lang]});return render(false)}$$('[data-lang]',el).forEach(x=>x.classList.toggle('sel',x===c));return}
     if(d.net){D.net=d.net;D.netOk=false;return render(false)}
     if('av' in d){D.av=(D.av+1)%AV_GRAD.length;c.setAttribute('style',avStyle(D.av));return}
     if(d.theme){D.theme=d.theme;applyTheme();return render(false)}
@@ -2641,11 +2654,16 @@ function setupRun(){
         if(REAL&&D.net==='Cabo de rede'){D.netOk=true;S.net=D.net;save();render(false);return}
         if(REAL){window.realWifiConnect(D.net,pw?pw.value:'').then(r=>{if(r&&r.ok){D.netOk=true;S.wifi=true;S.net=D.net;save();render(false)}else{c.disabled=false;c.innerHTML='Conectar';if(pw){pw.value='';pw.classList.remove('shake');void pw.offsetWidth;pw.classList.add('shake');pw.focus()}notify('settings','Wi‑Fi','Não conectou. Confira a senha.')}});return}
         setTimeout(()=>{D.netOk=true;S.wifi=true;S.net=D.net;save();if(wifiEl)wifiEl.innerHTML=WIFI;render(false)},1100);return}
+      if(st===2&&RS){c.disabled=true;c.innerHTML='<span class="su-spin"></span> Salvando…';
+        sysCall('conta',{nome:D.name.trim(),host:D.host||('atrium-de-'+slug(D.name)),senha:D.pass}).then(r=>{if(r&&r.ok){go(3)}else{c.disabled=false;c.innerHTML='Continuar';const e=$('[data-acerr]',el);if(e)e.textContent=(r&&r.erro)||'Não foi possível salvar a conta.'}});return}
       if(st===3&&D.uses)applyUses();
       go(st+1)}
   };
   el.oninput=e=>{const t=e.target;
-    if('name' in t.dataset){D.name=t.value;$('[data-av]',el).textContent=init();$('[data-host]',el).textContent='atrium-de-'+slug(D.name);$('[data-next]',el).disabled=!D.name.trim()}
+    if('name' in t.dataset){D.name=t.value;$('[data-av]',el).textContent=init();const hb=$('[data-host]',el);if(hb)hb.textContent='atrium-de-'+slug(D.name);const hi=$('[data-hostin]',el);if(hi&&!D.hostTocado){hi.value='atrium-de-'+slug(D.name);D.host=hi.value}}
+    if('hostin' in t.dataset){t.value=t.value.toLowerCase().replace(/[^a-z0-9-]/g,'');D.host=t.value;D.hostTocado=true}
+    if('pass2' in t.dataset)D.pass2=t.value;
+    if('name' in t.dataset||'pass' in t.dataset||'pass2' in t.dataset){const nb=$('[data-next]',el);if(nb)nb.disabled=!D.name.trim()||(RS&&(D.pass.length<4||D.pass!==D.pass2));const e=$('[data-acerr]',el);if(e)e.textContent=RS&&D.pass2&&D.pass!==D.pass2?'As senhas não são iguais.':''}
     if('pass' in t.dataset){D.pass=t.value;const s=strength(D.pass),arc=$('[data-arc]',el);arc.setAttribute('stroke-dashoffset',76*(1-s/5));arc.setAttribute('stroke',['#fff','#f87171','#fb923c','#facc15','#a3e635','#4ade80'][s]);$('[data-pws]',el).textContent=['','Fraca','Fraca','Razoável','Boa','Forte'][s]}
   };
   el.onkeydown=e=>{if(e.key==='Enter'){const b=$('[data-finish],[data-next]',el);if(b&&!b.disabled){e.preventDefault();b.click()}}};
@@ -3601,7 +3619,7 @@ if(!Array.isArray(S.updApps))S.updApps=[];
 const SYSUPD={v:'0.1.2',size:'486 MB',notes:['Palco e Mission Control mais suaves','Pórtico 1.4 com Escudo mais rápido','Melhor duração da bateria em notebooks','Correções de segurança do kernel']};
 const appUpdates=()=>[{id:'browser',v:'1.4',sz:'72 MB',n:'Escudo mais rápido e novas extensões'},{id:'wordcraft',v:'0.9.3',sz:'18 MB',n:'Melhor compatibilidade com .docx'},{id:'gridcraft',v:'0.9.1',sz:'11 MB',n:'Novas funções de planilha'},...Object.keys(S.inst).slice(0,2).map(id=>({id:'x_'+id,v:'nova versão',sz:'—',n:'Atualização do desenvolvedor'}))].filter(a=>APPS[a.id]&&!isRemoved(a.id)&&!S.updApps.includes(a.id));
 const sysPending=()=>S.ver!==SYSUPD.v&&!S.sysBlocked;
-const updCount=()=>(sysPending()?1:0)+appUpdates().length;
+const updCount=()=>window.SEC_OCULTAS?0:(sysPending()?1:0)+appUpdates().length;
 let UPDRUN=null;
 function updatesHTML(sw){
   const ap=appUpdates(),hist=S.updHist.slice(0,6);
@@ -3656,7 +3674,7 @@ function loginScreen(mode,after){
   <div class="lg-top"><div class="lg-brand">${brandMark(1)}<span>AtriumOS</span></div><div class="lk-date"></div><div class="lk-time"></div>${AU.playing?`<div class="lg-np"><div class="wm-art" style="background:linear-gradient(145deg,${TRACKS[AU.ti].c[0]},${TRACKS[AU.ti].c[1]})">${logoSVG('#fff',1.4)}</div><div><b>${esc(TRACKS[AU.ti].n)}</b><span>${esc(TRACKS[AU.ti].a)}</span></div><button data-lg="pp">${ICON_PAUSE}</button></div>`:''}</div>
   <div class="lg-user"><div class="lg-users"></div><div class="lg-av" style="${avStyle()}">${esc(uName()[0].toUpperCase())}</div><b class="lg-name">${esc(uName())}</b>
     <div class="lg-pw"><input type="password" placeholder="Digite a senha" autocomplete="off" spellcheck="false"><button data-lg="go" aria-label="Entrar">${CHR}</button></div>
-    <div class="lg-hint">${S.loginPw?'Toque Enter para entrar':'Nesta prévia, qualquer senha funciona'}</div><div class="lg-caps">⇪ Caps Lock ativado</div>
+    <div class="lg-hint">${window.verificarSenha?'Digite a senha do sistema':S.loginPw?'Toque Enter para entrar':'Nesta prévia, qualquer senha funciona'}</div><div class="lg-caps">⇪ Caps Lock ativado</div>
     <a class="lg-sw" data-lg="users">Trocar de usuário</a></div>
   <div class="lg-power">${mode==='boot'?`<button data-lg="sleep">${SLEEP_I}<span>Repouso</span></button><button data-lg="restart">${RESTART_I}<span>Reiniciar</span></button><button data-lg="off">${POWER_I}<span>Desligar</span></button>`:`<button data-lg="sleep">${SLEEP_I}<span>Repouso</span></button>`}</div>
   <div class="lg-status"><span class="lg-kb">PT</span><span>${S.wifi?WIFI:WIFI_OFF}</span><span class="lg-bat">${batLevel}% ${BAT}</span><button data-lg="a11y" title="Acessibilidade">${A11Y_I}</button></div>`;
@@ -3668,7 +3686,8 @@ function loginScreen(mode,after){
     setTimeout(()=>{L.className='';L.innerHTML='';after&&after()},AD(700))};
   const tryLogin=()=>{
     if(user==='guest'){done();return notify('about','Sessão de convidado','Arquivos criados nesta sessão são apagados ao sair (prévia).')}
-    if(S.loginPw&&hsh(inp.value)!==S.loginPw){fails++;const u=$('.lg-user',L);u.classList.remove('shake');void u.offsetWidth;u.classList.add('shake');inp.value='';
+    if(window.verificarSenha&&!tryLogin.ok){const pw0=$('.lg-pw',L);pw0.classList.add('busy');window.verificarSenha(inp.value).then(certa=>{pw0.classList.remove('busy');if(certa){tryLogin.ok=1;tryLogin();tryLogin.ok=0}else{fails++;const u=$('.lg-user',L);u.classList.remove('shake');void u.offsetWidth;u.classList.add('shake');inp.value='';$('.lg-hint',L).textContent=fails>=3?'Dica: é a senha criada na configuração inicial (na sessão pela ISO, se não configurou: live).':'Senha incorreta. Tente de novo.';$('.lg-hint',L).classList.add('err')}});return}
+    if(!window.verificarSenha&&S.loginPw&&hsh(inp.value)!==S.loginPw){fails++;const u=$('.lg-user',L);u.classList.remove('shake');void u.offsetWidth;u.classList.add('shake');inp.value='';
       $('.lg-hint',L).textContent=fails>=3?'Dica: é a senha criada na configuração inicial do AtriumOS.':'Senha incorreta. Tente de novo.';$('.lg-hint',L).classList.add('err');return}
     const pw=$('.lg-pw',L);pw.classList.add('busy');$('[data-lg=go]',L).innerHTML='<span class="su-spin"></span>';setTimeout(done,AD(550))};
   inp.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')tryLogin();$('.lg-caps',L).classList.toggle('on',!!(e.getModifierState&&e.getModifierState('CapsLock')))});
@@ -3962,7 +3981,7 @@ if(REAL){
     if(it.k==='apk')notify('storeA','Apps Android',`Instalando “${it.n}” no Android…`);
   };
   /* apps de verdade: Pórtico, Terminal e Android */
-  const REAL_APPS={browser:'portico',terminal:'terminal',storeA:'android'};
+  const REAL_APPS={browser:'portico',terminal:'terminal',storeA:'android',wordcraft:'writer',gridcraft:'calc',deckcraft:'impress',lowriter:'writer',localc:'calc',loimpress:'impress',libreoffice:'writer'};
   let andIv=null;
   function androidAcompanhar(){clearInterval(andIv);let ult='';andIv=setInterval(async()=>{const r=await sysCall('android_estado');const e=r&&r.estado;if(!e||e===ult)return;ult=e;
     if(e==='preparando')notify('storeA','Apps Android','Preparando o Android pela primeira vez: baixa cerca de 1 GB. Pode levar alguns minutos.');
@@ -4028,6 +4047,268 @@ document.addEventListener('keydown',e=>{
   if(focused&&focused.onkey)focused.onkey(e);
 });
 addEventListener('resize',()=>{applyDock();if(MC)layoutMC();if(STAGE)layoutStage();wins.forEach(w=>{if(w.el.classList.contains('max')){w.el.style.width=innerWidth+'px';w.el.style.height=(innerHeight-26-BASE-24)+'px'}})});
+
+/* ---------- AtriumOS de verdade (3): nada simulado na ISO ---------- */
+if(REAL){
+  const fmtB=b=>{if(b==null)return'—';const u=['B','KB','MB','GB','TB'];let i=0;while(b>=1024&&i<4){b/=1024;i++}return(b>=10||i===0?Math.round(b):b.toFixed(1)).toString().replace('.',',')+' '+u[i]};
+  window.fmtB=fmtB;
+  const refFinder=()=>wins.filter(w=>w.app==='finder').forEach(w=>w.refresh&&w.refresh());
+  const refSettings=()=>wins.filter(w=>w.app==='settings').forEach(w=>w.refresh&&w.refresh());
+
+  /* sem placa de vídeo (máquina virtual): interface leve */
+  if(/leve=1/.test(location.search)){S.lite=true;applyLite()}
+
+  /* o que ainda não é real não aparece */
+  ['home','timemachine','migrate','link','storeW','preview','appmgr','libreoffice','lowriter','localc','loimpress'].forEach(k=>{if(APPS[k])APPS[k].oculto=1});
+  const _lpApps=lpApps;lpApps=()=>_lpApps().filter(k=>APPS[k]&&!APPS[k].oculto);
+  DOCK=DOCK.filter(k=>APPS[k]&&!APPS[k].oculto);buildDock();
+  const _dockFor=dockFor;dockFor=u=>_dockFor(u).filter(k=>APPS[k]&&!APPS[k].oculto);
+  DESK.splice(0,DESK.length,...DESK.filter(d=>d.n!=='Leia-me.txt'));
+  S.mounts=[];NET.mounted=[];renderDesk();
+  document.head.appendChild(h('style','',`.tg[data-k="bt"],.tg[data-k="share"]{display:none!important}`));
+
+  /* ---------- Sobre e Monitor com dados reais ---------- */
+  let SYS={};
+  async function sysInfo(proc){const r=await sysCall('sistema',proc?{processos:1}:{});if(r&&r.ok)SYS=r;return SYS}
+  sysInfo();
+  APPS.about.r=function(c){
+    const draw=()=>{c.innerHTML=`<div class="about">${icon('about')}<h1>AtriumOS</h1><div class="v">${esc(SYS.sistema||'AtriumOS')}${SYS.live?' · sessão pela ISO/pendrive':''}</div>
+      <dl><dt>Computador</dt><dd>${esc(SYS.host||'—')}</dd><dt>Processador</dt><dd>${esc(SYS.cpu||'—')} · ${SYS.nucleos||'—'} núcleos</dd><dt>Memória</dt><dd>${fmtB(SYS.memTotal)}</dd><dt>Disco</dt><dd>${fmtB(SYS.discoLivre)} livres de ${fmtB(SYS.discoTotal)}</dd><dt>Vídeo</dt><dd>${esc(SYS.video||'—')}</dd><dt>Sistema</dt><dd>Debian · Linux ${esc(SYS.kernel||'')}${SYS.virtual?' · máquina virtual ('+esc(SYS.virtual)+')':''}</dd></dl>
+      <small>Projeto AtriumOS · criado com Claude (Anthropic)</small></div>`};
+    draw();sysInfo().then(draw);
+  };
+  APPS.monitor.r=function(c,win){
+    let iv;const draw=()=>{const p=SYS.processos||[];
+      c.innerHTML=`<div style="padding:14px 16px;height:100%;overflow:auto;box-sizing:border-box"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+        <div class="grp" style="padding:10px"><small>Processador</small><div style="font-size:22px;font-weight:600">${(SYS.cpuUso||0).toFixed(0)} %</div><small>${SYS.nucleos||''} núcleos · carga ${(SYS.carga||0).toFixed(2)}</small></div>
+        <div class="grp" style="padding:10px"><small>Memória</small><div style="font-size:22px;font-weight:600">${fmtB(SYS.memUsada)}</div><small>de ${fmtB(SYS.memTotal)}</small></div>
+        <div class="grp" style="padding:10px"><small>Disco</small><div style="font-size:22px;font-weight:600">${fmtB(SYS.discoLivre)}</div><small>livres de ${fmtB(SYS.discoTotal)}</small></div></div>
+        <div class="grp">${p.map(x=>`<div class="row"><span>${esc(x.n)}<br><small>PID ${x.pid}</small></span><span style="display:flex;gap:14px;align-items:center"><small>${x.cpu.toFixed(1)} % CPU</small><small>${fmtB(x.mem)}</small><button class="pbtn" onclick="matarProc(${x.pid},'${esc(x.n).replace(/'/g,'')}')">Encerrar</button></span></div>`).join('')}</div></div>`};
+    draw();const up=()=>sysInfo(1).then(draw);up();iv=setInterval(up,2500);win.cleanup.push(()=>clearInterval(iv));
+  };
+  window.matarProc=async(pid,n)=>{const r=await sysCall('encerrar_processo',{pid});notify('monitor','Monitor',r.ok?`“${n}” foi encerrado.`:`Não foi possível encerrar “${n}”${r.erro?': '+r.erro:''}.`)};
+  /* bateria: só aparece se o computador tiver uma */
+  setTimeout(async()=>{await sysInfo();const b=$('#batp');const el=b&&b.closest('.mb');if(!SYS.bateria){if(el)el.style.display='none'}else{batLevel=SYS.bateria.nivel;batCharging=SYS.bateria.estado!=='Discharging';b.textContent=batLevel+'%'}},800);
+
+  /* ---------- Ajustes: seções que ainda não são reais ficam escondidas ---------- */
+  window.SEC_OCULTAS=['updates','programs','secure','defapps','compat','restore'];
+
+  /* ---------- Rede de verdade ---------- */
+  let NETR={ips:[],conexoes:[]},DESC=[],SHARE_URL={},CRED={};window.NETR=()=>NETR;
+  async function netInfo(){const r=await sysCall('rede_info');if(r&&r.ok){NETR=r;refSettings()}}
+  netInfo();setInterval(netInfo,30000);
+  let compart={ligado:false,disponivel:false};
+  sysCall('rede_compartilhar_estado').then(r=>{if(r&&r.ok)compart=r});
+  window.netHTMLReal=function(sw){
+    const ip=NETR.ips[0];const nat=ip&&/^10\.0\.2\./.test(ip.ip)&&NETR.virtual;
+    return `<h2>Rede</h2><div class="grp">
+      ${NETR.conexoes.length?NETR.conexoes.map(c=>`<div class="row"><span>${c.tipo==='cabo'?'🔌 Cabo de rede':'📶 Wi‑Fi'}<br><small>${esc(c.nome)} · ${esc(c.interface)}</small></span><small style="color:#16a34a">● Conectado</small></div>`).join(''):'<div class="row"><span>Sem conexão</span><small style="color:#ff3b30">●</small></div>'}
+      ${NETR.ips.map(i=>`<div class="row"><span>Endereço IP<br><small>${esc(i.interface)}</small></span><b style="font-weight:500;user-select:text">${esc(i.ip)}</b></div>`).join('')}
+      <div class="row"><span>Roteador (gateway)</span><small style="user-select:text">${esc(NETR.gateway||'—')}</small></div>
+      <div class="row"><span>Nome na rede</span><small style="user-select:text">${esc(NETR.host||'')}.local</small></div>
+      <div class="row"><span>Endereço físico (MAC)</span><small style="user-select:text">${esc(NETR.mac||'—')}</small></div>
+      ${nat?`<div class="row"><small>ℹ️ Este AtriumOS está numa máquina virtual com rede “NAT”: o endereço ${esc(ip.ip)} é interno do VirtualBox e não aparece no seu roteador. Para ele aparecer na rede de casa, use “Placa em modo Bridge” nas configurações de rede da máquina virtual.</small></div>`:''}</div>
+      <h3 class="sec" style="font-size:14px">Compartilhamento na rede</h3><div class="grp">
+      <div class="row"><span>Compartilhar a pasta Público<br><small>${compart.disponivel?`Outros computadores (Windows, Mac, Linux) acessam por smb://${esc(NETR.host||'')}.local/Publico ou smb://${esc(ip?ip.ip:'')}/Publico · só leitura`:'Serviço de compartilhamento não instalado'}</small></span><div class="switch${compart.ligado?' on':''}" onclick="netCompartilhar(${!compart.ligado})"></div></div>
+      <div class="row"><span>Pastas e computadores da rede</span><button class="pbtn" onclick="openApp('finder',{folder:'Rede',newWindow:1})">Abrir Rede no Arquivos</button></div>
+      <div class="row"><span>Servidores salvos<br><small>${S.servers.length?S.servers.map(x=>esc(x.u)).join(' · '):'Nenhum ainda · use “Conectar ao Servidor” no Arquivos (Ctrl+K)'}</small></span>${S.servers.length?'<button class="pbtn" onclick="S.servers=[];save();refreshAll()">Esquecer</button>':''}</div></div>`};
+  window.netCompartilhar=async v=>{const r=await sysCall('rede_compartilhar',{ligar:v});if(r.ok){compart.ligado=v;notify('settings','Compartilhamento',v?'A pasta Público está compartilhada na rede.':'Compartilhamento desligado.')}else notify('settings','Compartilhamento','Não foi possível: '+(r.erro||'erro'));refSettings()};
+
+  /* descoberta real (Bonjour/mDNS) */
+  async function descobrir(){const r=await sysCall('rede_descobrir');if(!r||!r.ok)return;DESC=r.dispositivos||[];
+    NETDEV.length=0;DESC.forEach(d=>NETDEV.push({id:d.tipo+':'+d.ip,n:d.nome,t:d.tipo==='impressora'?'printer':d.tipo==='smb'?'nas':'pc',p:{smb:'SMB',sftp:'SFTP (SSH)',impressora:'Impressora',davs:'WebDAV',ha:'Home Assistant'}[d.tipo]||d.tipo,ip:d.ip,porta:d.porta,proto:d.tipo,sh:[],auth:1}));refFinder()}
+  descobrir();setInterval(descobrir,60000);
+
+  function pedirLogin(titulo,sub,padrao){return new Promise(res=>{
+    const m=h('div','rq',`<div class="rq-b" style="width:360px"><b>${esc(titulo)}</b><p>${esc(sub)}</p>
+      <input class="srch" data-u placeholder="Usuário" style="width:100%;margin:6px 0" value="${esc(padrao||'')}"><input class="srch" data-p type="password" placeholder="Senha" style="width:100%;margin:6px 0">
+      <label style="font-size:12px;display:block;margin:4px 0 10px"><input type="checkbox" data-g> Entrar como convidado (sem senha)</label>
+      <div class="rq-btn"><button class="pbtn" data-n>Cancelar</button><button class="pbtn pri" data-y>Conectar</button></div></div>`);
+    document.body.appendChild(m);const u=$('[data-u]',m),p=$('[data-p]',m);setTimeout(()=>(u.value?p:u).focus(),30);
+    const fim=v=>{m.remove();res(v)};$('[data-n]',m).onclick=()=>fim(null);
+    const ok=()=>fim($('[data-g]',m).checked?{usuario:'',senha:''}:{usuario:u.value.trim(),senha:p.value});$('[data-y]',m).onclick=ok;
+    m.addEventListener('keydown',e=>{if(e.key==='Enter')ok();if(e.key==='Escape')fim(null);e.stopPropagation()})})}
+  async function conectarURL(url,nome){
+    const host=(url.match(/^\w+:\/\/([^\/]+)/)||[])[1]||url;let cred=CRED[host]||{};
+    for(let tent=0;tent<3;tent++){
+      notify('finder','Rede',`Conectando a ${url}…`);
+      const r=await sysCall('rede_conectar',{url,...cred});
+      if(r.ok){CRED[host]=cred;return r}
+      if(r.precisaSenha||tent===0){const c=await pedirLogin(`Conectar a “${nome||host}”`,r.erro&&tent?r.erro:url,cred.usuario||'');if(!c)return null;cred=c;continue}
+      notify('finder','Rede',r.erro||'Não foi possível conectar.');return null}
+    notify('finder','Rede','Usuário ou senha não conferem.');return null}
+  async function abrirServidor(url,nome,go){
+    const r=await conectarURL(url,nome);if(!r)return;
+    if(r.pastas){const host=(url.match(/^\w+:\/\/([^\/]+)/)||[])[1];const nm=nome||host;
+      FS[nm]=r.pastas.map(s=>{SHARE_URL[s]=`smb://${host}/${encodeURIComponent(s)}`;return{n:s,k:'share',dev:nm}});go(nm);return}
+    const nm=decodeURIComponent((url.split('/').filter(Boolean).pop())||nome);SHARE_URL[nm]=url;
+    FS[nm]=r.itens||[];if(!NET.mounted.some(m=>m.n===nm))NET.mounted.push({n:nm,dev:nome||nm});renderDesk();go(nm);notify('finder','Rede',`“${nm}” foi conectado.`)}
+  window.abrirSrv=(u,go)=>abrirServidor(u,'',go);
+  netOpenDev=function(c,dev,go){
+    if(dev.proto==='impressora')return notify('finder',dev.n,'Impressora encontrada na rede. O AtriumOS a adiciona sozinho (CUPS) e ela aparece na hora de imprimir.');
+    if(dev.proto==='ha'){window.HA_HINT=`http://${dev.ip}:${dev.porta}`;return openApp('settings',{sec:'ha'})}
+    const url=dev.proto==='sftp'?`sftp://${dev.ip}:${dev.porta}/`:dev.proto==='davs'?`davs://${dev.ip}:${dev.porta}/`:`smb://${dev.ip}`;
+    abrirServidor(url,dev.n,go)};
+  mountShare=function(name,devName,silent){const u=SHARE_URL[name];if(!u)return;FS[name]=FS[name]||[];
+    const go=n=>{wins.filter(w=>w.app==='finder').forEach(w=>w.handle&&w.handle({folder:n}))};
+    conectarURL(u,name).then(r=>{if(!r)return;FS[name]=r.itens||[];if(!NET.mounted.some(m=>m.n===name))NET.mounted.push({n:name,dev:devName});renderDesk();refFinder();go(name)})};
+  ejectShare=function(name){const u=SHARE_URL[name];if(u)sysCall('rede_desconectar',{url:u});NET.mounted=NET.mounted.filter(m=>m.n!==name);delete FS[name];renderDesk();refFinder();notify('finder','Rede',`“${name}” foi desconectado.`)};
+  netConnect=function(c,go){
+    const m=h('div','modal',`<div class="mbox nc2"><b>Conectar ao Servidor</b><p style="margin:4px 0 10px">Endereço do computador, NAS ou pasta compartilhada.</p>
+      <input class="srch" data-addr style="width:100%;font-family:'JetBrains Mono',monospace" placeholder="smb://192.168.1.20/Pasta" value="smb://">
+      <p style="font-size:12px;opacity:.75;margin:8px 0">Exemplos: smb://192.168.1.20 (lista as pastas) · smb://nas.local/Filmes · sftp://usuario@servidor/ · davs://nuvem.exemplo.com/remote.php/webdav</p>
+      ${S.servers.length?`<h6>Recentes</h6><div class="nc2-f">${S.servers.map(x=>`<div data-fav="${esc(x.u)}">🖧 ${esc(x.u)}</div>`).join('')}</div>`:''}
+      <div class="inst-b"><button class="pbtn" data-c>Cancelar</button><button class="pbtn pri" data-o>Conectar</button></div></div>`);
+    c.appendChild(m);const a=$('[data-addr]',m);setTimeout(()=>{a.focus();a.setSelectionRange(a.value.length,a.value.length)},50);
+    const conn=()=>{const v=a.value.trim();if(!/^(smb|sftp|ftp|davs?|nfs):\/\/[^\/\s]+/i.test(v)){a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake');return}
+      if(!S.servers.some(x=>x.u===v)){S.servers.unshift({u:v,n:v});S.servers=S.servers.slice(0,8);save()}m.remove();abrirServidor(v,'',go)};
+    m.addEventListener('click',e=>{const f=e.target.closest('[data-fav]');if(f){a.value=f.dataset.fav;if(e.detail>1)conn()}});
+    $('[data-c]',m).onclick=()=>m.remove();$('[data-o]',m).onclick=conn;m.addEventListener('keydown',e=>{if(e.key==='Enter')conn();if(e.key==='Escape')m.remove();e.stopPropagation()})};
+
+  /* ---------- Acesso Remoto de verdade (VNC) ---------- */
+  let RM={ligado:false,senha:'',ips:[],porta:5900,clientes:[],instalado:true};
+  async function rmEstado(){const r=await sysCall('remoto_estado');if(r&&r.ok)RM=r;return RM}
+  rmEstado();
+  APPS.remote.r=function(c,win){
+    const draw=()=>{const end=RM.ips.length?RM.ips:['—'];
+      c.innerHTML=`<div class="rm"><div class="rm-top">${icon('remote')}<div><h2>Acesso Remoto</h2><p>Controle este computador por outro computador ou pelo celular, na mesma rede de casa, com um app de VNC.</p></div><div class="switch${RM.ligado?' on':''}" data-rm="ligar"></div></div>
+      ${!RM.instalado?'<p style="color:#ff3b30">O servidor de acesso remoto não está instalado nesta versão.</p>':''}
+      <div class="rm-grid${RM.ligado?'':' off'}"><div class="rm-card"><small>Endereço deste computador</small>${end.map(i=>`<b class="rm-big" style="font-size:22px;user-select:text">${esc(i)}</b>`).join('')}<small>Porta ${RM.porta} · usuário <b>atrium</b></small>
+        <small style="margin-top:8px">Senha</small><div class="rm-pw"><b style="user-select:text">${esc(RM.senha||'—')}</b><button class="pbtn" data-rm="nova">↻ Nova senha</button></div></div>
+        <div class="rm-card"><small>Como conectar</small><p style="font-size:12.5px;line-height:1.5;margin:6px 0">💻 <b>Mac:</b> Finder › Ir › Conectar ao Servidor › <code style="user-select:text">vnc://${esc(end[0])}</code><br>🪟 <b>Windows/Linux:</b> TigerVNC Viewer › <code style="user-select:text">${esc(end[0])}</code><br>📱 <b>Celular:</b> app “AVNC” (Android) ou “Screens”/“RealVNC” (iPhone)</p></div></div>
+      <h6 class="ha-h6">Conectados agora</h6><div class="grp">${RM.clientes.length?RM.clientes.map(k=>`<div class="row"><span>🖥️ ${esc(k.endereco||'Cliente')}${k.usuario?'<br><small>'+esc(k.usuario)+'</small>':''}</span><button class="pbtn" style="color:#ff3b30" data-rmx="${esc(String(k.id))}">Desconectar</button></div>`).join(''):`<div class="row"><small>${RM.ligado?'Ninguém conectado.':'O acesso remoto está desligado.'}</small></div>`}</div>
+      <p style="font-size:12px;opacity:.7;margin-top:10px">Funciona na rede de casa. Para acessar de fora, é preciso uma VPN (por exemplo, a do seu roteador). A conexão pede usuário e senha e é criptografada.</p></div>`};
+    c.addEventListener('click',async e=>{const d=e.target.dataset;
+      if(d.rm==='ligar'){const r=await sysCall('remoto',{ligar:!RM.ligado});if(r)RM={...RM,...r};if(!r.ok)notify('remote','Acesso Remoto','Não foi possível ligar: '+(r.erro||'veja o registro em ~/.local/state/atriumos/remoto.log'));draw()}
+      else if(d.rm==='nova'){const r=await sysCall('remoto',{novaSenha:1});if(r)RM={...RM,...r};draw()}
+      else if(d.rmx){await sysCall('remoto_desconectar',{id:d.rmx});await rmEstado();draw()}});
+    draw();rmEstado().then(draw);const iv=setInterval(()=>rmEstado().then(draw),5000);win.cleanup.push(()=>clearInterval(iv))};
+  window.aboutSecReal=()=>{const d=document.createElement('div');APPS.about.r(d);return d.innerHTML};
+  window.remoteSecReal=()=>`<h2>Acesso Remoto</h2><div class="grp"><div class="row"><span>Acesso remoto (VNC)<br><small>${RM.ligado?'Ligado · '+esc(RM.ips.join(', '))+' porta '+RM.porta:'Desligado'}</small></span><button class="pbtn" onclick="openApp('remote')">Abrir Acesso Remoto</button></div></div>`;
+
+  /* ---------- Home Assistant de verdade ---------- */
+  let HA={conectado:false,entidades:[],atalhos:[]};
+  async function haEstado(){const r=await sysCall('ha',{acao:'estado'});if(r&&r.ok)HA=r;return HA}
+  haEstado();setInterval(()=>{if(HA.conectado)haEstado()},30000);
+  const DOM_N={scene:'Cenas',script:'Scripts',light:'Luzes',switch:'Interruptores',input_boolean:'Interruptores',fan:'Ventiladores',cover:'Persianas e portões',automation:'Automações',media_player:'Media players'};
+  window.haExec=async(id,n)=>{const r=await sysCall('ha',{acao:'executar',entidade:id});if(!r.ok)notify('settings','Home Assistant','Não foi possível: '+(r.erro||''));setTimeout(()=>haEstado().then(refSettings),700)};
+  window.haConectar=async()=>{const u=$('#ha-url').value.trim(),t=$('#ha-tok').value.trim();$('#ha-msg').textContent='Testando a conexão…';
+    const r=await sysCall('ha',{acao:'conectar',url:u,token:t});if(!r.ok){$('#ha-msg').textContent=r.erro||'Não foi possível conectar.';return}
+    await haEstado();notify('settings','Home Assistant',`Conectado a “${r.nome}” (versão ${r.versao}).`);refSettings();buildHaIcon()};
+  window.haDesconectar=async()=>{await sysCall('ha',{acao:'desconectar'});HA={conectado:false,entidades:[],atalhos:HA.atalhos};refSettings();buildHaIcon()};
+  window.haAtalhoAdd=()=>{const ent=HA.entidades.filter(e=>['scene','script','light','switch','input_boolean','automation','fan','cover','media_player'].includes(e.dominio));if(!ent.length)return;
+    const m=h('div','rq',`<div class="rq-b" style="width:380px"><b>Novo atalho de teclado</b><p>Aperte a combinação (ex.: Ctrl+Alt+1) e escolha o que ela faz no seu Home Assistant.</p>
+      <input class="srch" data-k readonly placeholder="Clique aqui e aperte as teclas" style="width:100%;margin:6px 0"><select class="srch" data-e style="width:100%;margin:6px 0">${ent.map(e=>`<option value="${e.id}">${esc(DOM_N[e.dominio]||e.dominio)} · ${esc(e.n)}</option>`).join('')}</select>
+      <div class="rq-btn"><button class="pbtn" data-n>Cancelar</button><button class="pbtn pri" data-y>Salvar</button></div></div>`);
+    document.body.appendChild(m);const k=$('[data-k]',m);let tecla='';
+    k.addEventListener('keydown',e=>{e.preventDefault();e.stopPropagation();if(['Control','Alt','Shift','Meta'].includes(e.key))return;const base=e.code.replace(/^Key|^Digit/,'');
+      tecla=(e.ctrlKey?'C-':'')+(e.altKey?'A-':'')+(e.shiftKey?'S-':'')+(e.metaKey?'W-':'')+(base.length===1?base.toLowerCase():base);k.value=tecla.replace(/C-/,'Ctrl+').replace(/A-/,'Alt+').replace(/S-/,'Shift+').replace(/W-/,'Super+')});
+    $('[data-n]',m).onclick=()=>m.remove();
+    $('[data-y]',m).onclick=async()=>{if(!tecla||!/[CAW]-/.test(tecla))return k.classList.add('shake');const at=[...HA.atalhos.filter(a=>a.tecla!==tecla),{tecla,entidade:$('[data-e]',m).value}];
+      const r=await sysCall('ha',{acao:'atalhos',atalhos:at});if(r.ok)HA.atalhos=r.atalhos;m.remove();refSettings()}};
+  window.haAtalhoDel=async i=>{const at=HA.atalhos.filter((_,j)=>j!==i);const r=await sysCall('ha',{acao:'atalhos',atalhos:at});if(r.ok)HA.atalhos=r.atalhos;refSettings()};
+  haSettingsHTML=function(sw,o){
+    const nomeEnt=id=>{const e=HA.entidades.find(x=>x.id===id);return e?e.n:id};
+    const urlPadrao=window.HA_HINT||HA.url||((DESC.find(d=>d.tipo==='ha')||{}).ip?`http://${DESC.find(d=>d.tipo==='ha').ip}:8123`:'');
+    let H=`<h2>Home Assistant</h2><div class="grp">`;
+    if(HA.conectado){H+=`<div class="row"><span>${esc(HA.nome||'Home Assistant')}<br><small><span style="color:#16a34a">●</span> Conectado · ${esc(HA.url)} · versão ${esc(HA.versao||'')}</small></span><span style="display:flex;gap:6px"><button class="pbtn" onclick="openApp('browser',{q:'${esc(HA.url)}',newWindow:1})">Abrir no navegador</button><button class="pbtn" onclick="haDesconectar()">Desconectar</button></span></div></div>`;
+      const grupos={};HA.entidades.forEach(e=>{(grupos[e.dominio]=grupos[e.dominio]||[]).push(e)});
+      Object.keys(DOM_N).filter(d=>grupos[d]).forEach(d=>{H+=`<h3 class="sec" style="font-size:14px">${DOM_N[d]}</h3><div class="grp">${grupos[d].slice(0,40).map(e=>`<div class="row"><span>${esc(e.n)}<br><small>${esc(e.id)} · ${esc(e.estado)}</small></span><button class="pbtn" onclick="haExec('${e.id}')">${['scene','script'].includes(d)?'Ativar':d==='automation'?'Executar':'Ligar/Desligar'}</button></div>`).join('')}</div>`});
+      H+=`<h3 class="sec" style="font-size:14px">Atalhos de teclado</h3><div class="grp">${HA.atalhos.map((a,i)=>`<div class="row"><kbd>${esc(a.tecla.replace('C-','Ctrl+').replace('A-','Alt+').replace('S-','Shift+').replace('W-','Super+'))}</kbd><span style="flex:1;margin-left:10px">${esc(nomeEnt(a.entidade))}</span><button class="pbtn" onclick="haAtalhoDel(${i})">Remover</button></div>`).join('')}<div class="row"><small>Funcionam em qualquer programa aberto.</small><button class="pbtn pri" onclick="haAtalhoAdd()">Adicionar atalho…</button></div></div>`;
+    }else{H+=`<div class="row" style="display:block"><p style="margin:0 0 8px">Conecte o seu servidor Home Assistant para controlar cenas, luzes e scripts daqui e por atalhos de teclado.</p>
+      <label style="font-size:12.5px">Endereço do servidor<input id="ha-url" class="srch" style="width:100%;margin:4px 0 10px" placeholder="http://192.168.1.50:8123" value="${esc(urlPadrao)}"></label>
+      <label style="font-size:12.5px">Token de acesso de longa duração<input id="ha-tok" class="srch" type="password" style="width:100%;margin:4px 0 6px" placeholder="Cole aqui o token"></label>
+      <small>No Home Assistant: clique no seu nome (canto inferior esquerdo) › Segurança › Tokens de acesso de longa duração › Criar token.</small>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:10px"><button class="pbtn pri" onclick="haConectar()">Conectar</button><small id="ha-msg" style="color:#ff9f0a">${esc(HA.erro||'')}</small></div></div></div>
+      ${DESC.some(d=>d.tipo==='ha')?`<p style="font-size:12px;opacity:.75">Encontrado na sua rede: ${DESC.filter(d=>d.tipo==='ha').map(d=>esc(d.nome+' ('+d.ip+')')).join(', ')}</p>`:''}`}
+    return H};
+  let haIcon=null;
+  function buildHaIcon(){const x=$('#mb-ha');if(x)x.style.display=HA.conectado?'':'none'}
+  haMenu=function(){const it=[{head:HA.conectado?(HA.nome||'Home Assistant'):'Home Assistant desconectado'}];
+    if(HA.conectado){const sc=HA.entidades.filter(e=>e.dominio==='scene').slice(0,8),li=HA.entidades.filter(e=>e.dominio==='light').slice(0,10);
+      if(sc.length)it.push({sep:1},{head:'Cenas'},...sc.map(e=>({label:e.n,action:()=>haExec(e.id)})));
+      if(li.length)it.push({sep:1},{head:'Luzes'},...li.map(e=>({label:e.n,check:e.estado==='on',action:()=>haExec(e.id)})));
+      it.push({sep:1},{label:'Abrir Home Assistant no navegador',action:()=>openApp('browser',{q:HA.url,newWindow:1})})}
+    it.push({label:'Ajustes do Home Assistant…',action:()=>openApp('settings',{sec:'ha'})});return it};
+  setTimeout(()=>haEstado().then(buildHaIcon),1200);
+
+  /* ---------- Cópia de segurança (Imagem do Sistema) ---------- */
+  APPS.sysimage.n='Cópia de Segurança';
+  APPS.sysimage.r=function(c,win){
+    let INFO={destinos:[],tamanhos:{},copias:[]},ESC={dest:null,pastas:new Set(['Documentos','Imagens','Música','Vídeos','Mesa','Ajustes e apps'])},EST=null,iv=null;
+    const total=()=>[...ESC.pastas].reduce((s2,k)=>s2+(INFO.tamanhos[k]||0),0);
+    const draw=()=>{
+      if(EST&&(EST.rodando||EST.fim)){const pct=EST.total?Math.min(99,Math.round(EST.feito/EST.total*100)):0;
+        c.innerHTML=`<div style="padding:22px"><h2>${EST.rodando?'Gravando a cópia…':EST.erro?'A cópia falhou':'Cópia concluída ✓'}</h2>
+          ${EST.rodando?`<div style="height:8px;background:rgba(127,127,127,.25);border-radius:4px;margin:14px 0"><div style="height:100%;width:${pct}%;background:var(--accent,#7c3aed);border-radius:4px"></div></div><small>${fmtB(EST.feito)} gravados (compactado) · não desligue o disco</small>`:
+          EST.erro?`<p style="color:#ff3b30">${esc(EST.erro)}</p>`:`<p>Arquivo: <code style="user-select:text">${esc(EST.arquivo)}</code> (${fmtB(EST.feito)})</p><p>Para restaurar num AtriumOS, abra este app com o disco ligado e escolha a cópia em “Restaurar”.</p>`}
+          ${EST.rodando?'':'<button class="pbtn" data-b="volta" style="margin-top:12px">Concluir</button>'}</div>`;return}
+      const sz=INFO.tamanhos;
+      c.innerHTML=`<div style="padding:18px 20px;overflow:auto;height:100%;box-sizing:border-box"><h2 style="margin-top:0">Cópia de segurança</h2><p style="opacity:.8;margin-top:-6px">Copia os seus arquivos e ajustes para um pendrive, HD externo ou pasta da rede.</p>
+        <h6 class="ha-h6">O que copiar</h6><div class="grp">${Object.keys(sz).map(k=>`<label class="row"><span><input type="checkbox" data-p="${esc(k)}"${ESC.pastas.has(k)?' checked':''}> ${esc(k)}</span><small>${fmtB(sz[k])}</small></label>`).join('')||'<div class="row"><small>Calculando os tamanhos…</small></div>'}</div>
+        <p style="font-size:12.5px">Total a copiar: <b>${fmtB(total())}</b> (a cópia fica menor, compactada)</p>
+        <h6 class="ha-h6">Onde gravar</h6><div class="grp">${INFO.destinos.length?INFO.destinos.map(d=>`<label class="row"><span><input type="radio" name="bkd" data-d="${esc(d.id)}"${ESC.dest===d.id?' checked':''}> ${d.tipo==='rede'?'🖧':'💾'} ${esc(d.n)}<br><small>${d.tipo==='rede'?'Pasta da rede':esc(d.modelo||'')+' · '+esc(d.fs||'')+' · '+fmtB(d.tamanho)}${d.livre!=null?' · '+fmtB(d.livre)+' livres':''}</small></span>${d.tipo==='usb'?`<button class="pbtn" data-ej="${esc(d.id)}">Ejetar</button>`:''}</label>`).join(''):'<div class="row"><small>Nenhum pendrive ou HD externo encontrado. Ligue um disco (ou conecte uma pasta da rede no Arquivos) e clique em Atualizar.</small></div>'}
+          <div class="row"><span></span><button class="pbtn" data-b="atual">Atualizar</button></div></div>
+        ${INFO.copias.length?`<h6 class="ha-h6">Restaurar</h6><div class="grp">${INFO.copias.map(k=>`<div class="row"><span>${esc(k.n)}<br><small>${esc(k.destino)}</small></span><button class="pbtn" data-rs="${esc(k.arquivo)}">Restaurar</button></div>`).join('')}</div>`:''}
+        <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="pbtn pri" data-b="ir"${ESC.dest&&ESC.pastas.size?'':' disabled'}>Fazer a cópia</button></div></div>`};
+    const carregar=async()=>{const r=await sysCall('backup_info');if(r&&r.ok){INFO=r;if(r.estado&&r.estado.rodando){EST=r.estado;acompanhar()}}draw()};
+    const acompanhar=()=>{clearInterval(iv);iv=setInterval(async()=>{EST=await sysCall('backup_estado');draw();if(!EST.rodando){clearInterval(iv);notify('sysimage','Cópia de Segurança',EST.erro?'A cópia falhou.':'Cópia concluída.')}},1500)};
+    win.cleanup.push(()=>clearInterval(iv));
+    c.addEventListener('change',e=>{const d=e.target.dataset;if(d.p){e.target.checked?ESC.pastas.add(d.p):ESC.pastas.delete(d.p);draw()}if(d.d){ESC.dest=d.d;draw()}});
+    c.addEventListener('click',async e=>{const d=e.target.dataset;
+      if(d.b==='atual')carregar();
+      else if(d.b==='volta'){EST=null;carregar()}
+      else if(d.ej){await sysCall('ejetar',{id:d.ej});notify('sysimage','Cópia de Segurança','Pode retirar o disco com segurança.');carregar()}
+      else if(d.rs){const r=await sysCall('backup_restaurar',{arquivo:d.rs});notify('sysimage','Restaurar',r.ok?'Arquivos restaurados para a sua pasta pessoal.':'Não foi possível restaurar: '+(r.erro||''));fsSync()}
+      else if(d.b==='ir'){const r=await sysCall('backup_iniciar',{destino:ESC.dest,pastas:[...ESC.pastas],total:Math.round(total()*.7)});
+        if(!r.ok)return notify('sysimage','Cópia de Segurança',r.erro||'Não foi possível começar.');EST={rodando:true,feito:0,total:total()*.7};draw();acompanhar()}});
+    c.innerHTML='<div style="padding:22px">Procurando discos…</div>';carregar()};
+
+  /* ---------- Música: as suas músicas de verdade + serviços no navegador ---------- */
+  APPS.music.r=function(c,win){
+    let L={faixas:[],token:'',pasta:''},q='',cur=-1;const au=new Audio();win.cleanup.push(()=>{au.pause();au.src=''});
+    const srvs=[['Spotify','https://open.spotify.com'],['YouTube Music','https://music.youtube.com'],['Deezer','https://www.deezer.com'],['Apple Music','https://music.apple.com'],['Tidal','https://listen.tidal.com'],['SoundCloud','https://soundcloud.com']];
+    const lista=()=>L.faixas.filter(f=>!q||norm(f.n+' '+f.pasta).includes(norm(q)));
+    const tocar=i=>{const f=L.faixas[i];if(!f)return;cur=i;au.src='/midia?t='+encodeURIComponent(L.token)+'&c='+encodeURIComponent(f.caminho);au.play().catch(()=>notify('music','Música','Não foi possível tocar este arquivo.'));draw()};
+    au.onended=()=>tocar(cur+1);
+    const draw=()=>{const f=L.faixas[cur];
+      c.innerHTML=`<div style="display:flex;flex-direction:column;height:100%"><div style="padding:12px 14px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)"><input class="srch" data-q placeholder="Buscar nas suas músicas" value="${esc(q)}" style="flex:1"><button class="pbtn" data-a="pasta">Abrir pasta Música</button></div>
+        <div style="flex:1;overflow:auto;padding:8px 14px">${L.faixas.length?`<div class="grp">${lista().slice(0,500).map(x=>{const i=L.faixas.indexOf(x);return`<div class="row" data-i="${i}" style="cursor:default${i===cur?';font-weight:600':''}"><span>${i===cur&&!au.paused?'▶︎ ':''}${esc(x.n)}<br><small>${esc(x.pasta==='.'?'Música':x.pasta)}</small></span></div>`}).join('')}</div>`:
+          `<p style="opacity:.8">Nenhuma música na sua pasta Música (${esc(L.pasta)}). Copie seus arquivos MP3, FLAC, OGG ou M4A para lá e eles aparecem aqui.</p>`}
+          <h6 class="ha-h6">Serviços de streaming</h6><div style="display:flex;flex-wrap:wrap;gap:8px">${srvs.map(s=>`<button class="pbtn" data-u="${s[1]}">${s[0]}</button>`).join('')}</div><p style="font-size:12px;opacity:.7">Abrem no Pórtico com a sua conta.</p></div>
+        <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center"><button class="pbtn" data-a="ant">⏮</button><button class="pbtn" data-a="tp">${au.paused?'▶︎':'⏸'}</button><button class="pbtn" data-a="prox">⏭</button><span style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${f?esc(f.n):'—'}</span></div></div>`;
+      const qi=$('[data-q]',c);qi.oninput=()=>{q=qi.value;const p=qi.selectionStart;draw();const n=$('[data-q]',c);n.focus();n.setSelectionRange(p,p)}};
+    c.addEventListener('dblclick',e=>{const r=e.target.closest('[data-i]');if(r)tocar(+r.dataset.i)});
+    c.addEventListener('click',e=>{const d=e.target.dataset;if(d.u)sysCall('abrir',{app:'portico',url:d.u});
+      if(d.a==='tp'){if(cur<0)tocar(0);else{au.paused?au.play():au.pause();draw()}}if(d.a==='prox')tocar(cur+1);if(d.a==='ant')tocar(Math.max(0,cur-1));
+      if(d.a==='pasta')openApp('finder',{folder:'Música',newWindow:1})});
+    au.onplay=au.onpause=()=>draw();
+    draw();sysCall('musicas').then(r=>{if(r&&r.ok){L=r;draw()}})};
+
+  /* ---------- programas do Windows: acompanhar a primeira abertura ---------- */
+  let winIv=null;
+  const _of3=openFile;openFile=function(it,folder){const r=_of3(it,folder);
+    if(it&&it.caminho&&it.k==='exe'){clearInterval(winIv);let ult='',n=0;winIv=setInterval(async()=>{const e=(await sysCall('windows_estado')).estado||'';n++;if(n>200)clearInterval(winIv);if(e===ult)return;ult=e;
+      if(e==='preparando')notify('storeW','Apps do Windows','Preparando o ambiente Windows pela primeira vez (cerca de 1 minuto)…');
+      else if(e==='aberto'){notify('storeW','Apps do Windows',`“${it.n}” abriu.`);clearInterval(winIv)}
+      else if(e.startsWith('erro')){notify('storeW','Apps do Windows',`“${it.n}” não abriu. Alguns programas do Windows não funcionam no AtriumOS. Detalhes em ~/.local/state/atriumos/windows.log`);clearInterval(winIv)}},2000)}
+    return r};
+
+  /* ---------- sessão pela ISO: deixar claro que é preciso instalar ---------- */
+  sysCall('estado').then(s=>{if(!s||!s.live)return;const mostrar=()=>{if(!S.setupDone||$('#lock').classList.contains('open'))return setTimeout(mostrar,4000);
+    const m=h('div','rq',`<div class="rq-b" style="width:420px">${icon('installer')}<b>Você está usando o AtriumOS direto da ISO ou do pendrive</b><p>Nada fica guardado no computador: ao reiniciar, tudo volta ao início. Para usar de verdade, instale o AtriumOS no disco (leva uns 10 minutos). Depois de instalar, retire a ISO/pendrive e reinicie.</p><div class="rq-btn"><button class="pbtn" data-n>Agora não</button><button class="pbtn pri" data-y>Instalar agora</button></div></div>`);
+    document.body.appendChild(m);$('[data-n]',m).onclick=()=>m.remove();$('[data-y]',m).onclick=()=>{m.remove();sysCall('instalar');notify('about','Instalador','Abrindo o instalador do AtriumOS…')}};setTimeout(mostrar,6000)});
+
+  /* menu do sistema sem itens simulados */
+  const _sm3=systemMenu;systemMenu=function(){return _sm3().filter(x=>!x.label||!/^(Atualização de Software|Gerenciador de Programas|Forçar Encerrar)/.test(x.label))};
+  /* senha real do sistema na tela de bloqueio */
+  window.verificarSenha=async senha=>{const r=await sysCall('verificar_senha',{senha});return !!(r&&r.certa)};
+  document.head.appendChild(h('style','',`.lg-sw{display:none!important}body.sembat .lg-bat{display:none!important}`));
+  setTimeout(()=>{if(!SYS.bateria)document.body.classList.add('sembat')},1500);
+  new MutationObserver(()=>{const k=$('.lg-kb');if(k&&S.kb&&k.textContent!==S.kb.split('|')[0].toUpperCase())k.textContent=S.kb.split('|')[0].toUpperCase()}).observe($('#lock'),{childList:true});
+  /* relatar problema: abre a página de problemas do projeto */
+  const _oa3=openApp;openApp=function(id,o={}){if(id==='feedback'){sysCall('abrir',{app:'portico',url:'https://github.com/leothemurphy/atriumos/issues/new'});return}return _oa3(id,o)};
+}
 
 /* ---------- init ---------- */
 document.body.classList.toggle('dark',S.dark);

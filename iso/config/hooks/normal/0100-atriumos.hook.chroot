@@ -68,3 +68,21 @@ update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
 
 # sudoers do teclado com permissões corretas
 chmod 0440 /etc/sudoers.d/atriumos-teclado 2>/dev/null || true
+
+# Calamares: instalar também o carregador EFI no caminho padrão (VirtualBox e PCs que esquecem a entrada de boot)
+mkdir -p /etc/calamares/modules
+[ -f /etc/calamares/modules/bootloader.conf ] || cp /usr/share/calamares/modules/bootloader.conf /etc/calamares/modules/ 2>/dev/null || true
+if [ -f /etc/calamares/modules/bootloader.conf ]; then
+  if grep -q '^installEFIFallback' /etc/calamares/modules/bootloader.conf; then
+    sed -i -E 's/^installEFIFallback:.*/installEFIFallback: true/' /etc/calamares/modules/bootloader.conf
+  else
+    echo 'installEFIFallback: true' >> /etc/calamares/modules/bootloader.conf
+  fi
+fi
+# sessão live: grupos para compartilhar pastas e configurar impressoras
+mkdir -p /etc/live/config.conf.d
+echo 'LIVE_USER_DEFAULT_GROUPS="audio cdrom dip floppy video plugdev netdev powerdev scanner bluetooth sambashare lpadmin"' > /etc/live/config.conf.d/atriumos.conf
+# compartilhamento por usuário (pasta Público) com convidados
+if [ -f /etc/samba/smb.conf ] && ! grep -q 'usershare allow guests' /etc/samba/smb.conf; then
+  sed -i '/^\[global\]/a \   usershare allow guests = yes' /etc/samba/smb.conf
+fi

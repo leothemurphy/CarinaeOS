@@ -1,2 +1,2 @@
-# AtriumOS: Ajustes › Teclado pode gravar o layout do sistema
-%sudo ALL=(root) NOPASSWD: /usr/lib/atriumos/teclado-sistema
+# AtriumOS: Ajustes podem gravar teclado, idioma e a conta da configuração inicial
+%sudo ALL=(root) NOPASSWD: /usr/lib/atriumos/teclado-sistema, /usr/lib/atriumos/ajustes-sistema

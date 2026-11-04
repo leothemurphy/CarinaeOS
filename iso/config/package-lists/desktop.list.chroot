@@ -27,3 +27,30 @@ calamares
 calamares-settings-debian
 qt6-wayland
 qtwayland5
+# rede de verdade: descoberta (Bonjour/mDNS), pastas SMB/SFTP/WebDAV, compartilhamento, impressoras
+avahi-daemon
+avahi-utils
+libnss-mdns
+gvfs
+gvfs-backends
+gvfs-fuse
+dbus-user-session
+smbclient
+samba
+cups
+cups-browsed
+# acesso remoto (VNC) e cópias de segurança
+wayvnc
+openssl
+udisks2
+zstd
+# escritório completo
+libreoffice-writer
+libreoffice-calc
+libreoffice-impress
+libreoffice-draw
+libreoffice-gtk3
+libreoffice-l10n-pt
+libreoffice-l10n-pt-br
+hunspell-pt-pt
+hunspell-pt-br

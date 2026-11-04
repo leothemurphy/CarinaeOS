@@ -43,6 +43,7 @@ cat > "$CFG/rc.xml" <<X
   <placement><policy>center</policy></placement>
   <keyboard><default/>
     <keybind key="A-F4"><action name="Close"/></keybind>
+    <!--ATALHOS-->$(cat "$HOME/.config/atriumos/atalhos.xml" 2>/dev/null)<!--/ATALHOS-->
   </keyboard>
   <windowRules>
     <windowRule identifier="*127.0.0.1*" skipTaskbar="yes" skipWindowSwitcher="yes">
@@ -55,6 +56,9 @@ cat > "$CFG/rc.xml" <<X
 X
 
 {
+  if [ -f "$HOME/.config/atriumos/idioma" ]; then
+    L="$(cat "$HOME/.config/atriumos/idioma")"; echo "LANG=$L.UTF-8"; echo "LANGUAGE=$L:${L%%_*}"
+  fi
   echo "XKB_DEFAULT_LAYOUT=${XKBLAYOUT:-pt}"
   [ -n "$XKBVARIANT" ] && echo "XKB_DEFAULT_VARIANT=$XKBVARIANT"
   echo "WLR_NO_HARDWARE_CURSORS=1"

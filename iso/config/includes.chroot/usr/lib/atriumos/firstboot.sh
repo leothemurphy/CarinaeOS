@@ -9,6 +9,7 @@ if [ -n "$U" ]; then
 else
   rm -f "$OV"
 fi
+[ -n "$U" ] && usermod -aG sambashare,lpadmin "$U" 2>/dev/null || true
 systemctl daemon-reload || true
 
 # Pontos de restauração automáticos (Btrfs + Snapper)
