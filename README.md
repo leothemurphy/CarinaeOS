@@ -82,3 +82,8 @@ iso/branding/              tela de boot, instalador e menu do pen drive
 portico/                   Pórtico: perfil, página inicial, extensão e instaladores
 assets/                    logos, ícones e papéis de parede
 ```
+
+## Disparar as compilações sem clicar
+
+Enviar qualquer commit para o ramo `construir/iso` gera a ISO, e para `construir/portico`
+compila o Pórtico. (Também dá para usar *Actions › Run workflow*.)
