@@ -96,6 +96,13 @@ if [ -d /usr/share/live/build/bootloaders ]; then
     sed -i -e 's/Debian GNU\/Linux/AtriumOS/g' -e 's/Live system/AtriumOS/g' -e 's/Debian Live/AtriumOS/g' {} +
   find config/bootloaders -name 'splash.svg' -exec cp branding/boot/splash.svg {} \;
   find config/bootloaders -name 'splash.png' -exec cp branding/boot/splash.png {} \;
+  # entra sozinho no AtriumOS depois de 3 segundos
+  for f in $(find config/bootloaders -path '*grub*' -name 'config.cfg'); do
+    sed -i '/^set timeout/d' "$f"; echo 'set timeout=3' >> "$f"
+  done
+  for f in $(find config/bootloaders -path '*isolinux*' -name 'isolinux.cfg'); do
+    sed -i 's/^timeout .*/timeout 30/' "$f"; grep -q '^timeout' "$f" || echo 'timeout 30' >> "$f"
+  done
 fi
 
 # 8) construir
