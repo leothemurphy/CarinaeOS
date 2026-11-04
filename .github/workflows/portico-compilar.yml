@@ -140,6 +140,7 @@ jobs:
           mkdir pk && cp -R "$MNT"/*.app pk/ && hdiutil detach "$MNT"
           APP=$(ls -d pk/*.app | head -1)
           mkdir -p "$APP/Contents/Resources/distribution/extensions" && cp extras/*.xpi "$APP/Contents/Resources/distribution/extensions/"
+          xattr -cr "$APP"
           codesign --force --deep --sign - "$APP"
           hdiutil create -volname "Pórtico" -srcfolder pk -ov -format UDZO "Portico-$V-macos-${{ matrix.arq }}.dmg"
       - uses: actions/upload-artifact@v4
