@@ -1,0 +1,10 @@
+#!/bin/sh
+# Pórtico 0.1 (prévia) — navegador do AtriumOS sobre o motor Gecko
+D="${XDG_DATA_HOME:-$HOME/.local/share}/portico"
+P="$D/Perfil"
+if [ ! -f "$P/user.js" ]; then
+  mkdir -p "$P"
+  cp -r /usr/share/portico/perfil/. "$P/"
+  echo 'user_pref("browser.startup.homepage", "file:///usr/share/portico/inicio/inicio.html");' >> "$P/user.js"
+fi
+exec firefox-esr --profile "$P" --name portico --class portico "$@"

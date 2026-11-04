@@ -1,0 +1,100 @@
+name: Construir a ISO do AtriumOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      android:
+        description: "Incluir Apps Android (Waydroid)"
+        type: boolean
+        default: true
+      windows:
+        description: "Incluir Apps do Windows (Wine)"
+        type: boolean
+        default: true
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  iso:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Liberar espaço no disco
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          sudo docker image prune -af || true
+          df -h /
+
+      - name: Construir a ISO (Debian 13 + live-build)
+        env:
+          ATRIUM_ANDROID: ${{ github.event.inputs.android == 'false' && '0' || '1' }}
+          ATRIUM_WINDOWS: ${{ github.event.inputs.windows == 'false' && '0' || '1' }}
+        run: |
+          sudo docker run --rm --privileged \
+            -v "$PWD":/work -w /work/iso \
+            -e ATRIUM_ANDROID -e ATRIUM_WINDOWS \
+            debian:trixie bash -c '
+              set -e
+              apt-get update
+              apt-get install -y --no-install-recommends live-build debootstrap xorriso squashfs-tools librsvg2-bin \
+                ca-certificates curl gnupg cpio dosfstools mtools
+              ./build.sh
+            '
+
+      - name: Preparar os arquivos para download
+        id: out
+        run: |
+          sudo chown -R "$USER" iso
+          mkdir -p out
+          SRC=$(ls iso/*.iso | head -1)
+          NAME="AtriumOS-0.1-$(date +%Y%m%d)-amd64.iso"
+          mv "$SRC" "out/$NAME"
+          cd out
+          sha256sum "$NAME" > "$NAME.sha256"
+          SIZE=$(stat -c %s "$NAME")
+          echo "size=$(numfmt --to=iec "$SIZE")" >> "$GITHUB_OUTPUT"
+          # O GitHub aceita arquivos de até 2 GB nos lançamentos: se passar, divide em partes.
+          if [ "$SIZE" -gt 2000000000 ]; then
+            split -b 1900M -d -a 1 "$NAME" "$NAME.parte"
+            rm "$NAME"
+            echo "split=1" >> "$GITHUB_OUTPUT"
+          fi
+          ls -lh
+
+      - name: Guardar como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: atriumos-iso
+          path: out/*
+          retention-days: 14
+          compression-level: 0
+
+      - name: Escrever as notas do lançamento
+        run: |
+          {
+            echo "**AtriumOS 0.1 “Pátio”**: ISO de teste (${{ steps.out.outputs.size }}), baseada no Debian 13."
+            echo
+            if [ "${{ steps.out.outputs.split }}" = "1" ]; then
+              echo "⚠️ A ISO passou de 2 GB e foi dividida em partes. Baixe todas e junte assim:"
+              echo '- Windows (PowerShell): `cmd /c copy /b AtriumOS*.parte0 + AtriumOS*.parte1 AtriumOS.iso`'
+              echo '- Mac/Linux: `cat AtriumOS*.parte* > AtriumOS.iso`'
+              echo
+            fi
+            echo "**Como testar:** grave num pen drive com o balenaEtcher ou o Rufus (ou abra numa máquina virtual), ligue o computador por ele e escolha **AtriumOS**. Para instalar, use **Instalar o AtriumOS**."
+            echo
+            echo "Confira o arquivo \`.sha256\` para ter certeza de que o download veio inteiro."
+          } > notas.md
+
+      - name: Publicar o lançamento de teste
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('iso-teste-{0}', github.run_number) }}
+          name: AtriumOS 0.1 — ISO de teste ${{ github.run_number }}
+          prerelease: true
+          files: out/*
+          body_path: notas.md

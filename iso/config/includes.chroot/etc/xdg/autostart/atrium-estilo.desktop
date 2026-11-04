@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Escolher o estilo da área de trabalho
+Exec=atrium-estilo --primeira-vez
+Icon=atriumos
+NoDisplay=true
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2

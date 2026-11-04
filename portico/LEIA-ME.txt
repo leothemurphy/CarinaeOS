@@ -1,0 +1,49 @@
+PÓRTICO 0.1 — PRÉVIA DE TESTE
+Navegador do AtriumOS · motor Gecko (o mesmo do Firefox)
+===========================================================
+
+O que esta prévia traz
+  • Visual do Pórtico (abas arredondadas, barra em pílula, cores azuis)
+  • Página inicial do Pórtico (saudação, pesquisa, atalhos editáveis)
+  • Escudo ligado: bloqueio rigoroso de rastreadores, só HTTPS,
+    DNS seguro, cookies isolados por site, sem envio de dados de uso
+  • Grupos de abas e abas na lateral liberados
+  • IA desligada por padrão
+  • Perfil separado: o seu Firefox (se tiver) não é alterado
+
+Como instalar
+  WINDOWS 10/11
+    Clique duas vezes em  instalar-windows.bat
+    (se o Windows avisar, clique em "Mais informações" › "Executar assim mesmo")
+    Aparece o atalho "Pórtico" na Área de Trabalho e no menu Iniciar.
+
+  MAC (macOS 12 ou mais novo)
+    O macOS bloqueia scripts baixados da internet. Jeito mais fácil:
+      1. Abra o app Terminal
+      2. Digite  bash  e um espaço, arraste o arquivo instalar-mac.command
+         para dentro do Terminal e aperte Enter
+    (Ou: Ajustes do Sistema › Privacidade e Segurança › "Abrir mesmo assim".)
+    O app "Pórtico" fica em ~/Aplicativos.
+
+  LINUX
+    Abra um terminal nesta pasta e rode:  ./instalar-linux.sh
+    Funciona com Firefox normal, ESR, Flatpak ou Snap.
+
+  ANDROID
+    Instale o Firefox para Android e depois a extensão "Pórtico"
+    (arquivo .xpi gerado pelo GitHub, pasta extensao/). Ela troca a
+    página de nova aba pela do Pórtico. O app Android completo vem depois.
+
+Por que aparece "Firefox"?
+  Esta prévia é só um perfil com o visual e os ajustes do Pórtico, rodando
+  sobre o Firefox instalado. O Pórtico com nome e ícone próprios em todo
+  lugar é compilado pelo GitHub (Actions › "Compilar o Pórtico").
+
+Precisa do Firefox?
+  Nesta prévia, sim: o Pórtico usa o motor instalado. O instalador do
+  Windows tenta instalar sozinho pelo winget; no Mac, pelo Homebrew.
+
+Como remover
+  Windows: %LOCALAPPDATA%\Portico\desinstalar.ps1
+  Mac:     ~/Library/Application Support/Portico/desinstalar.command
+  Linux:   ~/.local/share/portico/desinstalar.sh

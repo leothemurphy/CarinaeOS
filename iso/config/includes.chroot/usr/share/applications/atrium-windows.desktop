@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Aplicativo do Windows
+Comment=Abre programas e instaladores do Windows
+Exec=atrium-windows %f
+Icon=application-x-ms-dos-executable
+Terminal=false
+NoDisplay=true
+MimeType=application/x-ms-dos-executable;application/x-msdownload;application/x-msi;application/x-ms-shortcut;application/vnd.microsoft.portable-executable;

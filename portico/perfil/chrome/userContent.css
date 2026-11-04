@@ -1,0 +1,4 @@
+/* Pórtico 0.1 — páginas internas */
+@-moz-document url-prefix("about:preferences"){
+  :root{--in-content-primary-button-background:#2563eb !important;--in-content-primary-button-background-hover:#1d4ed8 !important}
+}

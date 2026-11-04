@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Estilo da área de trabalho
+Comment=AtriumOS, KDE Plasma, GNOME ou XFCE
+Exec=atrium-estilo
+Icon=preferences-desktop-theme-global
+Terminal=false
+Categories=Settings;DesktopSettings;
+Keywords=estilo;tema;gnome;xfce;plasma;kde;mac;windows;aparência;

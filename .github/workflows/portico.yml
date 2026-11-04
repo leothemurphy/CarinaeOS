@@ -1,0 +1,51 @@
+name: Pórtico (prévia de teste)
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ["portico/**"]
+
+permissions:
+  contents: write
+
+jobs:
+  kit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Montar o kit para Windows, Mac e Linux
+        run: |
+          mkdir -p out/Portico-0.1
+          cd portico
+          cp -r perfil inicio icones LEIA-ME.txt instalar-windows.bat instalar-windows.ps1 instalar-mac.command instalar-linux.sh ../out/Portico-0.1/
+          cd ../out
+          chmod +x Portico-0.1/*.command Portico-0.1/*.sh
+          zip -r Portico-0.1-previa.zip Portico-0.1
+
+      - name: Montar a extensão (Firefox no computador e no Android)
+        run: |
+          cp portico/inicio/inicio.html portico/inicio/inicio.js portico/extensao/
+          npm install --global web-ext
+          web-ext build --source-dir portico/extensao --artifacts-dir out --overwrite-dest
+          if [ -n "${{ secrets.AMO_JWT_ISSUER }}" ]; then
+            web-ext sign --source-dir portico/extensao --artifacts-dir out --channel unlisted \
+              --api-key "${{ secrets.AMO_JWT_ISSUER }}" --api-secret "${{ secrets.AMO_JWT_SECRET }}" || echo "Assinatura falhou: veja o log"
+          else
+            echo "Sem as chaves AMO_JWT_ISSUER/AMO_JWT_SECRET: a extensão sai sem assinatura (.zip)."
+          fi
+          ls -lh out
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: portico-teste-${{ github.run_number }}
+          name: Pórtico 0.1 — prévia de teste ${{ github.run_number }}
+          prerelease: true
+          files: |
+            out/*.zip
+            out/*.xpi
+          body: |
+            **Pórtico 0.1** — prévia de teste do navegador do AtriumOS (motor Gecko).
+
+            • **Windows / Mac / Linux:** baixe `Portico-0.1-previa.zip`, descompacte e siga o `LEIA-ME.txt`.
+            • **Android:** instale o Firefox para Android e a extensão `.xpi` (quando assinada).

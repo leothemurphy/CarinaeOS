@@ -1,0 +1,69 @@
+#!/bin/bash
+# AtriumOS — escolher o estilo da área de trabalho
+#   AtriumOS (parecido com o Mac) · KDE Plasma · GNOME · XFCE
+# Uso: atrium-estilo              (abre a escolha)
+#      atrium-estilo --primeira-vez (só pergunta no primeiro login)
+CFG="${XDG_CONFIG_HOME:-$HOME/.config}"
+MARK="$CFG/atriumos-estilo"
+
+if [ "$1" = "--primeira-vez" ]; then
+  [ -f "$MARK" ] && exit 0
+  [ -d /run/live/medium ] && exit 0      # no pen drive (modo de teste) não pergunta
+  sleep 4
+fi
+CUR="$(cat "$MARK" 2>/dev/null || echo atrium)"
+on(){ [ "$CUR" = "$1" ] && echo on || echo off; }
+
+CH=$(kdialog --title "Estilo da área de trabalho" --icon atriumos \
+  --radiolist "Como você quer a sua área de trabalho?\nDá para mudar depois em Aplicativos › Estilo da área de trabalho." \
+  atrium "AtriumOS: barra no alto e Dock embaixo (parecido com o Mac)" "$(on atrium)" \
+  plasma "KDE Plasma: barra embaixo com menu iniciar (parecido com o Windows)" "$(on plasma)" \
+  gnome  "GNOME: barra preta no alto e Atividades (baixa cerca de 400 MB)" "$(on gnome)" \
+  xfce   "XFCE: clássico e bem leve (baixa cerca de 100 MB)" "$(on xfce)" ) || { mkdir -p "$CFG"; echo "$CUR" > "$MARK"; exit 0; }
+
+# grava uma chave num arquivo .ini do KDE
+ini_set(){ # arquivo grupo chave valor
+  local f="$1" k="$3" v="$4"; mkdir -p "$(dirname "$f")"; touch "$f"
+  awk -v g="[$2]" -v k="$k" -v v="$v" '
+    BEGIN{ing=0;done=0}
+    $0==g {print; ing=1; next}
+    /^\[/ { if(ing&&!done){print k"="v; done=1} ing=0 }
+    ing && index($0,k"=")==1 { if(!done){print k"="v; done=1}; next }
+    {print}
+    END{ if(!done){ if(!ing) print g; print k"="v } }' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+}
+sessao(){ # define a sessão usada no próximo login
+  pkexec bash -c 'mkdir -p /var/lib/sddm; printf "[Last]\nSession=%s\nUser=%s\n" "$1" "$2" > /var/lib/sddm/state.conf; chown sddm:sddm /var/lib/sddm/state.conf 2>/dev/null || true' _ "$1" "$USER"
+}
+instalar(){ # pacotes...
+  if ! ping -c1 -W3 deb.debian.org >/dev/null 2>&1; then
+    kdialog --title "Estilo da área de trabalho" --error "Para usar este estilo, conecte-se à internet e tente de novo."; return 1
+  fi
+  kdialog --title "Estilo da área de trabalho" --passivepopup "Baixando e instalando… pode levar alguns minutos." 8 &
+  pkexec env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$@"
+}
+reiniciar_kwin(){ (qdbus6 org.kde.KWin /KWin reconfigure || qdbus org.kde.KWin /KWin reconfigure) >/dev/null 2>&1 || true; }
+sair(){ kdialog --title "Estilo da área de trabalho" --yesno "Pronto! Para usar o novo estilo, é preciso sair e entrar de novo.\n\nSair agora?" && loginctl terminate-session "$XDG_SESSION_ID"; }
+
+case "$CH" in
+  atrium)
+    lookandfeeltool -a org.atriumos.desktop --resetLayout
+    ini_set "$CFG/kwinrc" org.kde.kdecoration2 ButtonsOnLeft XIA
+    ini_set "$CFG/kwinrc" org.kde.kdecoration2 ButtonsOnRight ""
+    reiniciar_kwin
+    [ "$CUR" = gnome ] || [ "$CUR" = xfce ] && { sessao /usr/share/wayland-sessions/plasma.desktop; echo atrium > "$MARK"; sair; exit 0; } ;;
+  plasma)
+    lookandfeeltool -a org.kde.breeze.desktop --resetLayout
+    ini_set "$CFG/kwinrc" org.kde.kdecoration2 ButtonsOnLeft M
+    ini_set "$CFG/kwinrc" org.kde.kdecoration2 ButtonsOnRight IAX
+    reiniciar_kwin
+    [ "$CUR" = gnome ] || [ "$CUR" = xfce ] && { sessao /usr/share/wayland-sessions/plasma.desktop; echo plasma > "$MARK"; sair; exit 0; } ;;
+  gnome)
+    instalar gnome-session gnome-shell gnome-control-center nautilus gnome-terminal gnome-text-editor \
+      gnome-shell-extension-dashtodock || exit 1
+    sessao /usr/share/wayland-sessions/gnome.desktop; echo gnome > "$MARK"; sair; exit 0 ;;
+  xfce)
+    instalar xfce4 xfce4-terminal thunar xfce4-whiskermenu-plugin xfce4-pulseaudio-plugin xfce4-notifyd || exit 1
+    sessao /usr/share/xsessions/xfce.desktop; echo xfce > "$MARK"; sair; exit 0 ;;
+esac
+mkdir -p "$CFG"; echo "$CH" > "$MARK"

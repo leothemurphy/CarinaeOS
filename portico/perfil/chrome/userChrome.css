@@ -1,0 +1,23 @@
+/* Pórtico 0.1 — visual da janela (aplicado sobre o Firefox) */
+:root{
+  --portico-acc:#2563eb;
+  --portico-acc2:#38bdf8;
+  --tab-border-radius:10px !important;
+  --toolbarbutton-border-radius:9px !important;
+}
+/* abas arredondadas, a aba atual com uma linha azul */
+.tabbrowser-tab .tab-background{border-radius:10px !important}
+.tabbrowser-tab[selected] .tab-background{
+  box-shadow:0 1px 6px rgba(15,23,42,.12),inset 0 -2px 0 var(--portico-acc) !important;
+}
+/* barra de endereço em formato de pílula */
+#urlbar-background{border-radius:14px !important}
+#urlbar[focused] #urlbar-background{
+  outline:2px solid var(--portico-acc) !important;outline-offset:-1px !important;
+  box-shadow:0 0 0 4px rgba(37,99,235,.18) !important;
+}
+#urlbar-input-container{padding-inline:6px !important}
+/* escudo (cadeado / proteção) em verde */
+#tracking-protection-icon-container[hasException="false"] #tracking-protection-icon{fill:#16a34a !important}
+/* menus com cantos suaves */
+menupopup,panel{--panel-border-radius:12px !important}

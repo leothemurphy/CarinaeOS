@@ -1,0 +1,11 @@
+[Unit]
+Description=AtriumOS: ajustes do primeiro boot
+After=local-fs.target
+ConditionPathExists=!/run/live/medium
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/atriumos/firstboot.sh
+
+[Install]
+WantedBy=multi-user.target
