@@ -13,4 +13,3 @@ ac_add_options --with-app-name=portico
 ac_add_options --with-app-basename=Portico
 mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-portico
 export MOZ_TELEMETRY_REPORTING=
-export MOZ_SOURCE_REPO=https://github.com/atriumos/atriumos

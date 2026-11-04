@@ -123,6 +123,7 @@ jobs:
           cd src
           echo "ac_add_options --target=${{ matrix.alvo }}" >> mozconfig
           ./mach --no-interactive bootstrap --application-choice browser
+          rustup target add ${{ matrix.alvo }} || "$HOME/.cargo/bin/rustup" target add ${{ matrix.alvo }}
           ./mach build
           ./mach package
       - name: Empacotar
