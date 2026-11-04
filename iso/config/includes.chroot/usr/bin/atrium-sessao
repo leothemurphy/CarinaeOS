@@ -1,14 +1,15 @@
 #!/bin/sh
 # AtriumOS — abre a interface do AtriumOS em tela cheia.
-# Vídeo: em máquina virtual (VirtualBox, VMware, QEMU...) usa o modo de
-# compatibilidade, desenhando pelo processador; num computador de verdade
-# usa a placa de vídeo. Para forçar, crie /etc/atriumos/video com
-# "compatibilidade" ou "aceleracao".
+# Vídeo: em máquina virtual usa o modo de compatibilidade (desenho pelo
+# processador); num computador de verdade, a placa de vídeo. Para forçar,
+# crie /etc/atriumos/video com "compatibilidade" ou "aceleracao".
+# Vigia: se a interface não carregar em 2 minutos, reabre (até 3 vezes).
 # Registro em ~/.local/state/atriumos/sessao.log
 ESTADO="${XDG_STATE_HOME:-$HOME/.local/state}/atriumos"
 mkdir -p "$ESTADO"
 LOG="$ESTADO/sessao.log"
 : > "$LOG"
+OK="${XDG_RUNTIME_DIR:-/tmp}/atrium-interface-ok"
 
 export XDG_SESSION_TYPE=wayland
 export QT_QPA_PLATFORM=wayland
@@ -24,17 +25,36 @@ MODO="$(cat /etc/atriumos/video 2>/dev/null)"
 if [ -z "$MODO" ]; then
   if systemd-detect-virt -q || [ ! -e /dev/dri/card0 ]; then MODO=compatibilidade; else MODO=aceleracao; fi
 fi
-EXTRA=""
-if [ "$MODO" = compatibilidade ]; then
-  export WLR_RENDERER=pixman
-  EXTRA="--disable-gpu --disable-gpu-compositing"
-fi
-echo "== vídeo: $MODO ($(systemd-detect-virt 2>/dev/null))" >>"$LOG"
 
 DADOS="${XDG_DATA_HOME:-$HOME/.local/share}/atriumos/interface"
 mkdir -p "$DADOS"
-# shellcheck disable=SC2086
-exec cage -d -s -- chromium --kiosk --noerrdialogs --disable-infobars \
-  --disable-session-crashed-bubble --no-first-run --no-default-browser-check \
-  --password-store=basic --disable-features=Translate --autoplay-policy=no-user-gesture-required \
-  --ozone-platform=wayland --user-data-dir="$DADOS" $EXTRA http://127.0.0.1:7777/ >>"$LOG" 2>&1
+
+TENTATIVA=1
+while [ $TENTATIVA -le 3 ]; do
+  EXTRA=""
+  unset WLR_RENDERER
+  if [ "$MODO" = compatibilidade ]; then
+    export WLR_RENDERER=pixman
+    EXTRA="--disable-gpu --disable-gpu-compositing"
+  fi
+  echo "== tentativa $TENTATIVA · vídeo: $MODO ($(systemd-detect-virt 2>/dev/null))" >>"$LOG"
+  rm -f "$OK"
+  # shellcheck disable=SC2086
+  cage -d -s -- chromium --kiosk --noerrdialogs --disable-infobars \
+    --disable-session-crashed-bubble --no-first-run --no-default-browser-check \
+    --password-store=basic --disable-features=Translate --autoplay-policy=no-user-gesture-required \
+    --ozone-platform=wayland --user-data-dir="$DADOS" $EXTRA http://127.0.0.1:7777/ >>"$LOG" 2>&1 &
+  PID=$!
+  i=0
+  while [ $i -lt 120 ] && [ ! -f "$OK" ] && kill -0 $PID 2>/dev/null; do sleep 1; i=$((i+1)); done
+  if [ -f "$OK" ]; then
+    echo "== interface carregou em ${i}s" >>"$LOG"
+    wait $PID
+    exit 0
+  fi
+  echo "== a interface não carregou; reabrindo" >>"$LOG"
+  kill $PID 2>/dev/null; sleep 2; kill -9 $PID 2>/dev/null
+  MODO=compatibilidade
+  TENTATIVA=$((TENTATIVA+1))
+done
+exit 1

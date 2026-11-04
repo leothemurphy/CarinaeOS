@@ -66,6 +66,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._json(403, {"ok": False})
         cmd = self.path.removeprefix("/api/")
         if cmd == "estado":
+            # avisa o atrium-sessao que a interface carregou
+            try:
+                d = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+                with open(os.path.join(d, "atrium-interface-ok"), "w") as f:
+                    f.write("ok")
+            except OSError:
+                pass
             return self._json(200, {"ok": True, "live": LIVE})
         fn = ACTIONS.get(cmd)
         if not fn:
