@@ -18,23 +18,23 @@ echo "==> AtriumOS 0.1 · Android=$ANDROID · Windows=$WINDOWS"
 
 # 0) confere se todos os pacotes existem no Debian 13 (os que faltarem saem da lista, com aviso)
 if command -v apt-cache >/dev/null 2>&1 && grep -q trixie /etc/os-release 2>/dev/null; then
-  cat > /etc/apt/sources.list.d/atrium-check.sources <<SRC
-Types: deb
-URIs: http://deb.debian.org/debian
-Suites: trixie trixie-updates
-Components: main contrib non-free non-free-firmware
-Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
-SRC
+  if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+    sed -i -E 's/^Components:.*/Components: main contrib non-free non-free-firmware/' /etc/apt/sources.list.d/debian.sources
+  fi
   apt-get update -qq || true
-  for list in config/package-lists/*.list.chroot; do
-    while read -r pkg; do
-      case "$pkg" in ''|'#'*) continue ;; esac
-      if [ -z "$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/{print $2}' | grep -v '(none)')" ]; then
-        echo "AVISO: o pacote '$pkg' não existe no Debian 13 e foi tirado de $(basename "$list")"
-        sed -i "/^${pkg}\$/d" "$list"
-      fi
-    done < <(sed 's/#.*//' "$list" | tr -s ' \t' '\n')
-  done
+  if apt-cache policy bash 2>/dev/null | grep -q 'Candidate: [0-9]'; then
+    for list in config/package-lists/*.list.chroot; do
+      while read -r pkg; do
+        case "$pkg" in ''|'#'*) continue ;; esac
+        if [ -z "$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/{print $2}' | grep -v '(none)')" ]; then
+          echo "AVISO: o pacote '$pkg' não existe no Debian 13 e foi tirado de $(basename "$list")"
+          sed -i "/^${pkg}\$/d" "$list"
+        fi
+      done < <(sed 's/#.*//' "$list" | tr -s ' \t' '\n')
+    done
+  else
+    echo "AVISO: não deu para conferir os pacotes; seguindo com a lista completa"
+  fi
 fi
 
 # 1) opções do build (lidas pelos hooks)
