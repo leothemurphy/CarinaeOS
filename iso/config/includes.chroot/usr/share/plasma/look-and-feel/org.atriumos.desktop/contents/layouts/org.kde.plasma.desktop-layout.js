@@ -31,7 +31,10 @@ dock.lengthMode = "fit";
 dock.floating = true;
 dock.hiding = "dodgewindows";
 
-var lp = dock.addWidget("org.kde.plasma.kickerdash");   // Launchpad
+// Launchpad: usa o "Painel de aplicativos" (tela cheia); se não existir, o menu normal
+var lpType = (typeof knownWidgetTypes !== "undefined" && knownWidgetTypes.indexOf("org.kde.plasma.kickerdash") >= 0)
+  ? "org.kde.plasma.kickerdash" : "org.kde.plasma.kickoff";
+var lp = dock.addWidget(lpType);
 lp.currentConfigGroup = ["General"];
 lp.writeConfig("icon", "view-app-grid-symbolic");
 

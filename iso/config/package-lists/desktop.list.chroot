@@ -1,5 +1,7 @@
 # Área de trabalho (KDE Plasma 6, configurado no estilo AtriumOS)
 kde-plasma-desktop
+plasma-desktop
+plasma-widgets-addons
 sddm
 sddm-theme-breeze
 plasma-nm
