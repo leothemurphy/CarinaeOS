@@ -11,8 +11,8 @@ cd "$(dirname "$0")"
 ISO="$(pwd)"
 ROOT="$(cd .. && pwd)"
 INC="$ISO/config/includes.chroot"
-ANDROID="${ATRIUM_ANDROID:-1}"
-WINDOWS="${ATRIUM_WINDOWS:-1}"
+ANDROID="${ATRIUM_ANDROID:-0}"
+WINDOWS="${ATRIUM_WINDOWS:-0}"
 
 echo "==> AtriumOS 0.1 · Android=$ANDROID · Windows=$WINDOWS"
 
@@ -22,11 +22,11 @@ if command -v apt-cache >/dev/null 2>&1 && grep -q trixie /etc/os-release 2>/dev
     sed -i -E 's/^Components:.*/Components: main contrib non-free non-free-firmware/' /etc/apt/sources.list.d/debian.sources
   fi
   apt-get update -qq || true
-  if apt-cache policy bash 2>/dev/null | grep -q 'Candidate: [0-9]'; then
+  if apt-cache show bash >/dev/null 2>&1; then
     for list in config/package-lists/*.list.chroot; do
       while read -r pkg; do
         case "$pkg" in ''|'#'*) continue ;; esac
-        if [ -z "$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/{print $2}' | grep -v '(none)')" ]; then
+        if ! apt-cache show "$pkg" >/dev/null 2>&1; then
           echo "AVISO: o pacote '$pkg' não existe no Debian 13 e foi tirado de $(basename "$list")"
           sed -i "/^${pkg}\$/d" "$list"
         fi
@@ -52,6 +52,10 @@ cp -r "$ROOT/portico/extensao/." "$EXT_TMP/"
 cp "$ROOT/portico/inicio/inicio.html" "$ROOT/portico/inicio/inicio.js" "$EXT_TMP/"
 (cd "$EXT_TMP" && zip -qr -X "$INC/usr/share/portico/portico@atriumos.org.xpi" .)
 rm -rf "$EXT_TMP"
+
+# 2b) a interface do AtriumOS (o nosso projeto, igual ao protótipo)
+mkdir -p "$INC/usr/share/atriumos/shell"
+cp "$ROOT/shell/index.html" "$INC/usr/share/atriumos/shell/index.html"
 
 # 3) ícones
 for s in 16 22 24 32 48 64 128 256 512; do

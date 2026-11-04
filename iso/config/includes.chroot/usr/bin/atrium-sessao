@@ -1,0 +1,17 @@
+#!/bin/sh
+# AtriumOS — abre a interface do AtriumOS em tela cheia
+export XDG_SESSION_TYPE=wayland
+export QT_QPA_PLATFORM=wayland
+export WLR_NO_HARDWARE_CURSORS=1
+[ -e /dev/dri/card0 ] || export WLR_RENDERER=pixman
+
+python3 /usr/lib/atriumos/shell-server.py &
+i=0
+while [ $i -lt 20 ] && ! curl -s -o /dev/null http://127.0.0.1:7777/; do sleep 0.3; i=$((i+1)); done
+
+DADOS="${XDG_DATA_HOME:-$HOME/.local/share}/atriumos/interface"
+mkdir -p "$DADOS"
+exec cage -d -s -- chromium --kiosk --noerrdialogs --disable-infobars \
+  --disable-session-crashed-bubble --no-first-run --no-default-browser-check \
+  --password-store=basic --disable-features=Translate --autoplay-policy=no-user-gesture-required \
+  --ozone-platform=wayland --user-data-dir="$DADOS" http://127.0.0.1:7777/

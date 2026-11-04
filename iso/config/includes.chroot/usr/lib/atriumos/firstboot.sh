@@ -1,5 +1,16 @@
 #!/bin/sh
 # AtriumOS — ajustes do primeiro boot do sistema instalado
+# Entrar direto na interface com o usuário criado na instalação
+U="$(getent passwd 1000 | cut -d: -f1)"
+OV=/etc/systemd/system/getty@tty1.service.d/autologin.conf
+if [ -n "$U" ]; then
+  sed -i "s/--autologin [^ ]*/--autologin $U/" "$OV"
+  [ -f "/home/$U/.bash_profile" ] || { cp /etc/skel/.bash_profile "/home/$U/"; chown "$U:" "/home/$U/.bash_profile"; }
+else
+  rm -f "$OV"
+fi
+systemctl daemon-reload || true
+
 # Pontos de restauração automáticos (Btrfs + Snapper)
 if [ "$(findmnt -no FSTYPE /)" = "btrfs" ] && command -v snapper >/dev/null 2>&1; then
   if [ ! -f /etc/snapper/configs/root ]; then

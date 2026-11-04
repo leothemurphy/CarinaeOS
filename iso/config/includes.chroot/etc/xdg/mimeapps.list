@@ -1,9 +1,0 @@
-[Default Applications]
-x-scheme-handler/http=portico.desktop
-x-scheme-handler/https=portico.desktop
-text/html=portico.desktop
-application/xhtml+xml=portico.desktop
-application/x-ms-dos-executable=atrium-windows.desktop
-application/x-msdownload=atrium-windows.desktop
-application/x-msi=atrium-windows.desktop
-application/vnd.microsoft.portable-executable=atrium-windows.desktop

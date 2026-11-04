@@ -1,46 +1,20 @@
-# Área de trabalho (KDE Plasma 6, configurado no estilo AtriumOS)
-kde-plasma-desktop
-plasma-desktop
-plasma-widgets-addons
-sddm
-sddm-theme-breeze
-plasma-nm
-plasma-pa
-plasma-systemmonitor
-plasma-discover
-plasma-discover-backend-flatpak
-xdg-desktop-portal-kde
-kscreen
-powerdevil
-bluedevil
-kde-spectacle
-dolphin
-konsole
-ark
-gwenview
-okular
-kate
-kcalc
-kdialog
-partitionmanager
-flatpak
-plymouth
-plymouth-themes
-breeze-gtk-theme
-papirus-icon-theme
+# Interface do AtriumOS: o nosso projeto em tela cheia
+cage
+chromium
+chromium-l10n
 fonts-inter
 fonts-noto-core
 fonts-noto-color-emoji
+python3
 pipewire-audio
 wireplumber
 network-manager
-# Pórtico (prévia sobre o motor Gecko)
-firefox-esr
-firefox-esr-l10n-pt-pt
-firefox-esr-l10n-pt-br
-# Escritório (reserva do ArtCraft)
-libreoffice-writer
-libreoffice-calc
-libreoffice-impress
-libreoffice-l10n-pt
-libreoffice-l10n-pt-br
+plymouth
+plymouth-themes
+mesa-utils
+libgl1-mesa-dri
+# instalador (abre por cima da interface)
+calamares
+calamares-settings-debian
+qt6-wayland
+qtwayland5

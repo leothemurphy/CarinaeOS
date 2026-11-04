@@ -41,30 +41,18 @@ Os arquivos prontos aparecem em **Releases** (lado direito da página do reposit
 - **Pen drive:** grave com o balenaEtcher ou o Rufus (modo DD), ligue o computador pelo pen drive
   e escolha **AtriumOS**. Dá para usar sem instalar; para instalar, clique em **Instalar o AtriumOS**.
 
-## O que já vem na 0.1
+## Como o AtriumOS funciona
 
-- KDE Plasma 6 configurado como no protótipo: barra de menus no alto com o logo,
-  Dock flutuante embaixo com Launchpad e Lixeira, botões das janelas à esquerda,
-  áreas de trabalho **Pessoal** e **Trabalho**, minimizar com efeito "gênio"
-- **Busca** (KRunner) no centro da tela: tecla **Super** ou **Alt + Espaço**
-- **Escolha do estilo** no primeiro login: **AtriumOS** (parecido com o Mac), **KDE Plasma**
-  (parecido com o Windows), **GNOME** ou **XFCE**. GNOME e XFCE são baixados na hora.
-  Dá para trocar depois em *Estilo da área de trabalho*.
-- Logo na tela de boot, login com o papel de parede **Portal**, 7 papéis de parede do AtriumOS
-- **Pórtico** (prévia sobre o motor Gecko) como navegador padrão
-- **Apps do Windows**: clique duas vezes num `.exe` ou `.msi`. O Wine fica escondido.
-- **Apps Android**: ícone *Apps Android* na Dock (na primeira vez, baixa o Android com a Google Play)
-- Instalador com a marca AtriumOS, disco em **Btrfs** e **ponto de restauração
-  automático antes de cada atualização** (Snapper)
-- **Modo leve**: memória comprimida (zram) ligada
-- LibreOffice (Writer, Calc, Impress), Flathub na loja, português de Portugal e do Brasil
+O AtriumOS liga **direto na interface do projeto**: a mesma de `shell/index.html`, com a tela de
+boot, a configuração inicial (o "átrio"), a tela de login, a Dock, o Launchpad, a Busca, os apps,
+o Palco, o Mission Control e tudo o mais. Ela roda em tela cheia sobre o Debian 13
+(compositor **cage** + motor **Chromium**), sem outra área de trabalho por baixo.
 
-## Ainda só no protótipo (próximas versões)
+Um serviço local (`/usr/lib/atriumos/shell-server.py`) liga a interface ao sistema de verdade:
+**Desligar**, **Reiniciar**, **Repouso** e **Instalar o AtriumOS neste computador**
+(no menu do logo, quando ligado pelo pen drive; abre o instalador Calamares por cima).
 
-Configuração inicial própria (o "átrio"), tela de login igual à do protótipo, ArtCraft,
-Atrium Agent (Home Assistant), Acesso Remoto, Atrium Link, Pasta Segura, volta automática
-quando uma atualização quebra o boot, Imagem do Sistema em pen drive e as lojas separadas
-de apps Android e Windows.
+Para mudar o AtriumOS, edite `shell/index.html` e envie: a próxima ISO já sai com a mudança.
 
 ## Construir no seu computador (opcional)
 

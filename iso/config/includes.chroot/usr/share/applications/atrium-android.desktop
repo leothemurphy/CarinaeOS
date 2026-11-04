@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Apps Android
-Comment=Use apps do Android no AtriumOS
-Exec=atrium-android
-Icon=android
-Terminal=false
-Categories=System;Emulator;
-Keywords=android;google play;waydroid;

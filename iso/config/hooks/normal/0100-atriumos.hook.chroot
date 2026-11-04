@@ -36,6 +36,8 @@ fi
 if [ -f /etc/calamares/settings.conf ]; then
   sed -i -E 's/^([[:space:]]*)branding:.*/\1branding: atriumos/' /etc/calamares/settings.conf
 fi
+# sem gerenciador de login gráfico: o AtriumOS entra direto na interface
+sed -i -E '/^[[:space:]]*-[[:space:]]*displaymanager[[:space:]]*$/d' /etc/calamares/settings.conf 2>/dev/null || true
 if [ -f /etc/calamares/modules/partition.conf ]; then
   if grep -q '^defaultFileSystemType' /etc/calamares/modules/partition.conf; then
     sed -i -E 's/^defaultFileSystemType:.*/defaultFileSystemType: "btrfs"/' /etc/calamares/modules/partition.conf
@@ -56,37 +58,6 @@ fi
 if [ -f /etc/default/zramswap ]; then
   sed -i -E 's/^#?[[:space:]]*ALGO=.*/ALGO=zstd/; s/^#?[[:space:]]*PERCENT=.*/PERCENT=50/' /etc/default/zramswap
 fi
-
-# --- esconder os motores (Firefox ESR e Wine) dos menus ---
-hide() {
-  [ -f "$1" ] || return 0
-  grep -q '^NoDisplay=true' "$1" && return 0
-  awk 'BEGIN{d=0} {print} /^\[Desktop Entry\]/ && !d {print "NoDisplay=true"; d=1}' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
-}
-for f in /usr/share/applications/firefox-esr.desktop /usr/share/applications/wine.desktop \
-         /usr/share/applications/wine-*.desktop /usr/share/applications/org.winehq.*.desktop; do
-  hide "$f"
-done
-
-
-# --- instalador: "Instalar o AtriumOS" com o nosso logo ---
-for f in /usr/share/applications/install-debian.desktop /usr/share/applications/calamares*.desktop; do
-  [ -f "$f" ] || continue
-  sed -i -E '/^(Name|GenericName|Comment)\[[^]]*\]=/d' "$f"
-  sed -i -E 's/^Name=.*/Name=Instalar o AtriumOS/; s/^GenericName=.*/GenericName=Instalar o AtriumOS/; s/^Comment=.*/Comment=Instala o AtriumOS neste computador/; s/^Icon=.*/Icon=atriumos/' "$f"
-done
-
-# --- sem a tela de boas-vindas do KDE/Debian (o AtriumOS tem a sua) ---
-if dpkg -s plasma-welcome >/dev/null 2>&1; then
-  DEBIAN_FRONTEND=noninteractive apt-get purge -y plasma-welcome || true
-fi
-rm -f /etc/xdg/autostart/org.kde.plasma-welcome.desktop
-
-# --- papel de parede padrão: Portal ---
-for m in /usr/share/plasma/wallpapers/org.kde.image/contents/config/main.xml; do
-  [ -f "$m" ] || continue
-  perl -0pi -e 's#(<entry name="Image".*?<default>).*?(</default>)#${1}file:///usr/share/wallpapers/AtriumOS-Portal/${2}#s' "$m"
-done
 
 # --- serviços ---
 systemctl enable atrium-firstboot.service || true

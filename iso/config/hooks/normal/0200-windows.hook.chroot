@@ -1,7 +1,7 @@
 #!/bin/sh
 # Apps do Windows de 32 bits (wine32). Opcional: se falhar, o build continua.
 . /etc/atriumos-build.conf 2>/dev/null || true
-[ "${WINDOWS:-1}" = "1" ] || exit 0
+[ "${WINDOWS:-0}" = "1" ] || exit 0
 export DEBIAN_FRONTEND=noninteractive
 if dpkg --add-architecture i386 && apt-get update && apt-get install -y wine32:i386; then
   echo "AtriumOS: wine32 instalado"
