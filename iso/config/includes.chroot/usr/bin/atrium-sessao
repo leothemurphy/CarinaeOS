@@ -1,17 +1,41 @@
 #!/bin/sh
-# AtriumOS — abre a interface do AtriumOS em tela cheia
+# AtriumOS — abre a interface do AtriumOS em tela cheia.
+# Tenta com aceleração de vídeo; se falhar (comum em máquinas virtuais),
+# tenta de novo no modo de compatibilidade. Registro em ~/.local/state/atriumos/sessao.log
+ESTADO="${XDG_STATE_HOME:-$HOME/.local/state}/atriumos"
+mkdir -p "$ESTADO"
+LOG="$ESTADO/sessao.log"
+: > "$LOG"
+
 export XDG_SESSION_TYPE=wayland
 export QT_QPA_PLATFORM=wayland
 export WLR_NO_HARDWARE_CURSORS=1
-[ -e /dev/dri/card0 ] || export WLR_RENDERER=pixman
+export WLR_LIBINPUT_NO_DEVICES=1
 
-python3 /usr/lib/atriumos/shell-server.py &
-i=0
-while [ $i -lt 20 ] && ! curl -s -o /dev/null http://127.0.0.1:7777/; do sleep 0.3; i=$((i+1)); done
+if ! curl -s -o /dev/null http://127.0.0.1:7777/; then
+  python3 /usr/lib/atriumos/shell-server.py >>"$LOG" 2>&1 &
+  i=0
+  while [ $i -lt 30 ] && ! curl -s -o /dev/null http://127.0.0.1:7777/; do sleep 0.3; i=$((i+1)); done
+fi
 
 DADOS="${XDG_DATA_HOME:-$HOME/.local/share}/atriumos/interface"
 mkdir -p "$DADOS"
-exec cage -d -s -- chromium --kiosk --noerrdialogs --disable-infobars \
-  --disable-session-crashed-bubble --no-first-run --no-default-browser-check \
-  --password-store=basic --disable-features=Translate --autoplay-policy=no-user-gesture-required \
-  --ozone-platform=wayland --user-data-dir="$DADOS" http://127.0.0.1:7777/
+
+abrir() { # $1 = extras do Chromium
+  # shellcheck disable=SC2086
+  cage -d -s -- chromium --kiosk --noerrdialogs --disable-infobars \
+    --disable-session-crashed-bubble --no-first-run --no-default-browser-check \
+    --password-store=basic --disable-features=Translate --autoplay-policy=no-user-gesture-required \
+    --ozone-platform=wayland --user-data-dir="$DADOS" $1 http://127.0.0.1:7777/ >>"$LOG" 2>&1
+}
+
+INICIO=$(date +%s)
+if [ -e /dev/dri/card0 ] && [ -z "$WLR_RENDERER" ]; then
+  echo "== tentativa 1: com aceleração" >>"$LOG"
+  abrir ""
+  # se fechou em menos de 20 s, provavelmente o vídeo falhou: modo de compatibilidade
+  [ $(( $(date +%s) - INICIO )) -gt 20 ] && exit 0
+fi
+echo "== tentativa 2: modo de compatibilidade (pixman)" >>"$LOG"
+export WLR_RENDERER=pixman
+abrir "--disable-gpu --disable-gpu-compositing"
