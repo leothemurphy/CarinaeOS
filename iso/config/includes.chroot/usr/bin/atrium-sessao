@@ -1,7 +1,10 @@
 #!/bin/sh
 # AtriumOS — abre a interface do AtriumOS em tela cheia.
-# Tenta com aceleração de vídeo; se falhar (comum em máquinas virtuais),
-# tenta de novo no modo de compatibilidade. Registro em ~/.local/state/atriumos/sessao.log
+# Vídeo: em máquina virtual (VirtualBox, VMware, QEMU...) usa o modo de
+# compatibilidade, desenhando pelo processador; num computador de verdade
+# usa a placa de vídeo. Para forçar, crie /etc/atriumos/video com
+# "compatibilidade" ou "aceleracao".
+# Registro em ~/.local/state/atriumos/sessao.log
 ESTADO="${XDG_STATE_HOME:-$HOME/.local/state}/atriumos"
 mkdir -p "$ESTADO"
 LOG="$ESTADO/sessao.log"
@@ -10,7 +13,6 @@ LOG="$ESTADO/sessao.log"
 export XDG_SESSION_TYPE=wayland
 export QT_QPA_PLATFORM=wayland
 export WLR_NO_HARDWARE_CURSORS=1
-export WLR_LIBINPUT_NO_DEVICES=1
 
 if ! curl -s -o /dev/null http://127.0.0.1:7777/; then
   python3 /usr/lib/atriumos/shell-server.py >>"$LOG" 2>&1 &
@@ -18,24 +20,21 @@ if ! curl -s -o /dev/null http://127.0.0.1:7777/; then
   while [ $i -lt 30 ] && ! curl -s -o /dev/null http://127.0.0.1:7777/; do sleep 0.3; i=$((i+1)); done
 fi
 
+MODO="$(cat /etc/atriumos/video 2>/dev/null)"
+if [ -z "$MODO" ]; then
+  if systemd-detect-virt -q || [ ! -e /dev/dri/card0 ]; then MODO=compatibilidade; else MODO=aceleracao; fi
+fi
+EXTRA=""
+if [ "$MODO" = compatibilidade ]; then
+  export WLR_RENDERER=pixman
+  EXTRA="--disable-gpu --disable-gpu-compositing"
+fi
+echo "== vídeo: $MODO ($(systemd-detect-virt 2>/dev/null))" >>"$LOG"
+
 DADOS="${XDG_DATA_HOME:-$HOME/.local/share}/atriumos/interface"
 mkdir -p "$DADOS"
-
-abrir() { # $1 = extras do Chromium
-  # shellcheck disable=SC2086
-  cage -d -s -- chromium --kiosk --noerrdialogs --disable-infobars \
-    --disable-session-crashed-bubble --no-first-run --no-default-browser-check \
-    --password-store=basic --disable-features=Translate --autoplay-policy=no-user-gesture-required \
-    --ozone-platform=wayland --user-data-dir="$DADOS" $1 http://127.0.0.1:7777/ >>"$LOG" 2>&1
-}
-
-INICIO=$(date +%s)
-if [ -e /dev/dri/card0 ] && [ -z "$WLR_RENDERER" ]; then
-  echo "== tentativa 1: com aceleração" >>"$LOG"
-  abrir ""
-  # se fechou em menos de 20 s, provavelmente o vídeo falhou: modo de compatibilidade
-  [ $(( $(date +%s) - INICIO )) -gt 20 ] && exit 0
-fi
-echo "== tentativa 2: modo de compatibilidade (pixman)" >>"$LOG"
-export WLR_RENDERER=pixman
-abrir "--disable-gpu --disable-gpu-compositing"
+# shellcheck disable=SC2086
+exec cage -d -s -- chromium --kiosk --noerrdialogs --disable-infobars \
+  --disable-session-crashed-bubble --no-first-run --no-default-browser-check \
+  --password-store=basic --disable-features=Translate --autoplay-policy=no-user-gesture-required \
+  --ozone-platform=wayland --user-data-dir="$DADOS" $EXTRA http://127.0.0.1:7777/ >>"$LOG" 2>&1
