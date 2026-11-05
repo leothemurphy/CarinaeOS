@@ -373,6 +373,19 @@ def _info_local(url):
     for linha in out.splitlines():
         if linha.strip().startswith("local path:"):
             return linha.split(":", 1)[1].strip()
+    # o gio nem sempre mostra o caminho: procura a montagem no gvfs
+    from urllib.parse import unquote
+    m = re.match(r"^(\w+)://(?:[^@/]*@)?([^/:]+)(?::\d+)?/?([^/]*)", url)
+    if not m or not os.path.isdir(GVFS):
+        return ""
+    proto, host, parte = m.group(1).lower(), m.group(2).lower(), unquote(m.group(3)).lower()
+    for e in sorted(os.listdir(GVFS)):
+        el = e.lower()
+        if host not in el:
+            continue
+        if proto == "smb" and parte and f"share={parte}" not in el:
+            continue
+        return os.path.join(GVFS, e)
     return ""
 
 
@@ -426,6 +439,12 @@ def rede_compartilhar(d):
         return {"ok": False, "erro": "Compartilhamento não instalado"}
     if ligar:
         os.makedirs(pub, exist_ok=True)
+        # convidados da rede entram como "nobody": precisam atravessar a pasta pessoal e ler a Público
+        try:
+            os.chmod(HOME, os.stat(HOME).st_mode | 0o001)
+            os.chmod(pub, 0o755)
+        except OSError:
+            pass
         ok, out = sh(["net", "usershare", "add", "Publico", pub, "Pasta pública do AtriumOS", "Everyone:R", "guest_ok=y"])
     else:
         ok, out = sh(["net", "usershare", "delete", "Publico"])
@@ -975,7 +994,7 @@ def focar(d):
 def _gio_mount(url, usuario, senha, dominio):
     pid, fd = pty.fork()
     if pid == 0:
-        os.execvp("gio", ["gio", "mount", url])
+        os.execvp("gio", ["gio", "mount", url] if usuario else ["gio", "mount", "-a", url])
     saida, enviados, fim = "", set(), time.time() + 45
     try:
         while time.time() < fim:
@@ -1121,7 +1140,7 @@ def _com_senha(cmd, senha):
     try:
         os.write(fd, senha.encode())
         os.close(fd)
-        return sh(cmd + ["-passfile", nome], timeout=60)
+        return sh(cmd[:1] + ["-passfile", nome] + cmd[1:], timeout=60)
     finally:
         os.unlink(nome)
 
@@ -1132,7 +1151,7 @@ def cofre(d):
         if len(senha) < 6:
             return {"ok": False, "erro": "A senha precisa ter pelo menos 6 caracteres."}
         os.makedirs(COFRE_DADOS, exist_ok=True)
-        ok, out = _com_senha(["gocryptfs", "-init", "-q"], senha) if not os.listdir(COFRE_DADOS) else (False, "já existe")
+        ok, out = _com_senha(["gocryptfs", "-init", "-q", COFRE_DADOS], senha) if not os.listdir(COFRE_DADOS) else (False, "já existe")
         if not ok:
             return {"ok": False, "erro": out.strip()[-200:]}
         acao = "abrir"

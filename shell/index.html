@@ -4143,6 +4143,7 @@ if(REAL){
     notify('finder','Rede','Usuário ou senha não conferem.');return null}
   async function abrirServidor(url,nome,go){
     const r=await conectarURL(url,nome);if(!r)return;
+    if(!S.servers.some(x=>x.u===url)){S.servers.unshift({u:url,n:nome||url});S.servers=S.servers.slice(0,8);save()}
     if(r.pastas){const host=(url.match(/^\w+:\/\/([^\/]+)/)||[])[1];const nm=nome||host;
       FS[nm]=r.pastas.map(s=>{SHARE_URL[s]=`smb://${host}/${encodeURIComponent(s)}`;return{n:s,k:'share',dev:nm}});go(nm);return}
     const nm=decodeURIComponent((url.split('/').filter(Boolean).pop())||nome);SHARE_URL[nm]=url;
@@ -4165,7 +4166,7 @@ if(REAL){
       <div class="inst-b"><button class="pbtn" data-c>Cancelar</button><button class="pbtn pri" data-o>Conectar</button></div></div>`);
     c.appendChild(m);const a=$('[data-addr]',m);setTimeout(()=>{a.focus();a.setSelectionRange(a.value.length,a.value.length)},50);
     const conn=()=>{const v=a.value.trim();if(!/^(smb|sftp|ftp|davs?|nfs):\/\/[^\/\s]+/i.test(v)){a.classList.remove('shake');void a.offsetWidth;a.classList.add('shake');return}
-      if(!S.servers.some(x=>x.u===v)){S.servers.unshift({u:v,n:v});S.servers=S.servers.slice(0,8);save()}m.remove();abrirServidor(v,'',go)};
+      m.remove();abrirServidor(v,'',go)};
     m.addEventListener('click',e=>{const f=e.target.closest('[data-fav]');if(f){a.value=f.dataset.fav;if(e.detail>1)conn()}});
     $('[data-c]',m).onclick=()=>m.remove();$('[data-o]',m).onclick=conn;m.addEventListener('keydown',e=>{if(e.key==='Enter')conn();if(e.key==='Escape')m.remove();e.stopPropagation()})};
 
