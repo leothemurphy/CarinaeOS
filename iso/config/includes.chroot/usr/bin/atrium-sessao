@@ -23,6 +23,9 @@ echo "== vídeo: $MODO ($(systemd-detect-virt 2>/dev/null))" >>"$LOG"
 # espaço reservado para a Dock (Ajustes › Dock pode mudar)
 ATRIUM_MARGEM_BAIXO="$(cat "$HOME/.config/atriumos/margem-dock" 2>/dev/null || echo 84)"
 
+# botões fechar/minimizar/maximizar também nos apps GTK4 e da Loja (Flatpak), que leem esta preferência
+gsettings set org.gnome.desktop.wm.preferences button-layout 'close,minimize,maximize:' 2>/dev/null || true
+
 # tirar a barra da janela da interface (o comando mudou na versão 0.8 do labwc)
 V="$(labwc --version 2>/dev/null | grep -o '[0-9]*\.[0-9]*' | head -1)"
 case "$V" in
@@ -72,7 +75,7 @@ X
   echo "MOZ_ENABLE_WAYLAND=1"
   echo "QT_QPA_PLATFORM=wayland;xcb"
   echo "ATRIUM_VIDEO=$MODO"
-  [ "$MODO" = compatibilidade ] && echo "WLR_RENDERER=pixman"
+  [ "$MODO" = compatibilidade ] && echo "WLR_RENDERER=pixman" && echo "GSK_RENDERER=cairo" && echo "LIBGL_ALWAYS_SOFTWARE=1"
 } > "$CFG/environment"
 
 printf '%s\n' "atrium-area-transferencia &" "atrium-interface &" "atrium-players &" "mako --config /etc/atriumos/mako.conf &" > "$CFG/autostart"
