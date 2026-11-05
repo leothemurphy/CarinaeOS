@@ -69,7 +69,7 @@ X
   [ "$MODO" = compatibilidade ] && echo "WLR_RENDERER=pixman"
 } > "$CFG/environment"
 
-echo "atrium-interface &" > "$CFG/autostart"
+printf '%s\n' "command -v wl-clip-persist >/dev/null && wl-clip-persist --clipboard regular &" "atrium-interface &" > "$CFG/autostart"
 
 [ "$MODO" = compatibilidade ] && export WLR_RENDERER=pixman
 export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=AtriumOS:wlroots

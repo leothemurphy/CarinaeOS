@@ -88,3 +88,30 @@ echo 'LIVE_USER_DEFAULT_GROUPS="audio cdrom dip floppy video plugdev netdev powe
 if [ -f /etc/samba/smb.conf ] && ! grep -q 'usershare allow guests' /etc/samba/smb.conf; then
   sed -i '/^\[global\]/a \   usershare allow guests = yes' /etc/samba/smb.conf
 fi
+
+# Calamares: senha com no mínimo 6 caracteres; senha fraca é permitida, com aviso
+[ -f /etc/calamares/modules/users.conf ] || cp /usr/share/calamares/modules/users.conf /etc/calamares/modules/ 2>/dev/null || true
+if [ -f /etc/calamares/modules/users.conf ]; then
+  python3 - <<'PY'
+import re
+p='/etc/calamares/modules/users.conf'
+s=open(p).read()
+s=re.sub(r'(?ms)^passwordRequirements:.*?(?=^\S)','',s)
+s=re.sub(r'(?m)^allowWeakPasswords:.*\n','',s)
+s=re.sub(r'(?m)^allowWeakPasswordsDefault:.*\n','',s)
+s+='\npasswordRequirements:\n    minLength: 6\n    maxLength: -1\nallowWeakPasswords: true\nallowWeakPasswordsDefault: true\n'
+open(p,'w').write(s)
+PY
+fi
+
+# navegador padrão: Chromium
+update-alternatives --set x-www-browser /usr/bin/chromium 2>/dev/null || true
+mkdir -p /etc/skel/.config
+cat > /etc/skel/.config/mimeapps.list <<'MA'
+[Default Applications]
+x-scheme-handler/http=chromium.desktop
+x-scheme-handler/https=chromium.desktop
+text/html=chromium.desktop
+application/xhtml+xml=chromium.desktop
+application/pdf=chromium.desktop
+MA

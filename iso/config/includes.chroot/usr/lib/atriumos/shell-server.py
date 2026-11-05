@@ -175,7 +175,8 @@ def arquivos(d):
 
 
 APPS_REAIS = {
-    "portico": ["/opt/portico/portico"],
+    "portico": ["atrium-navegador"],
+    "loja": ["atrium-loja"],
     "writer": ["libreoffice", "--writer"],
     "calc": ["libreoffice", "--calc"],
     "impress": ["libreoffice", "--impress"],
@@ -197,7 +198,7 @@ def abrir(d):
         if ext == "apk":
             return {"ok": run(["atrium-android", arq])}
         if ext in ("html", "htm", "pdf", "png", "jpg", "jpeg", "gif", "webp", "svg", "txt", "mp4", "webm", "mp3", "ogg"):
-            return {"ok": run(APPS_REAIS["portico"] + [arq])}
+            return {"ok": run(["xdg-open", arq])}
         return {"ok": run(["xdg-open", arq])}
     cmd = APPS_REAIS.get(app)
     if not cmd:
@@ -939,6 +940,262 @@ def conta_info(_):
             "configurada": os.path.exists("/var/lib/atriumos/conta-configurada"), "live": LIVE}
 
 
+# ======================================================================
+# Rodada 3: janelas reais, servidor de rede via pty, drivers, Pasta Segura, loja, Chrome
+# ======================================================================
+import pty
+import select
+import signal
+
+
+# ---------- janelas abertas (para a Dock e para trazer de volta janelas minimizadas) ----------
+def janelas(_):
+    if not shutil.which("wlrctl"):
+        return {"ok": False, "janelas": []}
+    ok, out = sh(["wlrctl", "toplevel", "list"])
+    lista = []
+    for linha in out.splitlines():
+        app, _, titulo = linha.partition(":")
+        app, titulo = app.strip(), titulo.strip()
+        if not app or app.startswith("chrome-127.0.0.1") or "127.0.0.1" in titulo:
+            continue
+        lista.append({"app": app, "titulo": titulo})
+    return {"ok": ok, "janelas": lista}
+
+
+def focar(d):
+    app = str(d.get("app", ""))
+    if not re.match(r"^[\w.\-]+$", app):
+        return {"ok": False}
+    ok, _ = sh(["wlrctl", "toplevel", "focus", f"app_id:{app}"])
+    return {"ok": ok}
+
+
+# ---------- montar pastas da rede respondendo às perguntas do gio num terminal virtual ----------
+def _gio_mount(url, usuario, senha, dominio):
+    pid, fd = pty.fork()
+    if pid == 0:
+        os.execvp("gio", ["gio", "mount", url])
+    saida, enviados, fim = "", set(), time.time() + 45
+    try:
+        while time.time() < fim:
+            r, _, _ = select.select([fd], [], [], 0.5)
+            if r:
+                try:
+                    pedaco = os.read(fd, 4096).decode(errors="replace")
+                except OSError:
+                    break
+                if not pedaco:
+                    break
+                saida += pedaco
+                ult = saida.lower().rstrip()[-80:]
+                for chave, valor in (("user", usuario), ("usuário", usuario), ("utilizador", usuario),
+                                     ("domain", dominio), ("domínio", dominio),
+                                     ("password", senha), ("senha", senha), ("palavra-passe", senha)):
+                    if ult.endswith(":") and chave in ult.split("\n")[-1] and (chave, len(saida)) not in enviados:
+                        enviados.add((chave, len(saida)))
+                        os.write(fd, (valor + "\n").encode())
+                        break
+                if "anonymous" in ult.split("\n")[-1] and not usuario:
+                    os.write(fd, b"1\n")
+            wpid, status = os.waitpid(pid, os.WNOHANG)
+            if wpid:
+                return os.WEXITSTATUS(status) == 0, saida
+        os.kill(pid, signal.SIGKILL)
+        os.waitpid(pid, 0)
+        return False, saida + "\n(tempo esgotado)"
+    finally:
+        os.close(fd)
+
+
+def rede_conectar(d):  # substitui a versão anterior
+    url = str(d.get("url", "")).strip()
+    usuario, senha = str(d.get("usuario", "")), str(d.get("senha", ""))
+    dominio = str(d.get("dominio", "")) or "WORKGROUP"
+    m = re.match(r"^(smb|sftp|ftp|davs?|nfs)://([^/\s]+)/?([^\s]*)$", url, re.I)
+    if not m:
+        return {"ok": False, "erro": "Endereço inválido. Exemplo: smb://192.168.1.20/Filmes"}
+    proto, host, resto = m.group(1).lower(), m.group(2), m.group(3)
+    hostname = host.split("@")[-1].split(":")[0]
+    # o computador responde?
+    porta = {"smb": 445, "sftp": 22, "ftp": 21, "dav": 80, "davs": 443, "nfs": 2049}[proto]
+    if ":" in host.split("@")[-1]:
+        try:
+            porta = int(host.split(":")[-1])
+        except ValueError:
+            pass
+    import socket
+    try:
+        socket.create_connection((hostname, porta), timeout=5).close()
+    except OSError:
+        return {"ok": False, "erro": f"O computador {hostname} não respondeu na porta {porta}. Confira o endereço e se ele está ligado na mesma rede."}
+    if proto == "smb" and not resto:
+        ok, pastas = _pastas_smb(hostname, usuario, senha)
+        if not pastas:
+            return {"ok": False, "precisaSenha": True, "erro": "Usuário ou senha não conferem (ou o servidor não tem pastas compartilhadas)." if usuario else "Este servidor pede usuário e senha."}
+        return {"ok": True, "pastas": pastas}
+    caminho = _info_local(url)
+    if caminho and os.path.isdir(caminho):
+        return {"ok": True, "caminho": caminho, "itens": listar(caminho)}
+    ok, saida = _gio_mount(url, usuario, senha, dominio)
+    caminho = _info_local(url)
+    if not caminho or not os.path.isdir(caminho):
+        baixo = saida.lower()
+        precisa = any(x in baixo for x in ("denied", "password", "senha", "palavra-passe", "authentication", "logon"))
+        ultima = [l for l in saida.strip().splitlines() if l.strip() and ":" not in l[-2:]][-1:] or [""]
+        return {"ok": False, "precisaSenha": precisa,
+                "erro": ("Usuário ou senha não conferem." if precisa and usuario else "Não foi possível conectar. " + ultima[0][:160])}
+    return {"ok": True, "caminho": caminho, "itens": listar(caminho)}
+
+
+# ---------- drivers ----------
+DRV_ESTADO = os.path.join(RUNTIME, "atrium-drivers")
+
+
+def drivers_listar(_):
+    pacotes = {}
+    if shutil.which("isenkram-lookup"):
+        _, out = sh(["isenkram-lookup"], timeout=90)
+        for p in out.split():
+            pacotes[p] = "Recomendado para o hardware deste computador"
+    if shutil.which("nvidia-detect"):
+        _, out = sh(["nvidia-detect"], timeout=60)
+        for p in re.findall(r"\b(nvidia-(?:tesla-)?(?:\d+-)?driver|nvidia-open-kernel-dkms|nvidia-kernel-dkms)\b", out):
+            pacotes[p] = "Placa de vídeo NVIDIA: driver oficial"
+    _, cpu = sh(["sh", "-c", "grep -m1 vendor_id /proc/cpuinfo"])
+    if "GenuineIntel" in cpu:
+        pacotes.setdefault("intel-microcode", "Correções de segurança do processador Intel")
+    if "AuthenticAMD" in cpu:
+        pacotes.setdefault("amd64-microcode", "Correções de segurança do processador AMD")
+    _, vga = sh(["sh", "-c", "lspci -nn 2>/dev/null | grep -iE 'vga|3d|display|network|wireless|audio'"])
+    itens = []
+    for p, motivo in sorted(pacotes.items()):
+        ok, st = sh(["dpkg-query", "-W", "-f", "${Status}", p])
+        itens.append({"pacote": p, "motivo": motivo, "instalado": ok and "install ok installed" in st})
+    try:
+        estado = open(DRV_ESTADO).read().strip()
+    except OSError:
+        estado = ""
+    return {"ok": True, "pacotes": itens, "hardware": [l.split(": ", 1)[-1] for l in vga.splitlines()][:12], "estado": estado}
+
+
+def drivers_instalar(d):
+    pacotes = [str(p) for p in d.get("pacotes", []) if re.match(r"^[a-z0-9][a-z0-9.+\-]+$", str(p))]
+    if not pacotes:
+        return {"ok": False}
+    with open(DRV_ESTADO, "w") as f:
+        f.write("instalando")
+
+    def rodar():
+        try:
+            r = subprocess.run(["sudo", "-n", "/usr/lib/atriumos/ajustes-sistema", "drivers"] + pacotes,
+                               capture_output=True, text=True, timeout=3600)
+            res = "pronto" if r.returncode == 0 else "erro:" + ((r.stderr or r.stdout).strip().splitlines() or [""])[-1][:200]
+        except (OSError, subprocess.TimeoutExpired) as e:
+            res = "erro:" + str(e)
+        with open(DRV_ESTADO, "w") as f:
+            f.write(res)
+    threading.Thread(target=rodar, daemon=True).start()
+    return {"ok": True}
+
+
+# ---------- Pasta Segura (criptografada de verdade com gocryptfs) ----------
+COFRE_DADOS = os.path.join(HOME, ".local", "share", "atriumos", "pasta-segura")
+COFRE = os.path.join(HOME, "Pasta Segura")
+
+
+def _cofre_aberto():
+    ok, out = sh(["findmnt", "-n", COFRE])
+    return ok and bool(out.strip())
+
+
+def cofre_estado(_):
+    return {"ok": True, "disponivel": bool(shutil.which("gocryptfs")),
+            "criado": os.path.exists(os.path.join(COFRE_DADOS, "gocryptfs.conf")),
+            "aberto": _cofre_aberto(), "caminho": COFRE}
+
+
+def _com_senha(cmd, senha):
+    import tempfile
+    fd, nome = tempfile.mkstemp(dir=RUNTIME)
+    try:
+        os.write(fd, senha.encode())
+        os.close(fd)
+        return sh(cmd + ["-passfile", nome], timeout=60)
+    finally:
+        os.unlink(nome)
+
+
+def cofre(d):
+    acao, senha = str(d.get("acao", "")), str(d.get("senha", ""))
+    if acao == "criar":
+        if len(senha) < 6:
+            return {"ok": False, "erro": "A senha precisa ter pelo menos 6 caracteres."}
+        os.makedirs(COFRE_DADOS, exist_ok=True)
+        ok, out = _com_senha(["gocryptfs", "-init", "-q"], senha) if not os.listdir(COFRE_DADOS) else (False, "já existe")
+        if not ok:
+            return {"ok": False, "erro": out.strip()[-200:]}
+        acao = "abrir"
+    if acao == "abrir":
+        if _cofre_aberto():
+            return {"ok": True, "aberto": True}
+        os.makedirs(COFRE, exist_ok=True)
+        ok, out = _com_senha(["gocryptfs", "-q", COFRE_DADOS, COFRE], senha)
+        if not ok:
+            return {"ok": False, "erro": "Senha incorreta." if "password" in out.lower() or "senha" in out.lower() else out.strip()[-200:]}
+        return {"ok": True, "aberto": True, "itens": listar(COFRE)}
+    if acao == "trancar":
+        ok, out = sh(["fusermount3", "-u", COFRE]) if shutil.which("fusermount3") else sh(["fusermount", "-u", COFRE])
+        return {"ok": ok or not _cofre_aberto(), "erro": "Feche os arquivos abertos da Pasta Segura e tente de novo." if not ok else ""}
+    if acao == "mover":
+        orig = str(d.get("caminho", ""))
+        if not _cofre_aberto():
+            return {"ok": False, "erro": "Abra a Pasta Segura primeiro."}
+        if not dentro_de_casa(orig) or not os.path.exists(orig) or os.path.realpath(orig).startswith(COFRE):
+            return {"ok": False}
+        destino = os.path.join(COFRE, os.path.basename(orig))
+        if os.path.exists(destino):
+            return {"ok": False, "erro": "Já existe um item com esse nome na Pasta Segura."}
+        shutil.move(orig, destino)
+        return {"ok": True}
+    return {"ok": False}
+
+
+# ---------- loja (Bazaar, apps do Flathub) e Google Chrome ----------
+LOJA_ID = "io.github.kolunmi.Bazaar"
+
+
+def loja_estado(_):
+    ok, _ = sh(["flatpak", "info", LOJA_ID])
+    try:
+        est = open(os.path.join(RUNTIME, "atrium-loja")).read().strip()
+    except OSError:
+        est = ""
+    return {"ok": True, "instalada": ok, "estado": est}
+
+
+def chrome(d):
+    if d.get("acao") == "estado":
+        try:
+            est = open(os.path.join(RUNTIME, "atrium-chrome")).read().strip()
+        except OSError:
+            est = ""
+        return {"ok": True, "instalado": bool(shutil.which("google-chrome")), "estado": est}
+    if shutil.which("google-chrome"):
+        return {"ok": run(["google-chrome"])}
+    with open(os.path.join(RUNTIME, "atrium-chrome"), "w") as f:
+        f.write("instalando")
+
+    def rodar():
+        r = subprocess.run(["sudo", "-n", "/usr/lib/atriumos/ajustes-sistema", "chrome"], capture_output=True, text=True, timeout=1800)
+        with open(os.path.join(RUNTIME, "atrium-chrome"), "w") as f:
+            f.write("pronto" if r.returncode == 0 else "erro")
+        if r.returncode == 0:
+            run(["google-chrome"])
+    threading.Thread(target=rodar, daemon=True).start()
+    return {"ok": True, "instalando": True}
+
+
 ACTIONS2 = {"wifi_listar": wifi_listar, "wifi_conectar": wifi_conectar, "wifi_ligar": wifi_ligar,
             "volume": volume, "arquivos": arquivos, "abrir": abrir, "android_estado": android_estado,
             "teclado": teclado, "teclado_estado": teclado_estado, "regiao": regiao,
@@ -949,7 +1206,9 @@ ACTIONS2 = {"wifi_listar": wifi_listar, "wifi_conectar": wifi_conectar, "wifi_li
             "backup_iniciar": backup_iniciar, "backup_estado": backup_estado, "backup_restaurar": backup_restaurar,
             "ejetar": ejetar, "windows_estado": windows_estado,
             "sistema": sistema, "encerrar_processo": encerrar_processo, "musicas": musicas,
-            "conta": conta, "idioma": idioma, "verificar_senha": verificar_senha, "conta_info": conta_info}
+            "conta": conta, "idioma": idioma, "verificar_senha": verificar_senha, "conta_info": conta_info,
+            "janelas": janelas, "focar": focar, "drivers_listar": drivers_listar, "drivers_instalar": drivers_instalar,
+            "cofre_estado": cofre_estado, "cofre": cofre, "loja_estado": loja_estado, "chrome": chrome}
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):

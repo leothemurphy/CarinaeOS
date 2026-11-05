@@ -20,8 +20,6 @@ network-manager
 plymouth
 plymouth-themes
 libgl1-mesa-dri
-# dependências do Pórtico (navegador compilado em /opt/portico)
-firefox-esr
 # instalador (abre por cima da interface)
 calamares
 calamares-settings-debian
@@ -58,3 +56,26 @@ fonts-liberation
 fonts-crosextra-carlito
 fonts-crosextra-caladea
 fonts-dejavu
+# janelas na Dock, área de transferência que não se perde, Pasta Segura
+wlrctl
+wl-clipboard
+wl-clip-persist
+gocryptfs
+fuse3
+# drivers: detecção e microcódigo dos processadores
+isenkram-cli
+nvidia-detect
+intel-microcode
+amd64-microcode
+mesa-vulkan-drivers
+mesa-va-drivers
+firmware-linux
+firmware-linux-nonfree
+firmware-misc-nonfree
+firmware-realtek
+firmware-iwlwifi
+firmware-atheros
+firmware-brcm80211
+firmware-amd-graphics
+firmware-sof-signed
+bluez-firmware

@@ -28,5 +28,20 @@ case "$1" in
     case "$2" in pt_BR|pt_PT|en_US|es_ES|fr_FR|de_DE|it_IT) ;; *) exit 1;; esac
     localectl set-locale "LANG=$2.UTF-8" 2>/dev/null || echo "LANG=$2.UTF-8" > /etc/default/locale
     ;;
+  drivers)
+    shift
+    for p in "$@"; do case "$p" in *[!a-z0-9.+-]*|"") exit 1;; esac; done
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -q || true
+    apt-get install -y -q "$@"
+    ;;
+  chrome)
+    # Google Chrome oficial, baixado do Google (com o repositório de atualizações dele)
+    export DEBIAN_FRONTEND=noninteractive
+    T="$(mktemp -d)"
+    curl -fsSL -o "$T/chrome.deb" https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    apt-get install -y -q "$T/chrome.deb"
+    rm -rf "$T"
+    ;;
   *) exit 1 ;;
 esac

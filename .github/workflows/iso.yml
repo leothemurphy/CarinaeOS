@@ -82,6 +82,10 @@ jobs:
       - name: Escrever as notas do lançamento
         run: |
           {
+            echo "![Tour do AtriumOS](https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/docs/midia/tour.gif)"
+            echo
+            echo "**O que há de novo:** área de trabalho completa sobre o Debian 13 · Loja com os apps do Flathub · apps Android e programas do Windows · LibreOffice em português · rede, impressoras e pastas compartilhadas · Acesso Remoto · Home Assistant · Pasta Segura criptografada · cópia de segurança · drivers automáticos."
+            echo
             echo "**AtriumOS 0.1 “Pátio”**: ISO de teste (${{ steps.out.outputs.size }}), baseada no Debian 13."
             echo
             if [ "${{ steps.out.outputs.split }}" = "1" ]; then

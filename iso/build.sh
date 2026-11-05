@@ -57,16 +57,8 @@ rm -rf "$EXT_TMP"
 mkdir -p "$INC/usr/share/atriumos/shell"
 cp "$ROOT/shell/index.html" "$INC/usr/share/atriumos/shell/index.html"
 
-# 2c) Pórtico compilado (Linux) do último lançamento do repositório
-REPO="${GITHUB_REPOSITORY:-leothemurphy/atriumos}"
-URL=$(curl -fsSL "https://api.github.com/repos/$REPO/releases?per_page=30" | grep -o '"browser_download_url": *"[^"]*linux-x86_64\.tar\.xz"' | head -1 | sed 's/.*"\(http[^"]*\)"/\1/')
-if [ -n "$URL" ]; then
-  echo "==> Pórtico: $URL"
-  rm -rf "$INC/opt/portico"; mkdir -p "$INC/opt"
-  curl -fsSL "$URL" | tar -xJ -C "$INC/opt"
-else
-  echo "AVISO: Pórtico compilado não encontrado; o app Pórtico não vai abrir"
-fi
+# 2c) Pórtico: fora da ISO por enquanto (navegador padrão: Chromium)
+rm -rf "$INC/opt/portico"
 
 # 3) ícones
 for s in 16 22 24 32 48 64 128 256 512; do

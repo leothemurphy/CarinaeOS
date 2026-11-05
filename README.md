@@ -1,5 +1,7 @@
 # AtriumOS
 
+![Tour do AtriumOS](docs/midia/tour.gif)
+
 Sistema operacional baseado no **Debian 13 (trixie)** com visual inspirado no macOS:
 barra de menus no alto, Dock embaixo, Launchpad, Busca na tecla Super, apps do
 Linux, do Android e do Windows, e pontos de restauração automáticos.

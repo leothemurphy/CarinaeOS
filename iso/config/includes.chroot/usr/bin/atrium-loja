@@ -1,0 +1,13 @@
+#!/bin/sh
+# AtriumOS — Loja (Bazaar: apps do Flathub). Instala a loja na primeira vez, se ainda não veio na ISO.
+ID=io.github.kolunmi.Bazaar
+EST="${XDG_RUNTIME_DIR:-/tmp}/atrium-loja"
+LOG="${XDG_STATE_HOME:-$HOME/.local/state}/atriumos/loja.log"
+mkdir -p "$(dirname "$LOG")"
+if ! flatpak info "$ID" >/dev/null 2>&1; then
+  echo instalando > "$EST"
+  flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo >>"$LOG" 2>&1
+  if ! flatpak install -y --user --noninteractive flathub "$ID" >>"$LOG" 2>&1; then echo erro > "$EST"; exit 1; fi
+fi
+echo aberta > "$EST"
+exec flatpak run "$ID" "$@"

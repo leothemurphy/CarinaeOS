@@ -1,0 +1,7 @@
+#!/bin/sh
+# AtriumOS — navegador padrão (Chromium), com perfil próprio, separado da interface
+DADOS="${XDG_CONFIG_HOME:-$HOME/.config}/chromium"
+EXTRA=""
+[ "$ATRIUM_VIDEO" = compatibilidade ] && EXTRA="--disable-gpu-compositing"
+# shellcheck disable=SC2086
+exec chromium --ozone-platform=wayland --user-data-dir="$DADOS" --password-store=basic $EXTRA "$@"
