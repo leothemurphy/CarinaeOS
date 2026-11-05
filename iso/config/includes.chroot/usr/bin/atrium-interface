@@ -10,6 +10,10 @@ mkdir -p "$DADOS/Default"
 
 xdg-user-dirs-update >/dev/null 2>&1 || true
 
+# sobras de uma sessão anterior (servidor e janela da interface) atrapalham: começa limpo
+pkill -u "$(id -u)" -f "usr/lib/atriumos/shell-server.py" 2>/dev/null
+pkill -u "$(id -u)" -f "user-data-dir=$DADOS" 2>/dev/null
+sleep 0.5
 if ! curl -s -o /dev/null http://127.0.0.1:7777/; then
   python3 /usr/lib/atriumos/shell-server.py >>"$LOG" 2>&1 &
   i=0

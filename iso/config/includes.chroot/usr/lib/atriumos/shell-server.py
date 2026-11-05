@@ -383,7 +383,7 @@ def _info_local(url):
         el = e.lower()
         if host not in el:
             continue
-        if proto == "smb" and parte and f"share={parte}" not in el:
+        if proto == "smb" and parte and not (el.endswith(f"share={parte}") or f"share={parte}," in el):
             continue
         return os.path.join(GVFS, e)
     return ""
@@ -1215,6 +1215,752 @@ def chrome(d):
     return {"ok": True, "instalando": True}
 
 
+# ======================================================================
+# Rodada 4: eventos para a interface, arquivos (extrair, renomear, lixeira…), ícones reais,
+# bloqueio de apps e pastas, logins da rede guardados, acesso remoto vigiado,
+# agente do Home Assistant (MQTT) e Music Assistant
+# ======================================================================
+import base64
+import hashlib
+import hmac
+import mimetypes
+import queue
+import secrets as _sec
+
+EVENTOS = queue.Queue()
+
+
+def evento(tipo, **dados):
+    EVENTOS.put({"tipo": tipo, **dados})
+
+
+def eventos(_):
+    lista = []
+    try:
+        while True:
+            lista.append(EVENTOS.get_nowait())
+    except queue.Empty:
+        pass
+    return {"ok": True, "eventos": lista}
+
+
+def _virtual():
+    _, v = sh(["systemd-detect-virt"])
+    return v.strip() not in ("", "none")
+
+
+def apagar_tela(_=None):
+    """Apaga a tela; qualquer tecla ou movimento do mouse acende de novo."""
+    if not shutil.which("wlopm"):
+        return {"ok": False}
+    sh(["wlopm", "--off", "*"])
+    if shutil.which("swayidle"):
+        subprocess.Popen(["swayidle", "-w", "timeout", "1", "true", "resume", "wlopm --on '*'; pkill -u %d -x swayidle" % UID],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    return {"ok": True}
+
+
+def repouso(_=None):
+    # em máquina virtual o sistema não consegue acordar sozinho: só bloqueia e apaga a tela
+    if _virtual():
+        evento("bloquear")
+        return {"ok": True, "modo": "bloqueio"}
+    evento("bloquear")
+    return {"ok": run(["systemctl", "suspend"]), "modo": "repouso"}
+
+
+ACTIONS["repouso"] = lambda: repouso().get("ok")
+
+
+# ---------- arquivos: extrair, comprimir, renomear, lixeira, informações ----------
+COMPACTADOS = (".zip", ".rar", ".7z", ".tar", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".tar.bz2", ".tbz2", ".tar.zst", ".gz", ".xz", ".bz2", ".zst", ".cab", ".iso", ".deb")
+
+
+def _ok_caminho(c):
+    return isinstance(c, str) and c and _local_permitido(c) and os.path.lexists(c)
+
+
+def arquivo_op(d):
+    acao, c = str(d.get("acao", "")), str(d.get("caminho", ""))
+    if not _ok_caminho(c):
+        return {"ok": False, "erro": "Arquivo não encontrado."}
+    pasta = os.path.dirname(c)
+    if acao == "extrair":
+        if not shutil.which("unar"):
+            return {"ok": False, "erro": "Extrator não instalado."}
+        ok, out = sh(["unar", "-q", "-f", "-d", "-o", pasta, c], timeout=1800)
+        return {"ok": ok, "erro": "" if ok else (out.strip().splitlines() or ["Não foi possível extrair."])[-1][:200]}
+    if acao == "comprimir":
+        base = os.path.basename(c.rstrip("/"))
+        dest = os.path.join(pasta, base + ".zip")
+        n = 2
+        while os.path.exists(dest):
+            dest = os.path.join(pasta, f"{base} {n}.zip")
+            n += 1
+        ok, out = sh(["7z", "a", "-tzip", "-bd", "-y", dest, base], timeout=1800) if shutil.which("7z") else \
+            sh(["sh", "-c", 'cd "$1" && zip -qr "$2" "$3"', "-", pasta, dest, base], timeout=1800)
+        if not ok and shutil.which("7z"):
+            r = subprocess.run(["7z", "a", "-tzip", "-bd", "-y", dest, base], cwd=pasta, capture_output=True, text=True)
+            ok = r.returncode == 0
+        return {"ok": ok, "destino": dest}
+    if acao == "renomear":
+        novo = str(d.get("nome", "")).strip()
+        if not novo or "/" in novo or novo in (".", ".."):
+            return {"ok": False, "erro": "Nome inválido."}
+        dest = os.path.join(pasta, novo)
+        if os.path.exists(dest):
+            return {"ok": False, "erro": "Já existe um item com esse nome."}
+        os.rename(c, dest)
+        return {"ok": True, "caminho": dest}
+    if acao == "lixeira":
+        ok, out = sh(["gio", "trash", c])
+        return {"ok": ok, "erro": out.strip()[-200:] if not ok else ""}
+    if acao == "info":
+        st = os.stat(c)
+        tam = st.st_size
+        if os.path.isdir(c):
+            tam = _tam(c)
+        _, mime = sh(["file", "-b", "--mime-type", c])
+        _, desc = sh(["file", "-b", c])
+        return {"ok": True, "tamanho": tam, "modificado": int(st.st_mtime), "criado": int(st.st_ctime),
+                "mime": mime.strip(), "tipo": desc.strip()[:120], "caminho": c, "pasta": os.path.isdir(c)}
+    if acao == "abrir_com":
+        app = str(d.get("app", ""))
+        cmds = {"compactados": ["file-roller", c], "writer": ["libreoffice", "--writer", c], "calc": ["libreoffice", "--calc", c],
+                "impress": ["libreoffice", "--impress", c], "navegador": ["atrium-navegador", c], "texto": ["libreoffice", "--writer", c],
+                "terminal": ["foot", "-D", c if os.path.isdir(c) else pasta], "windows": ["atrium-windows", c]}
+        if app not in cmds:
+            return {"ok": False}
+        return {"ok": run(cmds[app])}
+    if acao == "executavel":
+        os.chmod(c, os.stat(c).st_mode | 0o111)
+        return {"ok": True}
+    return {"ok": False}
+
+
+# ---------- ícones reais dos programas (para a Dock e o Launchpad) ----------
+ICONE_DIRS = ["/usr/share/icons/hicolor/256x256/apps", "/usr/share/icons/hicolor/128x128/apps", "/usr/share/icons/hicolor/scalable/apps",
+              "/usr/share/icons/hicolor/96x96/apps", "/usr/share/icons/hicolor/64x64/apps", "/usr/share/icons/hicolor/48x48/apps",
+              "/usr/share/pixmaps", "/var/lib/flatpak/exports/share/icons/hicolor/128x128/apps",
+              "/var/lib/flatpak/exports/share/icons/hicolor/scalable/apps"]
+_ICONE_CACHE = {}
+
+
+def _desktops():
+    dirs = ["/usr/share/applications", "/var/lib/flatpak/exports/share/applications",
+            os.path.join(HOME, ".local/share/flatpak/exports/share/applications"), os.path.join(HOME, ".local/share/applications")]
+    for d in dirs:
+        try:
+            for f in os.listdir(d):
+                if f.endswith(".desktop"):
+                    yield os.path.join(d, f)
+        except OSError:
+            pass
+
+
+def _icone_de_app(app):
+    app_l = app.lower()
+    if app_l in _ICONE_CACHE:
+        return _ICONE_CACHE[app_l]
+    nome = None
+    for f in _desktops():
+        base = os.path.basename(f)[:-8].lower()
+        try:
+            txt = open(f, encoding="utf-8", errors="replace").read()
+        except OSError:
+            continue
+        wm = re.search(r"^StartupWMClass=(.+)$", txt, re.M)
+        if base == app_l or (wm and wm.group(1).strip().lower() == app_l) or base.endswith("." + app_l):
+            m = re.search(r"^Icon=(.+)$", txt, re.M)
+            if m:
+                nome = m.group(1).strip()
+                break
+    nome = nome or app
+    caminho = None
+    if os.path.isabs(nome) and os.path.isfile(nome):
+        caminho = nome
+    else:
+        for d in ICONE_DIRS + [os.path.join(HOME, ".local/share/flatpak/exports/share/icons/hicolor/128x128/apps")]:
+            for ext in (".png", ".svg", ".xpm"):
+                p = os.path.join(d, nome + ext)
+                if os.path.isfile(p):
+                    caminho = p
+                    break
+            if caminho:
+                break
+    _ICONE_CACHE[app_l] = caminho
+    return caminho
+
+
+# ---------- bloqueio de apps e pastas ----------
+BLOQ_CFG = os.path.join(CFG, "bloqueio.json")
+
+
+def _bloq_ler():
+    try:
+        return json.load(open(BLOQ_CFG))
+    except (OSError, ValueError):
+        return {}
+
+
+def _bloq_gravar(c):
+    os.makedirs(CFG, exist_ok=True)
+    with open(BLOQ_CFG, "w") as f:
+        json.dump(c, f)
+    os.chmod(BLOQ_CFG, 0o600)
+
+
+def _hash_senha(senha, sal):
+    return base64.b64encode(hashlib.pbkdf2_hmac("sha256", senha.encode(), base64.b64decode(sal), 200000)).decode()
+
+
+def _senha_certa(c, senha):
+    return bool(c.get("hash")) and hmac.compare_digest(_hash_senha(senha, c["sal"]), c["hash"])
+
+
+def _cifra_de(pasta):
+    return os.path.join(os.path.dirname(pasta), "." + os.path.basename(pasta) + ".atrium-bloqueio")
+
+
+def _montada(p):
+    ok, out = sh(["findmnt", "-n", p])
+    return ok and bool(out.strip())
+
+
+def bloqueio(d):
+    acao, senha = str(d.get("acao", "estado")), str(d.get("senha", ""))
+    c = _bloq_ler()
+    c.setdefault("pastas", [])
+    c.setdefault("apps", [])
+    if acao == "estado":
+        pastas = [{"caminho": p, "nome": os.path.basename(p), "aberta": _montada(p)} for p in c["pastas"]]
+        return {"ok": True, "temSenha": bool(c.get("hash")), "pastas": pastas, "apps": c["apps"],
+                "disponivel": bool(shutil.which("gocryptfs"))}
+    if acao == "definir":
+        if c.get("hash") and not _senha_certa(c, str(d.get("atual", ""))):
+            return {"ok": False, "erro": "A senha atual não confere."}
+        if len(senha) < 6:
+            return {"ok": False, "erro": "A senha precisa ter pelo menos 6 caracteres."}
+        if c.get("hash"):  # troca a senha de todas as pastas bloqueadas
+            antiga = str(d.get("atual", ""))
+            for p in c["pastas"]:
+                cf = _cifra_de(p)
+                r = subprocess.run(["gocryptfs", "-passwd", "-q", cf], input=f"{antiga}\n{senha}\n", capture_output=True, text=True)
+                if r.returncode != 0:
+                    return {"ok": False, "erro": f"Não foi possível trocar a senha de {os.path.basename(p)}."}
+        c["sal"] = base64.b64encode(_sec.token_bytes(16)).decode()
+        c["hash"] = _hash_senha(senha, c["sal"])
+        _bloq_gravar(c)
+        return {"ok": True}
+    if acao == "verificar":
+        return {"ok": True, "certa": _senha_certa(c, senha)}
+    if acao == "apps":
+        if not _senha_certa(c, senha):
+            return {"ok": False, "erro": "Senha incorreta."}
+        c["apps"] = [str(a) for a in d.get("apps", []) if re.match(r"^[\w.\-]+$", str(a))][:100]
+        _bloq_gravar(c)
+        return {"ok": True, "apps": c["apps"]}
+    pasta = os.path.realpath(str(d.get("caminho", "")))
+    if acao in ("bloquear", "desbloquear", "abrir", "fechar"):
+        if not dentro_de_casa(pasta) or pasta == HOME or not os.path.isdir(pasta):
+            return {"ok": False, "erro": "Só pastas dentro da sua pasta pessoal."}
+        if not _senha_certa(c, senha) and acao != "fechar":
+            return {"ok": False, "erro": "Senha incorreta." if c.get("hash") else "Crie a senha de bloqueio primeiro."}
+    cf = _cifra_de(pasta) if acao in ("bloquear", "desbloquear", "abrir", "fechar") else ""
+    if acao == "bloquear":
+        if pasta in c["pastas"]:
+            return {"ok": True}
+        if os.path.exists(cf):
+            return {"ok": False, "erro": "Já existe um bloqueio antigo para esta pasta."}
+        os.makedirs(cf)
+        ok, out = _com_senha(["gocryptfs", "-init", "-q", cf], senha)
+        if not ok:
+            shutil.rmtree(cf, ignore_errors=True)
+            return {"ok": False, "erro": out.strip()[-200:]}
+        tmp = os.path.join(RUNTIME, "atrium-bloq-" + _sec.token_hex(4))
+        os.makedirs(tmp)
+        ok, out = _com_senha(["gocryptfs", "-q", cf, tmp], senha)
+        if not ok:
+            return {"ok": False, "erro": out.strip()[-200:]}
+        try:
+            for nome in os.listdir(pasta):
+                shutil.move(os.path.join(pasta, nome), os.path.join(tmp, nome))
+        finally:
+            sh(["fusermount3", "-u", tmp])
+            try:
+                os.rmdir(tmp)
+            except OSError:
+                pass
+        c["pastas"].append(pasta)
+        _bloq_gravar(c)
+        return {"ok": True}
+    if acao == "abrir":
+        if _montada(pasta):
+            return {"ok": True, "itens": listar(pasta)}
+        ok, out = _com_senha(["gocryptfs", "-q", cf, pasta], senha)
+        return {"ok": ok, "itens": listar(pasta) if ok else [], "erro": "" if ok else out.strip()[-200:]}
+    if acao == "fechar":
+        if not _montada(pasta):
+            return {"ok": True}
+        ok, out = sh(["fusermount3", "-u", pasta])
+        return {"ok": ok, "erro": "" if ok else "Feche os arquivos abertos desta pasta e tente de novo."}
+    if acao == "desbloquear":  # tira o bloqueio de vez: devolve os arquivos à pasta normal
+        if pasta not in c["pastas"]:
+            return {"ok": True}
+        tmp = os.path.join(RUNTIME, "atrium-bloq-" + _sec.token_hex(4))
+        os.makedirs(tmp)
+        if _montada(pasta):
+            sh(["fusermount3", "-u", pasta])
+        ok, out = _com_senha(["gocryptfs", "-q", cf, tmp], senha)
+        if not ok:
+            return {"ok": False, "erro": out.strip()[-200:]}
+        try:
+            for nome in os.listdir(tmp):
+                shutil.move(os.path.join(tmp, nome), os.path.join(pasta, nome))
+        finally:
+            sh(["fusermount3", "-u", tmp])
+            os.rmdir(tmp)
+        shutil.rmtree(cf, ignore_errors=True)
+        c["pastas"].remove(pasta)
+        _bloq_gravar(c)
+        return {"ok": True}
+    return {"ok": False}
+
+
+def bloqueio_fechar_tudo():
+    for p in _bloq_ler().get("pastas", []):
+        if _montada(p):
+            sh(["fusermount3", "-u", p])
+
+
+# ---------- logins da rede guardados (só para este usuário) ----------
+REDE_CFG = os.path.join(CFG, "rede-logins.json")
+
+
+def _logins():
+    try:
+        return json.load(open(REDE_CFG))
+    except (OSError, ValueError):
+        return {}
+
+
+def _login_salvar(host, usuario, senha):
+    c = _logins()
+    c[host.lower()] = {"usuario": usuario, "senha": base64.b64encode(senha.encode()).decode()}
+    os.makedirs(CFG, exist_ok=True)
+    with open(REDE_CFG, "w") as f:
+        json.dump(c, f)
+    os.chmod(REDE_CFG, 0o600)
+
+
+def _login_de(host):
+    x = _logins().get(host.lower())
+    if not x:
+        return "", ""
+    return x.get("usuario", ""), base64.b64decode(x.get("senha", "")).decode()
+
+
+def rede_esquecer(d):
+    c = _logins()
+    c.pop(str(d.get("host", "")).lower(), None)
+    with open(REDE_CFG, "w") as f:
+        json.dump(c, f)
+    return {"ok": True}
+
+
+_rede_conectar_base = rede_conectar
+
+
+def rede_conectar(d):  # noqa: F811 — versão que lembra o login
+    url = str(d.get("url", "")).strip()
+    m = re.match(r"^\w+://(?:([^@/]*)@)?([^/:]+)", url)
+    host = m.group(2) if m else ""
+    usuario, senha = str(d.get("usuario", "")), str(d.get("senha", ""))
+    usado_salvo = False
+    if not usuario and not d.get("convidado") and host:
+        usuario, senha = _login_de(host)
+        usado_salvo = bool(usuario)
+    r = _rede_conectar_base({**d, "usuario": usuario, "senha": senha})
+    if r.get("ok") and host and usuario and d.get("lembrar", True):
+        _login_salvar(host, usuario, senha)
+    if not r.get("ok") and usado_salvo:
+        r["precisaSenha"] = True
+    r["usuario"] = usuario
+    return r
+
+
+# ---------- acesso remoto: se cair, volta sozinho ----------
+def _vigia_remoto():
+    falhas = 0
+    while True:
+        time.sleep(5)
+        try:
+            cfg = _remoto_ler()
+            if cfg.get("ligado") and cfg.get("senha") and shutil.which("wayvnc") and not _vnc_rodando():
+                falhas += 1
+                with open(os.path.join(HOME, ".local", "state", "atriumos", "remoto.log"), "a") as f:
+                    f.write(f"[{time.strftime('%F %T')}] o servidor VNC parou; reiniciando ({falhas})\n")
+                _vnc_iniciar(cfg)
+                if falhas > 20:
+                    time.sleep(60)
+            else:
+                falhas = 0
+        except Exception:  # noqa: BLE001
+            pass
+
+
+# ---------- agente do Home Assistant (MQTT): sensores, botões e notificações ----------
+_mq = {"cli": None, "estado": "desligado", "erro": ""}
+
+
+def _ha_dispositivo():
+    host = os.uname().nodename
+    return {"identifiers": [f"atriumos_{host}"], "name": f"AtriumOS ({host})", "manufacturer": "AtriumOS",
+            "model": "Computador", "sw_version": "0.1"}
+
+
+def _mq_prefixo():
+    return f"atriumos/{os.uname().nodename}"
+
+
+def _mq_publicar_descoberta(cli):
+    dev, base = _ha_dispositivo(), _mq_prefixo()
+    uid = f"atriumos_{os.uname().nodename}"
+    disp = {"availability_topic": f"{base}/disponivel", "device": dev}
+    sensores = [("cpu", "Processador", "%", "mdi:cpu-64-bit", None), ("memoria", "Memória em uso", "%", "mdi:memory", None),
+                ("disco", "Disco livre", "GB", "mdi:harddisk", None), ("ligado_ha", "Ligado há", "min", "mdi:timer-outline", None),
+                ("janela", "Janela ativa", None, "mdi:application", None), ("volume", "Volume", "%", "mdi:volume-high", None)]
+    if os.path.isdir("/sys/class/power_supply/BAT0") or os.path.isdir("/sys/class/power_supply/BAT1"):
+        sensores.append(("bateria", "Bateria", "%", None, "battery"))
+    for chave, nome, unid, icone, classe in sensores:
+        cfg = {**disp, "name": nome, "unique_id": f"{uid}_{chave}", "state_topic": f"{base}/estado",
+               "value_template": "{{ value_json.%s }}" % chave}
+        if unid:
+            cfg["unit_of_measurement"] = unid
+            cfg["state_class"] = "measurement"
+        if icone:
+            cfg["icon"] = icone
+        if classe:
+            cfg["device_class"] = classe
+        cli.publish(f"homeassistant/sensor/{uid}/{chave}/config", json.dumps(cfg), retain=True)
+    cli.publish(f"homeassistant/binary_sensor/{uid}/bloqueado/config", json.dumps({**disp, "name": "Tela bloqueada", "unique_id": f"{uid}_bloqueado",
+                "state_topic": f"{base}/estado", "value_template": "{{ 'ON' if value_json.bloqueado else 'OFF' }}", "icon": "mdi:lock"}), retain=True)
+    for chave, nome, icone in (("desligar", "Desligar", "mdi:power"), ("reiniciar", "Reiniciar", "mdi:restart"),
+                               ("bloquear", "Bloquear tela", "mdi:lock"), ("apagar_tela", "Apagar a tela", "mdi:monitor-off"),
+                               ("repouso", "Repouso", "mdi:sleep"), ("mudo", "Silenciar / ativar som", "mdi:volume-mute")):
+        cli.publish(f"homeassistant/button/{uid}/{chave}/config", json.dumps({**disp, "name": nome, "unique_id": f"{uid}_{chave}",
+                    "command_topic": f"{base}/comando", "payload_press": chave, "icon": icone}), retain=True)
+    cli.publish(f"homeassistant/number/{uid}/volume_ctl/config", json.dumps({**disp, "name": "Volume (ajustar)", "unique_id": f"{uid}_volume_ctl",
+                "command_topic": f"{base}/volume", "state_topic": f"{base}/estado", "value_template": "{{ value_json.volume }}",
+                "min": 0, "max": 100, "step": 5, "icon": "mdi:volume-high"}), retain=True)
+    cli.publish(f"homeassistant/notify/{uid}/aviso/config", json.dumps({**disp, "name": "Aviso na tela", "unique_id": f"{uid}_aviso",
+                "command_topic": f"{base}/aviso"}), retain=True)
+    cli.publish(f"{base}/disponivel", "online", retain=True)
+
+
+ESTADO_TELA = {"bloqueado": False}
+
+
+def _volume_atual():
+    ok, out = sh(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"])
+    m = re.search(r"([\d.]+)", out)
+    return round(float(m.group(1)) * 100) if ok and m else 0
+
+
+def _mq_estado():
+    s = sistema({})
+    st = os.statvfs(HOME)
+    try:
+        up = float(open("/proc/uptime").read().split()[0]) / 60
+    except (OSError, ValueError):
+        up = 0
+    jan = janelas({}).get("janelas") or []
+    return {"cpu": s.get("cpuUso", 0), "memoria": round(100 * s["memUsada"] / s["memTotal"]) if s.get("memTotal") else 0,
+            "disco": round(st.f_bavail * st.f_frsize / 1e9, 1), "ligado_ha": int(up), "volume": _volume_atual(),
+            "janela": (jan[-1]["titulo"] if jan else "AtriumOS")[:100], "bloqueado": ESTADO_TELA["bloqueado"],
+            "bateria": (s.get("bateria") or {}).get("nivel", 0)}
+
+
+def _mq_comando(chave):
+    if chave == "desligar":
+        evento("aviso", titulo="Home Assistant", texto="Desligando o computador…")
+        threading.Timer(3, lambda: run(["systemctl", "poweroff"])).start()
+    elif chave == "reiniciar":
+        evento("aviso", titulo="Home Assistant", texto="Reiniciando o computador…")
+        threading.Timer(3, lambda: run(["systemctl", "reboot"])).start()
+    elif chave == "bloquear":
+        evento("bloquear")
+    elif chave == "apagar_tela":
+        apagar_tela()
+    elif chave == "repouso":
+        repouso()
+    elif chave == "mudo":
+        sh(["wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle"])
+
+
+def _mq_laco(cfg):
+    try:
+        import paho.mqtt.client as mqtt
+    except ImportError:
+        _mq.update(estado="erro", erro="Componente MQTT não instalado.")
+        return
+    base = _mq_prefixo()
+    try:
+        cli = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"atriumos-{os.uname().nodename}")
+    except AttributeError:
+        cli = mqtt.Client(client_id=f"atriumos-{os.uname().nodename}")
+    if cfg.get("mqttUsuario"):
+        cli.username_pw_set(cfg["mqttUsuario"], cfg.get("mqttSenha", ""))
+    cli.will_set(f"{base}/disponivel", "offline", retain=True)
+
+    def conectou(c, ud, flags, rc, *a):
+        codigo = getattr(rc, "value", rc)
+        if codigo == 0:
+            _mq.update(estado="conectado", erro="")
+            c.subscribe([(f"{base}/comando", 0), (f"{base}/volume", 0), (f"{base}/aviso", 0)])
+            _mq_publicar_descoberta(c)
+        else:
+            _mq.update(estado="erro", erro="O servidor MQTT recusou o login (confira usuário e senha)." if codigo in (4, 5, 134, 135) else f"Erro MQTT {codigo}")
+
+    def mensagem(c, ud, msg):
+        txt = msg.payload.decode(errors="replace").strip()
+        if msg.topic.endswith("/comando"):
+            _mq_comando(txt)
+        elif msg.topic.endswith("/volume"):
+            try:
+                v = max(0, min(100, float(txt)))
+                sh(["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", f"{v / 100:.2f}"])
+            except ValueError:
+                pass
+        elif msg.topic.endswith("/aviso"):
+            evento("aviso", titulo="Home Assistant", texto=txt[:300])
+
+    def caiu(c, ud, *a):
+        if _mq["estado"] == "conectado":
+            _mq["estado"] = "reconectando"
+    cli.on_connect, cli.on_message, cli.on_disconnect = conectou, mensagem, caiu
+    _mq.update(cli=cli, estado="conectando", erro="")
+    try:
+        cli.connect(cfg["mqttHost"], int(cfg.get("mqttPorta", 1883)), 30)
+    except OSError as e:
+        _mq.update(estado="erro", erro=f"Não foi possível chegar ao servidor MQTT {cfg['mqttHost']}:{cfg.get('mqttPorta', 1883)} ({e}).")
+        return
+    cli.loop_start()
+    while _mq["cli"] is cli:
+        if _mq["estado"] == "conectado":
+            try:
+                cli.publish(f"{base}/estado", json.dumps(_mq_estado()), retain=True)
+            except Exception:  # noqa: BLE001
+                pass
+            for _ in range(15):
+                if _mq["cli"] is not cli:
+                    break
+                time.sleep(1)
+        else:
+            time.sleep(1)
+    cli.publish(f"{base}/disponivel", "offline", retain=True)
+    cli.loop_stop()
+    cli.disconnect()
+
+
+def ha_agente(d):
+    cfg = _ha_ler()
+    acao = str(d.get("acao", "estado"))
+    if acao == "ligar":
+        host = str(d.get("host", "")).strip() or (re.sub(r"^https?://", "", cfg.get("url", "")).split(":")[0].split("/")[0])
+        cfg.update(agente=True, mqttHost=host, mqttPorta=int(d.get("porta") or 1883),
+                   mqttUsuario=str(d.get("usuario", "")), mqttSenha=str(d.get("senha", "")))
+        _ha_gravar(cfg)
+        _mq["cli"] = None
+        time.sleep(0.3)
+        threading.Thread(target=_mq_laco, args=(cfg,), daemon=True).start()
+        for _ in range(16):
+            time.sleep(0.5)
+            if _mq["estado"] in ("conectado", "erro"):
+                break
+    elif acao == "desligar":
+        cfg["agente"] = False
+        _ha_gravar(cfg)
+        _mq["cli"] = None
+        _mq["estado"] = "desligado"
+    return {"ok": True, "agente": bool(cfg.get("agente")), "estado": _mq["estado"], "erro": _mq["erro"],
+            "host": cfg.get("mqttHost") or re.sub(r"^https?://", "", cfg.get("url", "")).split(":")[0].split("/")[0],
+            "usuario": cfg.get("mqttUsuario", ""), "dispositivo": _ha_dispositivo()["name"]}
+
+
+def ha_agente_autoiniciar():
+    cfg = _ha_ler()
+    if cfg.get("agente") and cfg.get("mqttHost"):
+        threading.Thread(target=_mq_laco, args=(cfg,), daemon=True).start()
+
+
+def tela_estado(d):
+    ESTADO_TELA["bloqueado"] = bool(d.get("bloqueado"))
+    return {"ok": True}
+
+
+# ---------- Music Assistant ----------
+MA_CFG = os.path.join(CFG, "music-assistant.json")
+
+
+def _ma_ler():
+    try:
+        return json.load(open(MA_CFG))
+    except (OSError, ValueError):
+        return {}
+
+
+def _ma_cmd(cfg, comando, args=None, timeout=15):
+    corpo = {"message_id": _sec.token_hex(4), "command": comando}
+    if args:
+        corpo["args"] = args
+    req = urllib.request.Request(cfg["url"].rstrip("/") + "/api", data=json.dumps(corpo).encode(),
+                                 headers={"Content-Type": "application/json", "Authorization": "Bearer " + cfg.get("token", "")}, method="POST")
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        resp = json.loads(r.read() or b"null")
+    if isinstance(resp, dict) and "error_code" in resp:
+        raise ValueError(resp.get("details") or f"erro {resp['error_code']}")
+    return resp.get("result", resp) if isinstance(resp, dict) and "result" in resp else resp
+
+
+def _ma_imagem(item):
+    from urllib.parse import quote
+    base = _ma_ler().get("url", "")
+    try:
+        md = item.get("metadata") or {}
+        imgs = list(md.get("images") or [])
+        if item.get("image"):
+            imgs.insert(0, item["image"])
+        imgs.sort(key=lambda i: (i or {}).get("type") != "thumb")
+        for img in imgs:
+            if not isinstance(img, dict) or not img.get("path"):
+                continue
+            p = str(img["path"])
+            if p.startswith("http") and img.get("remotely_accessible", True):
+                return p
+            if base:
+                return f"{base}/imageproxy?path={quote(p, safe='')}&provider={quote(str(img.get('provider', '')))}&size=256"
+    except AttributeError:
+        pass
+    return ""
+
+
+def _ma_item(i):
+    artistas = ", ".join(a.get("name", "") for a in (i.get("artists") or []) if isinstance(a, dict))
+    return {"uri": i.get("uri"), "nome": i.get("name"), "tipo": i.get("media_type"), "artistas": artistas, "imagem": _ma_imagem(i)}
+
+
+def ma(d):
+    acao = str(d.get("acao", "estado"))
+    cfg = _ma_ler()
+    if acao == "conectar":
+        url = str(d.get("url", "")).strip().rstrip("/")
+        if url and not re.match(r"^https?://", url):
+            url = "http://" + url
+        if re.match(r"^https?://[^/:]+$", url):
+            url += ":8095"
+        cfg = {"url": url, "token": str(d.get("token", "")).strip() or cfg.get("token", "")}
+        try:
+            _ma_cmd(cfg, "players/all")
+        except urllib.error.HTTPError as e:
+            return {"ok": False, "erro": "Token recusado pelo Music Assistant." if e.code in (401, 403) else f"O Music Assistant respondeu com erro {e.code}."}
+        except (urllib.error.URLError, OSError, ValueError) as e:
+            return {"ok": False, "erro": f"Não foi possível chegar a {url} ({getattr(e, 'reason', e)})."}
+        os.makedirs(CFG, exist_ok=True)
+        with open(MA_CFG, "w") as f:
+            json.dump(cfg, f)
+        os.chmod(MA_CFG, 0o600)
+        return {"ok": True}
+    if acao == "desconectar":
+        try:
+            os.remove(MA_CFG)
+        except OSError:
+            pass
+        return {"ok": True}
+    if acao == "descobrir":
+        _, out = sh(["avahi-browse", "-tprk", "_mass._tcp"], timeout=8)
+        for linha in out.splitlines():
+            p = linha.split(";")
+            if linha.startswith("=") and len(p) > 8 and p[2] == "IPv4":
+                return {"ok": True, "url": f"http://{p[7]}:{p[8]}"}
+        return {"ok": True, "url": ""}
+    if not cfg.get("url"):
+        return {"ok": True, "conectado": False}
+    try:
+        if acao == "estado":
+            jogadores = _ma_cmd(cfg, "players/all") or []
+            filas = {q.get("queue_id"): q for q in (_ma_cmd(cfg, "player_queues/all") or [])}
+            lista = []
+            host = os.uname().nodename.lower()
+            for p in jogadores:
+                if not p.get("available", True) or p.get("hidden") or not p.get("enabled", True):
+                    continue
+                q = filas.get(p.get("active_source") or p.get("player_id")) or filas.get(p.get("player_id")) or {}
+                atual = (q.get("current_item") or {})
+                mi = atual.get("media_item") or {}
+                nome = p.get("display_name") or p.get("name") or p.get("player_id")
+                lista.append({"id": p.get("player_id"), "fila": q.get("queue_id") or p.get("player_id"), "nome": nome,
+                              "estado": str(p.get("state") or q.get("state") or ""), "volume": p.get("volume_level"),
+                              "esteComputador": host in str(nome).lower() or "atriumos" in str(nome).lower(),
+                              "tocando": {"nome": atual.get("name") or mi.get("name") or "", "artistas": ", ".join(a.get("name", "") for a in (mi.get("artists") or []) if isinstance(a, dict)),
+                                          "imagem": _ma_imagem(mi) or _ma_imagem(atual)} if atual else None})
+            lista.sort(key=lambda x: (not x["esteComputador"], x["nome"].lower()))
+            return {"ok": True, "conectado": True, "url": cfg["url"], "jogadores": lista}
+        if acao == "buscar":
+            r = _ma_cmd(cfg, "music/search", {"search_query": str(d.get("texto", ""))[:100], "media_types": ["track", "album", "artist", "playlist", "radio"], "limit": 12}, timeout=30)
+            res = {}
+            for k in ("tracks", "albums", "artists", "playlists", "radio"):
+                res[k] = [_ma_item(i) for i in (r.get(k) or [])][:12]
+            return {"ok": True, "resultados": res}
+        if acao == "biblioteca":
+            res = {}
+            for k, cmd in (("playlists", "music/playlists/library_items"), ("albums", "music/albums/library_items"), ("radio", "music/radios/library_items")):
+                try:
+                    itens = _ma_cmd(cfg, cmd, {"limit": 24})
+                    if isinstance(itens, dict):
+                        itens = itens.get("items", [])
+                    res[k] = [_ma_item(i) for i in (itens or [])][:24]
+                except (ValueError, urllib.error.URLError, OSError):
+                    res[k] = []
+            return {"ok": True, "resultados": res}
+        fila = str(d.get("fila", ""))
+        if acao == "tocar":
+            _ma_cmd(cfg, "player_queues/play_media", {"queue_id": fila, "media": str(d.get("uri", ""))}, timeout=30)
+            return {"ok": True}
+        if acao in ("play_pause", "next", "previous", "stop"):
+            _ma_cmd(cfg, f"player_queues/{acao}", {"queue_id": fila})
+            return {"ok": True}
+        if acao == "volume":
+            _ma_cmd(cfg, "players/cmd/volume_set", {"player_id": str(d.get("jogador", "")), "volume_level": int(d.get("volume", 50))})
+            return {"ok": True}
+    except urllib.error.HTTPError as e:
+        return {"ok": False, "erro": f"Music Assistant: erro {e.code}"}
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        return {"ok": False, "erro": f"Music Assistant: {getattr(e, 'reason', e)}"}
+    return {"ok": False}
+
+
+def margem_dock(d):
+    """Reserva embaixo o espaço da Dock, para janelas maximizadas não a cobrirem."""
+    try:
+        px = max(0, min(300, int(d.get("px", 84))))
+    except (TypeError, ValueError):
+        return {"ok": False}
+    os.makedirs(CFG, exist_ok=True)
+    with open(os.path.join(CFG, "margem-dock"), "w") as f:
+        f.write(str(px))
+    rc = os.path.join(HOME, ".config", "labwc", "rc.xml")
+    try:
+        txt = open(rc).read()
+        novo = re.sub(r'<margin top="(\d+)" bottom="\d+"/>', lambda m: f'<margin top="{m.group(1)}" bottom="{px}"/>', txt)
+        if novo != txt:
+            open(rc, "w").write(novo)
+            sh(["labwc", "--reconfigure"])
+    except OSError:
+        pass
+    return {"ok": True}
+
+
 ACTIONS2 = {"wifi_listar": wifi_listar, "wifi_conectar": wifi_conectar, "wifi_ligar": wifi_ligar,
             "volume": volume, "arquivos": arquivos, "abrir": abrir, "android_estado": android_estado,
             "teclado": teclado, "teclado_estado": teclado_estado, "regiao": regiao,
@@ -1227,7 +1973,10 @@ ACTIONS2 = {"wifi_listar": wifi_listar, "wifi_conectar": wifi_conectar, "wifi_li
             "sistema": sistema, "encerrar_processo": encerrar_processo, "musicas": musicas,
             "conta": conta, "idioma": idioma, "verificar_senha": verificar_senha, "conta_info": conta_info,
             "janelas": janelas, "focar": focar, "drivers_listar": drivers_listar, "drivers_instalar": drivers_instalar,
-            "cofre_estado": cofre_estado, "cofre": cofre, "loja_estado": loja_estado, "chrome": chrome}
+            "cofre_estado": cofre_estado, "cofre": cofre, "loja_estado": loja_estado, "chrome": chrome,
+            "eventos": eventos, "apagar_tela": apagar_tela, "repouso": repouso, "arquivo_op": arquivo_op, "bloqueio": bloqueio,
+            "rede_esquecer": rede_esquecer, "ha_agente": ha_agente, "tela_estado": tela_estado, "ma": ma,
+            "margem_dock": margem_dock}
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -1270,6 +2019,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         resta -= len(bloco)
             except (OSError, ConnectionError):
                 pass
+            return None
+        if self.path.startswith("/icone?"):
+            from urllib.parse import parse_qs, urlsplit
+            app = (parse_qs(urlsplit(self.path).query).get("app") or [""])[0]
+            c = _icone_de_app(app) if re.match(r"^[\w.\-]+$", app) else None
+            if not c:
+                return self._json(404, {"ok": False})
+            dados = open(c, "rb").read()
+            self.send_response(200)
+            self.send_header("Content-Type", mimetypes.guess_type(c)[0] or "image/png")
+            self.send_header("Cache-Control", "max-age=3600")
+            self.send_header("Content-Length", str(len(dados)))
+            self.end_headers()
+            self.wfile.write(dados)
             return None
         return super().do_GET()
 
@@ -1328,4 +2091,6 @@ class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
 if __name__ == "__main__":
     remoto_autoiniciar()
+    threading.Thread(target=_vigia_remoto, daemon=True).start()
+    ha_agente_autoiniciar()
     Server(("127.0.0.1", PORT), Handler).serve_forever()

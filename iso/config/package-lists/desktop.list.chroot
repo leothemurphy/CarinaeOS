@@ -59,7 +59,6 @@ fonts-dejavu
 # janelas na Dock, área de transferência que não se perde, Pasta Segura
 wlrctl
 wl-clipboard
-wl-clip-persist
 gocryptfs
 fuse3
 # drivers: detecção e microcódigo dos processadores
@@ -79,3 +78,28 @@ firmware-brcm80211
 firmware-amd-graphics
 firmware-sof-signed
 bluez-firmware
+# apps (Flathub) e Loja
+flatpak
+xdg-desktop-portal-gtk
+xdg-desktop-portal-wlr
+# arquivos compactados (zip, rar, 7z, tar…)
+file-roller
+unar
+zip
+unzip
+7zip
+file
+# tela: apagar/acender e repouso
+wlopm
+swayidle
+# música: este computador como player do Music Assistant e do Home Assistant (DLNA)
+squeezelite
+gmediarender
+pipewire-alsa
+gstreamer1.0-pipewire
+gstreamer1.0-plugins-good
+gstreamer1.0-plugins-bad
+gstreamer1.0-plugins-ugly
+gstreamer1.0-libav
+# agente do Home Assistant (MQTT)
+python3-paho-mqtt

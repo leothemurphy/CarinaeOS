@@ -1803,10 +1803,10 @@ function rFinder(c,win,o){
       d.addEventListener('dblclick',()=>{if(cur==='Lixeira')return;
         if(it.k==='net'){if(it.srv&&window.abrirSrv)return abrirSrv(it.srv,go);const dv=it.dev&&NETDEV.find(x=>x.id===it.dev);if(dv)return netOpenDev(c,dv,go);return FS[it.n]?go(it.n):netConnect(c,go)}
         if(it.k==='share'){mountShare(it.n,it.dev);return go(it.n)}
-        it.k==='folder'?go(it.n):openFile(it,cur)});
+        it.k==='folder'?(it.caminho&&window.abrirPastaReal?abrirPastaReal(it,go):go(it.n)):openFile(it,cur)});
       d.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();d.click();
         const src=cur==='Recentes'?Object.keys(FS).find(f=>FS[f].includes(it)):cur;
-        const m=cur==='Lixeira'?[{label:'Recolocar',action:()=>{FS.Lixeira=FS.Lixeira.filter(x=>x!==it);(FS[it.from]||FS.Documentos).push(it);refreshAll();updateTrash()}},{label:'Apagar Imediatamente',action:()=>{FS.Lixeira=FS.Lixeira.filter(x=>x!==it);refreshAll();updateTrash()}}]
+        const m=(it.caminho&&window.menuArquivoReal&&cur!=='Lixeira')?menuArquivoReal(it,go,cur):cur==='Lixeira'?[{label:'Recolocar',action:()=>{FS.Lixeira=FS.Lixeira.filter(x=>x!==it);(FS[it.from]||FS.Documentos).push(it);refreshAll();updateTrash()}},{label:'Apagar Imediatamente',action:()=>{FS.Lixeira=FS.Lixeira.filter(x=>x!==it);refreshAll();updateTrash()}}]
           :[{label:'Abrir',action:()=>it.k==='folder'?go(it.n):openFile(it,cur)},...(OFFICE_KIND((it.n.split('.').pop()||'').toLowerCase())?[{head:'Abrir com'},...OFFICE_ALTS[OFFICE_KIND(it.n.split('.').pop().toLowerCase())].map(x=>({label:x[1],action:()=>openApp(x[0],{file:it,newWindow:1})}))]:[]),...((it.k==='folder'||it.k==='share')?lockMenuF(it.n):[]),...(it.k==='app'?lockMenuA(it.app):[]),...(it.k==='app'?[{sep:1},DOCK.includes(it.app)?{label:'Remover da Dock',action:()=>removeFromDock(it.app)}:{label:'Adicionar à Dock',action:()=>addToDock(it.app)}]:[]),{sep:1},{label:'Obter Informações',disabled:1},{label:'Mudar o Nome',disabled:1},{sep:1},{label:'Mover para a Lixeira',sc:'⌘⌫',disabled:it.k==='app'||!src,action:()=>moveToTrash(it,src)}];
         showMenu(m,e.clientX,e.clientY)});
       grid.appendChild(d);
@@ -2116,7 +2116,7 @@ function rMon(c,win){
 }
 
 function rSettings(c,win,o){
-  const secs=[['updates','Atualizações','#0a84ff','<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4"/>'],['programs','Programas','#a855f7','<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M14 16.5h6"/>'],['wall','Papel de Parede','#0ea5e9',I16.img],['look','Aparência','#18181b',HALF.match(/<svg[^>]*>(.*)<\/svg>/)[1]],['dock','Dock e Mesa','#3f3f46','<rect x="3" y="15" width="18" height="5" rx="1.5"/><path d="M7 11h10"/>'],['keys','Teclado','#52525b','<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7.5 14h9"/>'],['net','Rede','#0a84ff','<path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.5a9.3 9.3 0 0 1 12.4 0M9 16a4.6 4.6 0 0 1 6 0"/>'],['secure','Pasta Segura','#d97706','<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'],['defapps','Apps padrão','#2563eb','<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'],['compat','Compatibilidade','#16a34a','<rect x="3" y="4" width="11" height="8" rx="1.5"/><rect x="11" y="11" width="10" height="9" rx="1.5"/>'],['sound','Som','#ef4444','<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/>'],['remote','Acesso Remoto','#4338ca','<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>'],['ha','Home Assistant','#0284c7',HOUSE],['restore','Restauração','#0f766e','<path d="M3 4.5v4h4"/><path d="M3.7 8.5A8.5 8.5 0 1 1 3.5 12"/><path d="M12 7.5V12l3 2"/>'],['about','Sobre','#6b7280',LOGO_P],['drivers','Drivers','#10b981','<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>']].filter(x=>!(window.SEC_OCULTAS||[]).includes(x[0])&&(x[0]!=='drivers'||window.driversHTML))
+  const secs=[['updates','Atualizações','#0a84ff','<path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4"/>'],['programs','Programas','#a855f7','<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M14 16.5h6"/>'],['wall','Papel de Parede','#0ea5e9',I16.img],['look','Aparência','#18181b',HALF.match(/<svg[^>]*>(.*)<\/svg>/)[1]],['dock','Dock e Mesa','#3f3f46','<rect x="3" y="15" width="18" height="5" rx="1.5"/><path d="M7 11h10"/>'],['keys','Teclado','#52525b','<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M14 10h.01M17.5 10h.01M7.5 14h9"/>'],['net','Rede','#0a84ff','<path d="M2.5 9a14 14 0 0 1 19 0M5.8 12.5a9.3 9.3 0 0 1 12.4 0M9 16a4.6 4.6 0 0 1 6 0"/>'],['secure',window.SEM_PALCO?'Bloqueio':'Pasta Segura','#d97706','<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'],['defapps','Apps padrão','#2563eb','<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'],['compat','Compatibilidade','#16a34a','<rect x="3" y="4" width="11" height="8" rx="1.5"/><rect x="11" y="11" width="10" height="9" rx="1.5"/>'],['sound','Som','#ef4444','<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6"/>'],['remote','Acesso Remoto','#4338ca','<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>'],['ha','Home Assistant','#0284c7',HOUSE],['restore','Restauração','#0f766e','<path d="M3 4.5v4h4"/><path d="M3.7 8.5A8.5 8.5 0 1 1 3.5 12"/><path d="M12 7.5V12l3 2"/>'],['about','Sobre','#6b7280',LOGO_P],['drivers','Drivers','#10b981','<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>']].filter(x=>!(window.SEC_OCULTAS||[]).includes(x[0])&&(x[0]!=='drivers'||window.driversHTML))
   let sec=o.sec||'wall';
   c.innerHTML=`<div class="st"><div class="side"><div style="display:flex;align-items:center;gap:10px;padding:6px 8px 14px"><div class="avatar" style="width:36px;height:36px;font-size:16px;${avStyle()}">${esc(uName()[0].toUpperCase())}</div><div><b>${esc(uName())}</b><br><small style="color:var(--muted)">Conta local</small></div></div>${secs.map(s=>`<div class="si" data-s="${s[0]}"><span class="sic" style="background:${s[2]}"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${s[3]}</svg></span>${s[1]}</div>`).join('')}</div><div class="st-main"></div></div>`;
   const M=$('.st-main',c);
@@ -4130,7 +4130,7 @@ if(REAL){
       <div class="rq-btn"><button class="pbtn" data-n>Cancelar</button><button class="pbtn pri" data-y>Conectar</button></div></div>`);
     document.body.appendChild(m);const u=$('[data-u]',m),p=$('[data-p]',m);setTimeout(()=>(u.value?p:u).focus(),30);
     const fim=v=>{m.remove();res(v)};$('[data-n]',m).onclick=()=>fim(null);
-    const ok=()=>fim($('[data-g]',m).checked?{usuario:'',senha:''}:{usuario:u.value.trim(),senha:p.value});$('[data-y]',m).onclick=ok;
+    const ok=()=>fim($('[data-g]',m).checked?{usuario:'',senha:'',convidado:1}:{usuario:u.value.trim(),senha:p.value});$('[data-y]',m).onclick=ok;
     m.addEventListener('keydown',e=>{if(e.key==='Enter')ok();if(e.key==='Escape')fim(null);e.stopPropagation()})})}
   async function conectarURL(url,nome){
     const host=(url.match(/^\w+:\/\/([^\/]+)/)||[])[1]||url;let cred=CRED[host]||{};
@@ -4138,7 +4138,7 @@ if(REAL){
       notify('finder','Rede',`Conectando a ${url}…`);
       const r=await sysCall('rede_conectar',{url,...cred});
       if(r.ok){CRED[host]=cred;return r}
-      if(r.precisaSenha||tent===0){const c=await pedirLogin(`Conectar a “${nome||host}”`,r.erro&&tent?r.erro:url,cred.usuario||'');if(!c)return null;cred=c;continue}
+      if(r.precisaSenha){const c=await pedirLogin(`Conectar a “${nome||host}”`,r.erro&&tent?r.erro:url,cred.usuario||'');if(!c)return null;cred=c;continue}
       notify('finder','Rede',r.erro||'Não foi possível conectar.');return null}
     notify('finder','Rede','Usuário ou senha não conferem.');return null}
   async function abrirServidor(url,nome,go){
@@ -4352,7 +4352,7 @@ if(REAL){
   function janelasNaDock(){$$('.di.dreal,.dsep.dreal',dock).forEach(x=>x.remove());if(!JAN.length)return;
     const seps=$$('.dsep',dock);const antes=seps[seps.length-1]||null;
     const sep=h('div','dsep dreal');dock.insertBefore(sep,antes);
-    JAN.forEach(j=>{const d=h('div','di dreal running',`<div class="lbl">${esc(j.titulo||j.app)}</div><div class="ic">${iconeJanela(j)}</div><div class="dot"></div>`);
+    JAN.forEach(j=>{const d=h('div','di dreal running',`<div class="lbl">${esc(j.titulo||j.app)}</div><div class="ic">${(window.iconeJanela||iconeJanela)(j)}</div><div class="dot"></div>`);
       d.addEventListener('click',()=>sysCall('focar',{app:j.app}));d.addEventListener('contextmenu',e=>e.preventDefault());dock.insertBefore(d,antes)})}
   const _bd4=buildDock;buildDock=function(){_bd4();janelasNaDock()};
   setInterval(async()=>{const r=await sysCall('janelas');if(!r||!r.ok)return;const v=[];const vis=new Set();(r.janelas||[]).forEach(j=>{if(!vis.has(j.app)){vis.add(j.app);v.push(j)}});
@@ -4394,6 +4394,169 @@ if(REAL){
       sysCall('cofre',{acao:'mover',caminho:it.caminho}).then(r=>{notify('finder','Pasta Segura',r.ok?`“${name}” foi para a Pasta Segura (criptografada).`:(r.erro||'Não foi possível mover.'));fsSync()})})};
 }
 
+/* ---------- AtriumOS de verdade (5): arquivos completos, bloqueio, rede que lembra, Home Assistant, Music Assistant ---------- */
+if(REAL){
+  /* sem itens que não funcionam com janelas reais */
+  window.SEM_PALCO=1;STAGE=false;S.stage=false;document.body.classList.remove('stage');
+  document.head.appendChild(h('style','',`.tg[data-k="stage"]{display:none!important}`));
+  const _sm5=systemMenu;systemMenu=function(){return _sm5().filter(x=>!x.label||!/^Repetir a Configuração/.test(x.label))};
+  stackIcon=function(){return `<div class="stk">${fileGlyph({n:'Downloads',k:'folder'})}</div>`};
+
+  /* eventos do sistema (Home Assistant, repouso…) */
+  setInterval(async()=>{const r=await sysCall('eventos');if(!r||!r.ok)return;(r.eventos||[]).forEach(e=>{
+    if(e.tipo==='bloquear'&&!$('#lock').classList.contains('open'))lock();
+    if(e.tipo==='aviso')notify('home',e.titulo||'AtriumOS',e.texto||'')})},2000);
+  new MutationObserver(()=>sysCall('tela_estado',{bloqueado:$('#lock').classList.contains('open')})).observe($('#lock'),{attributes:true,attributeFilter:['class']});
+
+  /* ícones reais dos programas abertos (Chrome, LibreOffice, apps da Loja…) */
+  const ICONE_OK={};
+  const iconeReal=app=>`<div class="appicon" style="background:none;box-shadow:none"><img src="/icone?app=${encodeURIComponent(app)}" style="width:100%;height:100%;object-fit:contain" onerror="this.parentNode.innerHTML='<b style=&quot;color:#fff;font:600 26px Inter,sans-serif;display:grid;place-items:center;height:100%;background:linear-gradient(165deg,#a1a1aa,#3f3f46);border-radius:22%&quot;>${esc((app[0]||'?').toUpperCase())}</b>'"></div>`;
+  ICONS.chrome=()=>iconeReal('google-chrome');
+  const _ijOrig=window.iconeJanelaOrig;
+  window.iconeJanela=j=>{const k={calamares:'installer','io.calamares.calamares':'installer',chromium:'browser',foot:'terminal'}[j.app];return k&&APPS[k]?icon(k):iconeReal(j.app)};
+
+  /* ---------- Arquivos: pastas de verdade, extrair, comprimir, renomear, informações, lixeira ---------- */
+  let BLOQ={temSenha:false,pastas:[],apps:[],disponivel:true};
+  const bloqEst=async()=>{const r=await sysCall('bloqueio',{acao:'estado'});if(r&&r.ok)BLOQ=r;return BLOQ};bloqEst();
+  const pastaBloq=c=>BLOQ.pastas.find(p=>p.caminho===c);
+  window.abrirPastaReal=async(it,go)=>{
+    const b=pastaBloq(it.caminho);
+    if(b&&!b.aberta){const s=await pedirSenhaBloq(`Abrir “${it.n}”`,'Esta pasta está bloqueada. Digite a senha de bloqueio.');if(s==null)return;
+      const r=await sysCall('bloqueio',{acao:'abrir',caminho:it.caminho,senha:s});if(!r.ok)return notify('finder','Pasta bloqueada',r.erro||'Senha incorreta.');await bloqEst()}
+    const r=await sysCall('arquivos',{caminho:it.caminho});if(!r.ok)return notify('finder','Arquivos',`Não foi possível abrir “${it.n}”.`);FS[it.n]=r.itens;go(it.n)};
+  const COMPACT=/\.(zip|rar|7z|tar|tgz|txz|tbz2|gz|xz|bz2|zst|cab)$/i;
+  window.menuArquivoReal=(it,go,cur)=>{
+    const ext=(it.n.split('.').pop()||'').toLowerCase(),c=it.caminho,pasta=it.k==='folder';const b=pasta&&pastaBloq(c);
+    const op=(acao,extra={})=>sysCall('arquivo_op',{acao,caminho:c,...extra});
+    const recarregar=()=>{fsSync();const pai=c.slice(0,c.lastIndexOf('/'));sysCall('arquivos',{caminho:pai}).then(r=>{if(r.ok&&cur){FS[cur]=r.itens;refreshAll()}})};
+    const m=[{label:'Abrir',action:()=>pasta?abrirPastaReal(it,go):openFile(it,cur)}];
+    if(!pasta){m.push({head:'Abrir com'});
+      if(COMPACT.test(it.n))m.push({label:'Arquivos Compactados',action:()=>op('abrir_com',{app:'compactados'})});
+      if(/^(docx?|odt|rtf|txt|md)$/.test(ext))m.push({label:'LibreOffice Writer',action:()=>op('abrir_com',{app:'writer'})});
+      if(/^(xlsx?|ods|csv)$/.test(ext))m.push({label:'LibreOffice Calc',action:()=>op('abrir_com',{app:'calc'})});
+      if(/^(pptx?|odp)$/.test(ext))m.push({label:'LibreOffice Impress',action:()=>op('abrir_com',{app:'impress'})});
+      if(/^(exe|msi)$/.test(ext))m.push({label:'Programas do Windows',action:()=>op('abrir_com',{app:'windows'})});
+      m.push({label:'Navegador',action:()=>op('abrir_com',{app:'navegador'})})}
+    if(COMPACT.test(it.n))m.push({sep:1},{label:'Extrair aqui',action:async()=>{notify('finder','Arquivos',`Extraindo “${it.n}”…`);const r=await op('extrair');notify('finder','Arquivos',r.ok?`“${it.n}” foi extraído.`:'Não foi possível extrair: '+(r.erro||''));recarregar()}});
+    m.push({sep:1},{label:`Comprimir “${it.n}”`,action:async()=>{notify('finder','Arquivos','Comprimindo…');const r=await op('comprimir');notify('finder','Arquivos',r.ok?'Arquivo .zip criado.':'Não foi possível comprimir.');recarregar()}});
+    if(pasta&&!c.startsWith('/run/'))m.push(b?{label:b.aberta?'🔒 Trancar agora':'🔓 Tirar o bloqueio…',action:()=>b.aberta?trancarPasta(c,it.n,recarregar):desbloquearPasta(c,it.n,recarregar)}:{label:'🔒 Bloquear com senha…',action:()=>bloquearPasta(c,it.n,recarregar)});
+    if(pasta&&c.startsWith('/run/'))m.push({label:'⭐ Adicionar aos Favoritos',action:()=>favRede(it.n,c)});
+    if(!pasta&&/^(appimage|run|sh)$/.test(ext))m.push({label:'Permitir executar',action:async()=>{await op('executavel');notify('finder','Arquivos',`“${it.n}” agora pode ser executado.`)}});
+    m.push({sep:1},{label:'Obter Informações',action:async()=>{const r=await op('info');if(!r.ok)return;
+      const dt=x=>new Date(x*1000).toLocaleString('pt-PT');const w=h('div','rq',`<div class="rq-b" style="width:380px">${pasta?fileGlyph({n:it.n,k:'folder'}):fileGlyph(it)}<b>${esc(it.n)}</b><p style="text-align:left;line-height:1.7;font-size:12.5px">Tipo: ${esc(r.tipo)}<br>Tamanho: ${fmtB(r.tamanho)}<br>Onde: <span style="user-select:text">${esc(r.caminho)}</span><br>Modificado: ${dt(r.modificado)}</p><div class="rq-btn"><button class="pbtn pri" data-y>OK</button></div></div>`);document.body.appendChild(w);$('[data-y]',w).onclick=()=>w.remove()}},
+      {label:'Mudar o Nome…',action:()=>{const w=h('div','rq',`<div class="rq-b" style="width:360px"><b>Mudar o nome</b><input class="srch" data-n style="width:100%;margin:10px 0" value="${esc(it.n)}"><small data-e style="color:#ff3b30"></small><div class="rq-btn"><button class="pbtn" data-c>Cancelar</button><button class="pbtn pri" data-y>Mudar</button></div></div>`);document.body.appendChild(w);const i=$('[data-n]',w);setTimeout(()=>{i.focus();const p=it.n.lastIndexOf('.');i.setSelectionRange(0,p>0&&!pasta?p:it.n.length)},30);
+        const ir=async()=>{const r=await op('renomear',{nome:i.value});if(!r.ok)return $('[data-e]',w).textContent=r.erro||'Erro';w.remove();recarregar()};$('[data-y]',w).onclick=ir;$('[data-c]',w).onclick=()=>w.remove();i.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')ir();if(e.key==='Escape')w.remove()})}},
+      {sep:1},{label:'Mover para a Lixeira',action:async()=>{const r=await op('lixeira');notify('finder','Arquivos',r.ok?`“${it.n}” foi para a Lixeira.`:'Não foi possível: '+(r.erro||''));recarregar()}});
+    return m};
+
+  /* ---------- bloqueio de apps e pastas (senha própria; pastas criptografadas) ---------- */
+  function pedirSenhaBloq(titulo,sub){return new Promise(res=>{const m=h('div','rq',`<div class="rq-b" style="width:360px"><div class="lk-ic" style="margin:0 auto 6px;width:48px">${PADLOCK}</div><b>${esc(titulo)}</b><p>${esc(sub)}</p><input type="password" class="srch" data-p style="width:100%;margin:6px 0" placeholder="Senha de bloqueio"><small data-e style="color:#ff3b30;display:block;min-height:15px"></small><div class="rq-btn"><button class="pbtn" data-n>Cancelar</button><button class="pbtn pri" data-y>OK</button></div></div>`);
+    document.body.appendChild(m);const p=$('[data-p]',m);setTimeout(()=>p.focus(),30);const fim=v=>{m.remove();res(v)};$('[data-n]',m).onclick=()=>fim(null);$('[data-y]',m).onclick=()=>fim(p.value);p.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter')fim(p.value);if(e.key==='Escape')fim(null)})})}
+  const precisaSenhaBloq=()=>{if(BLOQ.temSenha)return false;notify('settings','Bloqueio','Primeiro crie a senha de bloqueio (Ajustes › Bloqueio).');openApp('settings',{sec:'secure'});return true};
+  window.bloquearPasta=async(c,n,depois)=>{if(precisaSenhaBloq())return;const s=await pedirSenhaBloq(`Bloquear “${n}”`,'Os arquivos ficam criptografados. Para abrir, será pedida a senha de bloqueio.');if(s==null)return;
+    notify('finder','Bloqueio',`Bloqueando “${n}”…`);const r=await sysCall('bloqueio',{acao:'bloquear',caminho:c,senha:s});notify('finder','Bloqueio',r.ok?`“${n}” está bloqueada.`:(r.erro||'Não foi possível bloquear.'));await bloqEst();depois&&depois()};
+  window.trancarPasta=async(c,n,depois)=>{const r=await sysCall('bloqueio',{acao:'fechar',caminho:c});notify('finder','Bloqueio',r.ok?`“${n}” foi trancada.`:r.erro);await bloqEst();depois&&depois()};
+  window.desbloquearPasta=async(c,n,depois)=>{const s=await pedirSenhaBloq(`Tirar o bloqueio de “${n}”`,'Os arquivos voltam a ficar normais, sem senha.');if(s==null)return;const r=await sysCall('bloqueio',{acao:'desbloquear',caminho:c,senha:s});notify('finder','Bloqueio',r.ok?`“${n}” não está mais bloqueada.`:(r.erro||'Erro'));await bloqEst();depois&&depois()};
+  /* apps bloqueados pedem a senha ao abrir */
+  window.SEM_TRAVA_APPS=0;
+  let liberados=new Set();
+  const _oa5=openApp;openApp=function(id,o={}){
+    if(BLOQ.apps.includes(id)&&!liberados.has(id)&&!o.liberado){closeMenu&&closeMenu();pedirSenhaBloq(`Abrir ${APPS[id]?APPS[id].n:id}`,'Este app está bloqueado.').then(async s=>{if(s==null)return;const r=await sysCall('bloqueio',{acao:'verificar',senha:s});if(!r.certa)return notify('settings','Bloqueio','Senha incorreta.');liberados.add(id);setTimeout(()=>liberados.delete(id),60000);_oa5(id,{...o,liberado:1})});return}
+    return _oa5(id,o)};
+  lockItem=async function(type,name){if(precisaSenhaBloq())return;
+    if(type==='a'){const s=await pedirSenhaBloq(`Bloquear ${APPS[name]?APPS[name].n:name}`,'Digite a senha de bloqueio para confirmar.');if(s==null)return;const apps=BLOQ.apps.includes(name)?BLOQ.apps.filter(x=>x!==name):[...BLOQ.apps,name];
+      const r=await sysCall('bloqueio',{acao:'apps',senha:s,apps});notify('settings','Bloqueio',r.ok?(apps.includes(name)?`${APPS[name].n} agora pede a senha para abrir.`:`${APPS[name].n} não pede mais a senha.`):(r.erro||'Erro'));await bloqEst();return}
+    const it=Object.values(FS).flat().find(x=>x&&x.n===name&&x.caminho);if(it)bloquearPasta(it.caminho,name,()=>fsSync())};
+  secureHTML=function(){
+    if(!BLOQ.disponivel)return '<h2>Bloqueio</h2><p>O componente de criptografia não está instalado.</p>';
+    if(!BLOQ.temSenha)return `<h2>Bloqueio de apps e pastas</h2><div class="sec-hero"><div class="lk-ic">${PADLOCK}</div><div><b>Tranque qualquer pasta ou app com senha</b><p>Pastas bloqueadas ficam criptografadas no disco: ninguém lê os arquivos sem a senha, nem por outro sistema. Apps bloqueados pedem a senha para abrir.</p></div></div>
+      <div class="grp"><div class="row"><span>Senha de bloqueio<br><small>Mínimo 6 caracteres. Pode ser diferente da senha de entrar.</small></span><input type="password" class="srch" id="bq1" placeholder="Senha"></div><div class="row"><span>Confirmar</span><input type="password" class="srch" id="bq2" placeholder="Repita a senha"></div><div class="row"><small id="bqm" style="color:#ff3b30"></small><button class="pbtn pri" onclick="bqCriar()">Criar senha</button></div></div>`;
+    const appsB=BLOQ.apps.filter(a=>APPS[a]);
+    return `<h2>Bloqueio de apps e pastas</h2><div class="sec-hero ok"><div class="lk-ic">${PADLOCK}</div><div><b>Bloqueio ativo</b><p>Para bloquear: botão direito numa pasta (no Arquivos) ou num app (na Dock ou no Launchpad) › Bloquear.</p></div></div>
+      <h3 class="sec" style="font-size:14px">Pastas bloqueadas</h3><div class="grp">${BLOQ.pastas.length?BLOQ.pastas.map(p=>`<div class="row"><span>📁 ${esc(p.nome)}<br><small>${esc(p.caminho)} · ${p.aberta?'aberta agora':'trancada'}</small></span><span style="display:flex;gap:6px">${p.aberta?`<button class="pbtn" onclick="trancarPasta('${esc(p.caminho).replace(/'/g,"\\'")}','${esc(p.nome).replace(/'/g,"\\'")}',refreshAll)">Trancar</button>`:''}<button class="pbtn" onclick="desbloquearPasta('${esc(p.caminho).replace(/'/g,"\\'")}','${esc(p.nome).replace(/'/g,"\\'")}',refreshAll)">Tirar bloqueio</button></span></div>`).join(''):'<div class="row"><small>Nenhuma pasta bloqueada.</small></div>'}</div>
+      <h3 class="sec" style="font-size:14px">Apps bloqueados</h3><div class="grp">${appsB.length?appsB.map(a=>`<div class="row"><span style="display:flex;gap:10px;align-items:center"><span style="width:26px;height:26px;display:inline-block">${icon(a)}</span>${esc(APPS[a].n)}</span><button class="pbtn" onclick="lockItem('a','${a}')">Desbloquear</button></div>`).join(''):'<div class="row"><small>Nenhum app bloqueado.</small></div>'}</div>
+      <div class="grp" style="margin-top:12px"><div class="row"><span>Trocar a senha de bloqueio</span><button class="pbtn" onclick="bqTrocar()">Trocar…</button></div></div>`};
+  window.bqCriar=async()=>{const a=$('#bq1').value,b=$('#bq2').value;if(a.length<6)return $('#bqm').textContent='Use pelo menos 6 caracteres.';if(a!==b)return $('#bqm').textContent='As senhas não são iguais.';const r=await sysCall('bloqueio',{acao:'definir',senha:a});if(!r.ok)return $('#bqm').textContent=r.erro;await bloqEst();refreshAll();notify('settings','Bloqueio','Senha criada. Agora é só bloquear pelo botão direito.')};
+  window.bqTrocar=async()=>{const at=await pedirSenhaBloq('Trocar a senha','Digite a senha atual.');if(at==null)return;const nv=await pedirSenhaBloq('Trocar a senha','Digite a nova senha (mínimo 6).');if(nv==null)return;const r=await sysCall('bloqueio',{acao:'definir',atual:at,senha:nv});notify('settings','Bloqueio',r.ok?'Senha trocada.':(r.erro||'Erro'));await bloqEst();refreshAll()};
+  isLockedA=id=>BLOQ.apps.includes(id);unlockedNow=()=>false;unlockItem=(t,n)=>lockItem(t,n);
+
+  /* ---------- Rede: logins guardados, sem pedir senha à toa, favoritos que reconectam ---------- */
+  S.netFavs=S.netFavs||[];
+  window.favRede=(nome,caminho)=>{const host=(caminho.match(/server=([^,]+)/)||[])[1];const share=(caminho.match(/share=([^,]+)$/)||caminho.match(/share=([^,]+)/)||[])[1];
+    const url=host&&share?`smb://${host}/${share}`:'';if(!url)return notify('finder','Favoritos','Só pastas compartilhadas da rede.');
+    if(!S.netFavs.some(f=>f.url===url)){S.netFavs.push({nome,url});save()}notify('finder','Favoritos',`“${nome}” está nos Favoritos e vai reconectar sozinho.`);refreshAll()};
+  /* reconecta os favoritos ao entrar */
+  setTimeout(()=>S.netFavs.forEach(f=>sysCall('rede_conectar',{url:f.url}).then(r=>{if(r.ok){FS[f.nome]=r.itens||[];if(!NET.mounted.some(m=>m.n===f.nome))NET.mounted.push({n:f.nome,dev:f.url});renderDesk()}})),4000);
+
+  /* ---------- Home Assistant: retorno visual, estados e agente (sensores e botões no seu HA) ---------- */
+  let AG={agente:false,estado:'desligado'};
+  const agEst=async()=>{const r=await sysCall('ha_agente',{acao:'estado'});if(r&&r.ok)AG=r;return AG};agEst();
+  window.haExec=async(id,btn)=>{if(btn){btn.disabled=true;btn.textContent='…'}
+    const r=await sysCall('ha',{acao:'executar',entidade:id});
+    if(btn){btn.textContent=r.ok?'✓ Feito':'✕ Falhou';btn.style.color=r.ok?'#16a34a':'#ff3b30'}
+    notify('settings','Home Assistant',r.ok?'Comando enviado ao Home Assistant.':'O Home Assistant não aceitou: '+(r.erro||''));
+    setTimeout(()=>{if(window.haRecarregar)haRecarregar()},1200)};
+  window.agLigar=async()=>{$('#ag-msg').textContent='Conectando…';const r=await sysCall('ha_agente',{acao:'ligar',host:$('#ag-host').value,usuario:$('#ag-u').value,senha:$('#ag-p').value});AG=r;refreshAll();
+    notify('settings','Home Assistant',r.estado==='conectado'?`Pronto: “${r.dispositivo}” já aparece no seu Home Assistant (Ajustes › Dispositivos › MQTT).`:(r.erro||'Não foi possível conectar ao MQTT.'))};
+  window.agDesligar=async()=>{AG=await sysCall('ha_agente',{acao:'desligar'});refreshAll()};
+  const _haHTML4=haSettingsHTML;
+  haSettingsHTML=function(sw){
+    let H=_haHTML4(sw);
+    H=H.replace(/onclick="haExec\('([^']+)'\)"/g,`onclick="haExec('$1',this)"`);
+    /* estado ligado/desligado em cor */
+    H=H.replace(/ · (on|off|unavailable)<\/small>/g,(m,e)=>` · <b style="color:${e==='on'?'#16a34a':e==='off'?'#8e8e93':'#ff9f0a'}">${e==='on'?'ligado':e==='off'?'desligado':'indisponível'}</b></small>`);
+    const ag=`<h3 class="sec" style="font-size:14px">Este computador no Home Assistant</h3><div class="grp">
+      ${AG.agente&&AG.estado==='conectado'?`<div class="row"><span>${esc(AG.dispositivo)}<br><small><span style="color:#16a34a">●</span> Conectado ao MQTT (${esc(AG.host)}) · sensores de CPU, memória, disco, volume e janela ativa; botões Desligar, Reiniciar, Bloquear, Apagar a tela, Repouso e Silenciar; avisos na tela</small></span><button class="pbtn" onclick="agDesligar()">Desligar</button></div>
+        <div class="row"><small>No Home Assistant: Configurações › Dispositivos e serviços › MQTT › “${esc(AG.dispositivo)}”.</small></div>`:
+      `<div class="row" style="display:block"><p style="margin:0 0 8px;font-size:13px">Faz o computador aparecer no seu Home Assistant como dispositivo, com sensores e botões (desligar, reiniciar, bloquear, apagar a tela). Usa o MQTT (complemento “Mosquitto broker” do Home Assistant).</p>
+        <label style="font-size:12.5px">Servidor MQTT<input id="ag-host" class="srch" style="width:100%;margin:4px 0 8px" value="${esc(AG.host||'')}" placeholder="192.168.1.50"></label>
+        <label style="font-size:12.5px">Usuário MQTT<input id="ag-u" class="srch" style="width:100%;margin:4px 0 8px" value="${esc(AG.usuario||'')}" placeholder="um usuário do Home Assistant"></label>
+        <label style="font-size:12.5px">Senha MQTT<input id="ag-p" type="password" class="srch" style="width:100%;margin:4px 0 8px"></label>
+        <small>Com o Mosquitto do Home Assistant, use o login de um usuário do próprio Home Assistant.</small>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:10px"><button class="pbtn pri" onclick="agLigar()">Conectar</button><small id="ag-msg" style="color:#ff9f0a">${esc(AG.erro||'')}</small></div></div>`}
+      <div class="row"><small>🔊 Como caixa de som: o computador aparece sozinho no Home Assistant como “AtriumOS (${esc(NETR.host||'')})” em Configurações › Dispositivos e serviços › Descobertos (DLNA). Também aparece como player no Music Assistant.</small></div></div>`;
+    return H.includes('id="ha-url"')?H:H+ag};
+  window.haRecarregar=()=>sysCall('ha',{acao:'estado'}).then(()=>refreshAll());
+
+  /* ---------- Música: Music Assistant ---------- */
+  APPS.music.r=function(c,win){
+    let E={conectado:null,jogadores:[]},sel=null,res=null,busca='',carregando=false;
+    const jog=()=>E.jogadores.find(j=>j.id===sel)||E.jogadores[0];
+    const estado=async()=>{const r=await sysCall('ma',{acao:'estado'});if(r&&r.ok){E=r;if(!sel&&E.jogadores&&E.jogadores[0])sel=E.jogadores[0].id}else if(r)E.erro=r.erro;draw()};
+    const capa=u=>u?`<img src="${esc(u)}" style="width:100%;height:100%;object-fit:cover;border-radius:8px" referrerpolicy="no-referrer" onerror="this.remove()">`:'';
+    const grade=(t,l)=>l&&l.length?`<h6 class="ha-h6">${t}</h6><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px">${l.map(i=>`<div data-uri="${esc(i.uri)}" style="cursor:pointer"><div style="aspect-ratio:1;background:rgba(127,127,127,.18);border-radius:8px;display:grid;place-items:center;font-size:28px">${capa(i.imagem)||'♪'}</div><div style="font-size:12.5px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(i.nome)}</div><small style="opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">${esc(i.artistas||'')}</small></div>`).join('')}</div>`:'';
+    const draw=()=>{
+      if(E.conectado===null){c.innerHTML='<div style="padding:24px">Conectando ao Music Assistant…</div>';return}
+      if(!E.conectado){c.innerHTML=`<div style="padding:26px;max-width:520px"><h2 style="margin-top:0">Music Assistant</h2><p>Conecte o seu servidor Music Assistant para ouvir as suas músicas (Spotify, Tidal, rádios, arquivos…) neste computador ou em qualquer caixa de som da casa.</p>
+        <label style="font-size:12.5px">Endereço do servidor<input id="ma-url" class="srch" style="width:100%;margin:4px 0 10px" placeholder="http://192.168.1.50:8095" value="${esc(E.sugestao||'')}"></label>
+        <label style="font-size:12.5px">Token de acesso<input id="ma-tok" type="password" class="srch" style="width:100%;margin:4px 0 6px" placeholder="Cole aqui o token"></label>
+        <small>No Music Assistant: Configurações › Usuários (ou Segurança) › criar um token.</small>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:12px"><button class="pbtn pri" data-a="conectar">Conectar</button><small id="ma-msg" style="color:#ff9f0a">${esc(E.erro||'')}</small></div></div>`;return}
+      const j=jog(),t=j&&j.tocando;
+      c.innerHTML=`<div style="display:flex;flex-direction:column;height:100%"><div style="padding:10px 14px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--border)">
+          <input class="srch" data-q placeholder="Buscar músicas, álbuns, artistas, rádios…" value="${esc(busca)}" style="flex:1">
+          <select class="srch" data-j style="max-width:220px">${E.jogadores.map(p=>`<option value="${esc(p.id)}"${j&&p.id===j.id?' selected':''}>${p.esteComputador?'💻 ':'🔊 '}${esc(p.nome)}</option>`).join('')}</select></div>
+        <div style="flex:1;overflow:auto;padding:6px 16px 16px">${carregando?'<p>Carregando…</p>':''}${res?['tracks','albums','playlists','artists','radio'].map(k=>grade({tracks:'Músicas',albums:'Álbuns',playlists:'Playlists',artists:'Artistas',radio:'Rádios'}[k],res[k])).join('')||'<p>Nada encontrado.</p>':''}
+          ${!E.jogadores.some(p=>p.esteComputador)?'<p style="font-size:12px;opacity:.75">Este computador ainda não apareceu como player no Music Assistant. Ele é anunciado sozinho na rede (Squeezelite); confira se o provedor “Squeezelite” está ligado no Music Assistant.</p>':''}</div>
+        <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center">
+          <div style="width:44px;height:44px;background:rgba(127,127,127,.2);border-radius:8px;flex:none">${t?capa(t.imagem):''}</div>
+          <div style="flex:1;min-width:0"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t&&t.nome?esc(t.nome):'Nada tocando'}</div><small style="opacity:.7">${t?esc(t.artistas||''):''}${j?' · '+esc(j.nome):''}</small></div>
+          <button class="pbtn" data-a="previous">⏮</button><button class="pbtn" data-a="play_pause">${j&&j.estado==='playing'?'⏸':'▶︎'}</button><button class="pbtn" data-a="next">⏭</button>
+          <input type="range" min="0" max="100" value="${j&&j.volume!=null?j.volume:50}" data-v style="width:110px"></div></div>`;
+      const q=$('[data-q]',c);q.addEventListener('keydown',async e=>{e.stopPropagation();if(e.key==='Enter'){busca=q.value;carregando=true;draw();const r=await sysCall('ma',{acao:'buscar',texto:busca});carregando=false;res=r.ok?r.resultados:null;if(!r.ok)notify('music','Música',r.erro||'Erro na busca');draw()}});
+      $('[data-j]',c).onchange=e=>{sel=e.target.value;draw()};
+      $('[data-v]',c).onchange=e=>{const j2=jog();if(j2)sysCall('ma',{acao:'volume',jogador:j2.id,volume:+e.target.value})}};
+    c.addEventListener('click',async e=>{const a=e.target.closest('[data-a]'),u=e.target.closest('[data-uri]');
+      if(a&&a.dataset.a==='conectar'){$('#ma-msg').textContent='Conectando…';const r=await sysCall('ma',{acao:'conectar',url:$('#ma-url').value,token:$('#ma-tok').value});if(!r.ok){$('#ma-msg').textContent=r.erro;return}estado();biblioteca();return}
+      const j=jog();if(!j)return;
+      if(a&&['previous','play_pause','next'].includes(a.dataset.a)){await sysCall('ma',{acao:a.dataset.a,fila:j.fila});setTimeout(estado,600)}
+      if(u){notify('music','Música',`Tocando em ${j.nome}…`);const r=await sysCall('ma',{acao:'tocar',fila:j.fila,uri:u.dataset.uri});if(!r.ok)notify('music','Música',r.erro||'Não foi possível tocar.');setTimeout(estado,1500)}});
+    const biblioteca=async()=>{const r=await sysCall('ma',{acao:'biblioteca'});if(r&&r.ok&&!res){res=r.resultados;draw()}};
+    draw();sysCall('ma',{acao:'estado'}).then(async r=>{E=r||{conectado:false};if(!E.conectado){const d=await sysCall('ma',{acao:'descobrir'});E.sugestao=d&&d.url||''}else{if(E.jogadores[0])sel=E.jogadores[0].id;biblioteca()}draw()});
+    const iv=setInterval(()=>{if(E.conectado)estado()},5000);win.cleanup.push(()=>clearInterval(iv))};
+}
+
+if(REAL){let margemAnt=-1;setInterval(()=>{const d=$('#dock');if(!d)return;const r=d.getBoundingClientRect();const auto=document.body.classList.contains('dockauto')||S.dockAuto||S.autohide;const px=auto?0:Math.max(0,Math.round(window.innerHeight-r.top)+4);if(px!==margemAnt&&px<300){margemAnt=px;sysCall('margem_dock',{px})}},3000)}
 /* ---------- init ---------- */
 document.body.classList.toggle('dark',S.dark);
 drawArches();setWall(S.wall);setAccent(S.accent);applyDock();applyBright();applyLite();if(S.stage){STAGE=true;document.body.classList.add('stage')}

@@ -20,6 +20,9 @@ echo "== vídeo: $MODO ($(systemd-detect-virt 2>/dev/null))" >>"$LOG"
 # escolha do usuário (Ajustes › Teclado) vale mais
 [ -f "$HOME/.config/atriumos/teclado" ] && . "$HOME/.config/atriumos/teclado"
 
+# espaço reservado para a Dock (Ajustes › Dock pode mudar)
+ATRIUM_MARGEM_BAIXO="$(cat "$HOME/.config/atriumos/margem-dock" 2>/dev/null || echo 84)"
+
 # tirar a barra da janela da interface (o comando mudou na versão 0.8 do labwc)
 V="$(labwc --version 2>/dev/null | grep -o '[0-9]*\.[0-9]*' | head -1)"
 case "$V" in
@@ -40,6 +43,8 @@ cat > "$CFG/rc.xml" <<X
     <font place="MenuItem"><name>Inter</name><size>10</size></font>
     <font place="OnScreenDisplay"><name>Inter</name><size>10</size></font>
   </theme>
+  <!-- a barra de menus e a Dock da interface ficam sempre visíveis: janelas maximizadas não as cobrem -->
+  <margin top="30" bottom="${ATRIUM_MARGEM_BAIXO:-84}"/>
   <placement><policy>center</policy></placement>
   <keyboard><default/>
     <keybind key="A-F4"><action name="Close"/></keybind>
@@ -48,7 +53,7 @@ cat > "$CFG/rc.xml" <<X
   <windowRules>
     <windowRule identifier="*127.0.0.1*" skipTaskbar="yes" skipWindowSwitcher="yes">
       $SEMBARRA
-      <action name="Maximize"/>
+      <action name="ToggleFullscreen"/>
       <action name="ToggleAlwaysOnBottom"/>
     </windowRule>
   </windowRules>
@@ -69,7 +74,7 @@ X
   [ "$MODO" = compatibilidade ] && echo "WLR_RENDERER=pixman"
 } > "$CFG/environment"
 
-printf '%s\n' "atrium-area-transferencia &" "atrium-interface &" > "$CFG/autostart"
+printf '%s\n' "atrium-area-transferencia &" "atrium-interface &" "atrium-players &" > "$CFG/autostart"
 
 [ "$MODO" = compatibilidade ] && export WLR_RENDERER=pixman
 export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=AtriumOS:wlroots
