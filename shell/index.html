@@ -2553,7 +2553,7 @@ function setupRun(){
   el.className='open';
   const stage=$('.su-stage',el),bg=$('.su-bg',el),arches=$('.su-arches',el);
   const slug=s=>norm(s).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'voce';
-  const init=()=>(D.name.trim()[0]||'?').toUpperCase();
+  const init=()=>(D.name.trim()[0]||(RS?'A':'?')).toUpperCase();
   const tz=(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone.replace(/_/g,' ')}catch(e){return'automático'}})();
   const nav=(next='Continuar',dis=false)=>`<div class="su-nav"><button class="su-link" data-back>Voltar</button><button class="su-btn" data-next${dis?' disabled':''}>${next}</button></div>`;
   const strength=p=>{let s=0;if(p.length>=6)s++;if(p.length>=10)s++;if(/[a-z]/.test(p)&&/[A-Z]/.test(p))s++;if(/\d/.test(p))s++;if(/[^\w]/.test(p))s++;return p?s:0};
@@ -2649,8 +2649,8 @@ function setupRun(){
     if(d.use){D.uses.has(d.use)?D.uses.delete(d.use):D.uses.add(d.use);applyUses();return render(false)}
     if(d.priv){D.priv[d.priv]=!D.priv[d.priv];return render(false)}
     if(d.bag){D.bag=d.bag;return render(false)}
-    if('finish' in d)return finish();
-    if('instalar' in d){finish();setTimeout(()=>{sysCall('instalar');notify('about','Instalador','Abrindo o instalador do AtriumOS… Ele aparece na Dock, se você minimizar.')},1600);return}
+    if('finish' in d){window.JA_OFERECEU_INSTALAR=RS&&D.live;return finish()}
+    if('instalar' in d){window.JA_OFERECEU_INSTALAR=true;finish();setTimeout(()=>{sysCall('instalar');notify('about','Instalador','Abrindo o instalador do AtriumOS… Ele aparece na Dock, se você minimizar.')},1600);return}
     if('next' in d){if(c.disabled)return;
       if(st===1&&!D.netOk){const n=NETS.find(x=>x[0]===D.net);const pw=$('[data-pw]',el);
         if(n[2]&&pw&&pw.value.length<4){pw.classList.remove('shake');void pw.offsetWidth;pw.classList.add('shake');pw.focus();return}
@@ -4300,7 +4300,7 @@ if(REAL){
     return r};
 
   /* ---------- sessão pela ISO: deixar claro que é preciso instalar ---------- */
-  sysCall('estado').then(s=>{if(!s||!s.live)return;const mostrar=()=>{if(!S.setupDone||$('#lock').classList.contains('open'))return setTimeout(mostrar,4000);
+  sysCall('estado').then(s=>{if(!s||!s.live)return;const mostrar=()=>{if(window.JA_OFERECEU_INSTALAR)return;if(!S.setupDone||$('#lock').classList.contains('open'))return setTimeout(mostrar,4000);
     const m=h('div','rq',`<div class="rq-b" style="width:420px">${icon('installer')}<b>Você está usando o AtriumOS direto da ISO ou do pendrive</b><p>Nada fica guardado no computador: ao reiniciar, tudo volta ao início. Para usar de verdade, instale o AtriumOS no disco (leva uns 10 minutos). Depois de instalar, retire a ISO/pendrive e reinicie.</p><div class="rq-btn"><button class="pbtn" data-n>Agora não</button><button class="pbtn pri" data-y>Instalar agora</button></div></div>`);
     document.body.appendChild(m);$('[data-n]',m).onclick=()=>m.remove();$('[data-y]',m).onclick=()=>{m.remove();sysCall('instalar');notify('about','Instalador','Abrindo o instalador do AtriumOS…')}};setTimeout(mostrar,6000)});
 
@@ -4573,6 +4573,13 @@ if(REAL){
   const _of6=openFile;openFile=function(it,f){const r=_of6(it,f);if(it&&it.caminho&&it.k!=='folder')ultimoReal=Date.now();return r};
   /* avisos aparecem por cima das janelas quando a interface está no fundo */
   const _nt6=notify;notify=function(app,title,body){if(!elevada&&!S.focus){sysCall('notificar',{titulo:title,texto:body})}return _nt6(app,title,body)};
+}
+/* sem Mission Control, Áreas de Trabalho e cantos ativos: só funcionam com as janelas da própria interface */
+if(REAL){
+  toggleMC=function(){};
+  S.corners={tl:'none',tr:'none',bl:'none',br:'none'};
+  document.head.appendChild(h('style','',`.spill,.tg[data-k="mc"]{display:none!important}`));
+  const _sm7=systemMenu;systemMenu=function(){return _sm7().filter(x=>!x.label||!/Mission Control|Áreas de Trabalho/.test(x.label))};
 }
 /* ---------- init ---------- */
 document.body.classList.toggle('dark',S.dark);
