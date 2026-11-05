@@ -3985,7 +3985,7 @@ if(REAL){
     if(it.k==='apk')notify('storeA','Apps Android',`Instalando “${it.n}” no Android…`);
   };
   /* apps de verdade: Pórtico, Terminal e Android */
-  const REAL_APPS={browser:'portico',terminal:'terminal',storeA:'android',wordcraft:'writer',gridcraft:'calc',deckcraft:'impress',lowriter:'writer',localc:'calc',loimpress:'impress',libreoffice:'writer'};
+  window.REAL_APPS_IDS=['browser','terminal','storeA','wordcraft','gridcraft','deckcraft','lowriter','localc','loimpress','libreoffice'];const REAL_APPS={browser:'portico',terminal:'terminal',storeA:'android',wordcraft:'writer',gridcraft:'calc',deckcraft:'impress',lowriter:'writer',localc:'calc',loimpress:'impress',libreoffice:'writer'};
   let andIv=null;
   function androidAcompanhar(){clearInterval(andIv);let ult='';andIv=setInterval(async()=>{const r=await sysCall('android_estado');const e=r&&r.estado;if(!e||e===ult)return;ult=e;
     if(e==='preparando')notify('storeA','Apps Android','Preparando o Android pela primeira vez: baixa cerca de 1 GB. Pode levar alguns minutos.');
@@ -4353,7 +4353,7 @@ if(REAL){
     const seps=$$('.dsep',dock);const antes=seps[seps.length-1]||null;
     const sep=h('div','dsep dreal');dock.insertBefore(sep,antes);
     JAN.forEach(j=>{const d=h('div','di dreal running',`<div class="lbl">${esc(j.titulo||j.app)}</div><div class="ic">${(window.iconeJanela||iconeJanela)(j)}</div><div class="dot"></div>`);
-      d.addEventListener('click',()=>sysCall('focar',{app:j.app}));d.addEventListener('contextmenu',e=>e.preventDefault());dock.insertBefore(d,antes)})}
+      d.addEventListener('click',()=>{window.marcarReal&&marcarReal();setTimeout(()=>sysCall('focar',{app:j.app}),300)});d.addEventListener('contextmenu',e=>e.preventDefault());dock.insertBefore(d,antes)})}
   const _bd4=buildDock;buildDock=function(){_bd4();janelasNaDock()};
   setInterval(async()=>{const r=await sysCall('janelas');if(!r||!r.ok)return;const v=[];const vis=new Set();(r.janelas||[]).forEach(j=>{if(!vis.has(j.app)){vis.add(j.app);v.push(j)}});
     const sig=v.map(j=>j.app+'|'+j.titulo).join(',');if(sig!==janSig){janSig=sig;JAN=v;janelasNaDock()}},2000);
@@ -4557,6 +4557,23 @@ if(REAL){
 }
 
 if(REAL){let margemAnt=-1;setInterval(()=>{const d=$('#dock');if(!d)return;const r=d.getBoundingClientRect();const auto=document.body.classList.contains('dockauto')||S.dockAuto||S.autohide;const px=auto?0:Math.max(0,Math.round(window.innerHeight-r.top)+4);if(px!==margemAnt&&px<300){margemAnt=px;sysCall('margem_dock',{px})}},3000)}
+/* ---------- interface por cima das janelas reais quando é preciso (menus, Launchpad, Busca, bloqueio, janelas do AtriumOS) ---------- */
+if(REAL){
+  let elevada=false,ultimoReal=0,ultimoHtml=Date.now();
+  window.marcarReal=()=>{ultimoReal=Date.now()};
+  document.addEventListener('mousedown',e=>{if(e.target.closest('.win'))ultimoHtml=Date.now()},true);
+  const precisaTopo=()=>{
+    if($('#lock').classList.contains('open')||$('#setup')&&$('#setup').classList.contains('open')||$('#power').classList.contains('open'))return true;
+    if($('#launchpad').classList.contains('open')||$('#spotlight').classList.contains('open')||document.body.classList.contains('ncopen')||(typeof MC!=='undefined'&&MC))return true;
+    if($('.menu')||$('.rq')||$('.modal'))return true;
+    const htmlAbertas=wins.some(w=>w.el&&w.el.isConnected&&!w.min&&w.el.style.display!=='none');
+    return htmlAbertas&&ultimoHtml>ultimoReal};
+  setInterval(()=>{const q=!!precisaTopo();if(q!==elevada){elevada=q;sysCall('elevar',{on:q})}},250);
+  const _oa6=openApp;openApp=function(id,o={}){const r=_oa6(id,o);if(window.REAL_APPS_IDS&&REAL_APPS_IDS.includes(id)||['loja','chrome'].includes(id))ultimoReal=Date.now();else if(APPS[id]&&APPS[id].r)ultimoHtml=Date.now();return r};
+  const _of6=openFile;openFile=function(it,f){const r=_of6(it,f);if(it&&it.caminho&&it.k!=='folder')ultimoReal=Date.now();return r};
+  /* avisos aparecem por cima das janelas quando a interface está no fundo */
+  const _nt6=notify;notify=function(app,title,body){if(!elevada&&!S.focus){sysCall('notificar',{titulo:title,texto:body})}return _nt6(app,title,body)};
+}
 /* ---------- init ---------- */
 document.body.classList.toggle('dark',S.dark);
 drawArches();setWall(S.wall);setAccent(S.accent);applyDock();applyBright();applyLite();if(S.stage){STAGE=true;document.body.classList.add('stage')}

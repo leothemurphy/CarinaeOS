@@ -103,3 +103,6 @@ gstreamer1.0-plugins-ugly
 gstreamer1.0-libav
 # agente do Home Assistant (MQTT)
 python3-paho-mqtt
+wtype
+mako-notifier
+libnotify-bin

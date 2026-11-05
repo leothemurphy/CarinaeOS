@@ -1774,7 +1774,7 @@ def ha_agente(d):
         _mq["cli"] = None
         time.sleep(0.3)
         threading.Thread(target=_mq_laco, args=(cfg,), daemon=True).start()
-        for _ in range(16):
+        for _ in range(40):
             time.sleep(0.5)
             if _mq["estado"] in ("conectado", "erro"):
                 break
@@ -1961,6 +1961,31 @@ def margem_dock(d):
     return {"ok": True}
 
 
+# ---------- interface por cima das janelas (menus, Launchpad, bloqueio) ou no fundo ----------
+_ELEVADA = {"on": False, "lock": threading.Lock()}
+
+
+def elevar(d):
+    on = bool(d.get("on"))
+    with _ELEVADA["lock"]:
+        if on == _ELEVADA["on"]:
+            return {"ok": True, "on": on}
+        if not shutil.which("wtype"):
+            return {"ok": False}
+        ok, _ = sh(["wtype", "-M", "logo", "-M", "ctrl", "-M", "alt", "-M", "shift", "-k", "F11",
+                    "-m", "shift", "-m", "alt", "-m", "ctrl", "-m", "logo"])
+        if ok:
+            _ELEVADA["on"] = on
+        return {"ok": ok, "on": _ELEVADA["on"]}
+
+
+def notificar(d):
+    titulo, texto = str(d.get("titulo", "AtriumOS"))[:80], str(d.get("texto", ""))[:300]
+    if not shutil.which("notify-send"):
+        return {"ok": False}
+    return {"ok": run(["notify-send", "-a", "AtriumOS", titulo, texto])}
+
+
 ACTIONS2 = {"wifi_listar": wifi_listar, "wifi_conectar": wifi_conectar, "wifi_ligar": wifi_ligar,
             "volume": volume, "arquivos": arquivos, "abrir": abrir, "android_estado": android_estado,
             "teclado": teclado, "teclado_estado": teclado_estado, "regiao": regiao,
@@ -1976,7 +2001,7 @@ ACTIONS2 = {"wifi_listar": wifi_listar, "wifi_conectar": wifi_conectar, "wifi_li
             "cofre_estado": cofre_estado, "cofre": cofre, "loja_estado": loja_estado, "chrome": chrome,
             "eventos": eventos, "apagar_tela": apagar_tela, "repouso": repouso, "arquivo_op": arquivo_op, "bloqueio": bloqueio,
             "rede_esquecer": rede_esquecer, "ha_agente": ha_agente, "tela_estado": tela_estado, "ma": ma,
-            "margem_dock": margem_dock}
+            "margem_dock": margem_dock, "elevar": elevar, "notificar": notificar}
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -2000,7 +2025,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 ini = int(m.group(1) or 0)
                 fim = int(m.group(2)) if m.group(2) else tam - 1
             self.send_response(206 if m else 200)
-            import mimetypes
             self.send_header("Content-Type", mimetypes.guess_type(c)[0] or "audio/mpeg")
             self.send_header("Accept-Ranges", "bytes")
             self.send_header("Content-Length", str(fim - ini + 1))

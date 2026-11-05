@@ -25,12 +25,15 @@ URL="http://127.0.0.1:7777/"
 # em máquina virtual / sem placa de vídeo: interface leve (sem desfoque, que pesa muito sem GPU)
 [ "$ATRIUM_VIDEO" = compatibilidade ] && EXTRA="--disable-gpu --disable-gpu-compositing" && URL="http://127.0.0.1:7777/?leve=1"
 
-while true; do
+# termina junto com a sessão (ao sair, o labwc fecha e esta vigia também)
+sessao_viva() { [ -z "$LABWC_PID" ] || kill -0 "$LABWC_PID" 2>/dev/null; }
+trap 'pkill -u "$(id -u)" -f "user-data-dir=$DADOS"; pkill -u "$(id -u)" -f "usr/lib/atriumos/shell-server.py"' EXIT
+while sessao_viva; do
   # janela sem barra própria do Chromium (a do sistema é removida pela regra do labwc)
   [ -f "$DADOS/Default/Preferences" ] || echo '{"browser":{"custom_chrome_frame":false},"translate":{"enabled":false}}' > "$DADOS/Default/Preferences"
   rm -f "$OK"
   # shellcheck disable=SC2086
-  chromium --app="$URL" --ozone-platform=wayland --user-data-dir="$DADOS" \
+  chromium --kiosk --app="$URL" --ozone-platform=wayland --user-data-dir="$DADOS" \
     --no-first-run --no-default-browser-check --password-store=basic --noerrdialogs \
     --disable-features=Translate --disable-session-crashed-bubble \
     --autoplay-policy=no-user-gesture-required $EXTRA >>"$LOG" 2>&1 &

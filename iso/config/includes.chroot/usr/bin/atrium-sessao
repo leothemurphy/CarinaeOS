@@ -48,12 +48,13 @@ cat > "$CFG/rc.xml" <<X
   <placement><policy>center</policy></placement>
   <keyboard><default/>
     <keybind key="A-F4"><action name="Close"/></keybind>
+    <!-- usado pela interface para ficar por cima das janelas (menus, Launchpad, bloqueio) e voltar ao fundo -->
+    <keybind key="W-C-A-S-F11"><action name="ForEach"><query identifier="*127.0.0.1*"/><then><action name="ToggleAlwaysOnBottom"/><action name="Raise"/><action name="Focus"/></then></action></keybind>
     <!--ATALHOS-->$(cat "$HOME/.config/atriumos/atalhos.xml" 2>/dev/null)<!--/ATALHOS-->
   </keyboard>
   <windowRules>
     <windowRule identifier="*127.0.0.1*" skipTaskbar="yes" skipWindowSwitcher="yes">
       $SEMBARRA
-      <action name="ToggleFullscreen"/>
       <action name="ToggleAlwaysOnBottom"/>
     </windowRule>
   </windowRules>
@@ -74,7 +75,7 @@ X
   [ "$MODO" = compatibilidade ] && echo "WLR_RENDERER=pixman"
 } > "$CFG/environment"
 
-printf '%s\n' "atrium-area-transferencia &" "atrium-interface &" "atrium-players &" > "$CFG/autostart"
+printf '%s\n' "atrium-area-transferencia &" "atrium-interface &" "atrium-players &" "mako --config /etc/atriumos/mako.conf &" > "$CFG/autostart"
 
 [ "$MODO" = compatibilidade ] && export WLR_RENDERER=pixman
 export XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=AtriumOS:wlroots
