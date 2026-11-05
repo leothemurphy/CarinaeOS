@@ -1,24 +1,35 @@
 #!/bin/sh
-# AtriumOS — Apps Android (Waydroid + loja Aurora, que instala apps da Google Play)
-# Estado em $XDG_RUNTIME_DIR/atrium-android (lido pela interface)
-ST="${XDG_RUNTIME_DIR:-/tmp}/atrium-android"
-s(){ echo "$1" > "$ST"; }
-if ! command -v waydroid >/dev/null 2>&1; then s "sem-android"; exit 1; fi
-if [ ! -e /var/lib/waydroid/waydroid.cfg ]; then
-  s "preparando"
-  systemctl start atrium-android-init.service || { s "erro-preparar"; exit 1; }
+# AtriumOS — Apps Android (Waydroid + loja Aurora). Os apps instalados aparecem no Launchpad.
+#   atrium-android            abre a loja Aurora
+#   atrium-android app.apk    instala o app
+N(){ notify-send -a "Apps Android" -i android "Apps Android" "$1"; }
+if ! command -v waydroid >/dev/null 2>&1; then N "O suporte a apps Android não está instalado."; exit 1; fi
+if [ -d /run/live/medium ]; then
+  N "Os apps Android precisam do AtriumOS instalado no computador (o modo de teste não tem espaço para o Android)."; exit 1
 fi
-s "abrindo"
+if [ ! -e /var/lib/waydroid/waydroid.cfg ] || [ ! -f /var/lib/atriumos/android-pronto ]; then
+  N "Preparando o Android pela primeira vez (baixa cerca de 1 GB). Avisamos quando terminar."
+  systemctl start atrium-android-init.service || { N "Não foi possível preparar o Android. Verifique a internet e tente de novo."; exit 1; }
+fi
 systemctl start waydroid-container.service 2>/dev/null || true
-waydroid session start >/dev/null 2>&1 &
-i=0
-while [ $i -lt 90 ] && ! waydroid status 2>/dev/null | grep -q "Session:.*RUNNING"; do sleep 2; i=$((i+1)); done
+if ! waydroid status 2>/dev/null | grep -q "Session:.*RUNNING"; then
+  waydroid session start >/dev/null 2>&1 &
+  i=0
+  while [ $i -lt 90 ] && ! waydroid status 2>/dev/null | grep -q "Session:.*RUNNING"; do sleep 2; i=$((i+1)); done
+  sleep 5
+fi
 APK=/var/lib/atriumos/aurora-store.apk
 if [ -f "$APK" ] && ! waydroid app list 2>/dev/null | grep -q com.aurora.store; then
   waydroid app install "$APK" >/dev/null 2>&1 || true
 fi
-s "pronto"
 if [ -n "$1" ]; then
-  exec waydroid app install "$1"
+  NOME=$(basename "$1")
+  N "Instalando $NOME…"
+  if timeout 180 waydroid app install "$1"; then
+    sleep 3; N "$NOME instalado. O app já está no Launchpad."
+  else
+    N "$NOME não instalou. Alguns apps só funcionam em celulares (processador ARM)."
+  fi
+  exit 0
 fi
 waydroid app launch com.aurora.store >/dev/null 2>&1 || exec waydroid show-full-ui

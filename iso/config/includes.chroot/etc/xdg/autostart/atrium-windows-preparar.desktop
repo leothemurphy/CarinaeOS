@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Preparar programas do Windows
+Exec=atrium-windows --preparar
+NoDisplay=true
+X-KDE-autostart-phase=2
+X-KDE-AutostartCondition=
+OnlyShowIn=KDE;

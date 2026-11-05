@@ -1,7 +1,7 @@
 [Unit]
 Description=AtriumOS: ajustes do primeiro boot
 After=local-fs.target
-Before=getty@tty1.service systemd-user-sessions.service
+Before=sddm.service display-manager.service systemd-user-sessions.service
 ConditionPathExists=!/run/live/medium
 
 [Service]

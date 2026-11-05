@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Palco
+Comment=Liga ou desliga o Palco: só o app em uso fica na tela
+Exec=sh -c 'qdbus6 org.kde.kglobalaccel /component/kwin org.kde.kglobalaccel.Component.invokeShortcut AtriumPalco || qdbus org.kde.kglobalaccel /component/kwin org.kde.kglobalaccel.Component.invokeShortcut AtriumPalco'
+Icon=view-presentation
+Terminal=false
+Categories=Utility;
+Keywords=palco;stage manager;janelas;

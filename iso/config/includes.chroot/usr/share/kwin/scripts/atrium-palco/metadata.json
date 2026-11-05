@@ -1,0 +1,15 @@
+{
+  "KPlugin": {
+    "Id": "atrium-palco",
+    "Name": "Palco",
+    "Name[pt_BR]": "Palco",
+    "Description": "Deixa só o app em uso no centro e guarda os outros no Dock. Liga e desliga com Meta+Ctrl+P ou pelo app Palco.",
+    "Authors": [{"Name": "AtriumOS"}],
+    "License": "GPL-3.0-or-later",
+    "Version": "1.0",
+    "EnabledByDefault": true
+  },
+  "X-Plasma-API": "javascript",
+  "X-Plasma-MainScript": "code/main.js",
+  "KPackageStructure": "KWin/Script"
+}

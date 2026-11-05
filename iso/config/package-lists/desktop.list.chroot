@@ -1,76 +1,142 @@
-# Sessão do AtriumOS: gerenciador de janelas + a interface do projeto
-labwc
-xwayland
-chromium
-chromium-l10n
-foot
+# Área de trabalho: KDE Plasma 6 completo, com a cara do AtriumOS
+kde-plasma-desktop
+plasma-workspace
+plasma-desktop
+kwin-wayland
+sddm
+sddm-theme-breeze
+systemsettings
+kinfocenter
+kmenuedit
+khotkeys
+plasma-nm
+plasma-pa
+plasma-disks
+plasma-systemmonitor
+plasma-firewall
+plasma-vault
+plasma-browser-integration
+plasma-discover
+plasma-discover-backend-flatpak
+plasma-discover-backend-fwupd
+kde-config-sddm
+kde-config-screenlocker
+kde-config-gtk-style
+kde-config-flatpak
+kde-config-plymouth
+kde-config-updates
+kscreen
+powerdevil
+bluedevil
+bluez
+print-manager
+system-config-printer-common
+kwalletmanager
+libpam-kwallet5
+krdp
+krfb
+kdeconnect
+xdg-desktop-portal-kde
+xdg-desktop-portal-gtk
+breeze-gtk-theme
+appmenu-gtk3-module
+appmenu-gtk2-module
+kde-spectacle
+dolphin
+dolphin-plugins
+ffmpegthumbs
+kdegraphics-thumbnailers
+kio-extras
+kio-fuse
+kio-admin
+konsole
+ark
+gwenview
+okular
+kate
+kcalc
+kcharselect
+kdialog
+partitionmanager
+elisa
+haruna
+skanpage
+kamoso
+filelight
+sweeper
+qml6-module-org-kde-kirigami-addons-components
+# fontes
 fonts-inter
 fonts-noto-core
 fonts-noto-color-emoji
-adwaita-icon-theme
-python3
-curl
-xdg-user-dirs
-xdg-utils
-upower
-polkitd
-pipewire-audio
-wireplumber
-network-manager
-plymouth
-plymouth-themes
-libgl1-mesa-dri
-# instalador (abre por cima da interface)
-calamares
-calamares-settings-debian
-qt6-wayland
-qtwayland5
-# rede de verdade: descoberta (Bonjour/mDNS), pastas SMB/SFTP/WebDAV, compartilhamento, impressoras
-avahi-daemon
-avahi-utils
-libnss-mdns
-gvfs
-gvfs-backends
-gvfs-fuse
-dbus-user-session
-smbclient
-samba
-cups
-cups-browsed
-# acesso remoto (VNC) e cópias de segurança
-wayvnc
-openssl
-udisks2
-zstd
-# escritório completo
-libreoffice-writer
-libreoffice-calc
-libreoffice-impress
-libreoffice-draw
-libreoffice-gtk3
-libreoffice-l10n-pt
-libreoffice-l10n-pt-br
-hunspell-pt-pt
-hunspell-pt-br
 fonts-liberation
 fonts-crosextra-carlito
 fonts-crosextra-caladea
 fonts-dejavu
-# janelas na Dock, área de transferência que não se perde, Pasta Segura
-wlrctl
-wl-clipboard
+# navegador
+chromium
+chromium-l10n
+# som, vídeo, rede, impressão, discos
+pipewire-audio
+pipewire-alsa
+wireplumber
+network-manager
+network-manager-openvpn
+network-manager-vpnc
+avahi-daemon
+avahi-utils
+libnss-mdns
+smbclient
+samba
+cifs-utils
+cups
+cups-browsed
+printer-driver-all
+sane-utils
+udisks2
+ntfs-3g
+exfatprogs
+dosfstools
+gstreamer1.0-pipewire
+gstreamer1.0-plugins-good
+gstreamer1.0-plugins-bad
+gstreamer1.0-plugins-ugly
+gstreamer1.0-libav
+# compactados
+unar
+zip
+unzip
+7zip
+zstd
+file
+# pastas trancadas (Cofres do Plasma)
 gocryptfs
+cryfs
 fuse3
-# drivers: detecção e microcódigo dos processadores
+# escritório
+libreoffice-writer
+libreoffice-calc
+libreoffice-impress
+libreoffice-draw
+libreoffice-kf6
+libreoffice-qt6
+libreoffice-l10n-pt
+libreoffice-l10n-pt-br
+hunspell-pt-pt
+hunspell-pt-br
+# máquinas virtuais (ajuste de tela e área de transferência)
+spice-vdagent
+open-vm-tools-desktop
+qemu-guest-agent
+# loja e apps
+flatpak
+fwupd
+# drivers
 isenkram-cli
 nvidia-detect
-intel-microcode
-amd64-microcode
 mesa-vulkan-drivers
 mesa-va-drivers
-firmware-linux
-firmware-linux-nonfree
-firmware-misc-nonfree
+libgl1-mesa-dri
 firmware-realtek
 firmware-iwlwifi
 firmware-atheros
@@ -78,33 +144,21 @@ firmware-brcm80211
 firmware-amd-graphics
 firmware-sof-signed
 bluez-firmware
-# apps (Flathub) e Loja
-flatpak
-xdg-desktop-portal-gtk
-xdg-desktop-portal-wlr
-# arquivos compactados (zip, rar, 7z, tar…)
-file-roller
-unar
-zip
-unzip
-7zip
-file
-# tela: apagar/acender e repouso
-wlopm
-swayidle
-# música: este computador como player do Music Assistant e do Home Assistant (DLNA)
-squeezelite
-gmediarender
-pipewire-alsa
-gstreamer1.0-pipewire
-gstreamer1.0-plugins-good
-gstreamer1.0-plugins-bad
-gstreamer1.0-plugins-ugly
-gstreamer1.0-libav
-# agente do Home Assistant (MQTT)
+# base do AtriumOS
+python3
 python3-paho-mqtt
-wtype
-mako-notifier
+curl
+xdg-user-dirs
+xdg-utils
+upower
+polkitd
 libnotify-bin
-gsettings-desktop-schemas
-dconf-gsettings-backend
+squeezelite
+xvfb
+xauth
+plymouth
+plymouth-themes
+calamares
+calamares-settings-debian
+qt6-wayland
+python3-venv

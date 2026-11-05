@@ -1,0 +1,59 @@
+#!/bin/bash
+# AtriumOS: tema WhiteSur (GPL-3.0, por Vince Liuice — github.com/vinceliuice)
+# janelas com botões coloridos à esquerda, cores, ícones, cursor e tela de login.
+set -u
+T=$(mktemp -d)
+baixar(){ # repo commit
+  curl -fsSL --retry 4 "https://codeload.github.com/vinceliuice/$1/tar.gz/$2" | tar -xz -C "$T" && mv "$T/$1-$2" "$T/$1"
+}
+baixar WhiteSur-kde cf4df59ce91004f7ea39358b1b8ff917d5c329f7 || echo "AVISO: WhiteSur-kde não baixou"
+baixar WhiteSur-icon-theme 73d8040da51a9ed74e47c7366e7e9ff437601a5c || echo "AVISO: ícones WhiteSur não baixaram"
+baixar WhiteSur-cursors e190baf618ed95ee217d2fd45589bd309b37672b || echo "AVISO: cursor WhiteSur não baixou"
+
+if [ -d "$T/WhiteSur-kde" ]; then
+  K="$T/WhiteSur-kde"
+  # decoração das janelas (claro e escuro, normal e 125%/150%)
+  A=/usr/share/aurorae/themes; mkdir -p "$A"
+  for c in "" "-dark"; do for s in "" "_x1.25" "_x1.5"; do
+    D="$A/WhiteSur${c}${s}"; rm -rf "$D"
+    cp -r "$K/aurorae/main/WhiteSur${c}${s}" "$D" || continue
+    cp "$K/aurorae/common/assets${c}/"*.svg "$D/"
+    cp "$K/aurorae/"{metadata.desktop,metadata.json} "$D/"
+    cp "$K/aurorae/main/WhiteSur${c}rc" "$D/WhiteSur${c}${s}rc"
+    sed -i "s/WhiteSur/WhiteSur${c}${s}/g" "$D/metadata.desktop" "$D/metadata.json"
+  done; done
+  # cores e tema do Plasma
+  mkdir -p /usr/share/color-schemes /usr/share/plasma/desktoptheme /usr/share/plasma/look-and-feel
+  cp "$K/color-schemes/"*.colors /usr/share/color-schemes/
+  for p in WhiteSur WhiteSur-dark; do
+    rm -rf "/usr/share/plasma/desktoptheme/$p"
+    cp -r "$K/plasma/desktoptheme/$p" /usr/share/plasma/desktoptheme/
+    cp -r "$K/plasma/desktoptheme/"{icons,weather} "/usr/share/plasma/desktoptheme/$p/"
+  done
+  # tela de login (Plasma 6.2+)
+  if [ -d "$K/sddm/WhiteSur-6.2" ]; then
+    rm -rf /usr/share/sddm/themes/WhiteSur
+    cp -r "$K/sddm/WhiteSur-6.2" /usr/share/sddm/themes/WhiteSur
+  fi
+fi
+if [ -d "$T/WhiteSur-icon-theme" ]; then
+  (cd "$T/WhiteSur-icon-theme" && bash ./install.sh -d /usr/share/icons -t default) >/dev/null || echo "AVISO: ícones WhiteSur não instalaram"
+  # o Google Chrome usa o ícone original dele
+  find /usr/share/icons/WhiteSur* -name 'google-chrome*' -delete 2>/dev/null || true
+fi
+if [ -d "$T/WhiteSur-cursors/dist" ]; then
+  rm -rf /usr/share/icons/WhiteSur-cursors; cp -r "$T/WhiteSur-cursors/dist" /usr/share/icons/WhiteSur-cursors
+fi
+# cores do WhiteSur valem para todos os usuários desde o primeiro login
+if [ -f /usr/share/color-schemes/WhiteSur.colors ] && ! grep -q '^\[Colors:Window\]' /etc/xdg/kdeglobals; then
+  printf '\n' >> /etc/xdg/kdeglobals
+  sed '/^\[General\]/,/^$/d' /usr/share/color-schemes/WhiteSur.colors >> /etc/xdg/kdeglobals
+fi
+# tela de login com o papel de parede do AtriumOS
+if [ -d /usr/share/sddm/themes/WhiteSur ]; then
+  printf '[General]\nbackground=/usr/share/wallpapers/AtriumOS-Portal/contents/images/3840x2160.jpg\ntype=image\n' > /usr/share/sddm/themes/WhiteSur/theme.conf.user
+else
+  sed -i 's/^Current=WhiteSur/Current=breeze/; s/^CursorTheme=WhiteSur-cursors/CursorTheme=breeze_cursors/' /etc/sddm.conf.d/10-atriumos.conf
+fi
+rm -rf "$T"
+exit 0

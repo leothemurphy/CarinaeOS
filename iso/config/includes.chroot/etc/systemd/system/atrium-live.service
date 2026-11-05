@@ -1,0 +1,12 @@
+[Unit]
+Description=AtriumOS: entrar direto no modo de teste (pen drive)
+ConditionPathExists=/run/live/medium
+After=live-config.service
+Before=sddm.service display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'U=$(getent passwd 1000 | cut -d: -f1); [ -n "$U" ] || U=atrium; printf "[Autologin]\nUser=%%s\nSession=plasma\nRelogin=false\n" "$U" > /etc/sddm.conf.d/90-live.conf'
+
+[Install]
+WantedBy=multi-user.target

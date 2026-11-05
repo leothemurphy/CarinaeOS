@@ -38,8 +38,29 @@ fi
 if [ -f /etc/calamares/settings.conf ]; then
   sed -i -E 's/^([[:space:]]*)branding:.*/\1branding: atriumos/' /etc/calamares/settings.conf
 fi
-# sem gerenciador de login gráfico: o AtriumOS entra direto na interface
-sed -i -E '/^[[:space:]]*-[[:space:]]*displaymanager[[:space:]]*$/d' /etc/calamares/settings.conf 2>/dev/null || true
+# tela de login (SDDM) configurada pelo instalador, com entrada automática se o usuário pedir
+mkdir -p /etc/calamares/modules
+cat > /etc/calamares/modules/displaymanager.conf <<'DM'
+displaymanagers:
+  - sddm
+basicSetup: false
+sysconfigSetup: false
+DM
+if [ -f /etc/calamares/settings.conf ]; then
+python3 - <<'PY'
+import re
+p='/etc/calamares/settings.conf'
+L=open(p).read().split('\n')
+if not any(re.match(r'\s*-\s*displaymanager\s*$',l) for l in L):
+    ex=next((i for i,l in enumerate(L) if re.match(r'\s*-?\s*exec\s*:',l)),None)
+    if ex is not None:
+        for i in range(ex+1,len(L)):
+            m=re.match(r'(\s*)-\s*users\s*$',L[i])
+            if m:
+                L.insert(i+1,m.group(1)+'- displaymanager'); break
+    open(p,'w').write('\n'.join(L))
+PY
+fi
 if [ -f /etc/calamares/modules/partition.conf ]; then
   if grep -q '^defaultFileSystemType' /etc/calamares/modules/partition.conf; then
     sed -i -E 's/^defaultFileSystemType:.*/defaultFileSystemType: "btrfs"/' /etc/calamares/modules/partition.conf
@@ -62,7 +83,8 @@ if [ -f /etc/default/zramswap ]; then
 fi
 
 # --- serviços ---
-systemctl enable atrium-firstboot.service || true
+systemctl enable atrium-firstboot.service atrium-live.service || true
+systemctl enable sddm.service 2>/dev/null || true
 
 # --- caches ---
 gtk-update-icon-cache -f /usr/share/icons/hicolor >/dev/null 2>&1 || true
@@ -128,16 +150,29 @@ cat > /etc/chromium/initial_preferences <<'CP'
 {"browser":{"custom_chrome_frame":false,"show_home_button":true},"distribution":{"skip_first_run_ui":true,"import_bookmarks":false},"first_run_tabs":["about:blank"]}
 CP
 cp /etc/chromium/initial_preferences /etc/chromium/master_preferences
-# arquivos compactados abrem no gerenciador de arquivos compactados
+# arquivos compactados abrem no Ark; programas do Windows e apps Android abrem nos nossos atalhos
 cat >> /etc/skel/.config/mimeapps.list <<'MA'
-application/zip=org.gnome.FileRoller.desktop
-application/x-7z-compressed=org.gnome.FileRoller.desktop
-application/vnd.rar=org.gnome.FileRoller.desktop
-application/x-rar=org.gnome.FileRoller.desktop
-application/x-compressed-tar=org.gnome.FileRoller.desktop
-application/x-xz-compressed-tar=org.gnome.FileRoller.desktop
-application/x-bzip-compressed-tar=org.gnome.FileRoller.desktop
-application/x-tar=org.gnome.FileRoller.desktop
-application/gzip=org.gnome.FileRoller.desktop
-application/x-msdownload=wine.desktop
+application/zip=org.kde.ark.desktop
+application/x-7z-compressed=org.kde.ark.desktop
+application/vnd.rar=org.kde.ark.desktop
+application/x-rar=org.kde.ark.desktop
+application/x-compressed-tar=org.kde.ark.desktop
+application/x-xz-compressed-tar=org.kde.ark.desktop
+application/x-bzip-compressed-tar=org.kde.ark.desktop
+application/x-tar=org.kde.ark.desktop
+application/gzip=org.kde.ark.desktop
+application/x-msdownload=atrium-windows.desktop
+application/x-ms-dos-executable=atrium-windows.desktop
+application/x-msi=atrium-windows.desktop
+application/vnd.microsoft.portable-executable=atrium-windows.desktop
+application/vnd.android.package-archive=atrium-android.desktop
 MA
+
+# o Wine fica escondido: os programas do Windows abrem pelo AtriumOS
+for f in /usr/share/applications/wine.desktop /usr/share/applications/wine-*.desktop /usr/share/applications/org.winehq.*.desktop; do
+  [ -f "$f" ] || continue
+  grep -q '^NoDisplay=true' "$f" || sed -i '0,/^\[Desktop Entry\]/s//&\nNoDisplay=true/' "$f"
+done
+# sem a tela de boas-vindas do KDE (o AtriumOS tem a sua)
+rm -f /etc/xdg/autostart/org.kde.plasma-welcome.desktop /etc/xdg/autostart/plasma-welcome.desktop
+update-desktop-database /usr/share/applications >/dev/null 2>&1 || true

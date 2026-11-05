@@ -1,20 +1,40 @@
 #!/bin/sh
 # AtriumOS — abre programas do Windows (.exe / .msi) sem mostrar o Wine.
+#   atrium-windows --preparar   prepara o ambiente em segundo plano (no login)
+#   atrium-windows arquivo.exe  abre o programa
 export WINEPREFIX="${XDG_DATA_HOME:-$HOME/.local/share}/atrium/windows"
 export WINEDEBUG=-all
-# sem perguntas do Wine (Mono/Gecko) na primeira vez
-export WINEDLLOVERRIDES="mscoree=;mshtml="
-EST="${XDG_RUNTIME_DIR:-/tmp}/atrium-windows"
+export WINEDLLOVERRIDES="mscoree=;mshtml="     # sem perguntas do Wine (Mono/Gecko)
 LOG="${XDG_STATE_HOME:-$HOME/.local/state}/atriumos/windows.log"
+TRAVA="${XDG_RUNTIME_DIR:-/tmp}/atrium-windows.lock"
 mkdir -p "$(dirname "$LOG")" "$(dirname "$WINEPREFIX")"
-if [ ! -f "$WINEPREFIX/system.reg" ]; then
-  echo preparando > "$EST"
-  echo "== preparando o ambiente Windows $(date)" >>"$LOG"
-  if ! wineboot -i >>"$LOG" 2>&1; then echo erro > "$EST"; exit 1; fi
-  wineserver -w 2>/dev/null
+command -v wine >/dev/null 2>&1 || { notify-send -a "Programas do Windows" -i dialog-error "Programas do Windows" "O suporte a programas do Windows não está instalado."; exit 1; }
+
+preparar(){
+  [ -f "$WINEPREFIX/system.reg" ] && return 0
+  echo "== preparando $(date)" >>"$LOG"
+  # cria o ambiente numa tela invisível: nenhuma janela do Wine aparece
+  if command -v xvfb-run >/dev/null 2>&1; then
+    env -u WAYLAND_DISPLAY xvfb-run -a sh -c 'wineboot -i && wineserver -w' >>"$LOG" 2>&1
+  else
+    wineboot -i >>"$LOG" 2>&1; wineserver -w
+  fi
+  [ -f "$WINEPREFIX/system.reg" ]
+}
+
+if [ "$1" = "--preparar" ]; then
+  sleep 20
+  exec 9>"$TRAVA"; flock -n 9 || exit 0
+  preparar; exit $?
 fi
-[ $# -eq 0 ] && { echo pronto > "$EST"; exit 0; }
-echo abrindo > "$EST"
+[ $# -eq 0 ] && exit 0
+
+if [ ! -f "$WINEPREFIX/system.reg" ]; then
+  notify-send -a "Programas do Windows" -i wine "Programas do Windows" "Preparando para abrir $(basename "$1")… (só na primeira vez, cerca de 1 minuto)"
+  exec 9>"$TRAVA"; flock 9
+  preparar || { notify-send -a "Programas do Windows" -i dialog-error "Programas do Windows" "Não foi possível preparar. Detalhes em $LOG"; exit 1; }
+  exec 9>&-
+fi
 echo "== abrindo $1 $(date)" >>"$LOG"
 cd "$(dirname "$1")" || exit 1
 case "$1" in
@@ -22,6 +42,10 @@ case "$1" in
   *) wine "$1" >>"$LOG" 2>&1 & ;;
 esac
 P=$!
-sleep 8
-if kill -0 $P 2>/dev/null; then echo aberto > "$EST"; else wait $P; R=$?; [ $R -eq 0 ] && echo aberto > "$EST" || echo "erro:$R" > "$EST"; fi
-wait $P 2>/dev/null
+sleep 6
+if ! kill -0 $P 2>/dev/null; then
+  wait $P; R=$?
+  [ $R -eq 0 ] || notify-send -a "Programas do Windows" -i dialog-error "Programas do Windows" "$(basename "$1") não abriu (código $R). Detalhes em $LOG"
+  exit $R
+fi
+wait $P
