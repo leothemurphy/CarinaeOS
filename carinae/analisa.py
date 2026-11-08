@@ -15,6 +15,22 @@ ESCOLHAS = {'<PREFIX>': '/usr', '<$KF6_PREFIX>': '/usr', '$(nproc)': '$(nproc)'}
 TESTE = re.compile(r'^\s*(\w+=\S+\s+)*(make|ninja)(\s+-\S+)*(\s+-C\s+\S+)?\s+(-k\s+)?(check|test|tests|test-suite)\b'
                    r'|^\s*(\w+=\S+\s+)*(ctest|pytest|python3 -m pytest|\S*/pytest)\b'
                    r'|testenv|^\s*(\w+=\S+\s+)*(\./)?(run-?tests?|tests?/run)')
+# o livro anuncia os blocos de teste no texto logo antes deles
+TESTE_PROSA = re.compile(r'(^|\b)(to test|if you (want|wish|desire) to (test|run the test)|to run the (test|unit)|'
+                         r'if running the test|run the test ?suite|optionally,? (test|run the test)|'
+                         r'to (build|compile) the tests?|to check the results)', re.I)
+
+def frase_antes(html_trecho):
+    """o ultimo paragrafo antes do bloco (ex.: "To test the results, issue:")"""
+    ps = re.findall(r'<p[^>]*>(.*?)</p>', html_trecho, re.S)
+    return re.sub(r'\s+', ' ', txt(ps[-1])).strip() if ps else ''
+
+# testes encadeados no fim de um comando de compilacao (ex.: "make && make test")
+TESTE_ENCADEADO = re.compile(r'\s*&&\s*(\w+=\S+\s+)*(make|ninja)(\s+-k)?\s+(test|check|tests)\b[^\n&|;]*')
+def tira_testes(b):
+    tirou = [m.group(0).strip() for m in TESTE_ENCADEADO.finditer(b)]
+    return TESTE_ENCADEADO.sub('', b), ', '.join(tirou)
+
 def eh_teste(b):
     linhas = [l for l in b.splitlines() if l.strip() and not l.strip().startswith('#')]
     return bool(linhas) and (bool(TESTE.search(linhas[0])) or 'testenv' in b)
@@ -66,8 +82,13 @@ def analisa(arquivo, no, ver=False, saida='.'):
     print('== MD5 do pacote principal:', md5[0] if md5 else '(nao encontrado)')
     if por: print('== revisao:', por)
     usar, unid = [], []
-    for i, (cl, raw) in enumerate(re.findall(r'<pre\s+class="(root|userinput)"\s*>(.*?)</pre>', s, re.S)):
+    fim_ant = 0
+    for i, m in enumerate(re.finditer(r'<pre\s+class="(root|userinput)"\s*>(.*?)</pre>', s, re.S)):
+        cl, raw = m.group(1), m.group(2)
+        intro = frase_antes(s[fim_ant:m.start()]); fim_ant = m.end()
         b = txt(raw).strip(); l1 = b.splitlines()[0][:90] if b else ''
+        b, tirou = tira_testes(b)
+        if tirou: print(f'   (#{i}: retirado o teste encadeado: {tirou})')
         rep = [txt(x) for x in re.findall(r'class="replaceable"[^>]*>(.*?)</(?:em|code|span)>', raw, re.S)]
         if rep and all(x in ESCOLHAS for x in rep):
             for x in rep: b = b.replace(x, ESCOLHAS[x])
@@ -76,7 +97,7 @@ def analisa(arquivo, no, ver=False, saida='.'):
         if str(i) in pul:                print(f'   PULADO (revisto)  #{i}: {l1}')
         elif b.strip() in ('bash -e', 'exit'): print(f'   PULADO (shell)    #{i}: {l1}')
         elif 'replaceable' in raw or MARCADOR.search(b): print(f'   PULADO (exemplo)  #{i}: {l1}')
-        elif eh_teste(b):            print(f'   PULADO (teste)    #{i}: {l1}')
+        elif eh_teste(b) or TESTE_PROSA.search(intro): print(f'   PULADO (teste)    #{i}: {l1}')
         elif re.match(r'make install-[a-z]', b) and 'systemd-units' in s:
             print(f'   RODA (unidade)    #{i}: {l1}'); unid.append(b)
         else:                            print(f'   RODA              #{i}: {l1}'); usar.append(b)

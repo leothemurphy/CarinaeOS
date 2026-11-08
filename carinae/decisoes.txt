@@ -26,7 +26,7 @@ general/brotli               2               bindings python opcionais
 general/glycin               3               documentacao (sem gi-docgen)
 x/gdk-pixbuf                 1               documentacao (sem gi-docgen)
 general/librsvg              2               testes (meson test)
-general/libical              2,3,4           documentacao e testes
+general/libical              1,2,4           documentacao (make docs, html) e testes
 general/bluez                4,5             ficheiros de configuracao opcionais
 multimedia/v4l-utils         3               programas contrib opcionais
 multimedia/sdl3              3               compilacao dos testes
@@ -58,7 +58,6 @@ general/doxygen              2               documentacao (sem texlive)
 general/python-modules#doxyqml 2             testes
 kde/frameworks6              3,6             so para instalacao em /opt
 general/libavif              1               testes
-multimedia/xine-lib          5,6             documentacao da API
 x/xwayland                   1,4             testes; Xvfb vem do Xorg-Server
 kde/plasma-all               5,7,8           links so para KF6 fora de /usr; startx manual (usamos o SDDM)
 x/sddm                       3,4,5           Xorg em /opt, X remoto e Num Lock: nao se aplicam
@@ -69,7 +68,7 @@ general/python-dependencies#smartypants 2 teste (cp + pytest)
 general/llvm                 5               testes (precisa de sessao systemd --user)
 general/rust                 5               resumo dos testes
 general/dbus                 7               exemplo de encerrar a sessao D-Bus manual
-multimedia/xine-lib          4               documentacao (doxygen)
+multimedia/xine-lib          4,6             documentacao da API (doxygen)
 general/power-profiles-daemon 3              exemplo de uso (precisa do servico a correr)
 kde/konsole                  0               patch so para ambientes sem Plasma
 general/cpio                 2,4             documentacao pdf (sem texlive)
