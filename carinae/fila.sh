@@ -47,5 +47,8 @@ else
   echo "== FILA TERMINADA COM FALHAS"
   echo "   falharam (${#falhas[@]}): ${falhas[*]}"
   echo "   saltados por dependerem deles (${#saltados[@]}): ${saltados[*]}"
-  echo "   (manda estas linhas ao Claude; depois de corrigido, rodar de novo a fila)"
+  { for p in "${falhas[@]}"; do n=$(basename "$p" | tr '#' '-'); echo "########## $p"
+      grep -nE 'error|Error|ERROR|not found|No such|inexistente|nao consegui|falhou' /root/blfs-logs/$n.log | tail -8
+      echo '--- fim do log:'; tail -15 /root/blfs-logs/$n.log; echo; done; } > /root/falhas.txt
+  echo "   detalhes de cada falha em /root/falhas.txt (manda esse ficheiro ao Claude)"
 fi
