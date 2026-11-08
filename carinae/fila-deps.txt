@@ -1,0 +1,308 @@
+# pacote  dependencias (Required e Recommended do livro) que estao antes na fila
+postlfs/profile 
+x/xorg7 
+general/which 
+general/boost general/which
+general/libunistring 
+general/libidn2 general/libunistring
+basicnet/libpsl general/libidn2 general/libunistring
+general/icu 
+general/libxml2 general/icu
+basicnet/nghttp2 general/libxml2
+basicnet/curl basicnet/libpsl basicnet/nghttp2
+general/libarchive 
+general/libuv 
+general/cmake basicnet/curl general/libarchive general/libuv basicnet/nghttp2
+general/libssh2 
+general/llvm general/cmake
+general/rust general/cmake basicnet/curl general/libssh2 general/llvm
+kde/corrosion general/rust
+general/nasm 
+multimedia/dav1d general/nasm
+general/yasm 
+multimedia/libaom general/yasm
+general/python-modules#docutils 
+pst/docbook general/libxml2
+pst/docbook-xsl general/libxml2
+general/libxslt general/libxml2 pst/docbook pst/docbook-xsl
+general/glib2 general/python-modules#docutils general/libxslt
+general/shared-mime-info general/glib2 general/libxml2
+general/desktop-file-utils general/glib2
+general/graphite2 general/cmake
+general/harfbuzz general/glib2 general/graphite2 general/icu
+general/libpng 
+general/freetype2 general/harfbuzz general/libpng
+general/fribidi 
+general/fontconfig general/freetype2
+multimedia/libass general/freetype2 general/fribidi general/fontconfig general/nasm
+multimedia/fdk-aac 
+multimedia/lame 
+multimedia/libogg 
+multimedia/libvorbis multimedia/libogg
+multimedia/libvpx general/yasm general/nasm general/which
+multimedia/opus 
+multimedia/svt-av1 general/cmake general/nasm
+multimedia/x264 general/nasm
+multimedia/x265 general/cmake general/nasm
+postlfs/linux-pam 
+postlfs/shadow postlfs/linux-pam
+general/systemd postlfs/linux-pam
+general/duktape 
+postlfs/polkit general/duktape general/glib2 general/systemd general/libxslt postlfs/linux-pam
+multimedia/alsa-lib general/systemd
+x/util-macros x/xorg7
+x/xorgproto x/util-macros
+x/libXau x/xorgproto
+x/xcb-proto x/xorg7
+x/libXdmcp x/xorgproto
+x/libxcb x/libXau x/xcb-proto x/libXdmcp
+general/dbus 
+x/x7lib general/fontconfig x/libxcb general/dbus
+x/libdrm x/x7lib
+general/python-modules#Mako 
+general/python-modules#cython 
+general/libyaml 
+general/python-modules#PyYAML general/python-modules#cython general/libyaml
+general/spirv-headers general/cmake
+general/spirv-tools general/cmake general/spirv-headers
+x/glslang general/cmake general/spirv-tools
+general/wayland general/libxml2
+general/wayland-protocols general/wayland
+general/spirv-llvm-translator general/libxml2 general/llvm general/spirv-tools
+x/vulkan-headers general/cmake
+x/vulkan-loader general/cmake x/vulkan-headers x/x7lib general/wayland
+general/cbindgen general/rust
+general/rust-bindgen general/rust general/llvm
+x/mesa x/x7lib x/libdrm general/python-modules#Mako general/python-modules#PyYAML x/glslang general/llvm general/wayland-protocols general/spirv-llvm-translator x/vulkan-loader general/cbindgen general/rust-bindgen
+multimedia/libva x/xorg7 x/libdrm x/mesa
+general/libusb 
+x/xkeyboard-config x/x7lib
+general/libxkbcommon x/xkeyboard-config x/libxcb general/wayland general/wayland-protocols
+x/pango general/fontconfig general/fribidi general/glib2
+general/pixman 
+x/cairo general/libpng general/pixman general/fontconfig general/glib2 x/x7lib
+general/cargo-c general/rust general/libssh2
+general/bubblewrap 
+general/lcms2 
+general/libseccomp 
+multimedia/libde265 general/cmake
+general/libheif multimedia/libaom multimedia/libde265 multimedia/x265
+general/brotli general/cmake
+general/giflib 
+general/highway general/cmake
+general/libjpeg general/cmake general/nasm general/yasm
+general/libjxl general/brotli general/cmake general/giflib general/highway general/lcms2 general/libjpeg general/libpng
+general/glycin general/bubblewrap general/fontconfig general/glib2 general/lcms2 general/libseccomp general/rust general/libheif general/libjxl
+x/gdk-pixbuf general/glib2 general/shared-mime-info general/python-modules#docutils general/glycin
+general/librsvg x/cairo general/cargo-c x/pango x/gdk-pixbuf general/glib2
+general/babl general/glib2 general/librsvg general/lcms2
+general/json-glib general/glib2
+general/python-dependencies#pathspec 
+general/python-dependencies#vcs_versioning 
+general/python-dependencies#setuptools_scm general/python-dependencies#vcs_versioning
+general/python-dependencies#pluggy general/python-dependencies#setuptools_scm
+general/python-dependencies#poetry-core 
+general/python-dependencies#tomlkit general/python-dependencies#poetry-core
+general/python-dependencies#trove-classifiers 
+general/python-dependencies#hatchling general/python-dependencies#pathspec general/python-dependencies#pluggy general/python-dependencies#tomlkit general/python-dependencies#trove-classifiers
+general/python-modules#pygments general/python-dependencies#hatchling
+general/python-modules#pycairo x/cairo
+general/python-modules#pygobject3 general/glib2 general/python-modules#pycairo
+general/gegl general/babl general/json-glib general/glib2 general/python-modules#pygments general/python-modules#pygobject3
+general/graphviz general/cmake x/pango x/cairo x/x7lib general/fontconfig general/libpng general/gegl
+general/vala general/glib2 general/graphviz
+general/libical general/cmake general/glib2 general/libxml2 general/vala
+general/bluez general/dbus general/glib2 general/libical general/python-modules#docutils
+multimedia/gstreamer10 general/glib2
+multimedia/cdparanoia 
+general/iso-codes 
+general/libgudev general/glib2
+multimedia/gst10-plugins-base multimedia/gstreamer10 multimedia/alsa-lib multimedia/cdparanoia general/glib2 general/iso-codes general/libgudev general/libjpeg multimedia/libogg general/libpng multimedia/libvorbis x/mesa x/pango general/wayland-protocols x/x7lib
+multimedia/flac 
+multimedia/libsndfile multimedia/flac multimedia/opus multimedia/libvorbis
+multimedia/speex multimedia/libogg
+general/perl-deps#perl-class-inspector 
+general/perl-deps#perl-file-sharedir-install 
+general/perl-deps#perl-file-sharedir general/perl-deps#perl-class-inspector general/perl-deps#perl-file-sharedir-install
+general/perl-modules#perl-xml-parser general/perl-deps#perl-file-sharedir
+multimedia/pulseaudio multimedia/libsndfile multimedia/alsa-lib general/dbus general/glib2 multimedia/speex general/perl-modules#perl-xml-parser x/x7lib
+multimedia/sbc 
+x/glu x/mesa
+multimedia/v4l-utils multimedia/alsa-lib x/glu general/libjpeg
+multimedia/pipewire general/bluez multimedia/gstreamer10 multimedia/gst10-plugins-base multimedia/pulseaudio multimedia/sbc multimedia/v4l-utils
+general/lua 
+multimedia/wireplumber general/glib2 multimedia/pipewire general/systemd general/lua
+multimedia/sdl3 general/cmake multimedia/alsa-lib general/libusb general/libxkbcommon x/mesa multimedia/pipewire multimedia/pulseaudio x/vulkan-loader general/wayland-protocols x/x7lib
+multimedia/sdl2 general/cmake multimedia/sdl3
+multimedia/ffmpeg multimedia/dav1d multimedia/libaom multimedia/libass multimedia/fdk-aac general/freetype2 multimedia/lame multimedia/libvorbis multimedia/libvpx multimedia/opus multimedia/svt-av1 multimedia/x264 multimedia/x265 general/nasm multimedia/alsa-lib multimedia/libva multimedia/sdl2
+gnome/gsettings-desktop-schemas general/glib2
+x/at-spi2-core general/dbus general/glib2 gnome/gsettings-desktop-schemas x/x7lib
+x/libepoxy x/mesa
+x/hicolor-icon-theme 
+x/gtk3 x/at-spi2-core x/gdk-pixbuf x/libepoxy x/pango pst/docbook-xsl x/hicolor-icon-theme general/iso-codes general/libxkbcommon general/libxslt general/wayland general/wayland-protocols general/glib2
+x/graphene general/glib2
+multimedia/libdvdread 
+multimedia/libdvdnav multimedia/libdvdread
+multimedia/soundtouch 
+multimedia/gst10-plugins-bad multimedia/gst10-plugins-base multimedia/libaom multimedia/libdvdread multimedia/libdvdnav multimedia/libva multimedia/svt-av1 multimedia/soundtouch
+general/glslc general/cmake x/glslang general/spirv-tools
+postlfs/nettle 
+postlfs/gnutls postlfs/nettle general/libunistring
+basicnet/glib-networking general/glib2 postlfs/gnutls gnome/gsettings-desktop-schemas
+basicnet/libsoup3 basicnet/glib-networking basicnet/libpsl general/libxml2 basicnet/nghttp2 general/glib2 general/vala
+multimedia/mpg123 multimedia/alsa-lib
+multimedia/gst10-plugins-good multimedia/gst10-plugins-base x/cairo multimedia/flac x/gdk-pixbuf multimedia/lame basicnet/libsoup3 multimedia/libvpx multimedia/mpg123 general/nasm multimedia/pulseaudio
+postlfs/fuse 
+x/xdg-desktop-portal postlfs/fuse x/gdk-pixbuf general/json-glib multimedia/pipewire general/dbus general/bubblewrap general/python-modules#docutils
+x/gtk4 x/gdk-pixbuf x/graphene general/iso-codes x/libepoxy general/librsvg general/libxkbcommon x/pango general/python-modules#pygobject3 general/wayland-protocols multimedia/gst10-plugins-bad general/glslc multimedia/gst10-plugins-good x/hicolor-icon-theme x/vulkan-loader x/xdg-desktop-portal general/glib2
+x/adwaita-icon-theme x/gtk3 x/gtk4 general/librsvg
+general/double-conversion general/cmake
+general/jasper general/cmake general/libjpeg
+x/x7driver#libevdev 
+general/mtdev 
+x/x7driver#libinput x/x7driver#libevdev general/mtdev
+general/libmng general/libjpeg general/lcms2
+general/tiff general/cmake
+general/libwebp general/libjpeg general/libpng general/tiff multimedia/sdl2
+x/xcb-util x/libxcb
+x/xcb-utilities x/libxcb x/xcb-util
+x/qt6 x/x7lib multimedia/alsa-lib general/double-conversion general/glib2 multimedia/ffmpeg multimedia/gst10-plugins-base multimedia/gst10-plugins-good multimedia/gst10-plugins-bad general/harfbuzz general/icu general/jasper general/libjpeg x/x7driver#libinput general/libmng general/libpng general/tiff general/libwebp general/libxkbcommon x/mesa general/mtdev general/wayland x/xcb-utilities
+kde/extra-cmake-modules general/cmake x/qt6
+x/breeze-icons kde/extra-cmake-modules x/qt6
+general/intltool general/perl-modules#perl-xml-parser
+multimedia/sound-theme-freedesktop general/intltool
+multimedia/libcanberra multimedia/libvorbis multimedia/alsa-lib multimedia/gstreamer10 x/gtk3 multimedia/sound-theme-freedesktop
+kde/libdmtx 
+general/libgpg-error 
+general/libgcrypt general/libgpg-error
+general/libassuan general/libgpg-error
+general/libksba general/libgpg-error
+general/npth 
+server/lmdb 
+postlfs/cyrus-sasl server/lmdb
+server/openldap postlfs/cyrus-sasl
+general/pinentry general/libassuan general/libgpg-error
+postlfs/gnupg general/libassuan general/libgcrypt general/libksba general/npth server/openldap postlfs/gnutls general/pinentry
+gnome/gcr general/glib2 general/libgcrypt postlfs/gnupg x/gtk3 general/libxslt general/vala
+gnome/gnome-keyring general/dbus gnome/gcr postlfs/linux-pam general/libxslt
+gnome/libsecret general/glib2 gnome/gnome-keyring general/libgcrypt general/vala
+x/oxygen-icons kde/extra-cmake-modules x/qt6
+general/qca general/cmake x/qt6 general/which
+general/libqrencode general/libpng
+kde/plasma-wayland-protocols kde/extra-cmake-modules
+general/perl-deps#perl-mime-base32 
+general/perl-deps#perl-try-tiny 
+general/perl-deps#perl-test-fatal general/perl-deps#perl-try-tiny
+general/perl-deps#perl-test-needs 
+general/perl-deps#perl-test-warnings 
+general/perl-modules#perl-uri general/perl-deps#perl-mime-base32 general/perl-deps#perl-test-fatal general/perl-deps#perl-test-needs general/perl-deps#perl-test-warnings
+general/aspell general/which
+general/libdaemon 
+basicnet/avahi general/glib2 x/gtk3 general/libdaemon
+general/libmbim general/glib2
+general/libqmi general/glib2 general/libgudev general/libmbim
+general/ModemManager general/libgudev general/libxslt general/glib2 general/libmbim general/libqmi postlfs/polkit general/vala
+basicnet/libndp 
+postlfs/iptables 
+general/popt 
+general/slang 
+general/gpm 
+general/newt general/popt general/slang general/gpm
+general/nspr 
+postlfs/nss general/nspr
+basicnet/libnl 
+basicnet/wpa_supplicant basicnet/libnl
+basicnet/networkmanager basicnet/libndp basicnet/curl general/glib2 postlfs/iptables basicnet/libpsl general/newt postlfs/nss postlfs/polkit general/python-modules#pygobject3 general/systemd general/vala basicnet/wpa_supplicant
+kde/polkit-qt general/cmake postlfs/polkit x/qt6
+general/zxing-cpp general/cmake
+kde/kf6-intro 
+general/git basicnet/curl general/rust
+general/doxygen general/cmake general/git x/qt6
+general/python-dependencies#hatch-vcs general/python-dependencies#hatchling general/python-dependencies#setuptools_scm
+general/python-dependencies#chardet general/python-dependencies#hatch-vcs
+general/python-modules#doxypypy general/python-dependencies#chardet general/doxygen
+general/python-modules#doxyqml general/doxygen
+general/python-dependencies#charset-normalizer 
+general/python-dependencies#idna 
+general/python-dependencies#urllib3 general/python-dependencies#hatch-vcs
+general/python-modules#requests general/python-dependencies#charset-normalizer general/python-dependencies#idna general/python-dependencies#urllib3
+kde/frameworks6 kde/extra-cmake-modules x/breeze-icons pst/docbook pst/docbook-xsl multimedia/libcanberra kde/libdmtx general/libgcrypt general/libical gnome/libsecret general/libxslt server/lmdb x/oxygen-icons general/qca general/libqrencode kde/plasma-wayland-protocols general/python-modules#PyYAML general/shared-mime-info general/perl-modules#perl-uri general/aspell basicnet/avahi general/ModemManager basicnet/networkmanager kde/polkit-qt x/vulkan-loader general/zxing-cpp kde/kf6-intro general/doxygen general/python-modules#doxypypy general/python-modules#doxyqml general/python-modules#requests
+kde/kirigami-addons kde/frameworks6 x/vulkan-loader
+kde/kquickimageeditor kde/frameworks6
+general/hwdata 
+general/libdisplay-info general/hwdata
+postlfs/cracklib 
+postlfs/libpwquality postlfs/cracklib postlfs/linux-pam
+general/libqalculate basicnet/curl general/icu general/libxml2
+x/libxcvt x/xorg7
+general/libavif multimedia/dav1d multimedia/svt-av1 multimedia/libaom
+general/libexif 
+general/openjpeg2 general/cmake
+multimedia/xine-lib multimedia/ffmpeg multimedia/alsa-lib multimedia/pulseaudio multimedia/libdvdnav
+general/opencv general/cmake general/libarchive multimedia/ffmpeg multimedia/gst10-plugins-base x/gtk3 general/jasper general/libavif general/libexif general/libjpeg general/libpng general/tiff general/libwebp general/openjpeg2 multimedia/v4l-utils multimedia/xine-lib
+kde/phonon general/cmake kde/extra-cmake-modules general/glib2 x/qt6
+kde/pulseaudio-qt kde/frameworks6 multimedia/pulseaudio
+general/qcoro x/qt6
+kde/qtkeychain x/qt6
+general/sassc 
+general/utfcpp general/cmake
+multimedia/taglib general/cmake general/utfcpp
+kde/tesseract basicnet/curl general/icu general/libarchive x/pango
+general/xdotool x/x7lib
+x/xbitmaps x/util-macros
+x/x7app general/libpng x/mesa x/xbitmaps x/xcb-util
+x/xcursor-themes x/x7app
+x/x7font x/xcursor-themes
+basicnet/libtirpc 
+x/xorg-server x/libxcvt general/pixman x/x7font x/xkeyboard-config x/libepoxy basicnet/libtirpc general/systemd
+x/x7driver#xorg-libinput-driver x/x7driver#libinput x/xorg-server
+x/x7driver#xorg-evdev-driver x/x7driver#libevdev general/mtdev x/xorg-server
+kde/bolt general/glib2 postlfs/polkit
+basicnet/libpcap 
+general/libwacom x/x7driver#libevdev general/libgudev general/libxml2
+x/x7driver#xorg-wacom-driver x/xorg-server
+general/lm-sensors 
+general/pciutils general/hwdata
+general/upower general/libgudev general/libusb postlfs/polkit
+general/power-profiles-daemon postlfs/polkit general/python-modules#pygobject3 general/upower
+general/python-modules#psutil 
+general/python-modules#pygdbmi 
+general/python-dependencies#certifi 
+general/python-modules#sentry-sdk general/python-dependencies#certifi general/python-dependencies#urllib3
+general/accountsservice postlfs/polkit general/glib2 general/systemd general/vala
+basicnet/kdsoap x/qt6
+basicnet/kdsoap-ws-discovery-client general/doxygen kde/extra-cmake-modules basicnet/kdsoap
+general/python-dependencies#markdown 
+general/python-dependencies#smartypants 
+general/python-dependencies#typogrify general/python-dependencies#hatchling general/python-dependencies#smartypants
+general/python-modules#gi-docgen general/python-dependencies#markdown general/python-modules#pygments general/python-dependencies#typogrify
+general/libproxy basicnet/curl general/duktape general/glib2 general/python-modules#gi-docgen gnome/gsettings-desktop-schemas general/vala
+kde/plasma-activities kde/frameworks6
+kde/plasma-activities-stats kde/plasma-activities
+general/inih 
+general/exiv2 general/cmake general/brotli basicnet/curl general/inih
+kde/libkexiv2 kde/frameworks6 general/exiv2
+kde/kio-extras kde/frameworks6 basicnet/kdsoap-ws-discovery-client general/libproxy kde/plasma-activities-stats general/qcoro kde/libkexiv2
+postlfs/smartmontools 
+x/xwayland x/libxcvt general/pixman general/wayland-protocols x/x7app x/x7font x/libepoxy basicnet/libtirpc x/mesa
+kde/plasma-all general/boost kde/corrosion multimedia/ffmpeg x/gtk3 kde/frameworks6 kde/kirigami-addons kde/kquickimageeditor general/libdisplay-info postlfs/libpwquality general/libqalculate basicnet/libnl x/libxcvt general/libxkbcommon x/mesa general/wayland general/opencv kde/phonon multimedia/pipewire kde/pulseaudio-qt general/qca general/qcoro kde/qtkeychain general/sassc multimedia/taglib kde/tesseract general/xdotool x/x7driver#xorg-evdev-driver kde/bolt gnome/gsettings-desktop-schemas multimedia/libcanberra x/x7driver#libinput basicnet/libpcap general/libwacom x/x7driver#xorg-wacom-driver postlfs/linux-pam general/lm-sensors x/oxygen-icons general/pciutils general/power-profiles-daemon general/python-modules#psutil general/python-modules#pygdbmi general/python-modules#sentry-sdk general/python-dependencies#urllib3 general/accountsservice x/breeze-icons kde/kio-extras postlfs/smartmontools x/xdg-desktop-portal x/xwayland
+carinae:fontes 
+x/sddm general/cmake kde/extra-cmake-modules x/qt6 general/python-modules#docutils postlfs/linux-pam general/upower
+kde/konsole kde/frameworks6
+kde/dolphin kde/frameworks6 kde/phonon
+general/7zip 
+general/cpio 
+general/unrar 
+general/zip 
+kde/ark kde/frameworks6 general/libarchive general/7zip general/cpio general/unrar general/zip
+x/kcolorpicker general/cmake x/qt6
+x/kimageannotator x/kcolorpicker
+general/libraw general/libjpeg general/jasper general/lcms2
+kde/libkdcraw kde/frameworks6 general/libraw
+kde/gwenview general/exiv2 x/kimageannotator kde/frameworks6 general/lcms2 kde/libkdcraw
+multimedia/liba52 
+multimedia/libmad 
+multimedia/vlc multimedia/alsa-lib general/desktop-file-utils multimedia/ffmpeg multimedia/liba52 general/libgcrypt multimedia/libmad general/lua x/qt6
+kde/phonon-backend-vlc kde/phonon multimedia/vlc
+carinae:tema kde/plasma-all x/sddm
+carinae:rede basicnet/networkmanager kde/plasma-all
