@@ -73,7 +73,7 @@ def analisa(arquivo, no, ver=False, saida='.'):
     fim = s.find('Dependencies'); area = s[:fim if fim > 0 else len(s)]
     urls = []
     for u in re.findall(r'href=\s*"((?:https?)://[^"]+)"', area):
-        if re.search(r'\.(tar\.(gz|xz|bz2|zst|lz)|tgz|zip|patch)$', u) and u not in urls:
+        if re.search(r'\.(tar\.(gz|xz|bz2|zst|lz)|tgz|zip|patch|xz|gz|bz2)$', u) and u not in urls:
             urls.append(u)
     md5 = re.findall(r'MD5 sum:\s*([0-9a-f]{32})', txt(area))
     pul, por = decisoes(no)
