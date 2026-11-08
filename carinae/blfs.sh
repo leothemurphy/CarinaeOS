@@ -1,6 +1,7 @@
 #!/bin/bash
 # CarinaeOS - instala um pacote seguindo a pagina do livro BLFS 13.1-systemd.
 # Uso:  bash blfs.sh <secao/pagina>        ex.: bash blfs.sh general/libtasn1
+#       PULAR=4,5 bash blfs.sh <pagina>   (pula blocos opcionais do livro)
 #       bash blfs.sh <secao/pagina> sim    (nao pergunta antes de compilar)
 # O script baixa a pagina do livro, mostra cada bloco de comandos e se vai
 # RODAR ou PULAR (testes e exemplos com valores a substituir), baixa o
@@ -29,7 +30,8 @@ baixa $B/$PAG.html pagina.html
 baixa $B/introduction/systemd-units.html units.html
 
 python3 - <<'PY'
-import re,html
+import re,html,os
+PULAR_N=[x for x in os.environ.get('PULAR','').split(',') if x]
 def txt(x): return html.unescape(re.sub(r'<[^>]+>','',x))
 s=open('pagina.html',encoding='utf-8').read()
 # area de downloads: do inicio ate as dependencias
@@ -48,7 +50,8 @@ blocos=re.findall(r'<pre\s+class="(root|userinput)"\s*>(.*?)</pre>',s,re.S)
 usar=[]; unid=[]
 for i,(cl,raw) in enumerate(blocos):
     b=txt(raw).strip(); l1=b.splitlines()[0][:90]
-    if 'replaceable' in raw: print(f'   PULADO (exemplo) #{i}: {l1}')
+    if str(i) in PULAR_N: print(f'   PULADO (pedido)  #{i}: {l1}')
+    elif 'replaceable' in raw: print(f'   PULADO (exemplo) #{i}: {l1}')
     elif TESTE.search(b): print(f'   PULADO (teste)   #{i}: {l1}')
     elif re.match(r'make install-[a-z]',b) and 'systemd-units' in s:
         print(f'   RODA (unidade)   #{i}: {l1}'); unid.append(b)
