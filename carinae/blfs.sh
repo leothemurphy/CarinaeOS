@@ -2,6 +2,7 @@
 # CarinaeOS - instala um pacote seguindo a pagina do livro BLFS 13.1-systemd.
 # Uso:  bash blfs.sh <secao/pagina>        ex.: bash blfs.sh general/libtasn1
 #       PULAR=4,5 bash blfs.sh <pagina>   (pula blocos opcionais do livro)
+#       bash blfs.sh <pagina> ver         (so mostra os blocos completos)
 #       bash blfs.sh <secao/pagina> sim    (nao pergunta antes de compilar)
 # O script baixa a pagina do livro, mostra cada bloco de comandos e se vai
 # RODAR ou PULAR (testes e exemplos com valores a substituir), baixa o
@@ -14,6 +15,7 @@ W=/sources/blfs/$NOME
 mkdir -p $W /root/blfs-logs && cd $W
 LOG=/root/blfs-logs/$NOME.log
 exec > >(tee $LOG) 2>&1
+set +e; for f in /etc/profile.d/*.sh; do [ -r "$f" ] && . "$f"; done; set -e
 export MAKEFLAGS=-j$(nproc) NINJAJOBS=$(nproc)
 
 baixa(){ python3 - "$1" "$2" <<'PY'
@@ -34,9 +36,11 @@ echo "== pagina do livro: $B/$PAG.html"
 baixa $B/$PAG.html pagina.html
 baixa $B/introduction/systemd-units.html units.html
 
-python3 - <<'PY'
+VER=$([ "$2" = ver ] && echo 1) python3 - <<'PY'
 import re,html,os
 PULAR_N=[x for x in os.environ.get('PULAR','').split(',') if x]
+VER=os.environ.get('VER')=='1'
+ESCOLHAS={'<PREFIX>':'/usr','<$KF6_PREFIX>':'/usr'}
 def txt(x): return html.unescape(re.sub(r'<[^>]+>','',x))
 s=open('pagina.html',encoding='utf-8').read()
 # area de downloads: do inicio ate as dependencias
@@ -55,6 +59,11 @@ blocos=re.findall(r'<pre\s+class="(root|userinput)"\s*>(.*?)</pre>',s,re.S)
 usar=[]; unid=[]
 for i,(cl,raw) in enumerate(blocos):
     b=txt(raw).strip(); l1=b.splitlines()[0][:90]
+    rep=[txt(x) for x in re.findall(r'<em class="replaceable">(.*?)</em>',raw,re.S)]
+    if rep and all(x in ESCOLHAS for x in rep):
+        for x in rep: b=b.replace(x,ESCOLHAS[x])
+        raw=raw.replace('replaceable','escolhido'); l1=b.splitlines()[0][:90]
+    if VER: print(f'----- bloco #{i} ({cl}) -----'); print(b)
     if str(i) in PULAR_N: print(f'   PULADO (pedido)  #{i}: {l1}')
     elif 'replaceable' in raw: print(f'   PULADO (exemplo) #{i}: {l1}')
     elif TESTE.search(b): print(f'   PULADO (teste)   #{i}: {l1}')
@@ -68,6 +77,7 @@ m=re.search(r'(https://\S+blfs-systemd-units-\S+?\.tar\.xz)',u)
 open('units.url','w').write((m.group(1) if m else '')+'\n')
 PY
 
+[ "$2" = ver ] && exit 0
 if [ "$2" != sim ]; then
   read -p "Confere a lista acima. Compilar? (s/n) " R < /dev/tty
   [ "$R" = s ] || { echo "cancelado"; exit 1; }
