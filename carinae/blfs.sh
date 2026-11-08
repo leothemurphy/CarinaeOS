@@ -17,11 +17,16 @@ exec > >(tee $LOG) 2>&1
 export MAKEFLAGS=-j$(nproc) NINJAJOBS=$(nproc)
 
 baixa(){ python3 - "$1" "$2" <<'PY'
-import sys,ssl,urllib.request as r
+import sys,ssl,time,urllib.request as r
 u,f=sys.argv[1],sys.argv[2]
-try: d=r.urlopen(u,timeout=300).read()
-except Exception: d=r.urlopen(u,context=ssl._create_unverified_context(),timeout=300).read()
-open(f,'wb').write(d)
+req=r.Request(u,headers={'User-Agent':'Wget/1.25 (linux-gnu)'})
+for tentativa in range(1,6):
+    for ctx in (None, ssl._create_unverified_context()):
+        try:
+            d=r.urlopen(req,context=ctx,timeout=300).read(); open(f,'wb').write(d); sys.exit(0)
+        except Exception as e: erro=e
+    print(f'   download falhou ({erro}); tentativa {tentativa}/5',file=sys.stderr); time.sleep(10*tentativa)
+sys.exit(f'nao consegui baixar {u}')
 PY
 }
 
