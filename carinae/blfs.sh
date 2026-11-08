@@ -21,6 +21,7 @@ LOG=/root/blfs-logs/$NOME.log
 set +e; source /etc/profile > /dev/null 2>&1; set -e   # ambiente de login (xorg.sh, qt6.sh, kf6.sh, rustc.sh...)
 export MAKEFLAGS=${MAKEFLAGS:--j$(nproc)} NINJAJOBS=${NINJAJOBS:-$(nproc)}
 
+MD5ESPERADO=
 baixa1(){  # um URL: wget (segue redirecionamentos) e, se falhar, python
   wget -q --tries=2 --timeout=120 -O "$2.part" "$1" && mv "$2.part" "$2" && return 0
   rm -f "$2.part"
@@ -40,7 +41,14 @@ baixa(){  # baixa <ficheiro> <url> [url alternativo...]: varias rondas por todos
   local stem; stem=$(echo "$f" | sed -E 's/[-_]v?[0-9][0-9.]*.*$//')
   for ronda in 1 2 3; do
     for u in "$@" "https://ftp.osuosl.org/pub/blfs/conglomeration/$stem/$f"; do
-      baixa1 "$u" "$f" && return 0
+      baixa1 "$u" "$f" || continue
+      # com MD5 do livro: so aceita o ficheiro certo; senao tenta o URL seguinte
+      # (ex.: arquivos gerados na hora pelo GitLab mudam ou chegam cortados)
+      if [ -n "$MD5ESPERADO" ] && ! echo "$MD5ESPERADO  $f" | md5sum -c - >/dev/null 2>&1; then
+        echo "   $u: MD5 diferente do livro ($(md5sum < "$f" | cut -c1-32), $(stat -c %s "$f") bytes); a tentar outro" >&2
+        rm -f "$f"; continue
+      fi
+      return 0
     done
     echo "   download de $f falhou (ronda $ronda/3); a tentar de novo" >&2; sleep $((20*ronda))
   done
@@ -72,7 +80,9 @@ while read F URLS; do
   if [ -z "$T" ]; then
     T=$F
     if [ "$M" != "-" ] && [ -s $F ] && ! echo "$M  $F" | md5sum -c - >/dev/null 2>&1; then rm -f $F; fi
+    [ "$M" = "-" ] || MD5ESPERADO=$M
     [ -s $F ] || baixa $F $URLS
+    MD5ESPERADO=
     [ "$M" = "-" ] || echo "$M  $F" | md5sum -c -
   else
     # adicionais (patches, testes, documentacao): uma falha so pesa se o livro

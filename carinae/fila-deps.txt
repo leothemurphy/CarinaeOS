@@ -93,8 +93,7 @@ general/giflib
 general/highway general/cmake
 general/libjpeg general/cmake general/nasm general/yasm
 general/libjxl general/brotli general/cmake general/giflib general/highway general/lcms2 general/libjpeg general/libpng
-general/glycin general/bubblewrap general/fontconfig general/glib2 general/lcms2 general/libseccomp general/rust general/libheif general/libjxl
-x/gdk-pixbuf general/glib2 general/shared-mime-info general/python-modules#docutils general/glycin
+x/gdk-pixbuf general/glib2 general/shared-mime-info general/python-modules#docutils
 general/librsvg x/cairo general/cargo-c x/pango x/gdk-pixbuf general/glib2
 general/babl general/glib2 general/librsvg general/lcms2
 general/json-glib general/glib2
@@ -112,6 +111,8 @@ general/python-modules#pygobject3 general/glib2 general/python-modules#pycairo
 general/gegl general/babl general/json-glib general/glib2 general/python-modules#pygments general/python-modules#pygobject3
 general/graphviz general/cmake x/pango x/cairo x/x7lib general/fontconfig general/libpng general/gegl
 general/vala general/glib2 general/graphviz
+general/glycin general/bubblewrap general/fontconfig general/glib2 general/lcms2 general/libseccomp general/rust general/libheif general/libjxl general/librsvg general/vala
+carinae:refaz-gdk-pixbuf general/glycin x/gdk-pixbuf
 general/libical general/cmake general/glib2 general/libxml2 general/vala
 general/bluez general/dbus general/glib2 general/libical general/python-modules#docutils
 multimedia/gstreamer10 general/glib2

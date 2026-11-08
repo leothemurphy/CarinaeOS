@@ -92,7 +92,6 @@ general/giflib
 general/highway
 general/libjpeg
 general/libjxl
-general/glycin
 x/gdk-pixbuf
 general/librsvg
 general/babl
@@ -111,6 +110,8 @@ general/python-modules#pygobject3
 general/gegl
 general/graphviz
 general/vala
+general/glycin
+carinae:refaz-gdk-pixbuf
 general/libical
 general/bluez
 multimedia/gstreamer10
