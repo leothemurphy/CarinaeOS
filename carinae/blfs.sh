@@ -59,7 +59,7 @@ blocos=re.findall(r'<pre\s+class="(root|userinput)"\s*>(.*?)</pre>',s,re.S)
 usar=[]; unid=[]
 for i,(cl,raw) in enumerate(blocos):
     b=txt(raw).strip(); l1=b.splitlines()[0][:90]
-    rep=[txt(x) for x in re.findall(r'<em class="replaceable">(.*?)</em>',raw,re.S)]
+    rep=[txt(x) for x in re.findall(r'class="replaceable"[^>]*>(.*?)</(?:em|code|span)>',raw,re.S)]
     if rep and all(x in ESCOLHAS for x in rep):
         for x in rep: b=b.replace(x,ESCOLHAS[x])
         raw=raw.replace('replaceable','escolhido'); l1=b.splitlines()[0][:90]
