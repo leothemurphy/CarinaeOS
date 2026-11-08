@@ -81,6 +81,10 @@ def deps(p):
     secao = pg.split('/')[0]
     req, rec = [], []
     for cl, corpo in re.findall(r'<p class="(required|recommended)">(.*?)</p>', s, re.S):
+        # notas do livro do tipo "X must be reinstalled AFTER installing this"
+        # ou "needs to be installed afterwards" nao sao dependencias de antes
+        if re.search(r'\b(after|afterwards|reinstalled)\b', txt(corpo), re.I):
+            continue
         for h, anc in links_diretos(corpo):
             h = h[3:] if h.startswith('../') else secao + '/' + h
             alvo = h + anc if (anc and h in COLECOES | {'x/x7driver', 'general/python-modules'}) else h
@@ -151,13 +155,27 @@ def visita(p, por):
     for d, quem in pendentes.pop(p, []):
         visita(d, quem + ' (depois)')
 
-for alvo in sys.argv[1:]: visita(alvo, 'alvo')
+# pacotes que o livro manda (re)instalar DEPOIS de outro (notas "after")
+LOGO_DEPOIS = [('postlfs/linux-pam', 'postlfs/shadow'),        # Shadow refeito com PAM
+               ('kde/phonon', 'kde/phonon-backend-vlc')]       # backend do Phonon
+alvos = sys.argv[1:]
+for alvo in alvos: visita(alvo, 'alvo')
+for a, b in LOGO_DEPOIS:
+    if a in ordem: visita(b, a + ' (o livro: depois)')
 
 # acerto final: cada pacote depois de tudo o que ele EXIGE (Required).
 # Ciclos verdadeiros seguem a ordem que o livro manda (ex.: o Shadow e
 # reinstalado depois do Linux-PAM).
 ORDEM_DO_LIVRO = [('postlfs/linux-pam', 'postlfs/shadow'),   # Shadow refeito depois do PAM
                   ('kde/phonon', 'kde/phonon-backend-vlc')]   # o livro: backend instalado depois
+# o livro manda instalar o Linux-PAM ANTES de refazer o systemd e o Shadow
+# ("Shadow and Systemd must be reinstalled and reconfigured after installing
+# and configuring Linux PAM")
+DEVE_PRECEDER = [('postlfs/linux-pam', 'general/systemd'), ('postlfs/linux-pam', 'postlfs/shadow')]
+for a, b in DEVE_PRECEDER:
+    if a in ordem and b in ordem and ordem.index(a) > ordem.index(b):
+        ordem.remove(a); ordem.insert(ordem.index(b), a)
+
 for _ in range(len(ordem)):
     mudou = False
     for n in list(ordem):
@@ -170,6 +188,13 @@ for _ in range(len(ordem)):
             ultimo = max(ordem.index(d) for d in tardios)
             ordem.remove(n); ordem.insert(ultimo, n); mudou = True
     if not mudou: break
+for a, b in LOGO_DEPOIS:
+    if a in ordem and b in ordem:
+        try: rb, _ = deps(b)
+        except Exception: rb = []
+        limite = max([ordem.index(a)] + [ordem.index(d) for d in rb if d in ordem and d != b])
+        ordem.remove(b); ordem.insert(limite + 1 if limite < len(ordem) else len(ordem), b)
+
 with open(os.environ.get('FILA','/root/blfs-fila.txt'), 'w') as f:
     for p in ordem: f.write(p + '\n')
 for n, p in enumerate(ordem, 1):
