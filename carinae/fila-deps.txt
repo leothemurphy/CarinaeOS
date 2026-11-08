@@ -32,6 +32,7 @@ general/graphite2 general/cmake
 general/harfbuzz general/glib2 general/graphite2 general/icu
 general/libpng 
 general/freetype2 general/harfbuzz general/libpng
+carinae:refaz-harfbuzz general/freetype2 general/harfbuzz
 general/fribidi 
 general/fontconfig general/freetype2
 multimedia/libass general/freetype2 general/fribidi general/fontconfig general/nasm
@@ -78,7 +79,7 @@ multimedia/libva x/xorg7 x/libdrm x/mesa
 general/libusb 
 x/xkeyboard-config x/x7lib
 general/libxkbcommon x/xkeyboard-config x/libxcb general/wayland general/wayland-protocols
-x/pango general/fontconfig general/fribidi general/glib2
+x/pango general/fontconfig general/fribidi general/glib2 carinae:refaz-harfbuzz
 general/pixman 
 x/cairo general/libpng general/pixman general/fontconfig general/glib2 x/x7lib
 general/cargo-c general/rust general/libssh2

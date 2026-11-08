@@ -31,6 +31,7 @@ general/graphite2
 general/harfbuzz
 general/libpng
 general/freetype2
+carinae:refaz-harfbuzz
 general/fribidi
 general/fontconfig
 multimedia/libass
