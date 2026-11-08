@@ -80,6 +80,8 @@ def deps(p):
     if pg in COLECOES and '#' not in p: s = s[:secoes(pg)[1][0][0]] if secoes(pg)[1] else s
     secao = pg.split('/')[0]
     req, rec = [], []
+    # as caixas de nota do livro ("admon") nao sao listas de dependencias
+    s = re.sub(r'<div class="admon[^"]*">.*?</div>', '', s, flags=re.S)
     for cl, corpo in re.findall(r'<p class="(required|recommended)">(.*?)</p>', s, re.S):
         # notas do livro do tipo "X must be reinstalled AFTER installing this"
         # ou "needs to be installed afterwards" nao sao dependencias de antes

@@ -43,8 +43,6 @@ multimedia/opus
 multimedia/svt-av1
 multimedia/x264
 multimedia/x265
-postlfs/cracklib
-postlfs/libpwquality
 postlfs/linux-pam
 postlfs/shadow
 general/systemd
@@ -229,6 +227,8 @@ kde/kirigami-addons
 kde/kquickimageeditor
 general/hwdata
 general/libdisplay-info
+postlfs/cracklib
+postlfs/libpwquality
 general/libqalculate
 x/libxcvt
 general/libavif
