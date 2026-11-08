@@ -21,23 +21,35 @@ LOG=/root/blfs-logs/$NOME.log
 set +e; source /etc/profile > /dev/null 2>&1; set -e   # ambiente de login (xorg.sh, qt6.sh, kf6.sh, rustc.sh...)
 export MAKEFLAGS=${MAKEFLAGS:--j$(nproc)} NINJAJOBS=${NINJAJOBS:-$(nproc)}
 
-baixa(){ python3 - "$1" "$2" <<'PY'
-import sys,ssl,time,urllib.request as r
+baixa1(){  # um URL: wget (segue redirecionamentos) e, se falhar, python
+  wget -q --tries=2 --timeout=120 -O "$2.part" "$1" && mv "$2.part" "$2" && return 0
+  rm -f "$2.part"
+  python3 - "$1" "$2" <<'PY'
+import sys,ssl,urllib.request as r
 u,f=sys.argv[1],sys.argv[2]
 req=r.Request(u,headers={'User-Agent':'Wget/1.25 (linux-gnu)'})
-for tentativa in range(1,6):
-    for ctx in (None, ssl._create_unverified_context()):
-        try:
-            d=r.urlopen(req,context=ctx,timeout=300).read(); open(f,'wb').write(d); sys.exit(0)
-        except Exception as e: erro=e
-    print(f'   download falhou ({erro}); tentativa {tentativa}/5',file=sys.stderr); time.sleep(10*tentativa)
-sys.exit(f'nao consegui baixar {u}')
+for ctx in (None, ssl._create_unverified_context()):
+    try:
+        d=r.urlopen(req,context=ctx,timeout=300).read(); open(f,'wb').write(d); sys.exit(0)
+    except Exception as e: erro=e
+print(f'   ({u}: {erro})',file=sys.stderr); sys.exit(1)
 PY
+}
+baixa(){  # baixa <ficheiro> <url> [url alternativo...]: varias rondas por todos
+  local f=$1; shift
+  local stem; stem=$(echo "$f" | sed -E 's/[-_]v?[0-9][0-9.]*.*$//')
+  for ronda in 1 2 3; do
+    for u in "$@" "https://ftp.osuosl.org/pub/blfs/conglomeration/$stem/$f"; do
+      baixa1 "$u" "$f" && return 0
+    done
+    echo "   download de $f falhou (ronda $ronda/3); a tentar de novo" >&2; sleep $((20*ronda))
+  done
+  echo "nao consegui baixar $f" >&2; return 1
 }
 
 echo "== pagina do livro: $B/$PAG.html ${NO#$PAG}"
 CACHE=/sources/blfs/paginas/$(echo $PAG | tr / _)_.html
-[ -s $CACHE ] || { mkdir -p /sources/blfs/paginas; baixa $B/$PAG.html $CACHE; }
+[ -s $CACHE ] || { mkdir -p /sources/blfs/paginas; baixa1 $B/$PAG.html $CACHE || baixa1 $B/$PAG.html $CACHE; }
 cp $CACHE pagina.html
 python3 $DIR/analisa.py pagina.html "$NO" $([ "$2" = ver ] && echo ver)
 [ "$2" = ver ] && exit 0
@@ -48,20 +60,26 @@ if [ "$2" != sim ]; then
 fi
 
 M=$(cat md5.txt); T=
-while read U; do
-  [ -n "$U" ] || continue
-  F=$(basename $U)
+# downloads agrupados por nome de ficheiro (o livro da HTTP e FTP/espelhos)
+python3 -c "
+import collections,os
+g=collections.OrderedDict()
+for u in open('downloads.txt').read().split(): g.setdefault(os.path.basename(u),[]).append(u)
+for f,us in g.items(): print(f,*us)
+" > grupos.txt
+while read F URLS; do
+  [ -n "$F" ] || continue
   if [ -z "$T" ]; then
-    [ -s $F ] || baixa $U $F
+    T=$F
+    if [ "$M" != "-" ] && [ -s $F ] && ! echo "$M  $F" | md5sum -c - >/dev/null 2>&1; then rm -f $F; fi
+    [ -s $F ] || baixa $F $URLS
+    [ "$M" = "-" ] || echo "$M  $F" | md5sum -c -
   else
-    # downloads adicionais (patches, testes, documentacao): uma falha aqui so
-    # pesa se o livro usar o ficheiro; nesse caso o passo seguinte acusa
-    [ -s $F ] || baixa $U $F || echo "   AVISO: nao consegui baixar $F (adicional)"
+    # adicionais (patches, testes, documentacao): uma falha so pesa se o livro
+    # usar o ficheiro; nesse caso o passo seguinte acusa
+    [ -s $F ] || baixa $F $URLS || echo "   AVISO: nao consegui baixar $F (adicional)"
   fi
-  if [ -z "$T" ]; then
-    T=$F; [ "$M" = "-" ] || echo "$M  $F" | md5sum -c -
-  fi
-done < downloads.txt
+done < grupos.txt
 
 D=
 if [ -n "$T" ] && [[ "$T" == *.zip ]]; then
@@ -82,9 +100,9 @@ else
   D=trabalho
 fi
 if [ -s $W/unidades.sh ]; then
-  baixa $B/introduction/systemd-units.html $W/units.html
+  baixa1 $B/introduction/systemd-units.html $W/units.html
   UU=$(python3 -c "import re,sys;print(re.search(r'href=\s*\"(https://[^\"]*blfs-systemd-units-[^\"]*\.tar\.xz)\"',open('$W/units.html').read()).group(1))")
-  UT=/sources/blfs/$(basename $UU); [ -s $UT ] || baixa $UU $UT
+  UT=/sources/blfs/$(basename $UU); [ -s $UT ] || (cd /sources/blfs && baixa $(basename $UU) $UU)
   cd /sources/blfs; UD=$(tar -tf $UT | sed -n 1p | cut -d/ -f1)
   [ -d $UD ] || tar -xf $UT; cd $UD
   bash -e $W/unidades.sh
