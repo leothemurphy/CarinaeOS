@@ -73,7 +73,7 @@ if [ "$2" != sim ]; then
   [ "$R" = s ] || { echo "cancelado"; exit 1; }
 fi
 
-M=$(cat md5.txt); PRIMEIRO=1
+M=$(cat md5.txt); PRIMEIRO=1; T=
 while read U; do
   [ -n "$U" ] || continue
   F=$(basename $U); [ -f $F ] || baixa $U $F
@@ -83,9 +83,15 @@ while read U; do
   fi
 done < downloads.txt
 
-D=$(tar -tf $T | sed -n 1p | cut -d/ -f1); rm -rf $D; tar -xf $T; cd $D
-echo "== compilando $D (comandos do livro)"
-bash -e ../build.sh
+if [ -n "$T" ]; then
+  D=$(tar -tf $T | sed -n 1p | cut -d/ -f1); rm -rf $D; tar -xf $T; cd $D
+  echo "== compilando $D (comandos do livro)"
+  bash -e ../build.sh
+else
+  # paginas com varios pacotes (Xorg, KF6, Plasma...): o proprio livro baixa
+  D=; echo "== pagina sem pacote unico: rodando os comandos do livro em $W"
+  bash -e ./build.sh
+fi
 if [ -s ../unidades.sh ]; then
   UU=$(cat ../units.url); UT=/sources/blfs/$(basename $UU)
   [ -f $UT ] || baixa $UU $UT
@@ -93,6 +99,6 @@ if [ -s ../unidades.sh ]; then
   [ -d $UD ] || tar -xf $UT; cd $UD
   bash -e $W/unidades.sh
 fi
-cd $W && rm -rf $D
+cd $W && [ -z "$D" ] || rm -rf $D
 touch /root/blfs-logs/$NOME.ok
 echo "== $NOME INSTALADO (log: $LOG)"
