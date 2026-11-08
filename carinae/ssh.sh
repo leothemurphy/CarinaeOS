@@ -33,9 +33,9 @@ for i,b in enumerate(bl):
 open('build.sh','w').write('\n'.join(usar)+'\n')
 print('== openssh:',url,md5); print('== units:',uurl,umd5)
 PY
-read U M < <(tr '\n' ' ' < openssh.url); T=$(basename $U)
+U=$(sed -n 1p openssh.url); M=$(sed -n 2p openssh.url); T=$(basename $U)
 baixa $U $T; echo "$M  $T" | md5sum -c -
-read UU UM < <(tr '\n' ' ' < units.url); UT=$(basename $UU)
+UU=$(sed -n 1p units.url); UM=$(sed -n 2p units.url); UT=$(basename $UU)
 baixa $UU $UT; [ "$UM" = "-" ] || echo "$UM  $UT" | md5sum -c -
 D=$(tar -tf $T | sed -n 1p | cut -d/ -f1); rm -rf $D; tar -xf $T; cd $D
 echo "== compilando $D (comandos do BLFS)"
