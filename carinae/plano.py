@@ -15,12 +15,20 @@ os.makedirs(CACHE, exist_ok=True) if not os.environ.get('LIVRO') else None
 
 LOCAL = os.environ.get('LIVRO')
 def pagina(p):
-    if LOCAL: return open(os.path.join(LOCAL, p + '.html'), encoding='utf-8').read()
+    if LOCAL: return normaliza(open(os.path.join(LOCAL, p + '.html'), encoding='utf-8').read())
     f = os.path.join(CACHE, p.replace('/', '__') + '.html')
     if not os.path.exists(f):
         req = r.Request(B + p + '.html', headers={'User-Agent': 'Wget/1.25'})
         open(f, 'wb').write(r.urlopen(req, timeout=120).read())
-    return open(f, encoding='utf-8').read()
+    return normaliza(open(f, encoding='utf-8').read())
+
+def normaliza(s):
+    # o HTML publicado passa pelo tidy, que quebra atributos em varias linhas
+    # (ex.: class=\n"replaceable"); normalizamos antes de procurar
+    s = re.sub(r'=\s+"', '="', s)
+    s = re.sub(r'<(\w+)\s+', r'<\1 ', s)
+    s = re.sub(r'(<h2 class="sect2">)\s+', r'\1', s)
+    return s
 
 def txt(x): return html.unescape(re.sub(r'<[^>]+>', '', x)).strip()
 

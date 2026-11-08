@@ -22,6 +22,14 @@ def eh_teste(b):
 # valores a substituir escritos sem marcacao (ex.: ldd <application or library>)
 MARCADOR = re.compile(r'<[a-z]+(?: [a-z]+)+>|<(?:username|user|version|theme path)>')
 
+def normaliza(s):
+    # o HTML publicado passa pelo tidy, que quebra atributos em varias linhas
+    # (ex.: class=\n"replaceable"); normalizamos antes de procurar
+    s = re.sub(r'=\s+"', '="', s)
+    s = re.sub(r'<(\w+)\s+', r'<\1 ', s)
+    s = re.sub(r'(<h2 class="sect2">)\s+', r'\1', s)
+    return s
+
 def txt(x): return html.unescape(re.sub(r'<[^>]+>', '', x))
 
 def decisoes(no):
@@ -45,7 +53,7 @@ def trecho(s, anc):
 
 def analisa(arquivo, no, ver=False, saida='.'):
     pg, _, anc = no.partition('#')
-    s = trecho(open(arquivo, encoding='utf-8').read(), anc)
+    s = trecho(normaliza(open(arquivo, encoding='utf-8').read()), anc)
     fim = s.find('Dependencies'); area = s[:fim if fim > 0 else len(s)]
     urls = []
     for u in re.findall(r'href=\s*"((?:https?)://[^"]+)"', area):
