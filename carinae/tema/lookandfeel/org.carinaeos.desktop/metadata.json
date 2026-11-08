@@ -1,0 +1,14 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [ { "Name": "CarinaeOS" } ],
+        "Category": "",
+        "Description": "Visual do CarinaeOS: barra em cima, Dock em baixo com a estrela no centro e o céu de Eta Carinae",
+        "Id": "org.carinaeos.desktop",
+        "License": "GPL-2.0-or-later",
+        "Name": "CarinaeOS",
+        "Version": "0.1",
+        "Website": "https://github.com/leothemurphy/atriumos"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

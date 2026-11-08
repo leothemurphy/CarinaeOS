@@ -1,0 +1,9 @@
+{
+    "KPackageStructure": "Wallpaper/Images",
+    "KPlugin": {
+        "Authors": [ { "Name": "CarinaeOS" } ],
+        "Id": "CarinaeOS",
+        "License": "CC-BY-SA-4.0",
+        "Name": "Eta Carinae"
+    }
+}

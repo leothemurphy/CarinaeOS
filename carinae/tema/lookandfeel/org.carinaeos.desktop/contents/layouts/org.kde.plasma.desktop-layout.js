@@ -1,0 +1,46 @@
+// CarinaeOS — disposição da área de trabalho
+//   barra em cima: estrela (lançador em ecrã inteiro), menu global da app,
+//                  bandeja do sistema e relógio
+//   Dock em baixo: apps com ampliação, estrela no centro e lixeira
+//   mesa: ícones da pasta ~/Desktop e o fundo de Eta Carinae
+
+// ---- mesa ----------------------------------------------------------------
+var mesas = desktopsForActivity(currentActivity());
+for (var j = 0; j < mesas.length; j++) {
+    mesas[j].wallpaperPlugin = "org.kde.image";
+    mesas[j].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
+    mesas[j].writeConfig("Image", "file:///usr/share/wallpapers/CarinaeOS/");
+    mesas[j].writeConfig("FillMode", 2);   // recortar para preencher
+}
+
+// ---- barra de cima ---------------------------------------------------------
+var barra = new Panel;
+barra.location = "top";
+barra.height = 2 * Math.ceil(gridUnit * 1.6 / 2);
+barra.floating = false;
+barra.opacity = "translucent";
+
+var estrela = barra.addWidget("org.kde.plasma.kickerdash");
+estrela.currentConfigGroup = ["General"];
+estrela.writeConfig("icon", "carinaeos-estrela");
+
+barra.addWidget("org.kde.plasma.appmenu");
+barra.addWidget("org.kde.plasma.panelspacer");
+barra.addWidget("org.kde.plasma.systemtray");
+
+var relogio = barra.addWidget("org.kde.plasma.digitalclock");
+relogio.currentConfigGroup = ["Appearance"];
+relogio.writeConfig("showDate", true);
+relogio.writeConfig("dateFormat", "custom");
+relogio.writeConfig("customDateFormat", "ddd d MMM");
+
+// ---- Dock de baixo -----------------------------------------------------------
+var dock = new Panel;
+dock.location = "bottom";
+dock.height = 2 * Math.ceil(gridUnit * 4 / 2);   // cabe o ícone ampliado
+dock.floating = true;
+dock.alignment = "center";
+dock.lengthMode = "fit";
+dock.opacity = "translucent";
+dock.hiding = "dodgewindows";                   // sai do caminho das janelas
+dock.addWidget("org.carinaeos.dock");

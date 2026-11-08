@@ -71,3 +71,5 @@ general/rust                 5               resumo dos testes
 general/dbus                 7               exemplo de encerrar a sessao D-Bus manual
 multimedia/xine-lib          4               documentacao (doxygen)
 general/power-profiles-daemon 3              exemplo de uso (precisa do servico a correr)
+kde/konsole                  0               patch so para ambientes sem Plasma
+general/cpio                 2,4             documentacao pdf (sem texlive)

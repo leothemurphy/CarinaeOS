@@ -1,0 +1,16 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [ { "Name": "CarinaeOS" } ],
+        "Category": "Windows and Tasks",
+        "Description": "Dock com ampliação dos ícones ao passar o rato, estrela de menu no centro e lixeira",
+        "Description[pt_BR]": "Dock com ampliação dos ícones ao passar o mouse, estrela de menu no centro e lixeira",
+        "Icon": "carinaeos-estrela",
+        "Id": "org.carinaeos.dock",
+        "License": "GPL-2.0-or-later",
+        "Name": "Dock do CarinaeOS",
+        "Version": "0.1"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-Provides": [ "org.kde.plasma.multitasking" ]
+}
