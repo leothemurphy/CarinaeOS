@@ -1,0 +1,73 @@
+# CarinaeOS - revisao, pagina a pagina, dos blocos do BLFS 13.1-systemd que NAO
+# se aplicam ao nosso caso. Formato:  pagina  blocos  motivo
+# (testes e exemplos com valores a substituir ja ficam de fora automaticamente;
+#  os blocos "bash -e" e "exit" sao para uso interativo e tambem ficam de fora)
+x/xorg7                      2,4,5,7,8,9,10  prefixo /usr: so #0,#1,#3,#6 se aplicam (zsh, sudo e links sao para outros prefixos)
+general/which                2               alternativa ao pacote (script which); o pacote e instalado
+general/libxml2              2,3,4           documentacao (sem doxygen), suite de testes e parar httpd
+general/libuv                1,3             man page so com sphinx
+general/rust                 3,4             testes
+general/nasm                 0,3             documentacao opcional
+pst/docbook-xsl              1,3             documentacao opcional
+general/glib2                7               documentacao (sem gi-docgen)
+general/graphite2            4,6             documentacao opcional
+general/libpng               0               patch apng opcional
+general/fontconfig           2               documentacao: so sem --disable-docs
+postlfs/cracklib             4               teste do modulo python
+postlfs/linux-pam            0               documentacao em texto (lynx)
+general/systemd              7               so dentro de uma sessao grafica ja aberta
+multimedia/alsa-lib          1               documentacao (sem doxygen)
+general/dbus                 4,6             testes; exemplo de arranque manual da sessao
+x/x7lib                      3,7             resumo de testes; links so para outros prefixos
+x/mesa                       0               lspci (pciutils ainda nao instalado): so informativo
+general/libusb               1,3             documentacao (sem doxygen)
+x/pango                      1,2             man pages e documentacao opcionais
+general/brotli               2               bindings python opcionais
+general/glycin               3               documentacao (sem gi-docgen)
+x/gdk-pixbuf                 1               documentacao (sem gi-docgen)
+general/librsvg              2               testes (meson test)
+general/libical              2,3,4           documentacao e testes
+general/bluez                4,5             ficheiros de configuracao opcionais
+multimedia/v4l-utils         3               programas contrib opcionais
+multimedia/sdl3              3               compilacao dos testes
+multimedia/sdl2              2               compilacao dos testes
+multimedia/ffmpeg            2,3,5,6,7,8     documentacao pdf/doxygen e fate-suite
+postlfs/fuse                 1               documentacao (sem doxygen)
+general/gtk-doc              2               testes
+general/openjpeg2            1               testes (git clone)
+general/libassuan            1,3             documentacao pdf (sem texlive)
+postlfs/gnupg                1,3             documentacao pdf (sem texlive)
+postlfs/cyrus-sasl           4               servico saslauthd opcional
+server/openldap              2,3,4,5,6,7     instalacao so do cliente (#0,#1); servidor slapd nao e necessario
+general/libgusb              1,2             documentacao e testes
+basicnet/libevent            2,4             documentacao (sem doxygen)
+general/libinput             2               documentacao
+x/x7driver#libinput          2               documentacao
+x/xdg-desktop-portal         1               testes
+x/gtk4                       1,2             documentacao e testes
+gnome/gcr                    2               documentacao
+gnome/libsecret              1               documentacao
+general/libqrencode          1,3             documentacao (doxygen ainda nao instalado)
+general/libdaemon            1,3             documentacao
+basicnet/avahi               5,6             o livro nao recomenda ativar o avahi-daemon sem necessidade
+general/popt                 1,3             documentacao
+basicnet/networkmanager      9               ativado no fim (trocar systemd-networkd so com o desktop pronto, para nao cair o SSH)
+kde/kf6-intro                2,3,4,5,6,7,8,9 KF6_PREFIX=/usr: so #0 e #1 se aplicam (resto e para /opt e sudo)
+general/git                  1,2,4,5         documentacao gerada (sem asciidoc); usamos a ja pronta (#6-#8)
+general/doxygen              2               documentacao (sem texlive)
+general/python-modules#doxyqml 2             testes
+kde/frameworks6              3,6             so para instalacao em /opt
+general/libavif              1               testes
+multimedia/xine-lib          5,6             documentacao da API
+x/xwayland                   1,4             testes; Xvfb vem do Xorg-Server
+kde/plasma-all               5,7,8           links so para KF6 fora de /usr; startx manual (usamos o SDDM)
+x/sddm                       3,4,5           Xorg em /opt, X remoto e Num Lock: nao se aplicam
+x/qt6                        8               sudo nao instalado
+postlfs/smartmontools        2               VM sem SMART
+general/power-profiles-daemon 4,5            exemplos de uso
+general/python-dependencies#smartypants 2 teste (cp + pytest)
+general/llvm                 5               testes (precisa de sessao systemd --user)
+general/rust                 5               resumo dos testes
+general/dbus                 7               exemplo de encerrar a sessao D-Bus manual
+multimedia/xine-lib          4               documentacao (doxygen)
+general/power-profiles-daemon 3              exemplo de uso (precisa do servico a correr)

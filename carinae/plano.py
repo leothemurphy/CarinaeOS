@@ -10,10 +10,12 @@ import os, re, sys, html, urllib.request as r
 
 B = 'https://www.linuxfromscratch.org/blfs/view/13.1-systemd/'
 CACHE = '/sources/blfs/paginas'
-OK = '/root/blfs-logs'
-os.makedirs(CACHE, exist_ok=True)
+OK = os.environ.get('OKDIR', '/root/blfs-logs')
+os.makedirs(CACHE, exist_ok=True) if not os.environ.get('LIVRO') else None
 
+LOCAL = os.environ.get('LIVRO')
 def pagina(p):
+    if LOCAL: return open(os.path.join(LOCAL, p + '.html'), encoding='utf-8').read()
     f = os.path.join(CACHE, p.replace('/', '__') + '.html')
     if not os.path.exists(f):
         req = r.Request(B + p + '.html', headers={'User-Agent': 'Wget/1.25'})
@@ -23,23 +25,74 @@ def pagina(p):
 def txt(x): return html.unescape(re.sub(r'<[^>]+>', '', x)).strip()
 
 def titulo(p):
+    if '#' in p:
+        m = re.search(r'</a>(.*?)</h2>', trecho(p), re.S)
+        return txt(m.group(1)) if m else p
     m = re.search(r'<title>(.*?)</title>', pagina(p), re.S)
     return txt(m.group(1)) if m else p
 
-def deps(p):
+COLECOES = {'general/python-modules', 'general/python-dependencies',
+            'general/perl-modules', 'general/perl-deps'}
+
+def secoes(p):
+    """divide a pagina nas secoes <h2 class="sect2"><a id=...> (pacotes dentro da pagina)"""
     s = pagina(p)
-    i = s.find('Dependencies')
-    if i < 0: return [], []
-    s = s[i:]
-    fim = re.search(r'<h[23][^>]*>\s*(Installation|Kernel Configuration|Downloading)', s)
-    if fim: s = s[:fim.start()]
+    marcas = [(m.start(), m.group(1)) for m in
+              re.finditer(r'<h2 class="sect2"><a id="([^"]+)"', s)]
+    return s, marcas
+
+def trecho(p):
+    """HTML do no: pagina inteira ou so a secao do #ancora"""
+    pg, _, anc = p.partition('#')
+    s, marcas = secoes(pg)
+    if not anc: return s
+    for i, (ini, a) in enumerate(marcas):
+        if a == anc:
+            fim = marcas[i + 1][0] if i + 1 < len(marcas) else len(s)
+            return s[ini:fim]
+    return s
+
+def links_diretos(corpo):
+    # so os itens da lista; links dentro de parenteses sao comentarios do livro
+    # (ex.: "Graphite2 (necessario para TeX Live ou LibreOffice ...)")
+    nivel, fora = 0, []
+    for parte in re.split(r'(<a class="xref"[^>]*>.*?</a>)', corpo, flags=re.S):
+        if parte.startswith('<a class="xref"'):
+            if nivel == 0:
+                m = re.search(r'href="([^"#]+)\.html(#[^"]*)?"', parte)
+                if m: fora.append((m.group(1), m.group(2) or ''))
+        else:
+            t = re.sub(r'<[^>]+>', '', parte)
+            nivel = max(0, nivel + t.count('(') - t.count(')'))
+    return fora
+
+def deps(p):
+    pg = p.partition('#')[0]
+    s = trecho(p)
+    if pg in COLECOES and '#' not in p: s = s[:secoes(pg)[1][0][0]] if secoes(pg)[1] else s
+    secao = pg.split('/')[0]
     req, rec = [], []
     for cl, corpo in re.findall(r'<p class="(required|recommended)">(.*?)</p>', s, re.S):
-        for h in re.findall(r'href="\.\./([a-z0-9_-]+/[A-Za-z0-9._+-]+?)\.html(?:#[^"]*)?"', corpo):
-            (req if cl == 'required' else rec).append(h)
+        for h, anc in links_diretos(corpo):
+            h = h[3:] if h.startswith('../') else secao + '/' + h
+            alvo = h + anc if (anc and h in COLECOES | {'x/x7driver', 'general/python-modules'}) else h
+            if alvo != p and alvo != pg:
+                (req if cl == 'required' else rec).append(alvo)
     return req, rec
 
-def instalado(p): return os.path.exists(os.path.join(OK, os.path.basename(p) + '.ok'))
+# fora do plano (revisto): impressao (CUPS) fica para depois; portais de outros
+# ambientes (o Plasma traz o xdg-desktop-portal-kde); paginas que sao so indice/lista
+EXCLUIR = {'pst/cups': 'impressao fica para depois (recomendado do Qt6)',
+           'x/xdg-desktop-portal-gtk': 'portal do GTK/GNOME; o Plasma usa o seu',
+           'gnome/xdg-desktop-portal-gnome': 'portal do GNOME',
+           'x/xdg-desktop-portal-wlr': 'portal do wlroots',
+           'lxqt/xdg-desktop-portal-lxqt': 'portal do LXQt',
+           'x/installing': 'pagina de indice, nao e pacote',
+           'x/TTF-and-OTF-fonts': 'lista de fontes; o CarinaeOS instala as suas a parte'}
+
+def instalado(p):
+    if p in EXCLUIR: return True
+    return os.path.exists(os.path.join(OK, os.path.basename(p).replace('#', '-') + '.ok'))
 
 if len(sys.argv) < 2:
     sys.exit(__doc__ or 'uso: plano.py procura <texto> | plano.py <pagina> ...')
@@ -51,11 +104,11 @@ if sys.argv[1] == 'procura':
         if termo in txt(t).lower(): print(f'{h:40s} {txt(t)}')
     sys.exit()
 
-ordem, visto, pilha, motivo = [], set(), [], {}
+ordem, visto, pilha, motivo, CICLOS = [], set(), [], {}, []
 def visita(p, por):
     if p in visto or instalado(p): return
     if p in pilha:
-        print(f'   (ciclo ignorado: {" -> ".join(pilha[pilha.index(p):] + [p])})'); return
+        CICLOS.append(f'   (ciclo ignorado: {" -> ".join(pilha[pilha.index(p):] + [p])})'); return
     pilha.append(p)
     try:
         req, rec = deps(p)
@@ -65,8 +118,9 @@ def visita(p, por):
     pilha.pop(); visto.add(p); ordem.append(p); motivo[p] = por
 
 for alvo in sys.argv[1:]: visita(alvo, 'alvo')
-with open('/root/blfs-fila.txt', 'w') as f:
+with open(os.environ.get('FILA','/root/blfs-fila.txt'), 'w') as f:
     for p in ordem: f.write(p + '\n')
 for n, p in enumerate(ordem, 1):
     print(f'{n:4d}  {p:40s} {titulo(p)[:45]:45s} <- {motivo[p]}')
+print('\n'.join(CICLOS[:0]) if False else f'   ({len(CICLOS)} ciclos do livro ignorados)')
 print(f'== {len(ordem)} paginas na fila: /root/blfs-fila.txt')

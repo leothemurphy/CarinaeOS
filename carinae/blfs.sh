@@ -1,21 +1,24 @@
 #!/bin/bash
 # CarinaeOS - instala um pacote seguindo a pagina do livro BLFS 13.1-systemd.
-# Uso:  bash blfs.sh <secao/pagina>        ex.: bash blfs.sh general/libtasn1
-#       PULAR=4,5 bash blfs.sh <pagina>   (pula blocos opcionais do livro)
-#       bash blfs.sh <pagina> ver         (so mostra os blocos completos)
-#       bash blfs.sh <secao/pagina> sim    (nao pergunta antes de compilar)
-# O script baixa a pagina do livro, mostra cada bloco de comandos e se vai
-# RODAR ou PULAR (testes e exemplos com valores a substituir), baixa o
-# pacote, confere o MD5 do livro e executa os blocos na ordem do livro.
+# Uso:  bash blfs.sh <secao/pagina[#pacote]>     ex.: bash blfs.sh general/libtasn1
+#       bash blfs.sh <pagina> sim                (nao pergunta antes de compilar)
+#       bash blfs.sh <pagina> ver                (so mostra os blocos completos)
+#       PULAR=4,5 bash blfs.sh <pagina>          (pula mais blocos opcionais)
+# Le a pagina do livro com analisa.py (mesma pasta), mostra cada bloco como
+# RODA/PULADO, baixa o pacote, confere o MD5 do livro e executa os blocos na
+# ordem do livro. Paginas com varios pacotes (Python Modules etc.) aceitam
+# #pacote para instalar so aquela secao.
 set -e
-PAG=${1:?uso: bash blfs.sh secao/pagina}
-NOME=$(basename $PAG)
+NO=${1:?uso: bash blfs.sh secao/pagina[#pacote]}
+PAG=${NO%%#*}
+NOME=$(basename "$NO" | tr '#' '-')
+DIR=$(cd "$(dirname "$0")" && pwd)
 B=https://www.linuxfromscratch.org/blfs/view/13.1-systemd
 W=/sources/blfs/$NOME
 mkdir -p $W /root/blfs-logs && cd $W
 LOG=/root/blfs-logs/$NOME.log
-exec > >(tee $LOG) 2>&1
-set +e; for f in /etc/profile.d/*.sh; do [ -r "$f" ] && . "$f"; done; set -e
+[ "$2" = ver ] || exec > >(tee $LOG) 2>&1
+set +e; source /etc/profile > /dev/null 2>&1; set -e   # ambiente de login (xorg.sh, qt6.sh, kf6.sh, rustc.sh...)
 export MAKEFLAGS=-j$(nproc) NINJAJOBS=$(nproc)
 
 baixa(){ python3 - "$1" "$2" <<'PY'
@@ -32,83 +35,49 @@ sys.exit(f'nao consegui baixar {u}')
 PY
 }
 
-echo "== pagina do livro: $B/$PAG.html"
-baixa $B/$PAG.html pagina.html
-baixa $B/introduction/systemd-units.html units.html
-
-VER=$([ "$2" = ver ] && echo 1) python3 - <<'PY'
-import re,html,os
-PULAR_N=[x for x in os.environ.get('PULAR','').split(',') if x]
-VER=os.environ.get('VER')=='1'
-ESCOLHAS={'<PREFIX>':'/usr','<$KF6_PREFIX>':'/usr'}
-def txt(x): return html.unescape(re.sub(r'<[^>]+>','',x))
-s=open('pagina.html',encoding='utf-8').read()
-# area de downloads: do inicio ate as dependencias
-fim=s.find('Dependencies'); area=s[:fim if fim>0 else len(s)]
-urls=[]
-for u in re.findall(r'href=\s*"((?:https?|ftp)://[^"]+)"',area):
-    if re.search(r'\.(tar\.(gz|xz|bz2|zst|lz)|tgz|zip|patch)$',u) and u not in urls and not u.startswith('ftp'):
-        urls.append(u)
-md5=re.findall(r'MD5 sum:\s*([0-9a-f]{32})',txt(area))
-open('downloads.txt','w').write('\n'.join(urls)+'\n')
-open('md5.txt','w').write((md5[0] if md5 else '-')+'\n')
-print('== downloads:'); [print('   ',u) for u in urls]
-print('== MD5 do pacote principal:', md5[0] if md5 else '(nao encontrado)')
-TESTE=re.compile(r'\b(make|ninja)\b[^\n]*\b(check|test|tests)\b|\bctest\b|\bpytest\b|tests?/run')
-blocos=re.findall(r'<pre\s+class="(root|userinput)"\s*>(.*?)</pre>',s,re.S)
-usar=[]; unid=[]
-for i,(cl,raw) in enumerate(blocos):
-    b=txt(raw).strip(); l1=b.splitlines()[0][:90]
-    rep=[txt(x) for x in re.findall(r'class="replaceable"[^>]*>(.*?)</(?:em|code|span)>',raw,re.S)]
-    if rep and all(x in ESCOLHAS for x in rep):
-        for x in rep: b=b.replace(x,ESCOLHAS[x])
-        raw=raw.replace('replaceable','escolhido'); l1=b.splitlines()[0][:90]
-    if VER: print(f'----- bloco #{i} ({cl}) -----'); print(b)
-    if str(i) in PULAR_N: print(f'   PULADO (pedido)  #{i}: {l1}')
-    elif 'replaceable' in raw: print(f'   PULADO (exemplo) #{i}: {l1}')
-    elif TESTE.search(b): print(f'   PULADO (teste)   #{i}: {l1}')
-    elif re.match(r'make install-[a-z]',b) and 'systemd-units' in s:
-        print(f'   RODA (unidade)   #{i}: {l1}'); unid.append(b)
-    else: print(f'   RODA             #{i}: {l1}'); usar.append(b)
-open('build.sh','w').write('\n'.join(usar)+'\n')
-open('unidades.sh','w').write('\n'.join(unid)+'\n')
-u=txt(open('units.html',encoding='utf-8').read())
-m=re.search(r'(https://\S+blfs-systemd-units-\S+?\.tar\.xz)',u)
-open('units.url','w').write((m.group(1) if m else '')+'\n')
-PY
-
+echo "== pagina do livro: $B/$PAG.html ${NO#$PAG}"
+CACHE=/sources/blfs/paginas/$(echo $PAG | tr / _)_.html
+[ -s $CACHE ] || { mkdir -p /sources/blfs/paginas; baixa $B/$PAG.html $CACHE; }
+cp $CACHE pagina.html
+python3 $DIR/analisa.py pagina.html "$NO" $([ "$2" = ver ] && echo ver)
 [ "$2" = ver ] && exit 0
+
 if [ "$2" != sim ]; then
   read -p "Confere a lista acima. Compilar? (s/n) " R < /dev/tty
   [ "$R" = s ] || { echo "cancelado"; exit 1; }
 fi
 
-M=$(cat md5.txt); PRIMEIRO=1; T=
+M=$(cat md5.txt); T=
 while read U; do
   [ -n "$U" ] || continue
-  F=$(basename $U); [ -f $F ] || baixa $U $F
-  if [ $PRIMEIRO = 1 ]; then
-    T=$F; PRIMEIRO=0
-    [ "$M" = "-" ] || echo "$M  $F" | md5sum -c -
+  F=$(basename $U); [ -s $F ] || baixa $U $F
+  if [ -z "$T" ]; then
+    T=$F; [ "$M" = "-" ] || echo "$M  $F" | md5sum -c -
   fi
 done < downloads.txt
 
-if [ -n "$T" ]; then
+D=
+if [ -n "$T" ] && [[ "$T" != *.patch ]]; then
   D=$(tar -tf $T | sed -n 1p | cut -d/ -f1); rm -rf $D; tar -xf $T; cd $D
   echo "== compilando $D (comandos do livro)"
-  bash -e ../build.sh
+  bash -e $W/build.sh
 else
-  # paginas com varios pacotes (Xorg, KF6, Plasma...): o proprio livro baixa
-  D=; echo "== pagina sem pacote unico: rodando os comandos do livro em $W"
-  bash -e ./build.sh
+  # paginas sem pacote unico (Xorg Libraries, KF6, Plasma...): o livro baixa
+  echo "== sem pacote unico: rodando os comandos do livro em $W/trabalho"
+  rm -rf $W/trabalho; mkdir $W/trabalho; cd $W/trabalho
+  for f in $W/*.patch; do [ -e "$f" ] && cp "$f" .; done
+  bash -e $W/build.sh
+  D=trabalho
 fi
-if [ -s ../unidades.sh ]; then
-  UU=$(cat ../units.url); UT=/sources/blfs/$(basename $UU)
-  [ -f $UT ] || baixa $UU $UT
+if [ -s $W/unidades.sh ]; then
+  baixa $B/introduction/systemd-units.html $W/units.html
+  UU=$(python3 -c "import re,sys;print(re.search(r'href=\s*\"(https://[^\"]*blfs-systemd-units-[^\"]*\.tar\.xz)\"',open('$W/units.html').read()).group(1))")
+  UT=/sources/blfs/$(basename $UU); [ -s $UT ] || baixa $UU $UT
   cd /sources/blfs; UD=$(tar -tf $UT | sed -n 1p | cut -d/ -f1)
   [ -d $UD ] || tar -xf $UT; cd $UD
   bash -e $W/unidades.sh
 fi
-cd $W && [ -z "$D" ] || rm -rf $D
+cd $W; [ -z "$D" ] || rm -rf $W/$D
+/sbin/ldconfig
 touch /root/blfs-logs/$NOME.ok
 echo "== $NOME INSTALADO (log: $LOG)"
