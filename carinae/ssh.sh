@@ -14,14 +14,16 @@ import re,html
 def txt(x): return html.unescape(re.sub(r'<[^>]+>','',x))
 def pacote(pag, nome):
     s=open(pag,encoding='utf-8').read()
-    url=re.findall(r'href="(https?://[^"]*'+nome+r'-[0-9][^"]*\.tar\.(?:gz|xz))"',s)[0]
-    md5=re.search(r'MD5 sum:\s*([0-9a-f]{32})',txt(s)).group(1)
+    url=re.findall(r'href=\s*"(https?://[^"]*'+nome+r'-[0-9][^"]*\.tar\.(?:gz|xz))"',s)[0]
+    m=re.search(r'MD5 sum:\s*([0-9a-f]{32})',txt(s))
+    md5=m.group(1) if m else '-'
+
     return s,url,md5
 s,url,md5=pacote('openssh.html','openssh')
 open('openssh.url','w').write(url+'\n'+md5+'\n')
 _,uurl,umd5=pacote('units.html','blfs-systemd-units')
 open('units.url','w').write(uurl+'\n'+umd5+'\n')
-bl=[txt(b).strip() for b in re.findall(r'<pre class="(?:root|userinput)">(.*?)</pre>',s,re.S)]
+bl=[txt(b).strip() for b in re.findall(r'<pre\s+class="(?:root|userinput)"\s*>(.*?)</pre>',s,re.S)]
 PULAR=re.compile(r'\btests\b|PermitRootLogin|PasswordAuthentication|KbdInteractive|ssh-keygen|ssh-copy-id -i|install-sshd|UsePAM|pam\.d')
 usar=[]
 for i,b in enumerate(bl):
@@ -34,7 +36,7 @@ PY
 read U M < <(tr '\n' ' ' < openssh.url); T=$(basename $U)
 baixa $U $T; echo "$M  $T" | md5sum -c -
 read UU UM < <(tr '\n' ' ' < units.url); UT=$(basename $UU)
-baixa $UU $UT; echo "$UM  $UT" | md5sum -c -
+baixa $UU $UT; [ "$UM" = "-" ] || echo "$UM  $UT" | md5sum -c -
 D=$(tar -tf $T | sed -n 1p | cut -d/ -f1); rm -rf $D; tar -xf $T; cd $D
 echo "== compilando $D (comandos do BLFS)"
 bash -e ../build.sh
