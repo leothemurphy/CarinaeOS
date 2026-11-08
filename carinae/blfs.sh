@@ -57,7 +57,12 @@ while read U; do
 done < downloads.txt
 
 D=
-if [ -n "$T" ] && [[ "$T" != *.patch ]]; then
+if [ -n "$T" ] && [[ "$T" == *.zip ]]; then
+  # o livro: "python3 -m zipfile -e <name>.zip <name>"
+  D=${T%.zip}; rm -rf $D; python3 -m zipfile -e $T $D; cd $D
+  echo "== compilando $D (comandos do livro)"
+  bash -e $W/build.sh
+elif [ -n "$T" ] && [[ "$T" != *.patch ]]; then
   D=$(tar -tf $T | sed -n 1p | cut -d/ -f1); rm -rf $D; tar -xf $T; cd $D
   echo "== compilando $D (comandos do livro)"
   bash -e $W/build.sh
