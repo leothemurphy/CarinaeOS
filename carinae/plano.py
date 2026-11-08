@@ -82,7 +82,13 @@ def deps(p):
     req, rec = [], []
     # as caixas de nota do livro ("admon") nao sao listas de dependencias
     s = re.sub(r'<div class="admon[^"]*">.*?</div>', '', s, flags=re.S)
-    for cl, corpo in re.findall(r'<p class="(required|recommended)">(.*?)</p>', s, re.S):
+    # listas com marcadores: <p class="recommended"></p> seguido de uma lista,
+    # um item por dependencia (ex.: Mesa); conta o primeiro paragrafo de cada item
+    itens = []
+    for cl, lista in re.findall(r'<p class="(required|recommended)">\s*</p>\s*<div class="itemizedlist">(.*?)</div>', s, re.S):
+        for li in re.findall(r'<li class="listitem">\s*<p>(.*?)</p>', lista, re.S):
+            itens.append((cl, li))
+    for cl, corpo in re.findall(r'<p class="(required|recommended)">(.*?)</p>', s, re.S) + itens:
         # notas do livro do tipo "X must be reinstalled AFTER installing this"
         # ou "needs to be installed afterwards" nao sao dependencias de antes
         if re.search(r'\b(after|afterwards|reinstalled)\b', txt(corpo), re.I):
