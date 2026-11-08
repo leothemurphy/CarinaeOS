@@ -24,9 +24,9 @@ general/python-modules#docutils
 pst/docbook
 pst/docbook-xsl
 general/libxslt
+general/glib2
 general/shared-mime-info
 general/desktop-file-utils
-general/glib2
 general/graphite2
 general/harfbuzz
 general/libpng
@@ -43,13 +43,13 @@ multimedia/opus
 multimedia/svt-av1
 multimedia/x264
 multimedia/x265
-postlfs/shadow
+general/systemd
 postlfs/cracklib
 postlfs/libpwquality
 postlfs/linux-pam
+postlfs/shadow
 general/duktape
 postlfs/polkit
-general/systemd
 multimedia/alsa-lib
 x/util-macros
 x/xorgproto
@@ -122,9 +122,9 @@ multimedia/pulseaudio
 multimedia/sbc
 x/glu
 multimedia/v4l-utils
+multimedia/pipewire
 general/lua
 multimedia/wireplumber
-multimedia/pipewire
 x/vulkan-headers
 x/vulkan-loader
 multimedia/sdl3
@@ -133,6 +133,8 @@ multimedia/ffmpeg
 gnome/gsettings-desktop-schemas
 x/at-spi2-core
 x/libepoxy
+x/hicolor-icon-theme
+x/gtk3
 x/graphene
 multimedia/libdvdread
 multimedia/libdvdnav
@@ -148,12 +150,10 @@ basicnet/glib-networking
 basicnet/libsoup3
 multimedia/mpg123
 multimedia/gst10-plugins-good
-x/hicolor-icon-theme
 postlfs/fuse
 x/xdg-desktop-portal
 x/gtk4
 x/adwaita-icon-theme
-x/gtk3
 general/double-conversion
 general/jasper
 x/x7driver#libevdev
@@ -239,8 +239,8 @@ general/opencv
 multimedia/liba52
 multimedia/libmad
 multimedia/vlc
-kde/phonon-backend-vlc
 kde/phonon
+kde/phonon-backend-vlc
 kde/pulseaudio-qt
 general/qcoro
 kde/qtkeychain
@@ -254,8 +254,8 @@ x/x7app
 x/xcursor-themes
 x/x7font
 basicnet/libtirpc
-x/x7driver#xorg-libinput-driver
 x/xorg-server
+x/x7driver#xorg-libinput-driver
 x/x7driver#xorg-evdev-driver
 kde/bolt
 basicnet/libpcap
@@ -286,6 +286,8 @@ kde/kio-extras
 postlfs/smartmontools
 x/xwayland
 kde/plasma-all
+carinae:fontes
+x/sddm
 kde/konsole
 kde/dolphin
 general/7zip
@@ -298,7 +300,5 @@ x/kimageannotator
 general/libraw
 kde/libkdcraw
 kde/gwenview
-carinae:fontes
-x/sddm
 carinae:tema
 carinae:rede

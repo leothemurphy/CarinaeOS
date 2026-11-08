@@ -113,19 +113,63 @@ if sys.argv[1] == 'procura':
     sys.exit()
 
 ordem, visto, pilha, motivo, CICLOS = [], set(), [], {}, []
+pendentes = {}
+_fecho = {}
+
+def fecho_req(p):
+    """tudo o que p exige (Required), direta ou indiretamente"""
+    if p in _fecho: return _fecho[p]
+    res, falta = set(), [p]
+    while falta:
+        x = falta.pop()
+        try: r, _ = deps(x)
+        except Exception: r = []
+        for d in r:
+            if d not in res and not instalado(d):
+                res.add(d); falta.append(d)
+    _fecho[p] = res
+    return res
+
 def visita(p, por):
     if p in visto or instalado(p): return
     if p in pilha:
-        CICLOS.append(f'   (ciclo ignorado: {" -> ".join(pilha[pilha.index(p):] + [p])})'); return
+        CICLOS.append(' -> '.join(pilha[pilha.index(p):] + [p])); return
     pilha.append(p)
     try:
         req, rec = deps(p)
     except Exception as e:
         print(f'   AVISO: nao consegui ler {p}: {e}'); req, rec = [], []
-    for d in req + rec: visita(d, p)
+    for d in req: visita(d, p)
+    for d in rec:
+        # recomendado que EXIGE algo ainda por instalar nesta cadeia: vem depois
+        bloq = [x for x in pilha if x in fecho_req(d)]
+        if bloq and d not in visto:
+            pendentes.setdefault(bloq[0], []).append((d, p))
+        else:
+            visita(d, p)
     pilha.pop(); visto.add(p); ordem.append(p); motivo[p] = por
+    for d, quem in pendentes.pop(p, []):
+        visita(d, quem + ' (depois)')
 
 for alvo in sys.argv[1:]: visita(alvo, 'alvo')
+
+# acerto final: cada pacote depois de tudo o que ele EXIGE (Required).
+# Ciclos verdadeiros seguem a ordem que o livro manda (ex.: o Shadow e
+# reinstalado depois do Linux-PAM).
+ORDEM_DO_LIVRO = [('postlfs/linux-pam', 'postlfs/shadow'),   # Shadow refeito depois do PAM
+                  ('kde/phonon', 'kde/phonon-backend-vlc')]   # o livro: backend instalado depois
+for _ in range(len(ordem)):
+    mudou = False
+    for n in list(ordem):
+        i = ordem.index(n)
+        try: req, _r = deps(n)
+        except Exception: req = []
+        tardios = [d for d in req if d in ordem and ordem.index(d) > i
+                   and (n not in fecho_req(d) or (d, n) in ORDEM_DO_LIVRO)]
+        if tardios:
+            ultimo = max(ordem.index(d) for d in tardios)
+            ordem.remove(n); ordem.insert(ultimo, n); mudou = True
+    if not mudou: break
 with open(os.environ.get('FILA','/root/blfs-fila.txt'), 'w') as f:
     for p in ordem: f.write(p + '\n')
 for n, p in enumerate(ordem, 1):
