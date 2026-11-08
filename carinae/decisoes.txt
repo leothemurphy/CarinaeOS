@@ -16,7 +16,7 @@ general/fontconfig           2               documentacao: so sem --disable-docs
 postlfs/cracklib             4               teste do modulo python
 postlfs/linux-pam            0               documentacao em texto (lynx)
 general/systemd              7               so dentro de uma sessao grafica ja aberta
-multimedia/alsa-lib          1               documentacao (sem doxygen)
+multimedia/alsa-lib          1,3             documentacao da API (sem doxygen): gerar e instalar
 general/dbus                 4,6             testes; exemplo de arranque manual da sessao
 x/x7lib                      3,7             resumo de testes; links so para outros prefixos
 x/mesa                       0               lspci (pciutils ainda nao instalado): so informativo
@@ -72,3 +72,7 @@ multimedia/xine-lib          4,6             documentacao da API (doxygen)
 general/power-profiles-daemon 3              exemplo de uso (precisa do servico a correr)
 kde/konsole                  0               patch so para ambientes sem Plasma
 general/cpio                 2,4             documentacao pdf (sem texlive)
+general/json-glib            1,2             man pages e documentacao da API (gi-docgen nao instalado)
+general/gpm                  1,3             manual em dvi/ps/pdf (sem texlive)
+general/bluez                3               documentacao da API (opcional)
+basicnet/libnl               2               documentacao da API (opcional)

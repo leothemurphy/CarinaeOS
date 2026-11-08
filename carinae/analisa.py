@@ -20,6 +20,10 @@ TESTE_PROSA = re.compile(r'(^|\b)(to test|if you (want|wish|desire) to (test|run
                          r'if running the test|run the test ?suite|optionally,? (test|run the test)|'
                          r'to (build|compile) the tests?|to check the results)', re.I)
 
+# o livro apresenta a documentacao opcional com "If ...", "If desired ...",
+# "To install the ... documentation"
+DOC_OPCIONAL = re.compile(r'^(if|to install the|optionally)\b.*\b(document|docs?\b|manual|man ?pages|html)', re.I)
+
 def frase_antes(html_trecho):
     """o ultimo paragrafo antes do bloco (ex.: "To test the results, issue:")"""
     ps = re.findall(r'<p[^>]*>(.*?)</p>', html_trecho, re.S)
@@ -100,6 +104,10 @@ def analisa(arquivo, no, ver=False, saida='.'):
         elif eh_teste(b) or TESTE_PROSA.search(intro): print(f'   PULADO (teste)    #{i}: {l1}')
         elif re.match(r'make install-[a-z]', b) and 'systemd-units' in s:
             print(f'   RODA (unidade)    #{i}: {l1}'); unid.append(b)
+        elif DOC_OPCIONAL.search(intro) and not re.search(r'configure|make install|ninja install|meson setup|cmake|pip3', b):
+            # passo opcional de documentacao: se falhar, avisa e segue
+            print(f'   RODA (doc, opcional) #{i}: {l1}')
+            usar.append('( set -e\n' + b + '\n) || echo "   AVISO: passo opcional de documentacao #%d falhou; seguindo"' % i)
         else:                            print(f'   RODA              #{i}: {l1}'); usar.append(b)
     j = lambda n: os.path.join(saida, n)
     open(j('downloads.txt'), 'w').write('\n'.join(urls) + '\n')
