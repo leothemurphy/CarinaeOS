@@ -19,7 +19,7 @@ mkdir -p $W /root/blfs-logs && cd $W
 LOG=/root/blfs-logs/$NOME.log
 [ "$2" = ver ] || exec > >(tee $LOG) 2>&1
 set +e; source /etc/profile > /dev/null 2>&1; set -e   # ambiente de login (xorg.sh, qt6.sh, kf6.sh, rustc.sh...)
-export MAKEFLAGS=-j$(nproc) NINJAJOBS=$(nproc)
+export MAKEFLAGS=${MAKEFLAGS:--j$(nproc)} NINJAJOBS=${NINJAJOBS:-$(nproc)}
 
 baixa(){ python3 - "$1" "$2" <<'PY'
 import sys,ssl,time,urllib.request as r
@@ -50,7 +50,14 @@ fi
 M=$(cat md5.txt); T=
 while read U; do
   [ -n "$U" ] || continue
-  F=$(basename $U); [ -s $F ] || baixa $U $F
+  F=$(basename $U)
+  if [ -z "$T" ]; then
+    [ -s $F ] || baixa $U $F
+  else
+    # downloads adicionais (patches, testes, documentacao): uma falha aqui so
+    # pesa se o livro usar o ficheiro; nesse caso o passo seguinte acusa
+    [ -s $F ] || baixa $U $F || echo "   AVISO: nao consegui baixar $F (adicional)"
+  fi
   if [ -z "$T" ]; then
     T=$F; [ "$M" = "-" ] || echo "$M  $F" | md5sum -c -
   fi

@@ -15,8 +15,14 @@ while read P; do
     bash /root/carinae/extra/${P#carinae:}.sh < /dev/null > /root/blfs-logs/$N.log 2>&1 && touch /root/blfs-logs/$N.ok || {
       echo "!! FALHOU em $P"; tail -25 /root/blfs-logs/$N.log; exit 1; }
   elif ! bash /root/carinae/blfs.sh "$P" sim < /dev/null > /dev/null 2>&1; then
-    echo "!! FALHOU em $P - ultimas linhas do log:"; tail -25 /root/blfs-logs/$N.log
-    exit 1
+    # segunda tentativa automatica, sem paralelismo (resolve falhas passageiras
+    # de rede e corridas do make -j); o log da primeira fica guardado
+    cp /root/blfs-logs/$N.log /root/blfs-logs/$N.tentativa1.log
+    echo "   falhou; nova tentativa de $P com -j1"
+    if ! MAKEFLAGS=-j1 NINJAJOBS=1 bash /root/carinae/blfs.sh "$P" sim < /dev/null > /dev/null 2>&1; then
+      echo "!! FALHOU em $P - ultimas linhas do log:"; tail -25 /root/blfs-logs/$N.log
+      exit 1
+    fi
   fi
 done < blfs-fila.txt
 echo "== FILA CONCLUIDA"
