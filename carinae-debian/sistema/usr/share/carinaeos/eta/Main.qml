@@ -6,7 +6,7 @@ import QtQuick.Window
 ApplicationWindow {
     id: janela
     width: 520
-    height: 760
+    height: 660
     minimumWidth: 420
     minimumHeight: 520
     visible: true

@@ -128,13 +128,17 @@ flatpak update --appstream flathub || true
 # ---- Ceu vivo: servico do utilizador (desligado ate ser ligado no Supernova) ---
 chmod 755 /usr/bin/carinaeos-* || true
 
-# Busca como o Spotlight: Ctrl+Espaco abre o KRunner no centro do ecra
-K=/usr/share/applications/org.kde.krunner.desktop
-if [ -f "$K" ]; then
-    sed -i 's/^X-KDE-Shortcuts=.*/X-KDE-Shortcuts=Ctrl+Space,Alt+Space,Alt+F2,Search/' "$K"
-    grep -q '^X-KDE-Shortcuts=' "$K" || echo 'X-KDE-Shortcuts=Ctrl+Space,Alt+Space,Alt+F2,Search' >> "$K"
-    [ -d /usr/share/kglobalaccel ] && cp "$K" /usr/share/kglobalaccel/ || true
-fi
+# Busca como o Spotlight: Ctrl+Espaco abre o KRunner (o kglobalaccel le os atalhos
+# padrao do ficheiro .desktop em /usr/share/kglobalaccel)
+for K in /usr/share/kglobalaccel/org.kde.krunner.desktop /usr/share/applications/org.kde.krunner.desktop; do
+    [ -f "$K" ] || continue
+    if grep -q '^X-KDE-Shortcuts=' "$K"; then
+        # so o primeiro (a acao principal); "RunClipboard" mantem Alt+Shift+F2
+        sed -i '0,/^X-KDE-Shortcuts=.*/s//X-KDE-Shortcuts=Ctrl+Space,Alt+Space,Alt+F2,Search/' "$K"
+    else
+        sed -i '0,/^\[Desktop Entry\]/s//[Desktop Entry]\nX-KDE-Shortcuts=Ctrl+Space,Alt+Space,Alt+F2,Search/' "$K"
+    fi
+done
 
 # ---- ecra de arranque (Plymouth) ------------------------------------------------
 plymouth-set-default-theme carinaeos
