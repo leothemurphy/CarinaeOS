@@ -90,6 +90,7 @@ gtk-update-icon-cache -qtf $I || true
 
 # ---- icones, letras ---------------------------------------------------------------
 gtk-update-icon-cache -qtf /usr/share/icons/hicolor || true
+update-mime-database /usr/share/mime || true
 fc-cache -f >/dev/null 2>&1 || true
 
 # ---- explorador de arquivos: "Arquivos" (o programa continua a ser o Dolphin) ----

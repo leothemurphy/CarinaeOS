@@ -11,12 +11,17 @@ for (var j = 0; j < mesas.length; j++) {
     mesas[j].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
     mesas[j].writeConfig("Image", "file:///usr/share/wallpapers/CarinaeOS/");
     mesas[j].writeConfig("FillMode", 2);   // recortar para preencher
+    // icones da mesa como no Mac: em colunas, encostados a direita
+    mesas[j].currentConfigGroup = ["General"];
+    mesas[j].writeConfig("arrangement", 1);
+    mesas[j].writeConfig("alignment", 1);
+    mesas[j].writeConfig("iconSize", 3);
 }
 
 // ---- barra de cima ---------------------------------------------------------
 var barra = new Panel;
 barra.location = "top";
-barra.height = 2 * Math.ceil(gridUnit * 1.6 / 2);
+barra.height = 2 * Math.ceil(gridUnit * 1.4 / 2);   // fina, como a barra do Mac
 barra.floating = false;
 barra.opacity = "translucent";
 

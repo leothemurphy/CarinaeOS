@@ -1,0 +1,309 @@
+#!/usr/bin/python3
+# CarinaeOS - cadeado: bloquear arquivos, pastas e aplicativos com senha.
+#
+#   carinaeos-cadeado bloquear <arquivos ou pastas...>   -> cria "<nome>.bloqueado"
+#   carinaeos-cadeado desbloquear <arquivos .bloqueado...>
+#   carinaeos-cadeado aplicativos                       -> escolher apps a bloquear
+#   carinaeos-cadeado abrir <id.desktop> [args...]      -> (usado pelos atalhos)
+#
+# Arquivos e pastas: cifrados com GnuPG (AES-256) com a senha escolhida; o
+# original so e apagado depois de o .bloqueado ser criado e verificado.
+# Aplicativos: o atalho do app passa a pedir a "senha de aplicativos" antes de
+# abrir. E uma protecao de uso diario (quem tiver acesso ao terminal consegue
+# contornar); para dados sensiveis use os Cofres (Plasma Vault) ou arquivos
+# bloqueados, que ficam mesmo cifrados.
+import configparser, hashlib, hmac, json, os, shlex, shutil, subprocess, sys, tarfile, tempfile
+
+CONF = os.path.join(os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config')), 'carinaeos-cadeado.json')
+LOCAL_APPS = os.path.join(os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')), 'applications')
+TITULO = 'Cadeado do CarinaeOS'
+EXT = '.bloqueado'
+
+
+def kd(*args, entrada=None):
+    r = subprocess.run(['kdialog', '--title', TITULO, '--icon', 'object-locked', *args],
+                       input=entrada, capture_output=True, text=True)
+    return r.returncode, r.stdout.rstrip('\n')
+
+
+def aviso(msg):
+    kd('--msgbox', msg)
+
+
+def erro(msg):
+    kd('--error', msg)
+
+
+def pedir_senha(msg):
+    c, s = kd('--password', msg)
+    return s if c == 0 and s else None
+
+
+def nova_senha(msg):
+    s1 = pedir_senha(msg)
+    if s1 is None:
+        return None
+    s2 = pedir_senha('Repita a senha:')
+    if s2 is None:
+        return None
+    if s1 != s2:
+        erro('As senhas não coincidem.')
+        return None
+    return s1
+
+
+# ---- configuracao (senha de aplicativos + lista de apps bloqueados) ---------
+def ler_conf():
+    try:
+        with open(CONF) as f:
+            return json.load(f)
+    except Exception:
+        return {'apps': []}
+
+
+def gravar_conf(c):
+    os.makedirs(os.path.dirname(CONF), exist_ok=True)
+    tmp = CONF + '.tmp'
+    with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as f:
+        json.dump(c, f, indent=1)
+    os.replace(tmp, CONF)
+
+
+def hash_senha(senha, sal):
+    return hashlib.pbkdf2_hmac('sha256', senha.encode(), bytes.fromhex(sal), 300000).hex()
+
+
+def senha_certa(c, senha):
+    return 'sal' in c and hmac.compare_digest(hash_senha(senha, c['sal']), c.get('hash', ''))
+
+
+# ---- arquivos e pastas -------------------------------------------------------
+def gpg(args, senha):
+    return subprocess.run(['gpg', '--batch', '--yes', '--quiet', '--pinentry-mode', 'loopback',
+                           '--passphrase-fd', '0', *args], input=senha + '\n', text=True,
+                          capture_output=True)
+
+
+def bloquear(caminhos):
+    caminhos = [os.path.abspath(p) for p in caminhos if not p.endswith(EXT)]
+    if not caminhos:
+        return
+    nomes = '\n'.join(os.path.basename(p) for p in caminhos)
+    senha = nova_senha('Escolha uma senha para bloquear:\n' + nomes)
+    if senha is None:
+        return
+    falhas = []
+    for p in caminhos:
+        destino = p.rstrip('/') + EXT
+        try:
+            with tempfile.TemporaryDirectory() as t:
+                pacote = os.path.join(t, 'conteudo.tar')
+                with tarfile.open(pacote, 'w') as tar:
+                    tar.add(p, arcname=os.path.basename(p.rstrip('/')))
+                r = gpg(['--symmetric', '--cipher-algo', 'AES256', '-o', destino, pacote], senha)
+                if r.returncode != 0:
+                    raise RuntimeError(r.stderr.strip())
+                # verificar antes de apagar o original
+                r = gpg(['-o', os.path.join(t, 'verifica.tar'), '-d', destino], senha)
+                if r.returncode != 0:
+                    raise RuntimeError('verificação falhou')
+            if os.path.isdir(p) and not os.path.islink(p):
+                shutil.rmtree(p)
+            else:
+                os.remove(p)
+        except Exception as e:
+            if os.path.exists(destino):
+                os.remove(destino)
+            falhas.append('%s: %s' % (os.path.basename(p), e))
+    if falhas:
+        erro('Não foi possível bloquear:\n' + '\n'.join(falhas))
+
+
+def desbloquear(caminhos):
+    caminhos = [os.path.abspath(p) for p in caminhos if p.endswith(EXT)]
+    if not caminhos:
+        return
+    senha = pedir_senha('Digite a senha para desbloquear:\n' +
+                        '\n'.join(os.path.basename(p) for p in caminhos))
+    if senha is None:
+        return
+    falhas = []
+    for p in caminhos:
+        pasta = os.path.dirname(p)
+        try:
+            with tempfile.TemporaryDirectory() as t:
+                pacote = os.path.join(t, 'conteudo.tar')
+                r = gpg(['-o', pacote, '-d', p], senha)
+                if r.returncode != 0:
+                    raise RuntimeError('senha incorreta')
+                with tarfile.open(pacote) as tar:
+                    nomes = tar.getnames()
+                    topo = {n.split('/')[0] for n in nomes}
+                    if any(n.startswith('/') or '..' in n.split('/') for n in nomes) or len(topo) != 1:
+                        raise RuntimeError('conteúdo inválido')
+                    alvo = os.path.join(pasta, topo.pop())
+                    if os.path.exists(alvo):
+                        raise RuntimeError('já existe "%s" nesta pasta' % os.path.basename(alvo))
+                    tar.extractall(pasta, filter='data')
+            os.remove(p)
+        except Exception as e:
+            falhas.append('%s: %s' % (os.path.basename(p), e))
+    if falhas:
+        erro('Não foi possível desbloquear:\n' + '\n'.join(falhas))
+
+
+# ---- aplicativos -------------------------------------------------------------
+def pastas_sistema():
+    dirs = os.environ.get('XDG_DATA_DIRS', '/usr/local/share:/usr/share').split(':')
+    return [os.path.join(d, 'applications') for d in dirs if d]
+
+
+def desktop_sistema(app_id):
+    for d in pastas_sistema():
+        f = os.path.join(d, app_id)
+        if os.path.isfile(f):
+            return f
+    return None
+
+
+def ler_desktop(f):
+    cp = configparser.RawConfigParser(strict=False, interpolation=None)
+    cp.optionxform = str
+    cp.read(f, encoding='utf-8')
+    return cp
+
+
+def apps_instalados():
+    vistos = {}
+    for d in reversed(pastas_sistema()):
+        if not os.path.isdir(d):
+            continue
+        for n in os.listdir(d):
+            if not n.endswith('.desktop'):
+                continue
+            cp = ler_desktop(os.path.join(d, n))
+            if not cp.has_section('Desktop Entry'):
+                continue
+            e = cp['Desktop Entry']
+            if e.get('Type') != 'Application' or e.get('NoDisplay') == 'true' or e.get('Hidden') == 'true':
+                continue
+            nome = e.get('Name[pt_BR]') or e.get('Name')
+            if nome and n != 'carinaeos-bloquear-apps.desktop':
+                vistos[n] = nome
+    return sorted(vistos.items(), key=lambda x: x[1].lower())
+
+
+def aplicar_bloqueios(c):
+    os.makedirs(LOCAL_APPS, exist_ok=True)
+    for n in os.listdir(LOCAL_APPS):
+        f = os.path.join(LOCAL_APPS, n)
+        try:
+            if 'X-CarinaeOS-Cadeado=true' in open(f, encoding='utf-8').read() and n not in c['apps']:
+                os.remove(f)
+        except Exception:
+            pass
+    for app_id in c['apps']:
+        orig = desktop_sistema(app_id)
+        if not orig:
+            continue
+        linhas = open(orig, encoding='utf-8').read().splitlines()
+        saida, secao = [], ''
+        for l in linhas:
+            if l.startswith('['):
+                secao = l.strip()
+            if l.startswith('Exec=') or l.startswith('TryExec='):
+                if l.startswith('TryExec='):
+                    continue
+                exec_orig = l[5:]
+                codigos = ' '.join(c2 for c2 in ('%U', '%u', '%F', '%f') if c2 in exec_orig)
+                l = 'Exec=carinaeos-cadeado abrir %s %s' % (app_id, codigos)
+            saida.append(l)
+            if l.strip() == '[Desktop Entry]':
+                saida.append('X-CarinaeOS-Cadeado=true')
+        with open(os.path.join(LOCAL_APPS, app_id), 'w', encoding='utf-8') as f:
+            f.write('\n'.join(saida) + '\n')
+    if shutil.which('kbuildsycoca6'):
+        subprocess.run(['kbuildsycoca6'], capture_output=True)
+
+
+def gerir_apps():
+    c = ler_conf()
+    if 'sal' not in c:
+        aviso('Primeiro escolha uma senha para os aplicativos bloqueados.\n'
+              'Ela vai ser pedida sempre que abrir um deles.')
+        s = nova_senha('Nova senha de aplicativos:')
+        if s is None:
+            return
+        c['sal'] = os.urandom(16).hex()
+        c['hash'] = hash_senha(s, c['sal'])
+        gravar_conf(c)
+    else:
+        s = pedir_senha('Digite a senha de aplicativos:')
+        if s is None:
+            return
+        if not senha_certa(c, s):
+            erro('Senha incorreta.')
+            return
+    lista = []
+    for app_id, nome in apps_instalados():
+        lista += [app_id, nome, 'on' if app_id in c['apps'] else 'off']
+    code, out = kd('--separate-output', '--geometry', '520x620', '--checklist',
+                   'Marque os aplicativos que devem pedir senha para abrir:', *lista)
+    if code != 0:
+        return
+    c['apps'] = [l for l in out.splitlines() if l]
+    gravar_conf(c)
+    aplicar_bloqueios(c)
+    aviso('Pronto. %d aplicativo(s) bloqueado(s).' % len(c['apps']))
+
+
+def abrir(app_id, args):
+    c = ler_conf()
+    orig = desktop_sistema(app_id)
+    if not orig:
+        erro('Aplicativo não encontrado: ' + app_id)
+        return 1
+    e = ler_desktop(orig)['Desktop Entry']
+    nome = e.get('Name[pt_BR]') or e.get('Name') or app_id
+    if app_id in c.get('apps', []):
+        s = pedir_senha('"%s" está bloqueado.\nDigite a senha de aplicativos:' % nome)
+        if s is None:
+            return 1
+        if not senha_certa(c, s):
+            erro('Senha incorreta.')
+            return 1
+    cmd = []
+    for p in shlex.split(e.get('Exec', '')):
+        if p in ('%U', '%F'):
+            cmd += args
+        elif p in ('%u', '%f'):
+            cmd += args[:1]
+        elif p.startswith('%') and len(p) == 2:
+            continue
+        else:
+            cmd.append(p.replace('%%', '%'))
+    if not cmd:
+        return 1
+    os.execvp(cmd[0], cmd)
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(__doc__ if __doc__ else 'uso: carinaeos-cadeado bloquear|desbloquear|aplicativos|abrir')
+        return 1
+    acao, resto = sys.argv[1], sys.argv[2:]
+    if acao == 'bloquear':
+        bloquear(resto)
+    elif acao == 'desbloquear':
+        desbloquear(resto)
+    elif acao == 'aplicativos':
+        gerir_apps()
+    elif acao == 'abrir' and resto:
+        return abrir(resto[0], resto[1:])
+    else:
+        return 1
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

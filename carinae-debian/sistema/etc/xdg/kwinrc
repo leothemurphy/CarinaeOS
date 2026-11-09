@@ -20,3 +20,11 @@ AnimationDuration=320
 [Effect-blur]
 BlurStrength=10
 NoiseStrength=3
+
+[TabBox]
+LayoutName=flipswitch
+ShowDesktopMode=0
+HighlightWindows=false
+
+[TabBoxAlternative]
+LayoutName=thumbnail_grid

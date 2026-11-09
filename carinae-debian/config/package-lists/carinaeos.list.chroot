@@ -34,6 +34,10 @@ plasma-discover-backend-flatpak
 flatpak
 kinfocenter
 systemsettings
+kwin-addons
+kdialog
+gnupg
+plasma-widgets-addons
 
 # ---- aplicacoes --------------------------------------------------------------
 dolphin

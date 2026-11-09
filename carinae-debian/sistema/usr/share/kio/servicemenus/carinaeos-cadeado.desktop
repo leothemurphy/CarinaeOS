@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Service
+MimeType=all/all;
+Actions=bloquear;
+X-KDE-Priority=TopLevel
+
+[Desktop Action bloquear]
+Name=Bloquear com senha
+Icon=object-locked
+Exec=carinaeos-cadeado bloquear %F

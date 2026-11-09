@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-carinaeos-bloqueado">
+    <comment>Arquivo bloqueado com senha</comment>
+    <icon name="application-pgp-encrypted"/>
+    <generic-icon name="application-pgp-encrypted"/>
+    <glob pattern="*.bloqueado"/>
+  </mime-type>
+</mime-info>

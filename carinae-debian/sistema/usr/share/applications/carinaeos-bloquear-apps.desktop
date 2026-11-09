@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Bloquear aplicativos
+Comment=Escolher aplicativos que pedem senha para abrir
+Exec=carinaeos-cadeado aplicativos
+Icon=object-locked
+Categories=Settings;Security;
+Keywords=senha;bloquear;cadeado;privacidade;
