@@ -77,3 +77,4 @@ general/gpm                  1,3             manual em dvi/ps/pdf (sem texlive)
 general/bluez                3               documentacao da API (opcional)
 basicnet/libnl               2               documentacao da API (opcional)
 general/brotli               3               instala os bindings python do bloco #2 (pulado)
+x/gtk3                       5               configuracao opcional por utilizador (~/.config/gtk-3.0/gtk.css), exemplo do livro
