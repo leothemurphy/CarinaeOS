@@ -1,0 +1,27 @@
+#!/bin/sh
+# CarinaeOS - configuracao do live-build (Debian 13 "trixie", KDE Plasma)
+set -e
+lb config noauto \
+  --distribution trixie \
+  --archive-areas "main contrib non-free non-free-firmware" \
+  --mirror-bootstrap http://deb.debian.org/debian \
+  --mirror-chroot http://deb.debian.org/debian \
+  --mirror-binary http://deb.debian.org/debian \
+  --mirror-chroot-security http://security.debian.org/debian-security \
+  --mirror-binary-security http://security.debian.org/debian-security \
+  --security true --updates true \
+  --binary-images iso-hybrid \
+  --bootloaders "grub-efi,syslinux" \
+  --debian-installer none \
+  --firmware-binary false --firmware-chroot false \
+  --apt-recommends true \
+  --linux-flavours amd64 \
+  --memtest none \
+  --iso-application "CarinaeOS" \
+  --iso-preparer "CarinaeOS" \
+  --iso-publisher "CarinaeOS - github.com/leothemurphy/atriumos" \
+  --iso-volume "CarinaeOS" \
+  --image-name carinaeos \
+  --bootappend-live "boot=live components quiet splash loglevel=3 locales=pt_BR.UTF-8 keyboard-layouts=pt timezone=Europe/Lisbon username=carinae hostname=carinaeos live-config.noautologin" \
+  --chroot-squashfs-compression-type xz \
+  "${@}"

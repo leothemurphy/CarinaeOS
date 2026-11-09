@@ -1,6 +1,6 @@
 // CarinaeOS - ecra de entrada (SDDM, Qt 6), ao estilo do macOS:
 //   em cima a estrela, a data e as horas grandes; em baixo o(s) utilizador(es)
-//   com a fotografia redonda, o nome e o campo da palavra-passe; no fundo os
+//   com a foto redonda, o nome e o campo da senha; no fundo os
 //   botoes Suspender / Reiniciar / Desligar. Fundo de Eta Carinae desfocado.
 // Tudo e medido a partir do tamanho do ecra (fica nitido ate em 4K).
 import QtQuick
@@ -35,7 +35,7 @@ Rectangle {
         function onLoginFailed() {
             raiz.aEntrar = false
             senha.text = ""
-            aviso.text = "Palavra-passe incorreta"
+            aviso.text = "Senha incorreta"
             abanar.restart()
             senha.forceActiveFocus()
         }
@@ -81,7 +81,7 @@ Rectangle {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            property string d: Qt.locale("pt_PT").toString(raiz.agora, "dddd, d 'de' MMMM")
+            property string d: (Qt.locale().name.indexOf("pt") === 0 ? Qt.locale() : Qt.locale("pt_BR")).toString(raiz.agora, "dddd, d 'de' MMMM")
             text: d.charAt(0).toUpperCase() + d.slice(1)
             color: "#f2ffffff"
             font.family: raiz.letra
@@ -108,7 +108,7 @@ Rectangle {
         }
     }
 
-    // ---- baixo: utilizadores, palavra-passe ---------------------------------
+    // ---- baixo: usuarios, senha ---------------------------------
     Column {
         id: blocoEntrada
         anchors.horizontalCenter: parent.horizontalCenter
@@ -192,7 +192,7 @@ Rectangle {
             }
         }
 
-        // campo da palavra-passe (pilula translucida, seta a direita)
+        // campo da senha (pilula translucida, seta a direita)
         Item {
             id: caixaSenha
             anchors.horizontalCenter: parent.horizontalCenter
@@ -234,7 +234,7 @@ Rectangle {
                 anchors.leftMargin: 15 * raiz.s
                 anchors.verticalCenter: parent.verticalCenter
                 visible: senha.text.length === 0
-                text: "Introduzir palavra-passe"
+                text: "Digite a senha"
                 color: "#c8ffffff"
                 font.family: raiz.letra
                 font.pixelSize: 13.5 * raiz.s
@@ -259,7 +259,7 @@ Rectangle {
                 }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: raiz.entrar() }
             }
-            // abanar quando a palavra-passe esta errada (como no Mac)
+            // abanar quando a senha esta errada (como no Mac)
             SequentialAnimation {
                 id: abanar
                 property real a: 14 * raiz.s
@@ -284,7 +284,7 @@ Rectangle {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: keyboard.capsLock
-            text: "Caps Lock ativo"
+            text: "Caps Lock ativado"
             color: "#d8ffffff"
             font.family: raiz.letra
             font.pixelSize: 12 * raiz.s

@@ -1,0 +1,52 @@
+# CarinaeOS - gera a ISO (Debian 13 + KDE Plasma + visual CarinaeOS) nos
+# servidores do GitHub e publica-a como "release" (em partes de 1,9 GB, porque o
+# GitHub nao aceita ficheiros maiores do que 2 GB).
+# Correr: separador "Actions" -> "CarinaeOS ISO" -> "Run workflow",
+# ou enviar uma etiqueta git com o nome carinaeos-v<versao>.
+name: CarinaeOS ISO
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['carinaeos-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  iso:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Libertar espaco no disco
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache /usr/local/share/boost
+          df -h /
+
+      - name: Construir a ISO num Debian 13
+        run: |
+          docker run --rm --privileged -v "$PWD:/build" -w /build/carinae-debian debian:trixie bash -c '
+            apt-get update &&
+            DEBIAN_FRONTEND=noninteractive apt-get install -y live-build librsvg2-bin fonts-dejavu-core &&
+            ./construir.sh'
+
+      - name: Dividir e calcular somas
+        run: |
+          cd carinae-debian
+          mv carinaeos-amd64.hybrid.iso CarinaeOS-1.0-amd64.iso
+          sha256sum CarinaeOS-1.0-amd64.iso > CarinaeOS-1.0-amd64.iso.sha256
+          split -b 1900M -d CarinaeOS-1.0-amd64.iso CarinaeOS-1.0-amd64.iso.parte
+          ls -lh
+
+      - name: Publicar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=${GITHUB_REF_NAME}
+          case "$TAG" in carinaeos-v*) ;; *) TAG=carinaeos-teste-${GITHUB_RUN_NUMBER} ;; esac
+          cd carinae-debian
+          gh release create "$TAG" --title "CarinaeOS ($TAG)" --prerelease \
+            --notes "ISO do CarinaeOS. Descarregue todas as partes e junte-as (instrucoes no README da pasta carinae-debian)." \
+            CarinaeOS-1.0-amd64.iso.parte* CarinaeOS-1.0-amd64.iso.sha256

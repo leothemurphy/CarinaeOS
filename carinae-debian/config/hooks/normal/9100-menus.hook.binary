@@ -1,0 +1,9 @@
+#!/bin/sh
+# CarinaeOS - nomes das entradas do menu de arranque da ISO (GRUB / UEFI)
+for f in boot/grub/grub.cfg isolinux/live.cfg; do
+  [ -f "$f" ] || continue
+  sed -i -E 's/"Live system \((amd64)\)"/"Iniciar o CarinaeOS"/;
+             s/"Live system \((amd64) fail-safe mode\)"/"CarinaeOS (modo de seguranca)"/;
+             s/Utilities\.\.\./Utilitarios.../;
+             s/Live system \(amd64\)/Iniciar o CarinaeOS/' "$f"
+done

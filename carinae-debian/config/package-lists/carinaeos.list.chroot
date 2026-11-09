@@ -1,0 +1,77 @@
+# ---- sistema ao vivo -------------------------------------------------------
+live-boot
+live-config
+live-config-systemd
+systemd-sysv
+sudo
+locales
+console-setup
+keyboard-configuration
+
+# ---- ambiente de trabalho (KDE Plasma 6) -----------------------------------
+kde-plasma-desktop
+plasma-workspace
+kwin-wayland
+sddm
+sddm-theme-breeze
+qml6-module-qtquick-effects
+qml6-module-qtquick-controls
+qml6-module-qtquick-layouts
+plasma-nm
+plasma-pa
+powerdevil
+bluedevil
+kscreen
+kde-config-gtk-style
+breeze-gtk-theme
+xdg-desktop-portal-kde
+kwalletmanager
+plasma-vault
+cryfs
+gocryptfs
+plasma-discover
+plasma-discover-backend-flatpak
+flatpak
+kinfocenter
+systemsettings
+
+# ---- aplicacoes --------------------------------------------------------------
+dolphin
+konsole
+kate
+ark
+gwenview
+okular
+kcalc
+kde-spectacle
+ffmpegthumbs
+kdegraphics-thumbnailers
+firefox-esr
+firefox-esr-l10n-pt-br
+vlc
+
+# ---- letras ----------------------------------------------------------------
+fonts-inter
+fonts-noto-color-emoji
+fonts-dejavu
+fonts-liberation
+
+# ---- arranque grafico ------------------------------------------------------
+plymouth
+plymouth-label
+
+# ---- rede, som, hardware ---------------------------------------------------
+network-manager
+pipewire-audio
+wireplumber
+firmware-linux-free
+firmware-misc-nonfree
+firmware-realtek
+firmware-iwlwifi
+firmware-amd-graphics
+firmware-sof-signed
+spice-vdagent
+
+# ---- instalador ------------------------------------------------------------
+calamares
+calamares-settings-debian

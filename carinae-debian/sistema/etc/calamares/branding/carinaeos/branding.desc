@@ -1,0 +1,33 @@
+---
+componentName:   carinaeos
+welcomeStyleCalamares: true
+welcomeExpandingLogo: true
+windowExpanding: normal
+windowSize: 900px,620px
+windowPlacement: center
+strings:
+    productName:         CarinaeOS
+    shortProductName:    CarinaeOS
+    version:             1.0 "Eta"
+    shortVersion:        1.0
+    versionedName:       CarinaeOS 1.0
+    shortVersionedName:  CarinaeOS 1.0
+    bootloaderEntryName: CarinaeOS
+    productUrl:          https://github.com/leothemurphy/atriumos
+    supportUrl:          https://github.com/leothemurphy/atriumos/issues
+    knownIssuesUrl:      https://github.com/leothemurphy/atriumos/issues
+    releaseNotesUrl:     https://github.com/leothemurphy/atriumos
+    donateUrl:           https://github.com/leothemurphy/atriumos
+sidebar: widget
+navigation: widget
+images:
+    productLogo:         "calamares-logo.png"
+    productIcon:         "calamares-logo.png"
+    productWelcome:      "calamares-boasvindas.png"
+slideshow:               "show.qml"
+slideshowAPI: 2
+style:
+   SidebarBackground:        "#14101c"
+   SidebarText:              "#f2ece4"
+   SidebarTextCurrent:       "#ffffff"
+   SidebarBackgroundCurrent: "#3b2a4f"

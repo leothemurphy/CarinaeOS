@@ -1,0 +1,14 @@
+# pacotes guardados na ISO para o instalador (Calamares) usar sem internet
+grub-efi
+grub-efi-amd64
+grub-efi-amd64-bin
+grub-efi-amd64-signed
+shim-signed
+grub-pc
+grub-pc-bin
+efibootmgr
+os-prober
+mokutil
+cryptsetup
+cryptsetup-initramfs
+keyutils

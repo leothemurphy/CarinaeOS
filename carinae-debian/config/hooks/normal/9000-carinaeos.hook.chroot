@@ -1,0 +1,49 @@
+#!/bin/sh
+# CarinaeOS - ultimos acertos dentro da imagem (corre no chroot do live-build)
+set -e
+
+# ---- identidade do sistema ----------------------------------------------------
+# o /usr/lib/os-release e do pacote base-files: desviado para nao voltar a ser
+# "Debian" numa atualizacao
+dpkg-divert --quiet --local --rename --add /usr/lib/os-release
+cat > /usr/lib/os-release <<'EOT'
+PRETTY_NAME="CarinaeOS 1.0 (Eta)"
+NAME="CarinaeOS"
+VERSION_ID="1.0"
+VERSION="1.0 (Eta)"
+VERSION_CODENAME=trixie
+ID=carinaeos
+ID_LIKE=debian
+LOGO=carinaeos
+HOME_URL="https://github.com/leothemurphy/atriumos"
+SUPPORT_URL="https://github.com/leothemurphy/atriumos/issues"
+BUG_REPORT_URL="https://github.com/leothemurphy/atriumos/issues"
+EOT
+ln -sf ../usr/lib/os-release /etc/os-release
+echo 'CarinaeOS 1.0 \n \l' > /etc/issue
+echo 'CarinaeOS 1.0' > /etc/issue.net
+
+# ---- icones, letras ---------------------------------------------------------------
+gtk-update-icon-cache -qtf /usr/share/icons/hicolor || true
+fc-cache -f >/dev/null 2>&1 || true
+
+# ---- explorador de arquivos: "Arquivos" (o programa continua a ser o Dolphin) ----
+mkdir -p /usr/local/share/applications
+sed -E '/^(Name|GenericName)(\[[^]]*\])?=/d' /usr/share/applications/org.kde.dolphin.desktop \
+  | sed '0,/^\[Desktop Entry\]$/s//[Desktop Entry]\nName=Arquivos\nGenericName=Gerenciador de arquivos/' \
+  > /usr/local/share/applications/org.kde.dolphin.desktop
+
+# ---- instalador --------------------------------------------------------------------
+sed -i 's/^branding: .*/branding: carinaeos/' /etc/calamares/settings.conf
+for f in /usr/share/applications/calamares-install-debian.desktop /etc/xdg/autostart/calamares-desktop-icon.desktop; do
+  [ -f "$f" ] || continue
+  sed -i -E 's/^Name=.*/Name=Instalar o CarinaeOS/; s/^Icon=.*/Icon=carinaeos/; /^Name\[/d' "$f"
+done
+
+# ---- ecra de arranque (Plymouth) ------------------------------------------------
+plymouth-set-default-theme carinaeos
+update-initramfs -u -k all
+
+# ---- menu de arranque do sistema instalado ----------------------------------------
+# (o update-grub so corre depois da instalacao; aqui fica a configuracao pronta)
+true
