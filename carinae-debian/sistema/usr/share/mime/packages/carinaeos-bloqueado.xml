@@ -2,8 +2,8 @@
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
   <mime-type type="application/x-carinaeos-bloqueado">
     <comment>Arquivo bloqueado com senha</comment>
-    <icon name="application-pgp-encrypted"/>
-    <generic-icon name="application-pgp-encrypted"/>
+    <icon name="object-locked"/>
+    <generic-icon name="object-locked"/>
     <glob pattern="*.bloqueado"/>
   </mime-type>
 </mime-info>

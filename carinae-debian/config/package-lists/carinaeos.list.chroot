@@ -37,6 +37,16 @@ systemsettings
 kwin-addons
 kdialog
 gnupg
+
+# ---- aplicativos do CarinaeOS (Supernova, Orbita) -------------------------
+python3-pyside6.qtcore
+python3-pyside6.qtgui
+python3-pyside6.qtqml
+python3-pyside6.qtquick
+python3-pyside6.qtquickcontrols2
+qml6-module-qtquick-window
+qml6-module-qtquick-templates
+qml6-module-qtqml-workerscript
 plasma-widgets-addons
 
 # ---- aplicacoes --------------------------------------------------------------

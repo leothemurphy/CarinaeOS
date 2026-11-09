@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Órbita
+GenericName=Loja de aplicativos
+Comment=Instale navegadores, LibreOffice, jogos e muito mais
+Exec=carinaeos-orbita
+Icon=carinaeos-orbita
+Categories=System;PackageManager;
+Keywords=loja;instalar;aplicativos;apps;programas;store;chrome;libreoffice;
+StartupWMClass=carinaeos-orbita

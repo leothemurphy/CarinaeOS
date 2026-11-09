@@ -1,0 +1,10 @@
+[Unit]
+Description=CarinaeOS - Céu vivo (a cada 10 minutos)
+
+[Timer]
+OnStartupSec=40s
+OnUnitActiveSec=10min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

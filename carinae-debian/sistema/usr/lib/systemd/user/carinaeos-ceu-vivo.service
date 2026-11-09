@@ -1,0 +1,7 @@
+[Unit]
+Description=CarinaeOS - Céu vivo (fundo muda com a hora do dia)
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/carinaeos-ceu-vivo

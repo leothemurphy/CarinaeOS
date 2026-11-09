@@ -11,7 +11,10 @@
       <default>48</default>
     </entry>
     <entry name="zoom" type="Double">
-      <default>1.4</default>
+      <default>1.9</default>
+    </entry>
+    <entry name="bounce" type="Bool">
+      <default>true</default>
     </entry>
     <entry name="showTrash" type="Bool">
       <default>true</default>

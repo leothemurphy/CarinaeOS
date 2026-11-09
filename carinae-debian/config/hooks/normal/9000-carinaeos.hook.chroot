@@ -106,6 +106,13 @@ for f in /usr/share/applications/calamares-install-debian.desktop /etc/xdg/autos
   sed -i -E 's/^Name=.*/Name=Instalar o CarinaeOS/; s/^Icon=.*/Icon=carinaeos/; /^Name\[/d' "$f"
 done
 
+# ---- loja Orbita: Flathub ja configurado, com o catalogo (nomes e icones) ----
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || true
+flatpak update --appstream flathub || true
+
+# ---- Ceu vivo: servico do utilizador (desligado ate ser ligado no Supernova) ---
+chmod 755 /usr/bin/carinaeos-* || true
+
 # ---- ecra de arranque (Plymouth) ------------------------------------------------
 plymouth-set-default-theme carinaeos
 update-initramfs -u -k all

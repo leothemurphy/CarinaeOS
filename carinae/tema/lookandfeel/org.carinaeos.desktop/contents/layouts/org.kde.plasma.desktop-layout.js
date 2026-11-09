@@ -25,9 +25,7 @@ barra.height = 2 * Math.ceil(gridUnit * 1.4 / 2);   // fina, como a barra do Mac
 barra.floating = false;
 barra.opacity = "translucent";
 
-var estrela = barra.addWidget("org.kde.plasma.kickerdash");
-estrela.currentConfigGroup = ["General"];
-estrela.writeConfig("icon", "carinaeos-estrela");
+barra.addWidget("org.carinaeos.menuestrela");   // menu estrela (como o da maca)
 
 barra.addWidget("org.kde.plasma.appmenu");
 barra.addWidget("org.kde.plasma.panelspacer");
@@ -42,7 +40,7 @@ relogio.writeConfig("customDateFormat", "ddd d MMM");
 // ---- Dock de baixo -----------------------------------------------------------
 var dock = new Panel;
 dock.location = "bottom";
-dock.height = 2 * Math.ceil(gridUnit * 4 / 2);   // cabe o ícone ampliado
+dock.height = 2 * Math.ceil(gridUnit * 8 / 2);   // cabe o icone ampliado e o nome por cima
 dock.floating = true;
 dock.alignment = "center";
 dock.lengthMode = "fit";

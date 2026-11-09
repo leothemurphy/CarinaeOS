@@ -18,6 +18,8 @@ CONF = os.path.join(os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.con
 LOCAL_APPS = os.path.join(os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')), 'applications')
 TITULO = 'Cadeado do CarinaeOS'
 EXT = '.bloqueado'
+CONTEUDO = 'Conteúdo bloqueado' + EXT       # dentro de uma pasta bloqueada
+MARCA = 'X-CarinaeOS-Bloqueada=true'
 
 
 def kd(*args, entrada=None):
@@ -84,8 +86,31 @@ def gpg(args, senha):
                           capture_output=True)
 
 
+def pasta_bloqueada(p):
+    try:
+        return MARCA in open(os.path.join(p, '.directory'), encoding='utf-8').read()
+    except Exception:
+        return False
+
+
+def cifrar(origem, destino, senha, membros):
+    """membros: lista de (caminho, nome no arquivo)"""
+    with tempfile.TemporaryDirectory() as t:
+        pacote = os.path.join(t, 'conteudo.tar')
+        with tarfile.open(pacote, 'w') as tar:
+            for caminho, nome in membros:
+                tar.add(caminho, arcname=nome)
+        r = gpg(['--symmetric', '--cipher-algo', 'AES256', '-o', destino, pacote], senha)
+        if r.returncode != 0:
+            raise RuntimeError(r.stderr.strip())
+        r = gpg(['-o', os.path.join(t, 'verifica.tar'), '-d', destino], senha)   # verificar
+        if r.returncode != 0:
+            raise RuntimeError('verificação falhou')
+
+
 def bloquear(caminhos):
-    caminhos = [os.path.abspath(p) for p in caminhos if not p.endswith(EXT)]
+    caminhos = [os.path.abspath(p).rstrip('/') for p in caminhos if not p.endswith(EXT)]
+    caminhos = [p for p in caminhos if not (os.path.isdir(p) and pasta_bloqueada(p))]
     if not caminhos:
         return
     nomes = '\n'.join(os.path.basename(p) for p in caminhos)
@@ -94,60 +119,91 @@ def bloquear(caminhos):
         return
     falhas = []
     for p in caminhos:
-        destino = p.rstrip('/') + EXT
         try:
-            with tempfile.TemporaryDirectory() as t:
-                pacote = os.path.join(t, 'conteudo.tar')
-                with tarfile.open(pacote, 'w') as tar:
-                    tar.add(p, arcname=os.path.basename(p.rstrip('/')))
-                r = gpg(['--symmetric', '--cipher-algo', 'AES256', '-o', destino, pacote], senha)
-                if r.returncode != 0:
-                    raise RuntimeError(r.stderr.strip())
-                # verificar antes de apagar o original
-                r = gpg(['-o', os.path.join(t, 'verifica.tar'), '-d', destino], senha)
-                if r.returncode != 0:
-                    raise RuntimeError('verificação falhou')
             if os.path.isdir(p) and not os.path.islink(p):
-                shutil.rmtree(p)
+                # a pasta continua no mesmo sitio, com o mesmo nome e um cadeado
+                filhos = [n for n in os.listdir(p) if n != '.directory']
+                destino = os.path.join(p, CONTEUDO)
+                try:
+                    cifrar(p, destino, senha, [(os.path.join(p, n), n) for n in filhos])
+                except Exception:
+                    if os.path.exists(destino):
+                        os.remove(destino)
+                    raise
+                for n in filhos:
+                    f = os.path.join(p, n)
+                    if os.path.isdir(f) and not os.path.islink(f):
+                        shutil.rmtree(f)
+                    else:
+                        os.remove(f)
+                d = os.path.join(p, '.directory')
+                antigo = open(d, encoding='utf-8').read() if os.path.exists(d) else ''
+                with open(d, 'w', encoding='utf-8') as f:
+                    f.write('[Desktop Entry]\nIcon=folder-locked\n' + MARCA + '\n')
+                if antigo:
+                    with open(os.path.join(p, '.directory.antes-do-cadeado'), 'w', encoding='utf-8') as f:
+                        f.write(antigo)
             else:
+                destino = p + EXT
+                try:
+                    cifrar(p, destino, senha, [(p, os.path.basename(p))])
+                except Exception:
+                    if os.path.exists(destino):
+                        os.remove(destino)
+                    raise
                 os.remove(p)
         except Exception as e:
-            if os.path.exists(destino):
-                os.remove(destino)
             falhas.append('%s: %s' % (os.path.basename(p), e))
     if falhas:
         erro('Não foi possível bloquear:\n' + '\n'.join(falhas))
 
 
 def desbloquear(caminhos):
-    caminhos = [os.path.abspath(p) for p in caminhos if p.endswith(EXT)]
-    if not caminhos:
+    alvos = []
+    for p in caminhos:
+        p = os.path.abspath(p).rstrip('/')
+        if os.path.isdir(p) and pasta_bloqueada(p) and os.path.exists(os.path.join(p, CONTEUDO)):
+            alvos.append(os.path.join(p, CONTEUDO))
+        elif p.endswith(EXT) and os.path.isfile(p):
+            alvos.append(p)
+    if not alvos:
+        aviso('Não há nada bloqueado aqui.')
         return
-    senha = pedir_senha('Digite a senha para desbloquear:\n' +
-                        '\n'.join(os.path.basename(p) for p in caminhos))
+    rotulo = lambda a: os.path.basename(os.path.dirname(a)) if os.path.basename(a) == CONTEUDO else os.path.basename(a)
+    senha = pedir_senha('Digite a senha para desbloquear:\n' + '\n'.join(rotulo(a) for a in alvos))
     if senha is None:
         return
     falhas = []
-    for p in caminhos:
-        pasta = os.path.dirname(p)
+    for a in alvos:
+        pasta = os.path.dirname(a)
+        dentro = os.path.basename(a) == CONTEUDO and pasta_bloqueada(pasta)
         try:
             with tempfile.TemporaryDirectory() as t:
                 pacote = os.path.join(t, 'conteudo.tar')
-                r = gpg(['-o', pacote, '-d', p], senha)
+                r = gpg(['-o', pacote, '-d', a], senha)
                 if r.returncode != 0:
                     raise RuntimeError('senha incorreta')
                 with tarfile.open(pacote) as tar:
                     nomes = tar.getnames()
-                    topo = {n.split('/')[0] for n in nomes}
-                    if any(n.startswith('/') or '..' in n.split('/') for n in nomes) or len(topo) != 1:
+                    if any(n.startswith('/') or '..' in n.split('/') for n in nomes):
                         raise RuntimeError('conteúdo inválido')
-                    alvo = os.path.join(pasta, topo.pop())
-                    if os.path.exists(alvo):
-                        raise RuntimeError('já existe "%s" nesta pasta' % os.path.basename(alvo))
+                    topo = {n.split('/')[0] for n in nomes}
+                    if not dentro and len(topo) != 1:
+                        raise RuntimeError('conteúdo inválido')
+                    for n in topo:
+                        if n != CONTEUDO and os.path.exists(os.path.join(pasta, n)):
+                            raise RuntimeError('já existe "%s" nesta pasta' % n)
                     tar.extractall(pasta, filter='data')
-            os.remove(p)
+            os.remove(a)
+            if dentro:
+                d = os.path.join(pasta, '.directory')
+                antes = os.path.join(pasta, '.directory.antes-do-cadeado')
+                if os.path.exists(antes):
+                    os.replace(antes, d)
+                elif os.path.exists(d):
+                    os.remove(d)
         except Exception as e:
-            falhas.append('%s: %s' % (os.path.basename(p), e))
+            falhas.append('%s: %s' % (rotulo(a), e))
     if falhas:
         erro('Não foi possível desbloquear:\n' + '\n'.join(falhas))
 

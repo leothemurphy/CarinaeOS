@@ -1,0 +1,12 @@
+{
+    "KPlugin": {
+        "Authors": [ { "Name": "CarinaeOS" } ],
+        "Description": "Estilo do Plasma do CarinaeOS: igual ao Breeze, com as barras transparentes (a Dock desenha o seu próprio vidro)",
+        "Id": "carinaeos",
+        "License": "GPL-2.0-or-later",
+        "Name": "CarinaeOS",
+        "Version": "1.0",
+        "Website": "https://github.com/leothemurphy/atriumos"
+    },
+    "X-Plasma-API": "5.0"
+}

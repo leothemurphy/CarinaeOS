@@ -49,8 +49,14 @@ Item {
         width: dock.base * tarefa.s
         height: width
         anchors.horizontalCenter: parent.horizontalCenter
-        y: (parent.height - height) / 2 - (height - dock.base) * 0.25 - tarefa.pulo
+        y: parent.height - dock.baixo - dock.margem - height - tarefa.pulo
         active: rato.containsMouse
+    }
+    Rotulo {
+        alvo: icone
+        texto: tarefa.model.AppName || tarefa.model.display || ""
+        mostrar: rato.containsMouse
+        dock: tarefa.dock
     }
 
     // ponto das apps abertas
@@ -61,21 +67,21 @@ Item {
         radius: width / 2
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 2
+        anchors.bottomMargin: dock.baixo + Math.max(2, dock.margem * 0.25)
         color: tarefa.model.IsActive ? "#FFB46E" : Qt.rgba(1, 1, 1, 0.7)
     }
 
-    // salto ao abrir (como no macOS)
+    // salto ao abrir (como no macOS): sobe e desce suave, enquanto a app abre
     SequentialAnimation {
         id: salto
-        loops: 2
-        NumberAnimation { target: tarefa; property: "pulo"; to: dock.base * 0.35; duration: 220; easing.type: Easing.OutQuad }
-        NumberAnimation { target: tarefa; property: "pulo"; to: 0; duration: 260; easing.type: Easing.OutBounce }
+        loops: 3
+        NumberAnimation { target: tarefa; property: "pulo"; to: dock.base * 0.55; duration: 300; easing.type: Easing.OutCubic }
+        NumberAnimation { target: tarefa; property: "pulo"; to: 0; duration: 300; easing.type: Easing.InCubic }
     }
     Connections {
         target: tarefa.model
         function onIsStartupChanged(): void {
-            if (tarefa.model.IsStartup && tarefa.mostrar) {
+            if (tarefa.model.IsStartup && tarefa.mostrar && Plasmoid.configuration.bounce) {
                 salto.restart();
             }
         }
@@ -89,10 +95,11 @@ Item {
     }
     Component.onCompleted: geoTimer.start()
 
-    PlasmaCore.ToolTipArea {
-        anchors.fill: parent
-        mainText: tarefa.model.AppName || tarefa.model.display
-        location: Plasmoid.location
+    Item {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: dock.baixo + dock.margem * 2 + icone.height
 
         MouseArea {
             id: rato
@@ -113,7 +120,7 @@ Item {
                 }
                 if (tarefa.model.IsLauncher) {
                     dock.modelo.requestActivate(tarefa.indice());
-                    salto.restart();
+                    if (Plasmoid.configuration.bounce) salto.restart();
                 } else if (tarefa.model.IsMinimized) {
                     dock.modelo.requestToggleMinimized(tarefa.indice());
                     dock.modelo.requestActivate(tarefa.indice());

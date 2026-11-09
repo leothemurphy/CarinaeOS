@@ -1,0 +1,14 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [ { "Name": "CarinaeOS" } ],
+        "Category": "Application Launchers",
+        "Description": "Menu estrela do CarinaeOS: sobre o computador, configurações, loja, Supernova, reiniciar e desligar",
+        "Icon": "carinaeos-estrela",
+        "Id": "org.carinaeos.menuestrela",
+        "License": "GPL-2.0-or-later",
+        "Name": "Menu estrela",
+        "Version": "0.1"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

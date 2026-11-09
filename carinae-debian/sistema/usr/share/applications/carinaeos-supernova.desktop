@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Supernova
+GenericName=Personalizar o sistema
+Comment=Efeitos, Alt+Tab, Dock e ideias exclusivas do CarinaeOS
+Exec=carinaeos-supernova
+Icon=carinaeos-supernova
+Categories=Settings;DesktopSettings;
+Keywords=efeitos;personalizar;mods;windhawk;alt+tab;dock;tema;
+StartupWMClass=carinaeos-supernova

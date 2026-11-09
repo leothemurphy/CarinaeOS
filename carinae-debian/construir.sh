@@ -22,6 +22,9 @@ install -d $U/icons/hicolor/scalable/apps $U/plasma/plasmoids $U/plasma/look-and
            $U/wallpapers $U/color-schemes $U/sddm/themes $U/plymouth/themes $U/carinaeos
 install -m644 $T/icones/*.svg $U/icons/hicolor/scalable/apps/
 cp -a $T/plasmoid/org.carinaeos.dock         $U/plasma/plasmoids/
+cp -a $T/plasmoid/org.carinaeos.menuestrela  $U/plasma/plasmoids/
+install -d $U/plasma/desktoptheme
+cp -a $T/plasmastyle/carinaeos               $U/plasma/desktoptheme/
 cp -a $T/lookandfeel/org.carinaeos.desktop    $U/plasma/look-and-feel/
 cp -a $T/wallpaper/CarinaeOS                  $U/wallpapers/
 install -m644 $T/cores/CarinaeOS.colors       $U/color-schemes/
@@ -31,7 +34,7 @@ install -m644 arte/grub.png                   $U/carinaeos/grub.png
 install -m644 arte/calamares-*.png            $I/etc/calamares/branding/carinaeos/
 
 # Dock: lancadores das aplicacoes que existem nesta edicao
-sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:org.kde.gwenview.desktop,applications:org.kde.okular.desktop,applications:org.kde.discover.desktop,applications:systemsettings.desktop</default>#' \
+sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:org.kde.gwenview.desktop,applications:org.kde.okular.desktop,applications:carinaeos-orbita.desktop,applications:carinaeos-supernova.desktop,applications:systemsettings.desktop</default>#' \
   $U/plasma/plasmoids/org.carinaeos.dock/contents/config/main.xml
 
 # ---- menus de arranque da ISO (BIOS: syslinux; UEFI: GRUB) ----------------------
