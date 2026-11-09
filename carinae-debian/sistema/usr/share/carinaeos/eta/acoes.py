@@ -203,3 +203,42 @@ def cmd_atualizar(sistema, apps):
         partes.append('flatpak update --user -y --noninteractive; flatpak update --system -y --noninteractive || true')
     partes.append('echo "Tudo atualizado."')
     return '; '.join(partes) if len(partes) > 1 else partes[0]
+
+
+# ---- terminal ---------------------------------------------------------------------------------
+def no_terminal(cmd, titulo='Eta'):
+    """Corre o comando numa janela do Konsole, a vista do usuario (o sudo pede la a senha)."""
+    script = '%s; r=$?; echo; if [ $r -eq 0 ]; then echo "✓ Concluído. Pode fechar esta janela."; ' \
+             'else echo "✕ Terminou com erro ($r)."; fi' % cmd
+    return 'konsole --hold -p tabtitle=%s -e bash -c %s' % (shlex.quote(titulo), shlex.quote(script))
+
+
+SEGURO_NOME = re.compile(r'^[a-z0-9][a-z0-9.+-]{1,60}$')
+
+
+def pacote_apt(nome):
+    """Devolve o nome do pacote do Debian se existir (ex.: 'vlc', 'gimp')."""
+    n = nome.lower().strip()
+    if not SEGURO_NOME.match(n):
+        return None
+    c, s = _sh(['apt-cache', 'policy', n], timeout=30)
+    if c == 0 and re.search(r'Candidat[eo]:\s*(?!\(none\)|\(nenhum\))\S', s):
+        return n
+    return None
+
+
+def instalado_apt(nome):
+    c, s = _sh(['dpkg-query', '-W', '-f=${Status}', nome], timeout=15)
+    return c == 0 and 'install ok installed' in s
+
+
+def app_flathub(nome):
+    """Procura no Flathub: devolve (id, nome) do melhor resultado ou None."""
+    c, s = _sh(['flatpak', 'search', '--columns=application,name', nome], timeout=60)
+    if c != 0:
+        return None
+    for l in s.splitlines():
+        partes = l.split('\t')
+        if len(partes) >= 2 and '.' in partes[0]:
+            return partes[0].strip(), partes[1].strip()
+    return None

@@ -176,6 +176,10 @@ FERRAMENTAS: quando precisar agir, responda APENAS com um objeto JSON, sem mais 
 {"ferramenta": "pasta_rede"}             -> ligar a uma pasta de rede (NAS, outro computador), pede endereco, usuario e senha
 {"ferramenta": "wifi"}                   -> ligar a uma rede Wi-Fi (mostra as redes e pede a senha)
 {"ferramenta": "atualizacoes"}           -> verificar se ha atualizacoes e oferecer atualizar o sistema e os aplicativos
+{"ferramenta": "instalar", "nome": "gimp"} -> instalar um programa (pelo terminal com apt, ou pelo Flathub)
+{"ferramenta": "terminal", "comando": "sudo apt install -y htop", "descricao": "instalar o htop"}
+     -> corre comandos numa janela do terminal (Konsole), a vista do usuario; o sudo pede la a senha.
+        Use-o para configurar coisas pelo terminal (apt, systemctl, nano /etc/..., etc.).
 O comando "executar" so corre depois de o usuario carregar em Permitir. Use comandos de Linux seguros
 (kcmshell6 <modulo>, xdg-open, plasma-apply-wallpaperimage, pactl, kwriteconfig6, carinaeos-supernova,
 carinaeos-orbita, systemsettings). Para ensinar, explique o passo a passo e ofereca-se para fazer.
@@ -374,6 +378,11 @@ class Eta(QObject):
             self._wifi()
         elif f == 'atualizacoes':
             self._atualizacoes()
+        elif f == 'instalar' and acao.get('nome'):
+            self._instalar(acao['nome'])
+        elif f == 'terminal' and acao.get('comando'):
+            self._pedir((acao.get('descricao') or 'executar no terminal') + ' (no terminal)',
+                        A.no_terminal(acao['comando']), mostrar=acao['comando'])
         elif f == 'executar' and acao.get('comando'):
             self._pedir(acao.get('descricao') or 'executar um comando', acao['comando'])
         else:
@@ -421,7 +430,7 @@ class Eta(QObject):
                 ok, saida = False, str(e)
             self._fim_execucao.emit(ident, ok, saida[-1500:])
         # comandos que abrem janelas ficam a correr: nao esperar por eles
-        if re.match(r'^\s*(kcmshell6|systemsettings|carinaeos-(supernova|orbita|cadeado)|xdg-open|dolphin|plasma-discover|spectacle|kinfocenter)\b', comando):
+        if re.match(r'^\s*(kcmshell6|systemsettings|carinaeos-(supernova|orbita|cadeado)|xdg-open|dolphin|plasma-discover|spectacle|kinfocenter|konsole)\b', comando):
             subprocess.Popen(['bash', '-lc', comando], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                              start_new_session=True)
             self._fim_execucao.emit(ident, True, '')
@@ -504,6 +513,17 @@ class Eta(QObject):
             return True
         if re.search(r'\b(wi-?fi|wireless|rede sem fio|rede)\b', s) and re.search(r'\b(conect|entr|lig[ao]r? (a|na|no|ao)|outra rede|trocar de rede|mud\w* de rede|redes disponiveis)', s):
             self._wifi()
+            return True
+        if re.search(r'\b(abr\w*|abre|liga|lanca|inicia)\b.{0,12}\b(terminal|konsole|consola|console|linha de comandos?)\b', s) \
+                and not re.search(r'\b(instal|configur|corr|execut|rod)\w*', s):
+            self._dizer('Claro! Vou abrir o terminal. Se quiser, diga-me o que quer fazer e eu escrevo os comandos por si.')
+            self._pedir('abrir o terminal', 'konsole')
+            return True
+        m = re.search(r'\b(instal\w*|(?:baix\w*|descarreg\w*)(?=\s+(?:o |a |um |uma )?(?:programa|aplicativo|app|jogo|navegador)))\b\s+(?:o |a |os |as |um |uma )?'
+                      r'(?:programa |aplicativo |app |pacote |navegador |jogo )?([\w.+-]+)', s)
+        if m and not re.search(r'\b(atualiz|como|onde|tema|fundo|papel|impressora)\w*', s) and \
+                m.group(2) not in ('o', 'a', 'um', 'uma', 'programa', 'aplicativo', 'app', 'pacote', 'pelo', 'no', 'na', 'isso', 'algo'):
+            self._instalar(m.group(2), terminal=bool(re.search(r'\b(terminal|apt|sudo|comando)\b', s)))
             return True
         if re.search(r'\b(atualiz\w*|update|upgrade|atualizacoes)\b', s) and not re.search(r'\b(pagina|navegador|lista de arquivos)\b', s):
             self._atualizacoes()
@@ -656,6 +676,56 @@ class Eta(QObject):
             self._pedir('instalar as atualizações agora', A.cmd_atualizar(sistema, apps), demorado=True)
         self._em_fundo('Vou ver se há atualizações para o sistema e para os aplicativos… (pode levar um minuto)',
                        A.verificar_atualizacoes, depois)
+
+    # instalar programas: apt (no terminal, a vista) ou Flathub
+    NOMES = {'chrome': 'com.google.Chrome', 'google chrome': 'com.google.Chrome', 'spotify': 'com.spotify.Client',
+             'discord': 'com.discordapp.Discord', 'zoom': 'us.zoom.Zoom', 'steam': 'com.valvesoftware.Steam',
+             'whatsapp': 'com.rtosta.zapzap', 'telegram': 'org.telegram.desktop', 'obs': 'com.obsproject.Studio',
+             'vscode': 'com.visualstudio.code', 'code': 'com.visualstudio.code', 'brave': 'com.brave.Browser',
+             'edge': 'com.microsoft.Edge', 'teams': 'com.github.IsmaelMartinez.teams_for_linux'}
+    APT = {'libreoffice': 'libreoffice', 'office': 'libreoffice', 'gimp': 'gimp', 'vlc': 'vlc', 'inkscape': 'inkscape',
+           'chromium': 'chromium', 'thunderbird': 'thunderbird', 'krita': 'krita', 'kdenlive': 'kdenlive',
+           'htop': 'htop', 'git': 'git', 'python': 'python3', 'java': 'default-jre', 'nano': 'nano',
+           'audacity': 'audacity', 'blender': 'blender', 'firefox': 'firefox-esr', 'transmission': 'transmission-qt',
+           'qbittorrent': 'qbittorrent', 'okular': 'okular', 'kate': 'kate', 'neofetch': 'fastfetch', 'fastfetch': 'fastfetch'}
+
+    def _instalar(self, nome, terminal=False):
+        chave = simples(nome).strip().lower()
+
+        def procurar():
+            if chave in self.NOMES and not terminal:
+                return ('flathub', self.NOMES[chave], nome)
+            pac = A.pacote_apt(self.APT.get(chave, chave))
+            if pac:
+                return ('apt', pac, A.instalado_apt(pac))
+            if chave in self.NOMES:
+                return ('flathub', self.NOMES[chave], nome)
+            f = A.app_flathub(nome)
+            return ('flathub', f[0], f[1]) if f else None
+
+        def depois(r):
+            if isinstance(r, Exception) or not r:
+                self._dizer('Não encontrei nenhum programa chamado “%s” nos repositórios do Debian nem no Flathub. '
+                            'Pode verificar o nome? Também pode procurar na loja Órbita.' % nome)
+                self._pedir('abrir a loja Órbita', 'carinaeos-orbita')
+                return
+            tipo, ident, extra = r
+            aviso = (' Como está a usar o CarinaeOS sem instalar, o programa some ao desligar.' if A.AO_VIVO else '')
+            if tipo == 'apt':
+                if extra:
+                    self._dizer('O “%s” já está instalado ✓' % ident)
+                    return
+                cmd = 'sudo apt-get update && sudo apt-get install -y %s' % shlex.quote(ident)
+                self._dizer('Encontrei o pacote “%s” no Debian. Vou instalá-lo pelo terminal: abro uma janela do '
+                            'Konsole para ver o progresso, e o sistema pede lá a sua senha.%s' % (ident, aviso))
+                self._pedir('instalar o “%s” pelo terminal' % ident, A.no_terminal(cmd, 'Instalar ' + ident), mostrar=cmd)
+            else:
+                cmd = 'flatpak install --user -y flathub %s' % shlex.quote(ident)
+                self._dizer('Encontrei “%s” no Flathub (%s). Vou instalá-lo pelo terminal, onde pode ver o progresso.%s'
+                            % (extra, ident, aviso))
+                self._pedir('instalar “%s”' % extra, A.no_terminal(cmd + ' && kbuildsycoca6 >/dev/null 2>&1', 'Instalar ' + str(extra)),
+                            mostrar=cmd)
+        self._em_fundo('Vou procurar o “%s”…' % nome, procurar, depois)
 
     @Slot()
     def limpar(self):

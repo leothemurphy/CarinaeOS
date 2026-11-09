@@ -29,7 +29,8 @@ com visual inspirado no macOS. Partes principais:
 - Capturas de tela: tecla Print (app Spectacle).
 - A Eta (eu) tambem sabe: abrir HDs externos e pen drives (inclusive protegidos com senha ou BitLocker),
   ejetar discos, ligar a pastas de rede (NAS, outro computador) com usuario e senha, ligar ao Wi-Fi,
-  verificar e instalar atualizacoes do sistema e dos aplicativos. A busca rapida abre com Ctrl+Espaco.
+  verificar e instalar atualizacoes, instalar programas (apt ou Flathub) e correr comandos no terminal
+  (Konsole) a vista do usuario. A busca rapida abre com Ctrl+Espaco.
 """
 
 TOPICOS = [
