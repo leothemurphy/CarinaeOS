@@ -1,0 +1,13 @@
+[SddmGreeterTheme]
+Name=CarinaeOS
+Description=Ecra de entrada do CarinaeOS (estilo macOS)
+Author=CarinaeOS
+License=GPL-3.0-or-later
+Type=sddm-theme
+Version=1.0
+Website=https://github.com/leothemurphy/atriumos
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=carinaeos
+Theme-API=2.0
+QtVersion=6

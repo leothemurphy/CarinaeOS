@@ -1,0 +1,9 @@
+[Plymouth Theme]
+Name=CarinaeOS
+Description=Arranque do CarinaeOS: a estrela e uma barra de progresso
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/carinaeos
+ScriptFile=/usr/share/plymouth/themes/carinaeos/carinaeos.script
+ConsoleLogBackgroundColor=0x00000000

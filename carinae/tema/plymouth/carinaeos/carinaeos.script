@@ -1,0 +1,75 @@
+# CarinaeOS - ecra de arranque: fundo preto, a estrela ao centro (aparece
+# devagar) e, por baixo, uma barra fina de progresso, como no Mac.
+# Tudo e calculado a partir da resolucao do ecra (nitido em 4K).
+
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+
+L = Window.GetWidth();
+A = Window.GetHeight();
+esc = A / 1080;
+if (esc < 0.5) esc = 0.5;
+
+# estrela
+tam = Math.Int(170 * esc);
+estrela.imagem = Image("logo.png").Scale(tam, tam);
+estrela.sprite = Sprite(estrela.imagem);
+estrela.x = Window.GetX() + L / 2 - tam / 2;
+estrela.y = Window.GetY() + A / 2 - tam / 2 - Math.Int(40 * esc);
+estrela.sprite.SetPosition(estrela.x, estrela.y, 10);
+estrela.sprite.SetOpacity(0);
+estrela.opacidade = 0;
+
+# barra de progresso (so no arranque; ao desligar fica so a estrela)
+barra.largura = Math.Int(240 * esc);
+barra.altura = Math.Int(5 * esc);
+if (barra.altura < 3) barra.altura = 3;
+barra.x = Window.GetX() + L / 2 - barra.largura / 2;
+barra.y = estrela.y + tam + Math.Int(70 * esc);
+barra.cheia = Image("barra-cheia.png");
+barra.fundo = Sprite(Image("barra-fundo.png").Scale(barra.largura, barra.altura));
+barra.fundo.SetPosition(barra.x, barra.y, 10);
+barra.frente = Sprite();
+barra.frente.SetPosition(barra.x, barra.y, 11);
+barra.mostrar = (Plymouth.GetMode() == "boot");
+barra.fundo.SetOpacity(0);
+barra.frente.SetOpacity(0);
+
+fun ao_atualizar()
+{
+  if (estrela.opacidade < 1)
+  {
+    estrela.opacidade += 0.04;
+    if (estrela.opacidade > 1) estrela.opacidade = 1;
+    estrela.sprite.SetOpacity(estrela.opacidade);
+    if (barra.mostrar)
+    {
+      barra.fundo.SetOpacity(estrela.opacidade);
+      barra.frente.SetOpacity(estrela.opacidade);
+    }
+  }
+}
+Plymouth.SetRefreshFunction(ao_atualizar);
+
+fun ao_progredir(duracao, progresso)
+{
+  if (!barra.mostrar) return;
+  w = Math.Int(barra.largura * progresso);
+  if (w < barra.altura) w = barra.altura;
+  barra.frente.SetImage(barra.cheia.Scale(w, barra.altura));
+}
+Plymouth.SetBootProgressFunction(ao_progredir);
+
+# pedido de palavra-passe (discos cifrados): mostra pontos por baixo da estrela
+pontos.sprite = Sprite();
+fun ao_pedir_senha(prompt, bullets)
+{
+  t = "";
+  for (i = 0; i < bullets; i++) t += "•";
+  pontos.sprite.SetImage(Image.Text(prompt + "  " + t, 1, 1, 1, 1));
+  pontos.sprite.SetPosition(Window.GetX() + L / 2 - pontos.sprite.GetImage().GetWidth() / 2, barra.y + Math.Int(40 * esc), 12);
+  pontos.sprite.SetOpacity(1);
+}
+Plymouth.SetDisplayPasswordFunction(ao_pedir_senha);
+fun ao_normal() { pontos.sprite.SetOpacity(0); }
+Plymouth.SetDisplayNormalFunction(ao_normal);
