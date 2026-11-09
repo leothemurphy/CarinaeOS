@@ -79,7 +79,7 @@ ApplicationWindow {
     component Acao: Item {
         id: ac
         property var app
-        width: 140; height: 34
+        width: 196; height: 34
         // a instalar / remover: barra de progresso
         Rectangle {
             visible: ac.app.fila !== ""
@@ -98,8 +98,12 @@ ApplicationWindow {
             }
             Text {
                 anchors.centerIn: parent
-                text: (ac.app.fila === "instalando" ? "A instalar " : "A remover ") + ac.app.progresso + "%"
-                color: "white"; font.pixelSize: 12; font.weight: Font.DemiBold
+                width: parent.width - 8
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
+                text: ac.app.fila === "removendo" ? "A remover…"
+                      : (ac.app.progresso > 0 ? ac.app.progresso + "%" : "A baixar") + (ac.app.detalhe ? " · " + ac.app.detalhe : "")
+                color: "white"; font.pixelSize: 11; font.weight: Font.DemiBold
             }
         }
         Row {
@@ -196,8 +200,11 @@ ApplicationWindow {
         }
         Text {
             anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right; anchors.margins: 22
-            text: orbita.estado !== "" ? orbita.estado : "Aplicativos do Flathub, instalados só para si."
-            color: janela.textoSuave; font.pixelSize: 11; wrapMode: Text.WordWrap
+            text: orbita.estado !== "" ? orbita.estado
+                  : orbita.aoVivo ? "Está a usar o CarinaeOS sem instalar: os aplicativos ficam na memória e desaparecem ao desligar. Para os guardar, instale primeiro o CarinaeOS no disco."
+                  : "Aplicativos do Flathub, instalados só para si."
+            color: orbita.aoVivo && orbita.estado === "" ? janela.ambar : janela.textoSuave
+            font.pixelSize: 11; wrapMode: Text.WordWrap
         }
     }
 

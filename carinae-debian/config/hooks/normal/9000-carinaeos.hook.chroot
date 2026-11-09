@@ -128,6 +128,14 @@ flatpak update --appstream flathub || true
 # ---- Ceu vivo: servico do utilizador (desligado ate ser ligado no Supernova) ---
 chmod 755 /usr/bin/carinaeos-* || true
 
+# Busca como o Spotlight: Ctrl+Espaco abre o KRunner no centro do ecra
+K=/usr/share/applications/org.kde.krunner.desktop
+if [ -f "$K" ]; then
+    sed -i 's/^X-KDE-Shortcuts=.*/X-KDE-Shortcuts=Ctrl+Space,Alt+Space,Alt+F2,Search/' "$K"
+    grep -q '^X-KDE-Shortcuts=' "$K" || echo 'X-KDE-Shortcuts=Ctrl+Space,Alt+Space,Alt+F2,Search' >> "$K"
+    [ -d /usr/share/kglobalaccel ] && cp "$K" /usr/share/kglobalaccel/ || true
+fi
+
 # ---- ecra de arranque (Plymouth) ------------------------------------------------
 plymouth-set-default-theme carinaeos
 update-initramfs -u -k all

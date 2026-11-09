@@ -95,10 +95,22 @@ def plasma_script(js):
     correr(['qdbus6', 'org.kde.plasmashell', '/PlasmaShell', 'org.kde.PlasmaShell.evaluateScript', js])
 
 
+DOCK_JSON = os.path.expanduser('~/.config/carinaeos-dock.json')
+
+
+def _dock_json():
+    try:
+        with open(DOCK_JSON, encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
 def dock_ler(chave, padrao):
-    # a Dock guarda a configuracao no ficheiro de applets do Plasma:
-    # [Containments][N][Applets][M] plugin=org.carinaeos.dock
-    # [Containments][N][Applets][M][Configuration][General] chave=valor
+    # 1) o que o Supernova escreveu; 2) a configuracao guardada pelo Plasma
+    d = _dock_json()
+    if chave in d:
+        return str(d[chave]).lower() if isinstance(d[chave], bool) else str(d[chave])
     f = os.path.expanduser('~/.config/plasma-org.kde.plasma.desktop-appletsrc')
     try:
         grupos, grupo = {}, None
@@ -120,11 +132,14 @@ def dock_ler(chave, padrao):
 
 
 def dock_escrever(chave, valor):
-    v = json.dumps(valor)
-    plasma_script(
-        'panels().forEach(function(p){p.widgets().forEach(function(w){'
-        'if(w.type=="org.carinaeos.dock"){w.currentConfigGroup=["General"];'
-        'w.writeConfig("%s",%s);w.reloadConfig();}});});' % (chave, v))
+    # a Dock verifica este ficheiro a cada segundo e aplica logo as mudancas
+    d = _dock_json()
+    d[chave] = valor
+    os.makedirs(os.path.dirname(DOCK_JSON), exist_ok=True)
+    tmp = DOCK_JSON + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(d, f)
+    os.replace(tmp, DOCK_JSON)
 
 
 # ---- Ceu vivo: servico do systemd do utilizador ---------------------------------

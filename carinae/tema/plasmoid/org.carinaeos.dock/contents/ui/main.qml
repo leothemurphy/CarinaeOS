@@ -16,6 +16,7 @@ import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
 import org.kde.taskmanager as TaskManager
+import org.kde.plasma.plasma5support as P5Support
 
 PlasmoidItem {
     id: dock
@@ -35,7 +36,8 @@ PlasmoidItem {
 
     readonly property int fixadas: tasksModel.launcherList.length
     readonly property int meio: Math.ceil(fixadas / 2)           // a estrela fica aqui
-    readonly property int slots: tasksModel.count + 1 + (lixeira ? 1 : 0)
+    // apps + estrela + [Downloads + lixeira]
+    readonly property int slots: tasksModel.count + 1 + (lixeira ? 2 : 0)
     readonly property real larguraRepouso: slots * (base + espaco) + espaco + (lixeira ? separador : 0)
     // espaço reservado para a ampliação (o painel não muda de tamanho)
     readonly property real folga: base * (zoom - 1) * 2.6
@@ -62,7 +64,7 @@ PlasmoidItem {
 
     function centroRepouso(slot: int): real {
         let x = espaco + slot * (base + espaco) + base / 2;
-        if (lixeira && slot === slots - 1) {
+        if (lixeira && slot >= slots - 2) {
             x += separador;
         }
         return x;
@@ -123,6 +125,38 @@ PlasmoidItem {
         }
     }
 
+    // ---- definições vindas do Supernova -------------------------------------
+    // o Supernova escreve ~/.config/carinaeos-dock.json; a Dock lê-o e aplica.
+    property string ultimaConfig: ""
+    P5Support.DataSource {
+        id: leitor
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            const txt = (dados["stdout"] || "").trim();
+            if (!txt || txt === dock.ultimaConfig) return;
+            dock.ultimaConfig = txt;
+            try {
+                const c = JSON.parse(txt);
+                const conf = Plasmoid.configuration;
+                if (c.iconSize !== undefined && conf.iconSize !== c.iconSize) conf.iconSize = c.iconSize;
+                if (c.zoom !== undefined && Math.abs(conf.zoom - c.zoom) > 0.001) conf.zoom = c.zoom;
+                if (c.bounce !== undefined && conf.bounce !== c.bounce) conf.bounce = c.bounce;
+                if (c.showTrash !== undefined && conf.showTrash !== c.showTrash) conf.showTrash = c.showTrash;
+            } catch (e) {
+                console.warn("carinaeos-dock.json inválido:", e);
+            }
+        }
+    }
+    Timer {
+        interval: 1200
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: leitor.connectSource("cat \"$HOME/.config/carinaeos-dock.json\" 2>/dev/null")
+    }
+
     // ---- Launchpad: estrela da Dock e tecla Meta ----------------------------
     Lancador {
         id: lancador
@@ -148,16 +182,20 @@ PlasmoidItem {
         width: fila.width + dock.espaco
         height: dock.base + dock.margem * 2
         radius: Math.round(height * 0.3)
-        color: Qt.rgba(0.09, 0.08, 0.13, 0.58)
-        border.color: Qt.rgba(1, 1, 1, 0.16)
+        // vidro fosco claro, como no macOS: deixa ver o papel de parede
+        gradient: Gradient {
+            GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0.26) }
+            GradientStop { position: 1; color: Qt.rgba(1, 1, 1, 0.16) }
+        }
+        border.color: Qt.rgba(1, 1, 1, 0.38)
         border.width: 1
-        Rectangle {     // brilho subtil na aresta de cima, como vidro
+        Rectangle {     // sombra suave por baixo do vidro
+            z: -1
             anchors.fill: parent
-            anchors.margins: 1
-            radius: parent.radius - 1
-            color: "transparent"
-            border.color: Qt.rgba(1, 1, 1, 0.06)
-            border.width: 1
+            anchors.topMargin: 2
+            anchors.bottomMargin: -2
+            radius: parent.radius
+            color: Qt.rgba(0, 0, 0, 0.12)
         }
     }
 
@@ -235,6 +273,11 @@ PlasmoidItem {
                 height: dock.base * 0.8
                 color: Qt.rgba(1, 1, 1, 0.25)
             }
+        }
+        Pilha {
+            visible: dock.lixeira
+            dock: dock
+            slot: dock.slots - 2
         }
         Item {
             id: lixo

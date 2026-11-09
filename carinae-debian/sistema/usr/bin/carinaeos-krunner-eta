@@ -1,0 +1,48 @@
+#!/usr/bin/python3
+# CarinaeOS — "Perguntar à Eta" na busca (Ctrl+Espaço / KRunner)
+import subprocess
+
+import dbus
+import dbus.service
+from dbus.mainloop.glib import DBusGMainLoop
+from gi.repository import GLib
+
+SERVICO = 'org.carinaeos.eta.runner'
+IFACE = 'org.kde.krunner1'
+PERGUNTAS = ('como', 'onde', 'qual', 'quais', 'porque', 'por que', 'o que', 'eta', 'ajuda',
+             'liga', 'desliga', 'ativa', 'desativa', 'muda', 'mudar', 'aumenta', 'diminui',
+             'procura', 'encontra', 'acha')
+
+
+class Runner(dbus.service.Object):
+    def __init__(self):
+        DBusGMainLoop(set_as_default=True)
+        nome = dbus.service.BusName(SERVICO, dbus.SessionBus())
+        super().__init__(nome, '/runner')
+
+    @dbus.service.method(IFACE, in_signature='s', out_signature='a(sssida{sv})')
+    def Match(self, consulta):
+        q = consulta.strip()
+        if len(q) < 3:
+            return []
+        b = q.lower()
+        if b.startswith('eta '):
+            q = q[4:].strip()
+        pergunta = b.endswith('?') or any(b.startswith(p + ' ') for p in PERGUNTAS)
+        relevancia = 0.9 if pergunta else 0.2
+        tipo = 70 if pergunta else 30
+        return [(q, 'Perguntar à Eta: “%s”' % q, 'carinaeos-eta', tipo, relevancia,
+                 {'subtext': 'O assistente do CarinaeOS responde ou faz por si'})]
+
+    @dbus.service.method(IFACE, out_signature='a(sss)')
+    def Actions(self):
+        return []
+
+    @dbus.service.method(IFACE, in_signature='ss')
+    def Run(self, ident, acao):
+        subprocess.Popen(['carinaeos-eta', ident], start_new_session=True)
+
+
+if __name__ == '__main__':
+    Runner()
+    GLib.MainLoop().run()

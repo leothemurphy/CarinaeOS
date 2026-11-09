@@ -1,0 +1,10 @@
+[General]
+FreeFloating=true
+ActivateWhenTypingOnDesktop=true
+historyBehavior=CompletionSuggestion
+
+[Plugins]
+baloosearchEnabled=true
+calculatorEnabled=true
+unitconverterEnabled=true
+carinaeos-etaEnabled=true

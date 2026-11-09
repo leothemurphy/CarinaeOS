@@ -4,6 +4,7 @@
 # senha de administrador e aparecem logo no Launchpad.
 import os
 import re
+import shlex
 import sys
 
 sys.path.insert(0, '/usr/share/carinaeos/comum')
@@ -99,6 +100,13 @@ class Orbita(QObject):
         self._instalados = set()
         self._fila = {}            # id -> 'instalando' | 'removendo'
         self._progresso = {}       # id -> 0..100
+        self._detalhe = {}         # id -> texto curto (MB baixados, passo)
+        self._rede0 = {}           # id -> bytes recebidos no inicio
+        self._passo = {}           # id -> 'n/m'
+        self._ao_vivo = 'boot=live' in open('/proc/cmdline').read()
+        self._relogio = QTimer(self)
+        self._relogio.setInterval(1000)
+        self._relogio.timeout.connect(self._medir)
         self._pronto = False
         self._estado = 'A preparar a loja…'
         self._resultados = []
@@ -131,7 +139,8 @@ class Orbita(QObject):
     def _app(self, ident, nome, desc):
         return dict(id=ident, nome=nome, desc=desc, icone=icone_de(ident),
                     instalado=ident in self._instalados,
-                    fila=self._fila.get(ident, ''), progresso=self._progresso.get(ident, 0))
+                    fila=self._fila.get(ident, ''), progresso=self._progresso.get(ident, 0),
+                    detalhe=self._detalhe.get(ident, ''))
 
     def _categorias(self):
         return [dict(id=cid, nome=nome, icone=ic, apps=[self._app(*a) for a in apps]) for cid, nome, ic, apps in C]
@@ -154,31 +163,84 @@ class Orbita(QObject):
     resultados = Property('QVariantList', lambda s: [s._app(*a) for a in s._resultados], notify=mudou)
     estado = Property(str, lambda s: s._estado, notify=mudou)
     pronto = Property(bool, lambda s: s._pronto, notify=mudou)
+    aoVivo = Property(bool, lambda s: s._ao_vivo, constant=True)
 
     # ---- acoes -----------------------------------------------------------------
+    @staticmethod
+    def _bytes_rede():
+        # total recebido em todas as interfaces (menos lo): mostra quanto ja baixou
+        total = 0
+        try:
+            for l in open('/proc/net/dev').readlines()[2:]:
+                nome, dados = l.split(':', 1)
+                if nome.strip() != 'lo':
+                    total += int(dados.split()[0])
+        except Exception:
+            pass
+        return total
+
+    def _medir(self):
+        if not self._fila:
+            self._relogio.stop()
+            return
+        agora = self._bytes_rede()
+        for ident, tipo in self._fila.items():
+            if tipo != 'instalando':
+                continue
+            mb = max(0, agora - self._rede0.get(ident, agora)) / 1048576
+            partes = []
+            if self._passo.get(ident):
+                partes.append('passo ' + self._passo[ident])
+            partes.append(('%.0f MB' % mb) if mb < 1000 else ('%.2f GB' % (mb / 1024)))
+            self._detalhe[ident] = ' · '.join(partes)
+        self.mudou.emit()
+
     def _correr_flatpak(self, ident, args, tipo):
         self._fila[ident] = tipo
         self._progresso[ident] = 0
+        self._detalhe[ident] = 'a preparar…'
+        self._passo.pop(ident, None)
+        self._rede0[ident] = self._bytes_rede()
         self.mudou.emit()
         p = QProcess(self)
         p.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+        env = p.processEnvironment()
+        if env.isEmpty():
+            from PySide6.QtCore import QProcessEnvironment
+            env = QProcessEnvironment.systemEnvironment()
+        env.insert('COLUMNS', '200')
+        env.insert('LC_ALL', 'C.UTF-8')       # mensagens previsiveis para ler o progresso
+        p.setProcessEnvironment(env)
         p.readyReadStandardOutput.connect(lambda: self._ler_progresso(ident, p))
         p.finished.connect(lambda codigo, *a: self._terminou(ident, tipo, codigo, p))
         self._proc[ident] = p
-        p.start('flatpak', args)
+        # o flatpak so mostra a percentagem quando acha que esta num terminal:
+        # o "script" da-lhe um terminal falso, e lemos a saida dele.
+        cmd = ' '.join(['flatpak'] + [shlex.quote(a) for a in args])
+        p.start('script', ['-qfec', cmd, '/dev/null'])
+        self._relogio.start()
 
     def _ler_progresso(self, ident, p):
         txt = bytes(p.readAllStandardOutput()).decode(errors='ignore')
+        self._saida = getattr(self, '_saida', {})
+        self._saida[ident] = (self._saida.get(ident, '') + txt)[-4000:]
         m = re.findall(r'(\d{1,3})%', txt)
         if m:
             self._progresso[ident] = min(100, int(m[-1]))
+        n = re.findall(r'(?:Installing|Updating|Uninstalling|Instalando|A instalar)\s+(\d+)/(\d+)', txt)
+        if n:
+            self._passo[ident] = '%s/%s' % n[-1]
+        if m or n:
             self.mudou.emit()
 
     def _terminou(self, ident, tipo, codigo, p):
         self._fila.pop(ident, None)
         self._proc.pop(ident, None)
+        self._detalhe.pop(ident, None)
         if codigo != 0:
-            saida = bytes(p.readAll()).decode(errors='ignore').strip().splitlines()
+            bruto = getattr(self, '_saida', {}).get(ident, '') + bytes(p.readAll()).decode(errors='ignore')
+            bruto = re.sub(r'\x1b\[[0-9;?]*[A-Za-z]', '', bruto).replace('\r', '\n')
+            saida = [l.strip() for l in bruto.splitlines() if l.strip()]
             self.aviso.emit('Não foi possível %s. %s' % ('instalar' if tipo == 'instalando' else 'remover',
                                                           saida[-1] if saida else ''))
         self.ler_instalados()

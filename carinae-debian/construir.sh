@@ -34,8 +34,28 @@ install -m644 arte/grub.png                   $U/carinaeos/grub.png
 install -m644 arte/calamares-*.png            $I/etc/calamares/branding/carinaeos/
 
 # Dock: lancadores das aplicacoes que existem nesta edicao
-sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:org.kde.gwenview.desktop,applications:org.kde.okular.desktop,applications:carinaeos-orbita.desktop,applications:carinaeos-supernova.desktop,applications:systemsettings.desktop</default>#' \
+sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:org.kde.gwenview.desktop,applications:org.kde.okular.desktop,applications:carinaeos-orbita.desktop,applications:carinaeos-supernova.desktop,applications:carinaeos-eta.desktop,applications:systemsettings.desktop</default>#' \
   $U/plasma/plasmoids/org.carinaeos.dock/contents/config/main.xml
+
+# ---- Eta: motor de IA local (llama.cpp, so o servidor, para CPU) -----------------
+# compilado aqui (Debian 13) uma vez e guardado em cache; o modelo e baixado pelo
+# usuario na primeira vez que ativa a IA (1,1 GB)
+LLAMA_VERSAO=b12233
+LC=cache/llama-$LLAMA_VERSAO
+if [ ! -x $LC/llama-server ]; then
+  rm -rf cache/llama-src && mkdir -p cache
+  git clone -q --depth 1 --branch $LLAMA_VERSAO https://github.com/ggml-org/llama.cpp cache/llama-src
+  cmake -S cache/llama-src -B cache/llama-src/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF \
+        -DLLAMA_CURL=OFF -DBUILD_SHARED_LIBS=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF \
+        -DLLAMA_BUILD_SERVER=ON >/dev/null
+  cmake --build cache/llama-src/build --target llama-server -j"$(nproc)"
+  mkdir -p $LC && install -m755 cache/llama-src/build/bin/llama-server $LC/
+  cp cache/llama-src/LICENSE $LC/LICENSE
+  rm -rf cache/llama-src
+fi
+install -d $I/opt/carinaeos/llama
+install -m755 $LC/llama-server $I/opt/carinaeos/llama/
+install -m644 $LC/LICENSE $I/opt/carinaeos/llama/LICENSE
 
 # ---- menus de arranque da ISO (BIOS: syslinux; UEFI: GRUB) ----------------------
 B=config/bootloaders

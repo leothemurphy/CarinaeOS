@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="orbe" cx="40%" cy="35%" r="75%">
+      <stop offset="0" stop-color="#ffd9b8"/>
+      <stop offset="0.35" stop-color="#ff9a7a"/>
+      <stop offset="0.7" stop-color="#c8487c"/>
+      <stop offset="1" stop-color="#5a2a86"/>
+    </radialGradient>
+    <radialGradient id="brilho" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="aro" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".05"/>
+    </linearGradient>
+  </defs>
+  <!-- bolha de conversa: orbe com uma pequena ponta em baixo a esquerda -->
+  <path d="M128 18 C189 18 238 67 238 128 C238 189 189 238 128 238 C104 238 82 231 64 218 L28 232 L40 196 C26 177 18 153 18 128 C18 67 67 18 128 18Z" fill="url(#orbe)"/>
+  <path d="M128 18 C189 18 238 67 238 128 C238 189 189 238 128 238 C104 238 82 231 64 218 L28 232 L40 196 C26 177 18 153 18 128 C18 67 67 18 128 18Z" fill="none" stroke="url(#aro)" stroke-width="4"/>
+  <ellipse cx="96" cy="74" rx="46" ry="26" fill="#fff" opacity=".18" transform="rotate(-28 96 74)"/>
+  <circle cx="128" cy="128" r="54" fill="url(#brilho)" opacity=".55"/>
+  <!-- estrela -->
+  <path d="M128 70 C132 112 144 124 186 128 C144 132 132 144 128 186 C124 144 112 132 70 128 C112 124 124 112 128 70Z" fill="#fff"/>
+  <path d="M184 62 C185 72 188 75 198 76 C188 77 185 80 184 90 C183 80 180 77 170 76 C180 75 183 72 184 62Z" fill="#fff" opacity=".9"/>
+</svg>

@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.carinaeos.eta.runner
+Exec=/usr/bin/carinaeos-krunner-eta

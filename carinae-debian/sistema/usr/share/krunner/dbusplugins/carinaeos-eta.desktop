@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Eta
+Comment=Perguntar à Eta, o assistente do CarinaeOS
+Type=Service
+Icon=carinaeos-eta
+X-KDE-PluginInfo-Name=carinaeos-eta
+X-KDE-PluginInfo-EnabledByDefault=true
+X-Plasma-API=DBus
+X-Plasma-DBusRunner-Service=org.carinaeos.eta.runner
+X-Plasma-DBusRunner-Path=/runner
+X-Plasma-Request-Actions-Once=true
+X-Plasma-Runner-Min-Letter-Count=3

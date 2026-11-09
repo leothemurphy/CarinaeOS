@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Eta
+GenericName=Assistente do sistema
+Comment=Converse, encontre arquivos e mude configurações com ajuda
+Exec=carinaeos-eta
+Icon=carinaeos-eta
+Categories=Utility;System;
+Keywords=assistente;ia;ajuda;chat;procurar;arquivos;perguntar;
+StartupWMClass=carinaeos-eta
+X-KDE-Shortcuts=Meta+Space
