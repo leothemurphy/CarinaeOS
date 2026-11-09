@@ -132,7 +132,12 @@ PlasmoidItem {
     function abrirMenu(): void {
         lancador.toggle();
     }
-    Plasmoid.onActivated: lancador.toggle()
+    Connections {
+        target: Plasmoid
+        function onActivated(): void {
+            lancador.toggle();
+        }
+    }
 
     // ---- vidro por baixo dos ícones -------------------------------------------
     Rectangle {

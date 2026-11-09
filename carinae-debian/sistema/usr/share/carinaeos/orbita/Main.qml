@@ -57,14 +57,18 @@ ApplicationWindow {
         property bool principal: true
         signal clicado()
         width: Math.max(96, t.implicitWidth + 32); height: 34; radius: 17
-        gradient: principal ? grad : null
         color: principal ? "transparent" : (r.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08))
         border.color: principal ? "transparent" : Qt.rgba(1, 1, 1, 0.14)
-        Gradient {
-            id: grad
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0; color: janela.rosa }
-            GradientStop { position: 1; color: janela.ambar }
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            visible: b.principal
+            opacity: r.containsMouse ? 1 : 0.92
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0; color: janela.rosa }
+                GradientStop { position: 1; color: janela.ambar }
+            }
         }
         Text { id: t; anchors.centerIn: parent; text: b.rotulo; color: b.principal ? "#1a0f14" : janela.texto; font.weight: Font.Bold; font.pixelSize: 13 }
         MouseArea { id: r; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: b.clicado() }

@@ -99,6 +99,21 @@ sed -E '/^(Name|GenericName)(\[[^]]*\])?=/d' /usr/share/applications/org.kde.dol
   | sed '0,/^\[Desktop Entry\]$/s//[Desktop Entry]\nName=Arquivos\nGenericName=Gerenciador de arquivos/' \
   > /usr/local/share/applications/org.kde.dolphin.desktop
 
+# ---- senhas simples: um PIN de 4 a 6 numeros basta para entrar no sistema -------
+sed -i -E 's/(pam_unix\.so) obscure /\1 minlen=4 /' /etc/pam.d/common-password
+python3 - <<'EOT'
+import re
+p = '/etc/calamares/modules/users.conf'
+s = open(p).read()
+s = re.sub(r'passwordRequirements:.*?(?=\n\S|\Z)', """passwordRequirements:
+    nonempty: true
+    minLength: 4
+    maxLength: -1
+allowWeakPasswords: true
+allowWeakPasswordsDefault: true""", s, flags=re.S)
+open(p, 'w').write(s)
+EOT
+
 # ---- instalador --------------------------------------------------------------------
 sed -i 's/^branding: .*/branding: carinaeos/' /etc/calamares/settings.conf
 for f in /usr/share/applications/calamares-install-debian.desktop /etc/xdg/autostart/calamares-desktop-icon.desktop; do

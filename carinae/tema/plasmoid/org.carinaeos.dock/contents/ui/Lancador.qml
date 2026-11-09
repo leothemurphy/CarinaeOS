@@ -40,8 +40,7 @@ Kicker.DashboardWindow {
         return t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
     }
 
-    Kicker.RootModel {
-        id: raiz
+    readonly property Kicker.RootModel raiz: Kicker.RootModel {
         autoPopulate: false
         appletInterface: lp.dock
         flat: true
@@ -52,36 +51,8 @@ Kicker.DashboardWindow {
         showTopLevelItems: false
         showRecentApps: false
         showRecentDocs: false
-        onRefreshed: recolha.model = raiz.modelForRow(0)
+        onRefreshed: recolha.model = lp.raiz.modelForRow(0)
         Component.onCompleted: refresh()
-    }
-
-    // lê nomes e ícones do modelo para uma lista simples
-    Item {
-        visible: false
-        Repeater {
-            id: recolha
-            onCountChanged: juntar.restart()
-            delegate: Item {
-                required property int index
-                required property var model
-                readonly property var dados: ({ nome: model.display, icone: model.decoration, linha: index })
-            }
-        }
-        Timer {
-            id: juntar
-            interval: 50
-            onTriggered: {
-                const l = [];
-                for (let i = 0; i < recolha.count; ++i) {
-                    const it = recolha.itemAt(i);
-                    if (it && it.dados.nome) {
-                        l.push(it.dados);
-                    }
-                }
-                lp.itens = l;
-            }
-        }
     }
 
     function abrir(app: var): void {
@@ -102,10 +73,11 @@ Kicker.DashboardWindow {
     onVisibleChanged: {
         if (visible) {
             busca.text = "";
+            busca.forceActiveFocus();
             paginas.positionViewAtIndex(0, ListView.Beginning);
             paginas.currentIndex = 0;
             entrada.restart();
-            raiz.refresh();
+            lp.raiz.refresh();
         }
     }
 
@@ -121,6 +93,34 @@ Kicker.DashboardWindow {
         readonly property int linhas: Math.max(3, Math.min(5, Math.floor((height - icone * 3.2) / celulaA)))
         readonly property int porPagina: colunas * linhas
         readonly property int nPaginas: Math.max(1, Math.ceil(lp.visiveis.length / porPagina))
+
+        // lê nomes e ícones do modelo para uma lista simples
+        Item {
+            visible: false
+            Repeater {
+                id: recolha
+                onCountChanged: juntar.restart()
+                delegate: Item {
+                    required property int index
+                    required property var model
+                    readonly property var dados: ({ nome: model.display, icone: model.decoration, linha: index })
+                }
+            }
+            Timer {
+                id: juntar
+                interval: 50
+                onTriggered: {
+                    const l = [];
+                    for (let i = 0; i < recolha.count; ++i) {
+                        const it = recolha.itemAt(i);
+                        if (it && it.dados.nome) {
+                            l.push(it.dados);
+                        }
+                    }
+                    lp.itens = l;
+                }
+            }
+        }
 
         // fundo: a imagem da área de trabalho desfocada e escurecida
         Image {
