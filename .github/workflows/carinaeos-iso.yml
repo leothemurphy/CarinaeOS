@@ -2,13 +2,14 @@
 # servidores do GitHub e publica-a como "release" (em partes de 1,9 GB, porque o
 # GitHub nao aceita ficheiros maiores do que 2 GB).
 # Correr: separador "Actions" -> "CarinaeOS ISO" -> "Run workflow",
-# ou enviar uma etiqueta git com o nome carinaeos-v<versao>.
+# ou alterar o ficheiro carinae-debian/VERSAO (a versao publicada e o que la estiver).
 name: CarinaeOS ISO
 
 on:
   workflow_dispatch:
   push:
-    tags: ['carinaeos-v*']
+    branches: [main]
+    paths: ['carinae-debian/VERSAO']
 
 permissions:
   contents: write
@@ -44,9 +45,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG=${GITHUB_REF_NAME}
-          case "$TAG" in carinaeos-v*) ;; *) TAG=carinaeos-teste-${GITHUB_RUN_NUMBER} ;; esac
           cd carinae-debian
+          TAG=carinaeos-v$(head -1 VERSAO | tr -d ' \n')
+          [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && TAG=$TAG-teste-$GITHUB_RUN_NUMBER
           gh release create "$TAG" --title "CarinaeOS ($TAG)" --prerelease \
             --notes "ISO do CarinaeOS. Descarregue todas as partes e junte-as (instrucoes no README da pasta carinae-debian)." \
             CarinaeOS-1.0-amd64.iso.parte* CarinaeOS-1.0-amd64.iso.sha256
