@@ -1,3 +1,0 @@
-#!/bin/sh
-# Atualiza o initramfs para levar a tela de boot do AtriumOS
-update-initramfs -u -k all || true

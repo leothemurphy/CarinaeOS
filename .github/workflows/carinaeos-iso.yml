@@ -49,5 +49,5 @@ jobs:
           TAG=carinaeos-v$(head -1 VERSAO | tr -d ' \n')
           [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && TAG=$TAG-teste-$GITHUB_RUN_NUMBER
           gh release create "$TAG" --title "CarinaeOS ($TAG)" --prerelease \
-            --notes "ISO do CarinaeOS. Descarregue todas as partes e junte-as (instrucoes no README da pasta carinae-debian)." \
+            --notes-file ../.github/notas-da-versao.md \
             CarinaeOS-1.0-amd64.iso.parte* CarinaeOS-1.0-amd64.iso.sha256

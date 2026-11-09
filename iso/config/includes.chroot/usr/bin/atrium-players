@@ -1,7 +1,0 @@
-#!/bin/sh
-# AtriumOS — este computador como caixa de som para o Music Assistant (Squeezelite) e para o Home Assistant (DLNA)
-NOME="AtriumOS ($(hostname))"
-sleep 5
-command -v squeezelite >/dev/null && squeezelite -n "$NOME" -o default -C 5 >/dev/null 2>&1 &
-command -v gmediarender >/dev/null && gmediarender -f "$NOME" -u "$(sed -E 's/(.{8})(.{4})(.{4})(.{4})(.{12})/\1-\2-\3-\4-\5/' /etc/machine-id)" --gstout-audiosink=autoaudiosink >/dev/null 2>&1 &
-wait

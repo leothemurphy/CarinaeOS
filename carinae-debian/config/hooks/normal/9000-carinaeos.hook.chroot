@@ -15,9 +15,9 @@ VERSION_CODENAME=trixie
 ID=carinaeos
 ID_LIKE=debian
 LOGO=carinaeos
-HOME_URL="https://github.com/leothemurphy/atriumos"
-SUPPORT_URL="https://github.com/leothemurphy/atriumos/issues"
-BUG_REPORT_URL="https://github.com/leothemurphy/atriumos/issues"
+HOME_URL="https://github.com/leothemurphy/carinaeos"
+SUPPORT_URL="https://github.com/leothemurphy/carinaeos/issues"
+BUG_REPORT_URL="https://github.com/leothemurphy/carinaeos/issues"
 EOT
 ln -sf ../usr/lib/os-release /etc/os-release
 echo 'CarinaeOS 1.0 \n \l' > /etc/issue

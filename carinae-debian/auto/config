@@ -19,7 +19,7 @@ lb config noauto \
   --memtest none \
   --iso-application "CarinaeOS" \
   --iso-preparer "CarinaeOS" \
-  --iso-publisher "CarinaeOS - github.com/leothemurphy/atriumos" \
+  --iso-publisher "CarinaeOS - github.com/leothemurphy/carinaeos" \
   --iso-volume "CarinaeOS" \
   --image-name carinaeos \
   --bootappend-live "boot=live components quiet splash loglevel=3 locales=pt_BR.UTF-8 keyboard-layouts=pt timezone=Europe/Lisbon username=carinae user-fullname=CarinaeOS hostname=carinaeos live-config.noautologin" \

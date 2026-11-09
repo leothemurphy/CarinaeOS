@@ -1,8 +1,0 @@
-[Plymouth Theme]
-Name=AtriumOS
-Description=Logo do AtriumOS com barra de progresso
-ModuleName=script
-
-[script]
-ImageDir=/usr/share/plymouth/themes/atriumos
-ScriptFile=/usr/share/plymouth/themes/atriumos/atriumos.script

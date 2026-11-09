@@ -1,9 +1,0 @@
-[Unit]
-Description=AtriumOS: preparar os Apps Android (primeira vez)
-Wants=network-online.target
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/lib/atriumos/android-init.sh
-TimeoutStartSec=3600

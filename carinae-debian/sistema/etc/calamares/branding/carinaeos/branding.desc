@@ -13,11 +13,11 @@ strings:
     versionedName:       CarinaeOS 1.0
     shortVersionedName:  CarinaeOS 1.0
     bootloaderEntryName: CarinaeOS
-    productUrl:          https://github.com/leothemurphy/atriumos
-    supportUrl:          https://github.com/leothemurphy/atriumos/issues
-    knownIssuesUrl:      https://github.com/leothemurphy/atriumos/issues
-    releaseNotesUrl:     https://github.com/leothemurphy/atriumos
-    donateUrl:           https://github.com/leothemurphy/atriumos
+    productUrl:          https://github.com/leothemurphy/carinaeos
+    supportUrl:          https://github.com/leothemurphy/carinaeos/issues
+    knownIssuesUrl:      https://github.com/leothemurphy/carinaeos/issues
+    releaseNotesUrl:     https://github.com/leothemurphy/carinaeos
+    donateUrl:           https://github.com/leothemurphy/carinaeos
 sidebar: widget
 navigation: widget
 images:

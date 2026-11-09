@@ -1,4 +1,0 @@
-#!/bin/sh
-# AtriumOS — executa uma cena/script/luz do Home Assistant (usado pelos atalhos de teclado)
-exec curl -s -m 8 -X POST -H 'X-Atrium: 1' -H 'Origin: http://127.0.0.1:7777' \
-  -d "{\"acao\":\"executar\",\"entidade\":\"$1\"}" http://127.0.0.1:7777/api/ha >/dev/null

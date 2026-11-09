@@ -1,5 +1,0 @@
-#!/bin/sh
-# Loja de apps: Flathub
-flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || echo "AVISO: Flathub não adicionado"
-# Loja do AtriumOS: Bazaar (apps do Flathub) já instalada
-flatpak install --system -y --noninteractive flathub io.github.kolunmi.Bazaar || echo "AVISO: Bazaar não instalado; será instalado na primeira abertura"
