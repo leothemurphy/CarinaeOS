@@ -50,6 +50,44 @@ if [ ! -e $K/metadata.json ]; then
 EOT
 fi
 
+# ---- tema de icones "CarinaeOS": igual ao Breeze escuro, mas com a estrela no
+# lugar dos logotipos do KDE e do Debian (menus, "Sobre", instalador...) --------
+I=/usr/share/icons/CarinaeOS
+mkdir -p $I/scalable/apps $I/scalable/places
+cat > $I/index.theme <<'EOT'
+[Icon Theme]
+Name=CarinaeOS
+Comment=Breeze escuro com os logotipos do CarinaeOS
+Inherits=breeze-dark,breeze,hicolor
+Directories=scalable/apps,scalable/places
+
+[scalable/apps]
+Size=48
+MinSize=8
+MaxSize=512
+Type=Scalable
+Context=Applications
+
+[scalable/places]
+Size=48
+MinSize=8
+MaxSize=512
+Type=Scalable
+Context=Places
+EOT
+E=/usr/share/icons/hicolor/scalable/apps/carinaeos.svg
+S=/usr/share/icons/hicolor/scalable/apps/carinaeos-estrela.svg
+for n in start-here start-here-kde start-here-kde-plasma start-here-kde-symbolic start-here-symbolic \
+         start-here-debian distributor-logo distributor-logo-debian debian-logo emblem-debian \
+         kde plasma kde-symbolic plasma-symbolic; do
+  ln -sf $S $I/scalable/places/$n.svg
+done
+for n in distributor-logo distributor-logo-debian debian-logo install-debian kde plasma \
+         org.kde.plasma.kickerdash org.kde.plasma.kickoff org.kde.plasma.kicker; do
+  ln -sf $E $I/scalable/apps/$n.svg
+done
+gtk-update-icon-cache -qtf $I || true
+
 # ---- icones, letras ---------------------------------------------------------------
 gtk-update-icon-cache -qtf /usr/share/icons/hicolor || true
 fc-cache -f >/dev/null 2>&1 || true
