@@ -4,7 +4,6 @@ grub-efi-amd64
 grub-efi-amd64-bin
 grub-efi-amd64-signed
 shim-signed
-grub-pc
 grub-pc-bin
 efibootmgr
 os-prober

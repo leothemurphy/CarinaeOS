@@ -1,0 +1,14 @@
+#!/bin/sh
+# CarinaeOS - o grub-pc (arranque BIOS) fica no repositorio da ISO para o
+# instalador o usar sem internet. Nao pode ir na lista de pacotes da ISO junto
+# com o grub-efi-amd64 (sao incompativeis entre si), por isso entra aqui.
+set -e
+D=$(ls ../config/packages.binary/grub-pc_*.deb 2>/dev/null | head -1)
+[ -n "$D" ] || { echo "AVISO: sem grub-pc"; exit 0; }
+mkdir -p pool/main/g/grub2
+cp "$D" pool/main/g/grub2/
+for p in dists/*/main/binary-amd64; do
+  apt-ftparchive packages pool/main > $p/Packages
+  gzip -9nc $p/Packages > $p/Packages.gz
+done
+grep -c '^Package: grub-pc$' dists/*/main/binary-amd64/Packages

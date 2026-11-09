@@ -44,12 +44,18 @@ install -m644 arte/splash.png $B/isolinux/splash.png
 install -m644 arte/splash.png $B/syslinux_common/splash.png
 install -m644 arte/splash.png $B/grub-pc/splash.png
 sed -i 's/^timeout .*/timeout 50/' $B/isolinux/isolinux.cfg
-sed -i 's/^menu title .*/menu title CarinaeOS/; s/^\tmenu label \^Utilities/\tmenu label ^Utilitarios/' $B/syslinux_common/menu.cfg
+sed -i '/^menu title /d; s/^\tmenu label \^Utilities/\tmenu label ^Utilitarios/' $B/syslinux_common/menu.cfg
 sed -i 's/#76a1d0ff/#c0ffb46e/g; s/^menu tabmsg .*/menu tabmsg ENTER para iniciar, TAB para editar/; s/^menu vshift .*/menu vshift 13/' $B/syslinux_common/stdmenu.cfg
 sed -i 's/menu label \^Live system (@FLAVOUR@)/menu label ^Iniciar o CarinaeOS/; s/menu label Live system (@FLAVOUR@ fail-safe mode)/menu label CarinaeOS (modo de seguranca)/' $B/syslinux_common/live.cfg.in
 sed -i 's/^title-text:.*/title-text: ""/; s/top = 52%/top = 45%/; s/item_color = "#a8a8a8"/item_color = "#d8d0c8"/' $B/grub-pc/live-theme/theme.txt
 sed -i 's/set gfxmode=800x600/set gfxmode=800x600\nset timeout=5/' $B/grub-pc/config.cfg
 grep -q 'set timeout=5' $B/grub-pc/config.cfg || echo 'set timeout=5' >> $B/grub-pc/config.cfg
+
+# ---- instalador: o grub-pc (BIOS) entra a parte, porque nao pode ser instalado ao
+# mesmo tempo que o grub-efi-amd64 na lista de pacotes da ISO --------------------
+mkdir -p config/packages.binary
+rm -f config/packages.binary/grub-pc_*.deb
+(cd config/packages.binary && apt-get download grub-pc)
 
 # ---- construir ------------------------------------------------------------------
 lb config

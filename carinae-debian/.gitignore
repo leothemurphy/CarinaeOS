@@ -34,3 +34,4 @@ config/rootfs/
 config/package-lists/live.list.chroot
 .lock
 chroot.*
+config/packages.binary/

@@ -29,7 +29,7 @@ jobs:
         run: |
           docker run --rm --privileged -v "$PWD:/build" -w /build/carinae-debian debian:trixie bash -c '
             apt-get update &&
-            DEBIAN_FRONTEND=noninteractive apt-get install -y live-build librsvg2-bin fonts-dejavu-core &&
+            DEBIAN_FRONTEND=noninteractive apt-get install -y live-build librsvg2-bin fonts-dejavu-core apt-utils &&
             ./construir.sh'
 
       - name: Dividir e calcular somas

@@ -23,6 +23,33 @@ ln -sf ../usr/lib/os-release /etc/os-release
 echo 'CarinaeOS 1.0 \n \l' > /etc/issue
 echo 'CarinaeOS 1.0' > /etc/issue.net
 
+# ---- sem o "Centro de boas-vindas" do KDE (mascote Konqi) -------------------
+apt-get purge -y plasma-welcome || true
+
+# ---- lancador em ecra inteiro ("Application Dashboard"): o Debian traz o codigo
+# no applet kicker, mas nao a entrada org.kde.plasma.kickerdash ------------------
+K=/usr/share/plasma/plasmoids/org.kde.plasma.kickerdash
+if [ ! -e $K/metadata.json ]; then
+  mkdir -p $K
+  cat > $K/metadata.json <<'EOT'
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [ { "Name": "Eike Hein" } ],
+        "Category": "Application Launchers",
+        "Description": "Aplicações em ecrã inteiro",
+        "Icon": "carinaeos-estrela",
+        "Id": "org.kde.plasma.kickerdash",
+        "License": "GPL-2.0+",
+        "Name": "Aplicações"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-Provides": [ "org.kde.plasma.launchermenu" ],
+    "X-Plasma-RootPath": "org.kde.plasma.kicker"
+}
+EOT
+fi
+
 # ---- icones, letras ---------------------------------------------------------------
 gtk-update-icon-cache -qtf /usr/share/icons/hicolor || true
 fc-cache -f >/dev/null 2>&1 || true
