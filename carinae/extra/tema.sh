@@ -91,6 +91,26 @@ cat > /usr/share/sddm/themes/breeze/theme.conf.user << "EOT"
 [General]
 type=image
 background=/usr/share/wallpapers/CarinaeOS/contents/images/3840x2160.jpg
+showlogo=shown
+logo=/usr/share/icons/hicolor/scalable/apps/carinaeos.svg
 EOT
+fi
+
+# ---- menu de arranque (GRUB, configurado no cap. 10 do LFS) ---------------------
+# Copia de seguranca, nome "CarinaeOS" na entrada e, se o GRUB tiver fonte para
+# o modo grafico, o fundo com a estrela. Se o grub.cfg resultante nao passar no
+# grub-script-check, volta-se a copia (o arranque nunca fica em risco).
+G=/boot/grub/grub.cfg
+if [ -f $G ] && ! grep -q 'carinaeos-grub.png' $G; then
+  cp -v $G $G.antes-carinaeos
+  install -vm644 $T/grub/carinaeos-grub.png /boot/grub/carinaeos-grub.png
+  sed -i -E 's/^(menuentry +)"[^"]*"/\1"CarinaeOS"/' $G
+  if ls /boot/grub/fonts/*.pf2 >/dev/null 2>&1; then
+    F=$(ls /boot/grub/fonts/*.pf2 | head -1)
+    sed -i "0,/^menuentry/s@^menuentry@insmod all_video\ninsmod gfxterm\ninsmod png\nloadfont ${F}\nset gfxmode=auto\nterminal_output gfxterm\nbackground_image -m stretch /boot/grub/carinaeos-grub.png\nset menu_color_normal=white/black\nset menu_color_highlight=black/light-gray\n\nmenuentry@" $G
+  fi
+  if command -v grub-script-check >/dev/null && ! grub-script-check $G; then
+    echo "AVISO: grub.cfg invalido; a repor a copia"; cp -v $G.antes-carinaeos $G
+  fi
 fi
 echo "== visual do CarinaeOS instalado"
