@@ -3,8 +3,7 @@
 # Os blocos que nao se aplicam estao em carinae/decisoes.txt (revistos no livro).
 # Linhas carinae:<nome> rodam carinae/extra/<nome>.sh (passos proprios do CarinaeOS).
 #
-# Para a noite render: se um pacote falhar (mesmo depois da 2a tentativa com
-# -j1), a fila NAO para. Marca-o como falhado, salta os pacotes que dependem
+# Para a noite render: se um pacote falhar (mesmo depois da 2a tentativa), a fila NAO para. Marca-o como falhado, salta os pacotes que dependem
 # dele (carinae/fila-deps.txt) e continua com todos os outros. No fim mostra
 # o resumo. Rodar de novo refaz so o que ficou por fazer.
 cd /root
@@ -34,8 +33,16 @@ for P in "${FILA[@]}"; do
   fi
   if bash /root/carinae/blfs.sh "$P" sim < /dev/null > /dev/null 2>&1; then continue; fi
   cp /root/blfs-logs/$N.log /root/blfs-logs/$N.tentativa1.log
-  echo "   falhou; nova tentativa de $P com -j1"
-  if MAKEFLAGS=-j1 NINJAJOBS=1 bash /root/carinae/blfs.sh "$P" sim < /dev/null > /dev/null 2>&1; then continue; fi
+  # 2a tentativa: falta de memoria -> -j1; falha ao acaso (ex.: uma
+  # ferramenta que caiu a meio) -> mesmos nucleos (o -j1 levaria 3x mais)
+  if grep -qiE 'Killed|signal 9|out of memory|cannot allocate|virtual memory exhausted' /root/blfs-logs/$N.log; then
+    echo "   falhou (memoria); nova tentativa de $P com -j1"
+    J=(MAKEFLAGS=-j1 NINJAJOBS=1)
+  else
+    echo "   falhou; nova tentativa de $P"
+    J=(MAKEFLAGS=${MAKEFLAGS:--j$(nproc)})
+  fi
+  if env "${J[@]}" bash /root/carinae/blfs.sh "$P" sim < /dev/null > /dev/null 2>&1; then continue; fi
   echo "!! FALHOU $P - ultimas linhas do log (/root/blfs-logs/$N.log):"
   tail -15 /root/blfs-logs/$N.log
   FALHOU[$P]=1; falhas+=("$P")
