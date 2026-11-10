@@ -29,6 +29,7 @@ import voz as VOZ  # noqa: E402
 import casa_ha as HA  # noqa: E402
 import ambiente as AMBI  # noqa: E402
 import apps as APPS  # noqa: E402
+import memoria as MEM  # noqa: E402
 
 from PySide6.QtCore import Property, QObject, QTimer, QUrl, Signal, Slot  # noqa: E402
 
@@ -609,6 +610,9 @@ class Eta(QObject, Tarefas):
             threading.Thread(target=self._iniciar_ia, daemon=True).start()
         if HA.ligado():
             threading.Thread(target=self._atualizar_casa, daemon=True).start()
+        self._lembrancas = []          # pedacos da memoria para a pergunta atual
+        self._pergunta_atual = ''
+        threading.Thread(target=self._estudar_apps, daemon=True).start()
 
     # ---- preferencias ------------------------------------------------------------------
     CFG = os.path.join(DADOS, 'preferencias.json')
@@ -851,6 +855,10 @@ class Eta(QObject, Tarefas):
         if self._documento:
             extra = 'ARQUIVO QUE O USUARIO ENVIOU ("%s"), use-o para responder:\n%s\n' % (
                 self._documento[0], self._documento[1][:5000])
+        if self._lembrancas:
+            extra += 'O QUE VOCE APRENDEU (a sua memoria; use-a para responder, citando de onde veio):\n'
+            for _, titulo, texto, _d in self._lembrancas[:3]:
+                extra += '- [%s] %s\n' % (titulo, texto[:900])
         return PROMPT % (SISTEMA, resumo_topicos(), extra, AMBI.NOME)
 
     def _ia(self, mensagens, ao_chegar=None, max_tokens=600, geracao=None):
@@ -879,6 +887,16 @@ class Eta(QObject, Tarefas):
         return texto.strip()
 
     def _pensar(self):
+        pergunta = self._ultimo_pedido()
+        self._pergunta_atual = pergunta
+        guardada = MEM.resposta_guardada(pergunta) if len(MEM.fichas(pergunta)) >= 3 and not self._documento else None
+        if guardada:
+            texto_vis, codigo = separar_codigo(guardada)
+            self._historico.append(dict(role='assistant', content=guardada))
+            self._dizer(texto_vis, codigo=codigo)
+            self._msgs[-1]['memoria'] = True
+            return
+        self._lembrancas = [l for l in MEM.lembrar(pergunta, 3) if l[0] >= 2.0]
         geracao = self._geracao
         m = self._add(papel='eta', texto='', codigo='', escrevendo=True)
         ident = m['id']
@@ -923,6 +941,8 @@ class Eta(QObject, Tarefas):
             self._historico.append(dict(role='assistant', content=texto))
             self._trocar(ident, texto=texto_vis, codigo=codigo, escrevendo=False)
             self._talvez_falar(texto_vis)
+            if not self._documento and len(MEM.fichas(self._pergunta_atual)) >= 3:
+                threading.Thread(target=MEM.guardar_resposta, args=(self._pergunta_atual, texto), daemon=True).start()
         self.mudou.emit()
 
     @staticmethod
@@ -1106,6 +1126,9 @@ class Eta(QObject, Tarefas):
         if not m or m.get('estado') == 'cancelado':
             return
         self._trocar(ident, estado='feito' if ok else 'falhou', saida=saida, progresso=1.0 if ok else m.get('progresso', -1))
+        if ok and re.search(r'\b(apt-get install|flatpak install|apt install|pkcon)\b', self._cmd_real.get(ident, '')):
+            APPS._cache = None
+            threading.Thread(target=self._estudar_apps, args=(True,), daemon=True).start()
         self._historico.append(dict(role='user', content='RESULTADO: %s. %s' % ('feito' if ok else 'falhou', saida[:400])))
         if self._por_voz:
             self._talvez_falar('Pronto, está feito.' if ok else 'Não funcionou, veja os detalhes na janela.')
@@ -1161,6 +1184,95 @@ class Eta(QObject, Tarefas):
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # ---- conversa ----------------------------------------------------------------------------
+    # ---- memoria ---------------------------------------------------------------------------------
+    def _estudar_apps(self, avisar=False):
+        """Estuda os aplicativos instalados que ainda nao conhece (no arranque e depois de instalar algo)."""
+        try:
+            primeira = not os.path.exists(MEM.APPS_VISTOS)
+            novos, todos = MEM.apps_novos()
+            aprendidos = []
+            for c in novos:
+                d = MEM.estudar_app(c)
+                if d:
+                    aprendidos.append(d['titulo'])
+            MEM.marcar_vistos(todos)
+            if aprendidos and (avisar or not primeira):
+                self._fundo.emit(lambda nomes: self._dizer(
+                    'Estudei %s: já sei para que serve%s e como se usa. Pergunte-me, por exemplo, “como uso o %s?”.'
+                    % (', '.join(nomes[:3]) + ('…' if len(nomes) > 3 else ''), 'm' if len(nomes) > 1 else '', nomes[0]),
+                    falar=False), aprendidos)
+        except Exception:
+            pass
+
+    def _memoria_pedido(self, texto, s):
+        m = re.match(r'^(aprende|aprenda|lembra(-te)?|lembre(-se)?|memoriza|memorize|guarda na (tua |sua )?memoria|anota|anote)'
+                     r'( que| isto| isso|:)?\s+(?P<nota>.+)', texto.strip(), re.I)
+        if m and len(m.group('nota')) > 3:
+            nota = m.group('nota').strip()
+            MEM.aprender('nota:%d' % int(time.time() * 1000), nota[:70], nota, 'nota')
+            self._add(papel='feito', texto='Guardado na minha memória ✓ Vou lembrar-me disso.')
+            return True
+        m = re.match(r'^(esquece|esqueca|esqueça|apaga da (tua |sua )?memoria)\s+(.+)', s)
+        if m:
+            if re.search(r'\b(tudo|todas as respostas|respostas)\b', m.group(3)):
+                MEM.esquecer_respostas()
+                self._add(papel='feito', texto='Esqueci as respostas guardadas ✓')
+                return True
+            fora = MEM.esquecer(m.group(3))
+            self._dizer('Esqueci: %s ✓' % ', '.join(fora) if fora else 'Não encontrei nada com isso na minha memória.')
+            return True
+        if re.search(r'\bo que (voce|tu|vc) (sabe|aprendeu|lembra|guardou)|\b(sua|tua) memoria\b|\bo que aprendeste\b', s):
+            r = MEM.resumo_memoria()
+            partes = ['Sei usar %d aplicativos deste computador' % r['apps']]
+            if r['arquivos']:
+                partes.append('li %d arquivo(s): %s' % (len(r['arquivos']), ', '.join(r['arquivos'][:6])))
+            if r['notas']:
+                partes.append('tenho %d nota(s) suas: %s' % (len(r['notas']), '; '.join(r['notas'][:5])))
+            if r['respostas']:
+                partes.append('e guardei %d respostas para responder mais rápido' % r['respostas'])
+            self._dizer('; '.join(partes) + '. Para eu esquecer algo, diga “esquece …”.')
+            return True
+        # "como uso o GIMP", "o que é o Krita", "passo a passo do OBS", "ensina-me o LibreOffice"
+        if re.search(r'\b(como (uso|usar|utilizo|funciona|mexo|trabalho)|o que (e|faz)|para que serve|ensina\w*|passo a passo|tutorial|guia)\b', s):
+            app = APPS.procurar(texto)
+            d = MEM.guia_app(app[1] if app else texto)
+            if not d and app:
+                d = MEM.estudar_app(app[2])
+            if d:
+                passos = [p['t'] for p in d['pedacos']]
+                texto_guia = '\n\n'.join(passos)
+                linhas = [l for l in re.split(r'\n\n|(?<=\.)\s+(?=Para |Como |Abr|Guard|Export|Nova |Novo |Ligar |Pelo terminal)', texto_guia) if l.strip()]
+                corpo = '\n'.join('%d. %s' % (i + 1, l.strip()) for i, l in enumerate(linhas[:9]))
+                bot = [('Abrir o %s' % d['titulo'], lambda c=d.get('desktop'), n=d['titulo']: self._fazer('abrir o %s' % n, APPS.comando_abrir(c)))] \
+                    if d.get('desktop') else None
+                self._dizer('Como usar o %s:\n%s' % (d['titulo'], corpo), botoes=bot)
+                return True
+            # ainda nao instalado, mas e um dos aplicativos conhecidos: ensinar e oferecer instalar
+            chave = next((k for k in MEM.GUIAS if re.search(r'\b' + re.escape(k) + r'\b', s)), None)
+            if chave:
+                corpo = '\n'.join('%d. %s' % (i + 1, l) for i, l in enumerate(MEM.GUIAS[chave]))
+                self._dizer('Como usar o %s:\n%s\n\n(Ainda não está instalado neste computador.)' % (chave, corpo),
+                            botoes=[('Instalar o %s' % chave, lambda n=chave: self._instalar(n))])
+                return True
+        # perguntas sobre o que a pessoa me pediu para lembrar
+        notas = [l for l in MEM.lembrar(texto, 1, origem='nota') if l[0] >= 2.0]
+        if notas and re.search(r'\b(onde|qual|quando|quem|como|o que|lembras?|lembra-te|sabes)\b', s):
+            self._dizer('Lembro-me disto: “%s”' % notas[0][2])
+            return True
+        return False
+
+    def _responder_da_memoria(self, texto):
+        lembr = [l for l in MEM.lembrar(texto, 2) if l[0] >= 2.5]
+        if not lembr:
+            return False
+        pontos, titulo, trecho, d = lembr[0]
+        frases = re.split(r'(?<=[.!?])\s+', trecho)
+        q = set(MEM.fichas(texto))
+        frases.sort(key=lambda f: -len(q & set(MEM.fichas(f))))
+        resposta = ' '.join(frases[:3])[:600]
+        self._dizer('Do que aprendi em “%s”: %s' % (titulo, resposta))
+        return True
+
     def _ultimo_pedido(self):
         for m in reversed(self._msgs):
             if m.get('papel') == 'eu' and not m.get('anexo'):
@@ -1228,6 +1340,9 @@ class Eta(QObject, Tarefas):
         s = APPS.normalizar(simples(texto))
         if re.fullmatch(r'(para|pare|parar|cancela|cancelar|chega|silencio|cala(-te)?)', s):
             self.parar()
+            return
+        # 0a) memoria: aprender, esquecer, o que sabe, como usar um aplicativo
+        if self._memoria_pedido(texto, s):
             return
         # 0) como fazer pelo terminal
         if re.search(r'\b(terminal|konsole|linha de comandos?|comandos?|bash|shell|via cli)\b', s) and \
@@ -1297,9 +1412,11 @@ class Eta(QObject, Tarefas):
                 self._dizer(t['resposta'], codigo=(c['cmd'] if c else ''),
                             botoes=[(acao[0][:1].upper() + acao[0][1:], lambda a=acao: self._fazer(a[0], a[1]))] if acao else None)
                 return
-        # 6) o resto: a IA responde (se estiver ligada)
+        # 6) o resto: a IA responde (com a memoria), ou a memoria sozinha
         if self._estado == 'pronta':
             self._pensar()
+            return
+        if self._responder_da_memoria(texto):
             return
         extra = (' Para conversar sobre qualquer assunto, ative a IA completa no aviso lá em cima.'
                  if self._estado == 'sem-modelo' else '')
@@ -1415,6 +1532,8 @@ class Eta(QObject, Tarefas):
                 partes.append('%d palavras' % palavras)
             if texto.strip():
                 self._documento = (nome, texto)
+                threading.Thread(target=MEM.aprender, args=('arquivo:' + caminho, nome, texto, 'arquivo',
+                                                            ' '.join(resumo[:2])), daemon=True).start()
                 self._historico.append(dict(role='user', content='(enviei o arquivo "%s"; pode responder perguntas sobre ele)' % nome))
             if tipo == 'imagem' and not texto.strip():
                 intro = 'É uma imagem (%s). Não encontrei texto nela.' % ', '.join(partes)
@@ -1436,8 +1555,8 @@ class Eta(QObject, Tarefas):
             self._mostrar_escolhas(intro, [dict(icone=icone_arquivo(caminho), nome=nome, detalhe=' · '.join(partes),
                                                 resumo=resumo, botoes=botoes)])
             if texto.strip():
-                self._dizer('Quer que eu guarde este arquivo em alguma pasta ou que o mande para a lixeira? '
-                            'Também pode fazer-me perguntas sobre ele.')
+                self._dizer('Guardei o que aprendi deste arquivo na minha memória: pode perguntar-me sobre ele quando quiser, '
+                            'mesmo depois. Quer que eu guarde o arquivo em alguma pasta ou que o mande para a lixeira?')
         self._em_fundo(None, trabalho, depois, atividade='A ler “%s”…' % nome)
 
     def _guardar(self, caminho, pasta):

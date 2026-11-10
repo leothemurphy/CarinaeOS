@@ -127,6 +127,9 @@ ApplicationWindow {
                     MenuItem { text: (eta.modo === "comandos" ? "✓ " : "    ") + "Só mostrar os comandos"; onTriggered: eta.definirModo("comandos") }
                     MenuSeparator {}
                     MenuItem { text: (eta.falar ? "✓ " : "    ") + "Responder em voz alta quando falo"; onTriggered: eta.definirFalar(!eta.falar) }
+                    MenuSeparator {}
+                    MenuItem { text: "O que a Eta aprendeu"; onTriggered: eta.enviar("o que você aprendeu?") }
+                    MenuItem { text: "Esquecer as respostas guardadas"; onTriggered: eta.enviar("esquece as respostas") }
                     MenuItem { text: "Limpar a conversa"; onTriggered: eta.limpar() }
                 }
             }

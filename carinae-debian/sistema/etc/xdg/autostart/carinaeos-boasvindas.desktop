@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Bem-vindo ao CarinaeOS
+Exec=carinaeos-boasvindas --se-primeira-vez
+Icon=carinaeos
+NoDisplay=true
+X-GNOME-Autostart-Delay=4
+X-KDE-autostart-after=panel

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Bem-vindo
+GenericName=Conheça o CarinaeOS
+Comment=Tudo o que o CarinaeOS tem, com um botão para experimentar
+Exec=carinaeos-boasvindas
+Icon=carinaeos
+Categories=System;Utility;
+Keywords=bem-vindo;boas-vindas;ajuda;tour;novidades;
