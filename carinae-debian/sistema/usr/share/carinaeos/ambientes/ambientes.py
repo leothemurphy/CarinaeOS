@@ -19,10 +19,15 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 AO_VIVO = 'boot=live' in open('/proc/cmdline').read()
 
 AMBIENTES = [
-    dict(id='plasma', nome='KDE Plasma', icone='carinaeos-estrela', tamanho='já instalado',
-         desc='O ambiente original do CarinaeOS: Dock com lupa, Launchpad, Flip 3D, Supernova completo.',
+    dict(id='plasma', nome='CarinaeOS (estilo Mac)', icone='carinaeos-estrela', tamanho='já instalado',
+         desc='O original: barra em cima, Dock com lupa em baixo, Launchpad na estrela, Flip 3D e Supernova completo.',
          sessoes=['/usr/share/wayland-sessions/plasma.desktop', '/usr/share/xsessions/plasmax11.desktop'],
-         sessao='plasma.desktop', pacotes=[]),
+         sessao='plasma.desktop', pacotes=[], visual='org.carinaeos.desktop'),
+    dict(id='windows', nome='Estilo Windows 11', icone='start-here', tamanho='já instalado',
+         desc='Barra de tarefas em baixo com os ícones ao centro e o menu Iniciar com a estrela do CarinaeOS, '
+              'pesquisa, ícones do sistema e relógio à direita, botões das janelas à direita.',
+         sessoes=['/usr/share/wayland-sessions/plasma.desktop', '/usr/share/xsessions/plasmax11.desktop'],
+         sessao='plasma.desktop', pacotes=[], visual='org.carinaeos.windows'),
     dict(id='gnome', nome='GNOME', icone='view-app-grid', tamanho='cerca de 900 MB',
          desc='Simples e elegante, com a Dock do CarinaeOS sempre visível em baixo (Dash to Dock), '
               'tema escuro e os papéis de parede do CarinaeOS.',
@@ -38,9 +43,17 @@ AMBIENTES = [
 ]
 
 
+PENDENTE = os.path.expanduser('~/.config/carinaeos/plasma-visual-pendente')
+
+
 def atual():
     d = (os.environ.get('XDG_CURRENT_DESKTOP', '') + os.environ.get('DESKTOP_SESSION', '')).lower()
-    return 'gnome' if 'gnome' in d else 'xfce' if 'xfce' in d else 'plasma'
+    if 'gnome' in d:
+        return 'gnome'
+    if 'xfce' in d:
+        return 'xfce'
+    _, v = correr(['kreadconfig6', '--group', 'KDE', '--key', 'LookAndFeelPackage'])
+    return 'windows' if 'windows' in v else 'plasma'
 
 
 def instalado(a):
@@ -145,6 +158,22 @@ class Ambientes(QObject):
         a = next((x for x in AMBIENTES if x['id'] == ident), None)
         if not a or not instalado(a):
             return
+        if a.get('visual'):
+            if atual() in ('plasma', 'windows'):
+                # ja estamos no Plasma: muda logo, sem terminar a sessao (em segundo plano: pode demorar)
+                esq, dir_ = ('M', 'IAX') if ident == 'windows' else ('XIA', '')
+                subprocess.Popen(['bash', '-c',
+                                  'plasma-apply-lookandfeel -a %s --resetLayout; '
+                                  'kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key ButtonsOnLeft "%s"; '
+                                  'kwriteconfig6 --file kwinrc --group org.kde.kdecoration2 --key ButtonsOnRight "%s"; '
+                                  'qdbus6 org.kde.KWin /KWin reconfigure' % (a['visual'], esq, dir_)],
+                                 start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                self._mensagem = 'A mudar para o %s… (a barra muda em alguns segundos)' % a['nome']
+                self.mudou.emit()
+                return
+            os.makedirs(os.path.dirname(PENDENTE), exist_ok=True)
+            with open(PENDENTE, 'w') as f:
+                f.write(a['visual'])
         sessao = next((s for s in a['sessoes'] if os.path.exists(s)), a['sessoes'][0])
         correr(['pkexec', 'bash', '-c',
                 'mkdir -p /var/lib/sddm && f=/var/lib/sddm/state.conf; touch $f; '

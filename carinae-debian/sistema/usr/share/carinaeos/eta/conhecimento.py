@@ -150,4 +150,13 @@ TOPICOS = [
                   '"Adicionar à Dock"; ou, nos Arquivos, botão direito numa pasta > "Adicionar à Dock". Para tirar: botão direito '
                   'no ícone da Dock > "Remover do Dock". O estilo da Dock muda-se no Supernova.',
          acao=('abrir o Supernova', 'carinaeos-supernova')),
+    dict(id='etiquetas', palavras='etiqueta etiquetas tag tags cor marcar marcador organizar',
+         resposta='Para pôr uma etiqueta (como no Mac): nos Arquivos, botão direito no arquivo ou pasta > Etiquetas > escolha a cor '
+                  '(Vermelho, Laranja, Amarelo, Verde, Azul, Roxo, Cinzento) ou "Outra etiqueta…". Funciona também em pastas de rede '
+                  '(NAS, Windows). Tudo o que tem etiqueta aparece em "Etiquetas", na barra lateral dos Arquivos, separado por etiqueta.',
+         acao=('abrir as Etiquetas', 'dolphin ~/Etiquetas')),
+    dict(id='estilo', palavras='estilo windows mac barra tarefas iniciar menu aparencia layout',
+         resposta='O CarinaeOS tem dois estilos: Mac (barra em cima e Dock em baixo) e Windows 11 (barra de tarefas em baixo com o menu '
+                  'Iniciar e a estrela). Para trocar: abra "Ambiente de trabalho" e escolha "Estilo Windows 11" ou "CarinaeOS (estilo Mac)".',
+         acao=('abrir a troca de ambiente e estilo', 'carinaeos-ambientes')),
 ]

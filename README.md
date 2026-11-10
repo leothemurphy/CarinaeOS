@@ -60,6 +60,13 @@ Ela aparece no fundo de tela, e a estrela de quatro pontas é o símbolo do sist
 
 E ainda:
 
+- **Estilo Mac ou estilo Windows 11**: barra em cima e Dock em baixo, ou barra de tarefas ao centro com a estrela no menu Iniciar. E também **GNOME** e **XFCE**, instalados com um clique e sempre com a Dock visível, o tema e os papéis de parede do CarinaeOS.
+- **Casa**: o seu Home Assistant no computador (luzes, cenas, clima, sensores) e este PC como dispositivo no Home Assistant.
+- **Calendário** com a conta Google (os eventos aparecem ao clicar no relógio) e **Mapas**.
+- **Etiquetas** coloridas nos Arquivos, como no Finder, também para arquivos em pastas de rede.
+- **Papéis de parede em 8K**: fotografias do James Webb e do Hubble e desenhos originais do CarinaeOS.
+- **Boas-vindas** depois de instalar, a mostrar tudo o que o sistema tem.
+
 - **Busca rápida** (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>), como o Spotlight: encontra aplicativos,
   arquivos e configurações, faz contas, converte unidades e pode perguntar à Eta.
 - **Cadeado em pastas, arquivos e aplicativos**: clique com o botão direito → *Bloquear com senha*.
@@ -84,11 +91,19 @@ A **Eta** conhece o CarinaeOS por dentro. Pode conversar com ela em português:
 | “Liga à pasta de rede 192.168.1.20/fotos” | pede o usuário e a senha e liga-se ao NAS ou ao outro computador |
 | “Quero ligar ao Wi-Fi” | mostra as redes à volta e pede a senha |
 | “Verificar atualizações” | diz o que há para atualizar (e o que é de segurança) e instala tudo |
-| “Instala o GIMP” · “Abre o terminal” | instala pelo terminal, à sua vista, ou pelo Flathub |
+| “Instala o GIMP” · “Abre o terminal” | pergunta se faz por si ou se prefere os comandos, e mostra o andamento com um botão Parar |
+| “Como uso o LibreOffice?” | dá o passo a passo de qualquer aplicativo instalado |
+| “Lembra que…” · “O que você aprendeu?” | guarda notas e lembra-se delas mais tarde |
+| “Acende a luz da sala” | controla a casa pelo Home Assistant |
+| (arraste um PDF para a janela) | lê, resume, responde a perguntas e pergunta se guarda numa pasta ou manda para a lixeira |
 
 **Nada é feito sem a sua permissão.** Antes de mudar qualquer coisa, a Eta mostra um cartão com o
 comando exato e os botões **Permitir** / **Recusar**. As senhas que digita para ela ficam escondidas,
 não aparecem na conversa e nunca são enviadas para a IA.
+
+**Fala e ouve.** Carregue no 🎤 ou em <kbd>⊞</kbd>+<kbd>Shift</kbd>+<kbd>Espaço</kbd>: uma nuvem aparece no canto, a ouvir, como a Siri. O reconhecimento de voz (whisper.cpp) também corre no computador.
+
+**Aprende.** A Eta estuda tudo o que é instalado e guarda o que lê (PDFs, documentos) e as notas que lhe pede, para responder depois sem ter de procurar outra vez. As respostas ficam em cache: a mesma pergunta responde-se na hora.
 
 **A IA é local e privada.** Na primeira vez, a Eta pergunta se quer ativar a IA completa: são
 1,1 GB baixados uma única vez (modelo Qwen2.5 1.5B, a correr com o llama.cpp). Depois disso,

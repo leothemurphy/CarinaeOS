@@ -4,7 +4,7 @@ import QtQuick.Controls
 
 ApplicationWindow {
     id: janela
-    width: 980; height: 620
+    width: 1180; height: 640
     minimumWidth: 760; minimumHeight: 520
     visible: true
     title: "Ambiente de trabalho"
@@ -44,7 +44,7 @@ ApplicationWindow {
                 id: c
                 required property var modelData
                 readonly property bool aInstalar: amb.aInstalar === modelData.id
-                width: (janela.width - 72 - 36) / 3; height: 360; radius: 20
+                width: (janela.width - 72 - 54) / 4; height: 380; radius: 20
                 color: "#1a1524"
                 border.color: modelData.atual ? janela.ambar : Qt.rgba(1, 1, 1, 0.08)
                 border.width: modelData.atual ? 2 : 1
@@ -88,7 +88,7 @@ ApplicationWindow {
                     }
                     Text {
                         anchors.centerIn: parent
-                        text: botao.acao === "cancelar" ? "Parar" : botao.acao === "usar" ? "Usar este (terminar sessão)" : "Instalar"
+                        text: botao.acao === "cancelar" ? "Parar" : botao.acao === "usar" ? (c.modelData.id === "windows" || c.modelData.id === "plasma" ? "Usar este" : "Usar este (terminar sessão)") : "Instalar"
                         color: botao.acao === "cancelar" ? janela.texto : "#1a0f14"; font.weight: Font.Bold
                     }
                     MouseArea {

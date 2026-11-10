@@ -84,8 +84,8 @@ Kicker.DashboardWindow {
 
     // o fundo do Launchpad é o papel de parede atual (desfocado)
     property string fundoAtual: ""
-    P5Support.DataSource {
-        id: lerFundo
+    // (na DashboardWindow os filhos vao para o mainItem: o DataSource tem de ser uma propriedade)
+    readonly property P5Support.DataSource lerFundo: P5Support.DataSource {
         engine: "executable"
         connectedSources: []
         onNewData: (fonte, dados) => {
@@ -100,7 +100,7 @@ Kicker.DashboardWindow {
 
     onVisibleChanged: {
         if (visible) {
-            lerFundo.connectSource("f=$(grep -A4 '\\[Wallpaper\\]\\[org.kde.image\\]\\[General\\]' \"$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc\" | sed -n 's/^Image=//p' | head -1); "
+            lp.lerFundo.connectSource("f=$(grep -A4 '\\[Wallpaper\\]\\[org.kde.image\\]\\[General\\]' \"$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc\" | sed -n 's/^Image=//p' | head -1); "
                 + "f=${f#file://}; if [ -d \"$f\" ]; then ls -S \"$f\"/contents/images/* 2>/dev/null | tail -1; else echo \"$f\"; fi #" + Date.now());
             busca.text = "";
             busca.forceActiveFocus();

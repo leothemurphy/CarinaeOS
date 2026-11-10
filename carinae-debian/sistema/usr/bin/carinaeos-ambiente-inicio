@@ -44,6 +44,14 @@ case "$XDG_CURRENT_DESKTOP" in
     $SEMPRE && dconf write /net/launchpad/plank/docks/dock1/hide-mode 0 2>/dev/null
     pgrep -x plank >/dev/null || (plank >/dev/null 2>&1 &)
     ;;
+  *KDE*)
+    # trocou de estilo (Mac / Windows 11) a partir de outro ambiente: aplicar agora
+    P="${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/plasma-visual-pendente"
+    if [ -s "$P" ]; then
+      V=$(cat "$P"); rm -f "$P"
+      sleep 3; plasma-apply-lookandfeel -a "$V" --resetLayout
+    fi
+    exit 0 ;;
   *) exit 0 ;;
 esac
 mkdir -p "$(dirname "$FEITO")"; touch "$FEITO"

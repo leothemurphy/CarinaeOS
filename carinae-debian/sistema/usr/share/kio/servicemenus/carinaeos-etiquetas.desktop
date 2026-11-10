@@ -1,0 +1,54 @@
+[Desktop Entry]
+Type=Service
+MimeType=all/all;inode/directory;
+X-KDE-ServiceTypes=KonqPopupMenu/Plugin
+X-KDE-Submenu=Etiquetas
+X-KDE-Submenu[pt_BR]=Etiquetas
+X-KDE-Protocols=file,smb,sftp,fish,ftp,webdav,webdavs,nfs,mtp
+Icon=tag
+Actions=c0;c1;c2;c3;c4;c5;c6;outra;tirar;
+
+[Desktop Action c0]
+Name=Vermelho
+Icon=folder-red
+Exec=carinaeos-etiquetas pôr Vermelho %U
+
+[Desktop Action c1]
+Name=Laranja
+Icon=folder-orange
+Exec=carinaeos-etiquetas pôr Laranja %U
+
+[Desktop Action c2]
+Name=Amarelo
+Icon=folder-yellow
+Exec=carinaeos-etiquetas pôr Amarelo %U
+
+[Desktop Action c3]
+Name=Verde
+Icon=folder-green
+Exec=carinaeos-etiquetas pôr Verde %U
+
+[Desktop Action c4]
+Name=Azul
+Icon=folder-blue
+Exec=carinaeos-etiquetas pôr Azul %U
+
+[Desktop Action c5]
+Name=Roxo
+Icon=folder-violet
+Exec=carinaeos-etiquetas pôr Roxo %U
+
+[Desktop Action c6]
+Name=Cinzento
+Icon=folder-grey
+Exec=carinaeos-etiquetas pôr Cinzento %U
+
+[Desktop Action outra]
+Name=Outra etiqueta…
+Icon=tag-new
+Exec=carinaeos-etiquetas outra %U
+
+[Desktop Action tirar]
+Name=Tirar as etiquetas
+Icon=edit-clear
+Exec=carinaeos-etiquetas tirar %U

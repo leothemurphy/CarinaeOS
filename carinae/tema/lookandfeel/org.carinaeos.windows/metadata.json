@@ -1,0 +1,18 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "CarinaeOS"
+            }
+        ],
+        "Category": "",
+        "Description": "Barra de tarefas em baixo, ao centro, como no Windows 11, com a estrela do CarinaeOS no menu Iniciar",
+        "Id": "org.carinaeos.windows",
+        "License": "GPL-2.0-or-later",
+        "Name": "CarinaeOS — estilo Windows 11",
+        "Version": "0.1",
+        "Website": "https://github.com/leothemurphy/carinaeos"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

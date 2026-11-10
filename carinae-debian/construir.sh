@@ -26,6 +26,7 @@ cp -a $T/plasmoid/org.carinaeos.menuestrela  $U/plasma/plasmoids/
 install -d $U/plasma/desktoptheme
 cp -a $T/plasmastyle/carinaeos               $U/plasma/desktoptheme/
 cp -a $T/lookandfeel/org.carinaeos.desktop    $U/plasma/look-and-feel/
+cp -a $T/lookandfeel/org.carinaeos.windows    $U/plasma/look-and-feel/
 cp -a $T/wallpaper/CarinaeOS                  $U/wallpapers/
 # marca CarinaeOS em PNG, para substituir os logotipos do Debian (desktop-base, emblemas)
 M=$U/carinaeos/marca

@@ -1,0 +1,197 @@
+#!/usr/bin/python3
+# CarinaeOS - Etiquetas, como no Finder do Mac: cores e nomes para arquivos e pastas,
+# tanto no computador como em pastas de rede (NAS, Windows, SFTP...).
+#   carinaeos-etiquetas pôr ETIQUETA URL...      carinaeos-etiquetas tirar [ETIQUETA] URL...
+#   carinaeos-etiquetas outra URL...              (pergunta o nome da etiqueta)
+#   carinaeos-etiquetas listar
+# - No computador grava em user.xdg.tags (o mesmo que o Dolphin/Baloo usa: aparece em "Etiquetas").
+# - Na rede (onde não há atributos estendidos) guarda numa lista própria.
+# - Em ~/Etiquetas/<etiqueta>/ ficam atalhos para tudo o que tem essa etiqueta (locais e de rede),
+#   e essa pasta aparece na barra lateral dos Arquivos.
+import json
+import os
+import subprocess
+import sys
+import urllib.parse
+
+HOME = os.path.expanduser('~')
+DB = os.path.join(os.environ.get('XDG_DATA_HOME', os.path.join(HOME, '.local/share')), 'carinaeos', 'etiquetas.json')
+PASTA = os.path.join(HOME, 'Etiquetas')
+CORES = {'Vermelho': 'red', 'Laranja': 'orange', 'Amarelo': 'yellow', 'Verde': 'green',
+         'Azul': 'blue', 'Roxo': 'violet', 'Cinzento': 'grey'}
+ATTR = 'user.xdg.tags'
+
+
+def ler():
+    try:
+        with open(DB, encoding='utf-8') as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def gravar(d):
+    os.makedirs(os.path.dirname(DB), exist_ok=True)
+    tmp = DB + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(d, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, DB)
+
+
+def local(url):
+    if url.startswith('file://'):
+        return urllib.parse.unquote(url[7:])
+    if url.startswith('/'):
+        return url
+    return None
+
+
+def xattr_ler(p):
+    try:
+        return [t for t in os.getxattr(p, ATTR).decode().split(',') if t]
+    except OSError:
+        return None
+
+
+def xattr_gravar(p, tags):
+    try:
+        if tags:
+            os.setxattr(p, ATTR, ','.join(tags).encode())
+        else:
+            try:
+                os.removexattr(p, ATTR)
+            except OSError:
+                pass
+        return True
+    except OSError:
+        return False
+
+
+def cor_da_pasta(p, tags):
+    """Pastas locais com etiqueta de cor ganham o ícone dessa cor (como no Mac)."""
+    if not os.path.isdir(p):
+        return
+    cor = next((CORES[t] for t in tags if t in CORES), None)
+    d = os.path.join(p, '.directory')
+    linhas = []
+    try:
+        linhas = [l for l in open(d, encoding='utf-8').read().splitlines() if not l.startswith('Icon=folder-')]
+    except OSError:
+        pass
+    if cor:
+        if '[Desktop Entry]' not in linhas:
+            linhas.insert(0, '[Desktop Entry]')
+        linhas.insert(linhas.index('[Desktop Entry]') + 1, 'Icon=folder-%s' % cor)
+    try:
+        if any(l.strip() for l in linhas if l != '[Desktop Entry]'):
+            open(d, 'w', encoding='utf-8').write('\n'.join(linhas) + '\n')
+        elif os.path.exists(d):
+            os.remove(d)
+    except OSError:
+        pass
+
+
+def mudar(urls, por=None, tirar=None):
+    db = ler()
+    for u in urls:
+        p = local(u)
+        chave = u if not p else 'file://' + p
+        atuais = set(db.get(chave, []))
+        if p:
+            x = xattr_ler(p)
+            if x:
+                atuais |= set(x)
+        if por:
+            atuais.add(por)
+        if tirar == '*':
+            atuais = set()
+        elif tirar:
+            atuais.discard(tirar)
+        tags = sorted(atuais)
+        if p:
+            xattr_gravar(p, tags)
+            cor_da_pasta(p, tags)
+        if tags:
+            db[chave] = tags
+        else:
+            db.pop(chave, None)
+    gravar(db)
+    atualizar_pasta(db)
+
+
+def lugar_nos_arquivos():
+    """Pôr ~/Etiquetas na barra lateral dos Arquivos (uma vez)."""
+    xbel = os.path.join(HOME, '.local/share/user-places.xbel')
+    try:
+        txt = open(xbel, encoding='utf-8').read()
+    except OSError:
+        return
+    if 'file://%s"' % PASTA in txt or '</xbel>' not in txt:
+        return
+    marca = ('<bookmark href="file://%s">\n  <title>Etiquetas</title>\n  <info>\n   <metadata owner="http://freedesktop.org">\n'
+             '    <bookmark:icon name="tag"/>\n   </metadata>\n  </info>\n </bookmark>\n' % PASTA)
+    open(xbel, 'w', encoding='utf-8').write(txt.replace('</xbel>', ' ' + marca + '</xbel>', 1))
+
+
+def atualizar_pasta(db):
+    """~/Etiquetas/<etiqueta>/ com atalhos para os itens (os de rede como links .desktop)."""
+    por_tag = {}
+    for url, tags in db.items():
+        for t in tags:
+            por_tag.setdefault(t, []).append(url)
+    os.makedirs(PASTA, exist_ok=True)
+    open(os.path.join(PASTA, '.directory'), 'w').write('[Desktop Entry]\nIcon=tag\n')
+    lugar_nos_arquivos()
+    for t in os.listdir(PASTA):
+        cam = os.path.join(PASTA, t)
+        if os.path.isdir(cam) and t not in por_tag:
+            for f in os.listdir(cam):
+                os.remove(os.path.join(cam, f))
+            os.rmdir(cam)
+    for t, urls in por_tag.items():
+        cam = os.path.join(PASTA, t)
+        os.makedirs(cam, exist_ok=True)
+        icone = 'folder-%s' % CORES[t] if t in CORES else 'tag'
+        open(os.path.join(cam, '.directory'), 'w').write('[Desktop Entry]\nIcon=%s\n' % icone)
+        for f in os.listdir(cam):
+            if f != '.directory':
+                os.remove(os.path.join(cam, f))
+        for url in urls:
+            nome = os.path.basename(urllib.parse.unquote(url.rstrip('/'))) or url
+            p = local(url)
+            if p:
+                destino = os.path.join(cam, nome)
+                if not os.path.lexists(destino):
+                    os.symlink(p, destino)
+            else:
+                servidor = urllib.parse.urlparse(url).netloc
+                with open(os.path.join(cam, nome + ' (rede).desktop'), 'w', encoding='utf-8') as f:
+                    f.write('[Desktop Entry]\nType=Link\nName=%s\nComment=%s\nURL=%s\nIcon=folder-network\n'
+                            % (nome, 'em ' + servidor, url))
+
+
+def main():
+    a = sys.argv[1:]
+    if not a or a[0] == 'listar':
+        for url, tags in sorted(ler().items()):
+            print('%s\t%s' % (', '.join(tags), url))
+        return
+    acao, resto = a[0], a[1:]
+    if acao == 'pôr' and len(resto) >= 2:
+        mudar(resto[1:], por=resto[0])
+    elif acao == 'outra' and resto:
+        r = subprocess.run(['kdialog', '--title', 'Etiqueta', '--inputbox', 'Nome da etiqueta:'], capture_output=True, text=True)
+        nome = r.stdout.strip()
+        if nome:
+            mudar(resto, por=nome)
+    elif acao == 'tirar' and resto:
+        if len(resto) >= 2 and not ('://' in resto[0] or resto[0].startswith('/')):
+            mudar(resto[1:], tirar=resto[0])
+        else:
+            mudar(resto, tirar='*')
+    else:
+        print(__doc__ if __doc__ else 'uso: carinaeos-etiquetas pôr|tirar|outra|listar ...')
+
+
+if __name__ == '__main__':
+    main()

@@ -28,6 +28,9 @@ def normalizar(s):
 
 
 _cache = None
+GENERICAS = {'editor', 'gerenciador', 'configuracoes', 'sistema', 'monitor', 'centro', 'visualizador', 'leitor', 'reprodutor',
+             'instalar', 'bloquear', 'desbloquear', 'ajuda', 'informacoes', 'arquivo', 'terminal', 'calculadora', 'ambiente',
+             'definicoes', 'gestor', 'menu', 'teclado', 'controle', 'painel', 'google', 'microsoft', 'kde', 'gnome'}
 
 
 def instalados():
@@ -76,8 +79,10 @@ def procurar(texto):
         palavras = [w for w in re.findall(r'\w{3,}', chave) if w not in ('de', 'do', 'da')]
         if not palavras:
             continue
+        marca = palavras[0] if len(palavras[0]) >= 4 and palavras[0] not in GENERICAS else ''
         if re.search(r'\b' + re.escape(chave) + r'\b', s) or (len(palavras) == 1 and re.search(r'\b' + re.escape(palavras[0]) + r'\b', s)) \
-                or re.search(r'\b' + re.escape(ident.split('.')[-1]) + r'\b', s):
+                or (marca and re.search(r'\b' + re.escape(marca) + r'\b', s)) \
+                or re.search(r'\b' + re.escape(ident.split('.')[-1].split('-')[0]) + r'\b', s):
             if not melhor or len(chave) > len(melhor[0]):
                 melhor = (chave, nome, caminho)
     return melhor
