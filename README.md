@@ -154,6 +154,14 @@ pergunta na busca rápida.
 
 <br clear="right">
 
+## 📖 Manual
+
+O **[Manual do CarinaeOS](docs/manual/00-indice.md)** explica tudo: a área de trabalho, a Eta, as ferramentas,
+arquivos e discos, **HD na rede e pastas partilhadas** (SMB/NAS, NFS, SSH), programas (apt, Flatpak, AppImage),
+hardware e drivers, o Debian, o kernel Linux e uma referência grande de **comandos do terminal**.
+Vem dentro do sistema como o aplicativo *Manual* e **a Eta conhece-o inteiro**: basta perguntar.
+Quando não sabe, a Eta pode pesquisar na internet (desliga-se no ⚙).
+
 ## ⌨️ Atalhos úteis
 
 | Atalho | O que faz |

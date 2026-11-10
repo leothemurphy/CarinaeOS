@@ -17,6 +17,8 @@ Depois, use a ISO numa máquina virtual ou grave-a num pen drive (balenaEtcher o
 A sessão de teste entra sozinha, sem senha. Para instalar, abra **Instalar o CarinaeOS** na área de trabalho.
 
 ### Novidades desta versão
+- **Manual do CarinaeOS** completo (aplicativo *Manual*): rede e NAS, pastas partilhadas, discos, programas, Debian, kernel e terminal. A Eta conhece-o inteiro.
+- A Eta pesquisa na internet quando não sabe (cita as fontes; desliga-se no ⚙).
 - Eta: IA pode ser desligada (liberta a memória) ou usar o cérebro leve; sai da memória sozinha quando parada.
 - Casa sem travar, mesmo com centenas de aparelhos.
 - AppImage com duplo clique (ex.: Elegoo Slicer): instala no menu e na Dock.

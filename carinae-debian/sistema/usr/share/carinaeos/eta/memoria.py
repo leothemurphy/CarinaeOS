@@ -28,6 +28,14 @@ também eu voce você me te lhe nos qual quais quando onde porque quem sobre mui
 the of and to in is for on with by an be this that are from as at it or'''.split())
 
 
+# palavras de 2 letras que interessam (hd, ip, pc…) e sinonimos comuns
+CURTAS = {'hd', 'ip', 'pc', 'tv', 'ia', 'vm', 'cd', 'dd', 'df', 'du', 'ls', 'ps', 'rm', 'cp', 'mv', 'id', 'os', 'ui', 'wi'}
+SINONIMOS = {'ligo': 'conectar', 'ligar': 'conectar', 'liga': 'conectar', 'conecto': 'conectar', 'conecta': 'conectar',
+             'nas': 'rede', 'compartilhada': 'partilha', 'compartilhadas': 'partilha', 'compartilhar': 'partilha',
+             'partilhadas': 'partilha', 'partilhar': 'partilha', 'partilhada': 'partilha', 'smb': 'samba',
+             'disco': 'hd', 'discos': 'hd', 'arquivos': 'arquivo', 'pastas': 'pasta'}
+
+
 def simples(t):
     t = unicodedata.normalize('NFD', (t or '').lower())
     return ''.join(c for c in t if unicodedata.category(c) != 'Mn')
@@ -36,9 +44,10 @@ def simples(t):
 def fichas(texto):
     """Palavras-chave normalizadas (sem acentos, sem palavras vazias, raiz curta)."""
     res = []
-    for w in re.findall(r'[a-z0-9]{3,}', simples(texto)):
-        if w in VAZIAS:
+    for w in re.findall(r'[a-z0-9]{2,}', simples(texto)):
+        if w in VAZIAS or (len(w) == 2 and w not in CURTAS):
             continue
+        w = SINONIMOS.get(w, w)
         res.append(w[:7])          # raiz grosseira: instalar/instalacao/instalado -> "instala"
     return res
 
@@ -118,6 +127,12 @@ def lembrar(pergunta, n=4, origem=None):
     if not q:
         return []
     docs = [d for d in documentos() if not origem or d['origem'] == origem]
+    if origem in (None, 'manual'):
+        try:
+            import manual
+            docs += manual.documentos()
+        except Exception:
+            pass
     todos = [(d, p) for d in docs for p in d['pedacos']]
     if not todos:
         return []
@@ -129,7 +144,8 @@ def lembrar(pergunta, n=4, origem=None):
     res = []
     for d, p in todos:
         tf = Counter(p['f'])
-        titulo = set(fichas(d['titulo']))
+        cab = re.match(r'\[([^\]]+)\]', p['t'])           # pedacos do manual: "[Capitulo › Secao]"
+        titulo = set(fichas(d['titulo'] + ' ' + (cab.group(1) if cab else '')))
         pontos = 0.0
         for w in set(q):
             if w in tf:

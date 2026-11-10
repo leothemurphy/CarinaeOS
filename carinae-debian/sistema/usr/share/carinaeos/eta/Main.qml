@@ -136,6 +136,8 @@ ApplicationWindow {
                     MenuSeparator {}
                     MenuItem { text: "Cérebro da Eta (leve, completo ou na nuvem)…"; onTriggered: dialogoCerebro.open() }
                     MenuItem { text: eta.iaLigada ? "Desligar a IA (liberta a memória)" : "Ligar a IA"; onTriggered: eta.definirIA(!eta.iaLigada) }
+                    MenuItem { text: "Pesquisar na internet quando não souber"; checkable: true; checked: eta.internetLigada; onTriggered: eta.definirInternet(checked) }
+                    MenuItem { text: "Abrir o Manual do CarinaeOS"; onTriggered: eta.abrirManual() }
                     MenuItem { text: "Manter a Eta aberta em segundo plano"; checkable: true; checked: eta.segundoPlano; onTriggered: eta.definirSegundoPlano(checked) }
                     MenuSeparator {}
                     MenuItem { text: "O que a Eta aprendeu"; onTriggered: eta.enviar("o que você aprendeu?") }

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Manual do CarinaeOS
+GenericName=Ajuda
+Comment=Tudo sobre o CarinaeOS, a rede, os discos, o Debian, o kernel e o terminal
+Exec=carinaeos-manual %u
+Icon=help-contents
+Categories=Documentation;System;
+Keywords=manual;ajuda;help;terminal;comandos;rede;nas;samba;debian;kernel;
+StartupWMClass=carinaeos-manual

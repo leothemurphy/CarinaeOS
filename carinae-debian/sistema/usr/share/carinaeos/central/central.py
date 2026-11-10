@@ -35,6 +35,7 @@ FERRAMENTAS = [
     dict(id='privacidade', nome='Privacidade', desc='Sessão sem rastro e modo escuro em todo o lado', icone='preferences-system-privacy', pagina='privacidade'),
     dict(id='fundos', nome='Papéis de parede', desc='Fotos do céu em 8K e o Céu vivo', icone='preferences-desktop-wallpaper', cmd='carinaeos-ceu-vivo galeria'),
     dict(id='boasvindas', nome='Boas-vindas', desc='Tudo o que o CarinaeOS tem, num passeio', icone='carinaeos', cmd='carinaeos-boasvindas'),
+    dict(id='manual', nome='Manual do CarinaeOS', desc='Tudo: rede, discos, programas, Debian, kernel, terminal', icone='help-contents', cmd='carinaeos-manual'),
     dict(id='sobre', nome='Sobre este computador', desc='Processador, memória, sistema', icone='carinaeos', cmd='kinfocenter'),
 ]
 

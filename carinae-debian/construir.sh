@@ -49,6 +49,12 @@ for n in 64 128 256; do
   cp $M/logo-text-$n.png $M/logo-text-version-$n.png
 done
 
+# manual do CarinaeOS (aplicativo Manual e memoria da Eta)
+install -d $I/usr/share/doc/carinaeos/manual
+install -m644 ../docs/manual/*.md $I/usr/share/doc/carinaeos/manual/
+python3 $I/usr/share/carinaeos/eta/manual.py ../docs/manual $I/usr/share/carinaeos/eta/manual.json
+find $I/usr/share/carinaeos -name __pycache__ -prune -exec rm -rf {} +
+
 # visual "Vidro" (Kvantum + Aurorae + icones WhiteSur, com as cores do CarinaeOS)
 bash tema-vidro.sh "$PWD/$I" "$PWD/cache/vidro" || echo "AVISO: tema Vidro nao instalado"
 

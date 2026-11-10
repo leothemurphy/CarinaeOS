@@ -68,6 +68,7 @@ FERR_CARINAE = [
     (r'\bmapas?\b', 'marble', 'os Mapas'),
     (r'terminal|konsole|consola|console', 'konsole', 'o terminal'),
     (r'boas.?vindas', 'carinaeos-boasvindas', 'as Boas-vindas'),
+    (r'manual|ajuda|guia do sistema', 'carinaeos-manual', 'o Manual do CarinaeOS'),
     (r'eta|assistente', None, None),
 ]
 
@@ -159,9 +160,9 @@ class Pensamento:
         partes = []
         for t in topicos_relevantes(pergunta):
             partes.append('- %s' % t['resposta'])
-        lemb = [l for l in MEM.lembrar(pergunta, 2) if l[0] >= 2.0]
+        lemb = [l for l in MEM.lembrar(pergunta, 3) if l[0] >= 3.0]
         for _, titulo, texto, _d in lemb:
-            partes.append('- (memória: %s) %s' % (titulo, texto[:700]))
+            partes.append('- (%s) %s' % (titulo, texto[:1200]))
         if self._documento:
             partes.append('- ARQUIVO ENVIADO "%s":\n%s' % (self._documento[0], self._documento[1][:4000]))
         if not partes:
@@ -222,7 +223,8 @@ class Pensamento:
                         dict(id=i, type='function', function=dict(name=n, arguments=json.dumps(a, ensure_ascii=False)))
                         for i, (n, a) in zip(ids, chamadas)]))
                     for i, (n, a) in zip(ids, chamadas):
-                        self._fundo.emit(lambda d: self._definir_atividade(d), 'A ver: %s…' % (a.get('descricao') or n.replace('_', ' ')))
+                        self._fundo.emit(lambda d: self._definir_atividade(d), 'A pesquisar na internet: %s…' % a.get('consulta', '')
+                                         if n == 'pesquisar_internet' else 'A ver: %s…' % (a.get('descricao') or n.replace('_', ' ')))
                         msgs.append(dict(role='tool', tool_call_id=i, content=self._consultar(n, a)[:3500]))
                         self._fundo.emit(lambda x: self._mostrar_consulta(*x), (n, a, ident))
                     chamadas = []
@@ -233,6 +235,13 @@ class Pensamento:
         threading.Thread(target=tarefa, daemon=True).start()
 
     def _mostrar_consulta(self, nome, args, ident=None):
+        if nome == 'pesquisar_internet':
+            self._add(papel='feito', texto='🌐 Pesquisei na internet: %s' % args.get('consulta', ''))
+            resp = [m for m in self._msgs if m['id'] == ident]
+            if resp:
+                self._msgs = [m for m in self._msgs if m['id'] != ident] + resp
+                self.mudou.emit()
+            return
         if nome == 'executar_comando':
             self._add(papel='feito', texto='Consultei: %s' % (args.get('descricao') or 'o sistema'), codigo=args.get('comando', ''))
             # a resposta (que ainda esta a ser escrita) fica depois da consulta
@@ -245,6 +254,11 @@ class Pensamento:
         info_sistema = _eta().info_sistema
         if nome == 'info_sistema':
             return info_sistema()
+        if nome == 'pesquisar_internet':
+            if not self._cfg.get('internet', True):
+                return 'A pesquisa na internet está desligada pelo usuário (⚙). Responda com o que sabe e diga isso.'
+            import internet
+            return internet.pesquisar(a.get('consulta', ''))
         if nome == 'consultar_memoria':
             lemb = MEM.lembrar(a.get('pergunta', ''), 3)
             if not lemb:

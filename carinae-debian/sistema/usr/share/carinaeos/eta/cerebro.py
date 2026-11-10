@@ -88,6 +88,8 @@ COMO TRABALHAR
    explique cada um.
 8. Nunca diga que fez algo sem ter chamado a ferramenta. Para perguntar, use SEMPRE a ferramenta "perguntar"
    (nunca escreva listas de opções em texto).
+8b. Para perguntas de COMO FAZER, use o CONTEXTO do manual; se não chegar, consultar_memoria; se mesmo assim não souber
+   (ou for algo recente/específico), pesquisar_internet e cite as fontes. Nunca invente comandos ou menus.
 9. GNOME, XFCE, KDE Plasma e os estilos Mac/Windows 11 são AMBIENTES de trabalho: para os instalar ou trocar,
    abra o aplicativo "Ambiente" (abrir_aplicativo). Nunca use instalar_programa nem remover_programa para eles.
 10. "Muda o papel de parede" = ajustar papel_de_parede proximo. "Não perturbe" = ajustar nao_perturbe ligar.
@@ -102,6 +104,7 @@ O CARINAEOS
 - Central CarinaeOS: reúne as ferramentas do sistema (Supernova = personalização e Dock; Órbita = loja de aplicativos;
   Casa = Home Assistant; Ambiente = estilo Mac/Windows 11, GNOME, XFCE; Cadeado = trancar pastas, arquivos e apps;
   Etiquetas; Calendários (Google/iCloud); Drivers; Sessão sem rastro; Boas-vindas).
+- Manual do CarinaeOS (app Manual, ⚙ da Eta, Central): guia completo do sistema, rede, discos, programas, Debian, kernel e terminal.
 - Trancar: botão direito numa pasta ou arquivo > Trancar com senha; abre com duplo clique e a senha.
 - Etiquetas: botão direito > Etiquetas > cor; aparecem na barra lateral dos Arquivos.
 """
@@ -151,18 +154,22 @@ FERRAMENTAS = [
        'volta para você explicar; os que mudam o sistema pedem permissão ao usuário.',
        dict(comando=S('O comando bash'), descricao=S('O que o comando faz, em poucas palavras')), ['comando', 'descricao']),
     _f('lembrar', 'Guarda uma informação que o usuário pediu para lembrar.', dict(nota=S('O que guardar')), ['nota']),
-    _f('consultar_memoria', 'Procura no que a Eta aprendeu (arquivos lidos, notas do usuário, guias dos aplicativos).',
+    _f('consultar_memoria', 'Procura no MANUAL do CarinaeOS (sistema, rede, discos, programas, Debian, kernel, terminal) e no '
+       'que a Eta aprendeu (arquivos lidos, notas, guias dos aplicativos). Use antes de responder a perguntas de como fazer.',
        dict(pergunta=S('O que procurar')), ['pergunta']),
     _f('como_usar_aplicativo', 'Mostra o guia passo a passo de um aplicativo.', dict(nome=S('Nome do aplicativo')), ['nome']),
     _f('trancar', 'Tranca com senha uma pasta, um arquivo ou um aplicativo.',
        dict(o_que=S('Caminho da pasta/arquivo, ou nome do aplicativo')), ['o_que']),
+    _f('pesquisar_internet', 'Pesquisa na internet quando não sabe a resposta (algo recente, um programa ou erro específico, '
+       'notícias, preços, versões). Devolve resultados e trechos de páginas; responda citando as fontes [n] com o endereço.',
+       dict(consulta=S('O que pesquisar (palavras-chave, de preferência em inglês para assuntos técnicos)')), ['consulta']),
     _f('perguntar', 'Faz uma pergunta curta ao usuário com botões de opções, quando o pedido é ambíguo.',
        dict(pergunta=S('A pergunta'), opcoes=dict(type='array', items=dict(type='string'), description='2 a 4 opções curtas')),
        ['pergunta', 'opcoes']),
 ]
 
 # ferramentas que devolvem informacao para a IA continuar a resposta
-DE_CONSULTA = {'info_sistema', 'consultar_memoria'}
+DE_CONSULTA = {'info_sistema', 'consultar_memoria', 'pesquisar_internet'}
 
 
 class Cerebro:

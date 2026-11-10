@@ -952,6 +952,19 @@ class Eta(QObject, Pensamento, Tarefas):
     modeloEscolhido = Property(str, lambda s: s._cfg.get('modelo') or ('completo' if CB.ram_gb() >= 12 else 'leve'), notify=mudou)
     segundoPlano = Property(bool, lambda s: bool(s._cfg.get('segundo_plano')), notify=mudou)
 
+    @Slot()
+    def abrirManual(self):
+        subprocess.Popen(['carinaeos-manual'], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    internetLigada = Property(bool, lambda s: bool(s._cfg.get('internet', True)), notify=mudou)
+
+    @Slot(bool)
+    def definirInternet(self, sim):
+        self._cfg['internet'] = bool(sim)
+        self._gravar_cfg()
+        self._add(papel='feito', texto='Pesquisa na internet %s ✓' % ('ligada' if sim else 'desligada'))
+        self.mudou.emit()
+
     @Slot(bool)
     def definirSegundoPlano(self, sim):
         self._cfg['segundo_plano'] = bool(sim)
