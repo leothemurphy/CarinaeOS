@@ -7,3 +7,4 @@ Exec=carinaeos-boasvindas
 Icon=carinaeos
 Categories=System;Utility;
 Keywords=bem-vindo;boas-vindas;ajuda;tour;novidades;
+NoDisplay=true

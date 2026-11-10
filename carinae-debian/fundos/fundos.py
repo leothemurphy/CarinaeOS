@@ -91,6 +91,48 @@ def pacote(raiz, pasta, nome, im, autor, licenca, descricao):
 def main():
     raiz, cache = sys.argv[1], sys.argv[2]
     lista = []
+    # 1) fotografias reais do Atacama com a estrela do CarinaeOS (as principais)
+    import fotos_estrela as FE
+    from PIL import ImageFilter
+    for f in FE.FOTOS:
+        try:
+            im = FE.compor(FE.baixar(cache, f['id']), f, W)
+        except Exception as e:
+            print('AVISO: sem a foto %s (%s)' % (f['id'], e), flush=True)
+            continue
+        pasta = 'Estrela-' + f['nome'].replace(' ', '')
+        lista.append(pacote(raiz, pasta, 'Estrela · ' + f['nome'], im, 'Foto: %s · Estrela: CarinaeOS' % f['credito'],
+                            'CC-BY-4.0', 'Céu real do deserto do Atacama com a estrela do CarinaeOS. Foto: ' + f['credito']))
+        print('estrela', pasta, flush=True)
+        if f['id'] == FE.FOTOS[0]['id']:
+            # o papel de parede padrao do CarinaeOS passa a ser este (o desenho antigo fica como "Original")
+            orig = os.path.join(raiz, 'usr/share/wallpapers/CarinaeOS')
+            velho = os.path.join(raiz, 'usr/share/wallpapers/CarinaeOS-Original')
+            if os.path.isdir(orig) and not os.path.isdir(velho):
+                import shutil
+                shutil.copytree(orig, velho)
+                with open(os.path.join(velho, 'metadata.json'), 'w', encoding='utf-8') as m:
+                    json.dump({'KPlugin': {'Id': 'CarinaeOS-Original', 'Name': 'Eta Carinae (original)',
+                                           'Authors': [{'Name': 'CarinaeOS'}], 'License': 'CC-BY-SA-4.0'}}, m)
+            if os.path.isdir(orig):
+                imgs = os.path.join(orig, 'contents/images')
+                for n in os.listdir(imgs):
+                    os.remove(os.path.join(imgs, n))
+                for (lw, lh) in ((W, H), (3840, 2160), (2560, 1440), (1920, 1080)):
+                    (im if lw == W else im.resize((lw, lh), Image.LANCZOS)).save(
+                        os.path.join(imgs, '%dx%d.jpg' % (lw, lh)), quality=90, optimize=True)
+                im.resize((400, 225), Image.LANCZOS).save(os.path.join(orig, 'contents/screenshot.jpg'), quality=85)
+            # banner das janelas de senha e fundo desfocado da tela de entrada
+            marca = os.path.join(raiz, 'usr/share/carinaeos/marca')
+            os.makedirs(marca, exist_ok=True)
+            cx, cy = int(f['pos'][0] * W), int(f['pos'][1] * H)
+            bw, bh = 3680, 1056
+            x0 = max(0, min(W - bw, cx - int(bw * 0.62)))
+            y0 = max(0, min(H - bh, cy - bh // 2))
+            im.crop((x0, y0, x0 + bw, y0 + bh)).resize((920, 264), Image.LANCZOS).save(
+                os.path.join(marca, 'banner-senha.jpg'), quality=88)
+            im.resize((1920, 1080), Image.LANCZOS).filter(ImageFilter.GaussianBlur(28)).save(
+                os.path.join(marca, 'fundo-desfocado.jpg'), quality=85)
     for nome_arte, (_, desc) in arte.DESENHOS.items():
         im = arte.desenhar(nome_arte, W, H)
         lista.append(pacote(raiz, nome_arte, nome_arte, im, 'CarinaeOS (Leonardo Mendes e Claude)', 'CC-BY-SA-4.0', desc))

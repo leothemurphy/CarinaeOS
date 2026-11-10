@@ -9,11 +9,15 @@ import urllib.request
 
 CFG = os.path.join(os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config')), 'carinaeos', 'casa.json')
 DOMINIOS = ('light', 'switch', 'scene', 'script', 'fan', 'cover', 'climate', 'media_player', 'input_boolean',
-            'automation', 'lock', 'vacuum', 'sensor', 'binary_sensor', 'button')
+            'automation', 'lock', 'vacuum', 'sensor', 'binary_sensor', 'button', 'weather', 'camera', 'input_number',
+            'number', 'input_button', 'alarm_control_panel', 'humidifier', 'water_heater', 'person', 'select', 'input_select')
 NOMES_DOMINIO = {'light': 'Luzes', 'switch': 'Interruptores', 'scene': 'Cenas', 'script': 'Rotinas', 'fan': 'Ventoinhas',
                  'cover': 'Estores e portões', 'climate': 'Clima', 'media_player': 'Som e TV', 'input_boolean': 'Interruptores',
                  'automation': 'Automações', 'lock': 'Fechaduras', 'vacuum': 'Aspiradores', 'sensor': 'Sensores',
-                 'binary_sensor': 'Sensores', 'button': 'Botões'}
+                 'binary_sensor': 'Sensores', 'button': 'Botões', 'weather': 'Tempo', 'camera': 'Câmaras',
+                 'input_number': 'Números', 'number': 'Números', 'input_button': 'Botões', 'alarm_control_panel': 'Alarme',
+                 'humidifier': 'Humidificadores', 'water_heater': 'Esquentadores', 'person': 'Pessoas',
+                 'select': 'Escolhas', 'input_select': 'Escolhas'}
 
 
 def ler():
@@ -87,10 +91,14 @@ def entidades(cfg=None):
         e = dict(id=eid, dominio=dom, nome=at.get('friendly_name') or eid, estado=s.get('state', ''),
                  unidade=at.get('unit_of_measurement', ''), classe=at.get('device_class', ''),
                  brilho=round((at.get('brightness') or 0) * 100 / 255) if dom == 'light' else -1,
-                 temperatura=at.get('current_temperature', ''), alvo=at.get('temperature', ''),
-                 icone=at.get('icon', ''))
-        if dom == 'sensor' and not e['unidade'] and e['classe'] not in ('temperature', 'humidity', 'power', 'energy', 'battery'):
-            continue            # sensores sem interesse (texto)
+                 temperatura=at.get('current_temperature', at.get('temperature', '') if dom == 'weather' else ''),
+                 alvo=at.get('temperature', '') if dom != 'weather' else '',
+                 icone=at.get('icon', ''), humidade=at.get('humidity', at.get('current_humidity', '')),
+                 titulo_media=at.get('media_title', ''), artista=at.get('media_artist', ''),
+                 volume=round((at.get('volume_level') or 0) * 100), minimo=at.get('min', 0), maximo=at.get('max', 100),
+                 passo=at.get('step', 1), opcoes=at.get('options', []), posicao=at.get('current_position', -1),
+                 previsao=[dict(t=f.get('temperature'), m=f.get('templow'), c=f.get('condition', ''), d=f.get('datetime', ''))
+                           for f in (at.get('forecast') or [])[:5]])
         res.append(e)
     res.sort(key=lambda e: (list(DOMINIOS).index(e['dominio']), e['nome'].lower()))
     return res
@@ -158,3 +166,54 @@ def procurar(texto, ents):
         if p > pontos:
             melhor, pontos = e, p
     return melhor if pontos >= 3 else None
+
+
+def historico(eid, horas=24, cfg=None):
+    """Valores numericos de um sensor nas ultimas horas: [(segundos desde o inicio, valor)]."""
+    import datetime
+    cfg = cfg if cfg is not None else ler()
+    inicio = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=horas)).strftime('%Y-%m-%dT%H:%M:%S+00:00')
+    dados = pedido(cfg, '/api/history/period/%s?filter_entity_id=%s&minimal_response&no_attributes' % (inicio, eid), timeout=15) or []
+    pontos = []
+    t0 = None
+    for s in (dados[0] if dados else []):
+        try:
+            v = float(s.get('state'))
+            t = datetime.datetime.fromisoformat(s.get('last_changed').replace('Z', '+00:00')).timestamp()
+        except (TypeError, ValueError, AttributeError):
+            continue
+        t0 = t0 or t
+        pontos.append((t - t0, v))
+    return pontos
+
+
+def imagem_camera(eid, destino, cfg=None):
+    cfg = cfg if cfg is not None else ler()
+    req = urllib.request.Request(cfg['url'].rstrip('/') + '/api/camera_proxy/' + eid,
+                                 headers={'Authorization': 'Bearer ' + cfg['token']})
+    with urllib.request.urlopen(req, timeout=10) as r, open(destino + '.parte', 'wb') as f:
+        f.write(r.read())
+    os.replace(destino + '.parte', destino)
+    return destino
+
+
+def valor(eid, v, cfg=None):
+    dom = eid.split('.')[0]
+    if dom in ('input_number', 'number'):
+        return servico(dom, 'set_value', {'entity_id': eid, 'value': float(v)}, cfg)
+    if dom in ('select', 'input_select'):
+        return servico(dom, 'select_option', {'entity_id': eid, 'option': v}, cfg)
+    if dom == 'media_player':
+        return servico(dom, 'volume_set', {'entity_id': eid, 'volume_level': float(v) / 100}, cfg)
+    if dom == 'cover':
+        return servico(dom, 'set_cover_position', {'entity_id': eid, 'position': int(float(v))}, cfg)
+    raise ValueError(dom)
+
+
+def media(eid, acao, cfg=None):
+    return servico('media_player', {'anterior': 'media_previous_track', 'seguinte': 'media_next_track',
+                                    'pausa': 'media_play_pause'}[acao], {'entity_id': eid}, cfg)
+
+
+def parar_estore(eid, cfg=None):
+    return servico('cover', 'stop_cover', {'entity_id': eid}, cfg)

@@ -1,12 +1,12 @@
 [kdeglobals][KDE]
-widgetStyle=Breeze
+widgetStyle=kvantum
 
 [kdeglobals][General]
 ColorScheme=CarinaeOS
 AccentColor=255,180,110
 
 [kdeglobals][Icons]
-Theme=breeze-dark
+Theme=CarinaeOS
 
 [plasmarc][Theme]
 name=carinaeos
@@ -18,8 +18,8 @@ Image=CarinaeOS
 cursorTheme=breeze_cursors
 
 [kwinrc][org.kde.kdecoration2]
-library=org.kde.breeze
-theme=Breeze
+library=org.kde.kwin.aurorae
+theme=__aurorae__svg__CarinaeOS
 ButtonsOnLeft=XIA
 ButtonsOnRight=
 

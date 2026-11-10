@@ -34,12 +34,12 @@ AMBIENTES = [
          sessoes=['/usr/share/wayland-sessions/gnome.desktop', '/usr/share/xsessions/gnome.desktop'],
          sessao='gnome.desktop',
          pacotes=['gnome-core', 'gnome-shell-extension-dashtodock', 'gnome-shell-extension-appindicator',
-                  'gnome-shell-extension-blur-my-shell', 'gnome-tweaks']),
+                  'gnome-shell-extension-blur-my-shell', 'gnome-tweaks', 'python3-nautilus', 'zenity']),
     dict(id='xfce', nome='XFCE', icone='speedometer', tamanho='cerca de 350 MB',
          desc='Leve e rápido, ótimo para computadores mais antigos. Vem com uma Dock (Plank) e os papéis de parede do CarinaeOS.',
          sessoes=['/usr/share/xsessions/xfce.desktop'],
          sessao='xfce.desktop',
-         pacotes=['task-xfce-desktop', 'plank', 'xfce4-whiskermenu-plugin']),
+         pacotes=['task-xfce-desktop', 'plank', 'xfce4-whiskermenu-plugin', 'zenity']),
 ]
 
 

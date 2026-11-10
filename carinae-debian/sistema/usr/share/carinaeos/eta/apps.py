@@ -90,3 +90,28 @@ def procurar(texto):
 
 def comando_abrir(caminho):
     return 'gio launch %s' % caminho.replace(' ', '\\ ')
+
+
+_desc = {}
+
+
+def descricao(caminho):
+    """GenericName, Comment e Keywords (em portugues quando houver), simplificados: para achar
+    um aplicativo pelo que faz ("planilha" -> LibreOffice Calc)."""
+    if caminho in _desc:
+        return _desc[caminho]
+    partes = []
+    try:
+        with open(caminho, encoding='utf-8', errors='ignore') as f:
+            secao = ''
+            for l in f:
+                l = l.strip()
+                if l.startswith('['):
+                    secao = l
+                    continue
+                if secao == '[Desktop Entry]' and re.match(r'^(GenericName|Comment|Keywords)(\[(pt_BR|pt)\])?=', l):
+                    partes.append(l.split('=', 1)[1])
+    except OSError:
+        pass
+    _desc[caminho] = normalizar(simples(' '.join(partes)))
+    return _desc[caminho]

@@ -1,0 +1,27 @@
+[Desktop Entry]
+Type=Application
+Name=Central CarinaeOS
+GenericName=Ferramentas do sistema
+Comment=Todas as ferramentas do CarinaeOS num só lugar
+Exec=carinaeos-central %u
+Icon=carinaeos
+Categories=Settings;System;
+Keywords=carinaeos;central;ferramentas;supernova;orbita;casa;cadeado;etiquetas;calendario;google;icloud;drivers;nvidia;zonas;janelas;privacidade;convidado;escuro;
+StartupWMClass=carinaeos-central
+Actions=calendarios;janelas;drivers;privacidade;
+
+[Desktop Action calendarios]
+Name=Calendários
+Exec=carinaeos-central calendarios
+
+[Desktop Action janelas]
+Name=Janelas em zonas
+Exec=carinaeos-central janelas
+
+[Desktop Action drivers]
+Name=Drivers e hardware
+Exec=carinaeos-central drivers
+
+[Desktop Action privacidade]
+Name=Privacidade
+Exec=carinaeos-central privacidade

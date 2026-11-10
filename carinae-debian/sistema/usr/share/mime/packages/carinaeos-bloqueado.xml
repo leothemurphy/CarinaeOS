@@ -1,7 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-carinaeos-pasta-trancada">
+    <comment>Pasta trancada com senha</comment>
+    <icon name="folder-locked"/>
+    <generic-icon name="folder-locked"/>
+    <magic priority="90">
+      <match type="string" offset="0" value="CARINAEOS-PASTA1"/>
+    </magic>
+  </mime-type>
+  <mime-type type="application/x-carinaeos-trancado">
+    <comment>Arquivo trancado com senha</comment>
+    <icon name="object-locked"/>
+    <generic-icon name="object-locked"/>
+    <glob pattern="*.trancado"/>
+    <magic priority="90">
+      <match type="string" offset="0" value="CARINAEOS-ARQUI1"/>
+    </magic>
+  </mime-type>
   <mime-type type="application/x-carinaeos-bloqueado">
-    <comment>Arquivo bloqueado com senha</comment>
+    <comment>Arquivo bloqueado com senha (versão antiga)</comment>
     <icon name="object-locked"/>
     <generic-icon name="object-locked"/>
     <glob pattern="*.bloqueado"/>

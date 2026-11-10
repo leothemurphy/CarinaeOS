@@ -27,3 +27,4 @@ carinae-debian/config/includes.binary/
 # Python
 __pycache__/
 *.pyc
+carinae-debian/config/packages.chroot/

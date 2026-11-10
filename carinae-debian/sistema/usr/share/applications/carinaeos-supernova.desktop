@@ -8,3 +8,4 @@ Icon=carinaeos-supernova
 Categories=Settings;DesktopSettings;
 Keywords=efeitos;personalizar;mods;windhawk;alt+tab;dock;tema;
 StartupWMClass=carinaeos-supernova
+NoDisplay=true

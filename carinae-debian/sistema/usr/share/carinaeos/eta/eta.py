@@ -30,14 +30,13 @@ import casa_ha as HA  # noqa: E402
 import ambiente as AMBI  # noqa: E402
 import apps as APPS  # noqa: E402
 import memoria as MEM  # noqa: E402
+import cerebro as CB  # noqa: E402
+from pensamento import Pensamento  # noqa: E402
 
 from PySide6.QtCore import Property, QObject, QTimer, QUrl, Signal, Slot  # noqa: E402
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 DADOS = os.path.join(os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')), 'carinaeos', 'eta')
-MODELO = os.path.join(DADOS, 'modelo.gguf')
-URL_MODELO = 'https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf'
-TAMANHO_MODELO = 1117320736
 SERVIDOR = '/opt/carinaeos/llama/llama-server'
 PORTA = 18765
 HOME = os.path.expanduser('~')
@@ -547,7 +546,7 @@ class Tarefas:
         self._em_fundo(None, procurar, depois, atividade='A procurar “%s”…' % nome)
 
 
-class Eta(QObject, Tarefas):
+class Eta(QObject, Pensamento, Tarefas):
     mudou = Signal()
     _chegou = Signal(str, int)       # texto final da IA, id da mensagem
     _parcial = Signal(int, str)      # texto a chegar da IA (streaming)
@@ -563,7 +562,10 @@ class Eta(QObject, Tarefas):
         self._msgs = []
         self._historico = []
         self._pensando = False
-        self._estado = 'a-iniciar' if os.path.exists(MODELO) else 'sem-modelo'
+        self._cfg = self._ler_cfg()
+        self._cerebro = CB.Cerebro(self._cfg)
+        self._modelo = CB.modelo_no_disco(DADOS)
+        self._estado = 'a-iniciar' if self._modelo else 'sem-modelo'
         self._baixado = 0.0
         self._baixar_o_que = ''
         self._proc = None
@@ -583,11 +585,9 @@ class Eta(QObject, Tarefas):
         self._documento = None         # (nome, texto) do ultimo arquivo enviado
         self._casa = []                # entidades do Home Assistant (cache)
         self._casa_quando = 0
-        self._cfg = self._ler_cfg()
         self._gravador = VOZ.Gravador()
         self._falante = VOZ.Falante()
 
-        self._chegou.connect(self._resposta)
         self._parcial.connect(self._resposta_parcial)
         self._fundo.connect(lambda f, r: f(r))
         self._progresso.connect(self._atualizar_download)
@@ -647,6 +647,40 @@ class Eta(QObject, Tarefas):
     falar = Property(bool, lambda s: bool(s._cfg.get('falar', True)), notify=mudou)
     faltaVoz = Property(bool, lambda s: not os.path.exists(VOZ.MODELO_VOZ), notify=mudou)
     casaLigada = Property(bool, lambda s: HA.ligado(), notify=mudou)
+
+    def _tamanho_falta(self):
+        t = sum(x[2] for x in self._o_que_falta())
+        return ('%.1f GB' % (t / 1e9)).replace('.', ',') if t > 9e8 else '%d MB' % (t / 1e6)
+
+    tamanhoFalta = Property(str, lambda s: s._tamanho_falta(), notify=mudou)
+    cerebroAntigo = Property(bool, lambda s: bool((s._modelo or {}).get('antigo')) and not s._cerebro.nuvem(), notify=mudou)
+    nomeCerebro = Property(str, lambda s: (s._cerebro.nuvem() or {}).get('nome') or (s._modelo or {}).get('nome', ''), notify=mudou)
+    provedores = Property('QVariantList', lambda s: [dict(id=k, nome=v['nome'], modelo=v['modelo'], chaveEm=v['chave_em'])
+                                                     for k, v in CB.NUVENS.items()], constant=True)
+    nuvemCfg = Property('QVariantMap', lambda s: dict({k: v for k, v in (s._cfg.get('nuvem') or {}).items() if k != 'chave'},
+                                                      temChave=bool((s._cfg.get('nuvem') or {}).get('chave'))), notify=mudou)
+
+    @Slot(str, str, str, bool)
+    def definirNuvem(self, provedor, chave, modelo, ligada):
+        n = dict(self._cfg.get('nuvem') or {})
+        if provedor != n.get('provedor'):
+            n.pop('chave', None)
+        n['provedor'] = provedor
+        if chave.strip():
+            n['chave'] = chave.strip()
+        n['modelo'] = modelo.strip() or CB.NUVENS.get(provedor, {}).get('modelo', '')
+        n['ligada'] = bool(ligada) and bool(n.get('chave'))
+        self._cfg['nuvem'] = n
+        self._gravar_cfg()
+        try:
+            os.chmod(self.CFG, 0o600)       # a chave fica so para este usuario
+        except OSError:
+            pass
+        if n['ligada']:
+            self._add(papel='feito', texto='Cérebro na nuvem ligado: %s ✓ As conversas passam a ir para esse serviço.' % CB.NUVENS[provedor]['nome'])
+        else:
+            self._add(papel='feito', texto='A usar o cérebro deste computador (nada sai daqui) ✓')
+        self.mudou.emit()
 
     @Slot(bool)
     def definirFalar(self, sim):
@@ -820,20 +854,29 @@ class Eta(QObject, Tarefas):
         except Exception:
             return False
 
+    def _aquecer(self):
+        """Le ja o prompt e as ferramentas (ficam em cache): o primeiro pedido responde muito mais depressa."""
+        try:
+            self._cerebro.falar([dict(role='system', content=self._sistema()), dict(role='user', content='olá')],
+                                max_tokens=1, sem_pensar=bool((self._modelo or {}).get('sem_pensar')))
+        except Exception:
+            pass
+
     def _iniciar_ia(self):
         if self._saude():
             self._estado = 'pronta'
             self.mudou.emit()
             return
-        if not (os.path.exists(SERVIDOR) and os.path.exists(MODELO)):
+        self._modelo = CB.modelo_no_disco(DADOS)
+        if not (os.path.exists(SERVIDOR) and self._modelo):
             self._estado = 'sem-modelo'
             self.mudou.emit()
             return
         threads = max(1, (os.cpu_count() or 2))
         try:
             self._proc = subprocess.Popen(
-                [SERVIDOR, '-m', MODELO, '-c', '8192', '-t', str(threads), '--host', '127.0.0.1',
-                 '--port', str(PORTA), '--no-webui'],
+                [SERVIDOR, '-m', os.path.join(DADOS, self._modelo['arquivo']), '-c', '12288', '-np', '1',
+                 '-t', str(threads), '--host', '127.0.0.1', '--port', str(PORTA), '--no-webui', '--jinja'],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception:
             self._estado = 'erro'
@@ -843,6 +886,7 @@ class Eta(QObject, Tarefas):
             if self._saude():
                 self._estado = 'pronta'
                 self.mudou.emit()
+                self._aquecer()
                 return
             if self._proc.poll() is not None:
                 break
@@ -850,111 +894,11 @@ class Eta(QObject, Tarefas):
         self._estado = 'erro'
         self.mudou.emit()
 
-    def _prompt(self):
-        extra = ''
-        if self._documento:
-            extra = 'ARQUIVO QUE O USUARIO ENVIOU ("%s"), use-o para responder:\n%s\n' % (
-                self._documento[0], self._documento[1][:5000])
-        if self._lembrancas:
-            extra += 'O QUE VOCE APRENDEU (a sua memoria; use-a para responder, citando de onde veio):\n'
-            for _, titulo, texto, _d in self._lembrancas[:3]:
-                extra += '- [%s] %s\n' % (titulo, texto[:900])
-        return PROMPT % (SISTEMA, resumo_topicos(), extra, AMBI.NOME)
-
-    def _ia(self, mensagens, ao_chegar=None, max_tokens=600, geracao=None):
-        """Pergunta a IA com streaming; ao_chegar(texto_ate_agora) e chamado enquanto escreve."""
-        corpo = json.dumps(dict(messages=mensagens, temperature=0.3, max_tokens=max_tokens, stream=True)).encode()
-        pedido = urllib.request.Request('http://127.0.0.1:%d/v1/chat/completions' % PORTA, data=corpo,
-                                        headers={'Content-Type': 'application/json'})
-        texto = ''
-        with urllib.request.urlopen(pedido, timeout=300) as r:
-            for linha in r:
-                if geracao is not None and geracao != self._geracao:
-                    break
-                linha = linha.decode('utf-8', 'ignore').strip()
-                if not linha.startswith('data:'):
-                    continue
-                dado = linha[5:].strip()
-                if dado == '[DONE]':
-                    break
-                try:
-                    delta = json.loads(dado)['choices'][0].get('delta', {}).get('content') or ''
-                except Exception:
-                    continue
-                texto += delta
-                if ao_chegar:
-                    ao_chegar(texto)
-        return texto.strip()
-
-    def _pensar(self):
-        pergunta = self._ultimo_pedido()
-        self._pergunta_atual = pergunta
-        guardada = MEM.resposta_guardada(pergunta) if len(MEM.fichas(pergunta)) >= 3 and not self._documento else None
-        if guardada:
-            texto_vis, codigo = separar_codigo(guardada)
-            self._historico.append(dict(role='assistant', content=guardada))
-            self._dizer(texto_vis, codigo=codigo)
-            self._msgs[-1]['memoria'] = True
-            return
-        self._lembrancas = [l for l in MEM.lembrar(pergunta, 3) if l[0] >= 2.0]
-        geracao = self._geracao
-        m = self._add(papel='eta', texto='', codigo='', escrevendo=True)
-        ident = m['id']
-        self._pensando = True
-        self._definir_atividade('A pensar…')
-
-        def ao_chegar(txt):
-            t = txt.lstrip()
-            if t.startswith('{') or t.startswith('```json'):
-                return                    # e uma ferramenta: nao mostrar o JSON
-            self._parcial.emit(ident, txt)
-
-        def tarefa():
-            try:
-                texto = self._ia([dict(role='system', content=self._prompt())] + self._historico[-8:],
-                                 ao_chegar, geracao=geracao)
-            except Exception as e:
-                texto = '__erro__' + str(e)
-            if geracao == self._geracao:
-                self._chegou.emit(texto, ident)
-        threading.Thread(target=tarefa, daemon=True).start()
-
     @Slot(int, str)
     def _resposta_parcial(self, ident, texto):
         texto_vis, codigo = separar_codigo(texto)
         self._trocar(ident, texto=texto_vis, codigo=codigo)
         self._atividade = 'A escrever…'
-
-    @Slot(str, int)
-    def _resposta(self, texto, ident):
-        self._pensando = False
-        if texto.startswith('__erro__'):
-            self._trocar(ident, texto='Desculpe, não consegui pensar agora. Tente de novo daqui a pouco.', escrevendo=False)
-            return
-        acao = self._extrair_json(texto)
-        if acao:
-            self._msgs = [x for x in self._msgs if x['id'] != ident]
-            self._historico.append(dict(role='assistant', content=json.dumps(acao, ensure_ascii=False)))
-            self._executar_ferramenta(acao)
-        else:
-            texto_vis, codigo = separar_codigo(texto)
-            self._historico.append(dict(role='assistant', content=texto))
-            self._trocar(ident, texto=texto_vis, codigo=codigo, escrevendo=False)
-            self._talvez_falar(texto_vis)
-            if not self._documento and len(MEM.fichas(self._pergunta_atual)) >= 3:
-                threading.Thread(target=MEM.guardar_resposta, args=(self._pergunta_atual, texto), daemon=True).start()
-        self.mudou.emit()
-
-    @staticmethod
-    def _extrair_json(texto):
-        m = re.search(r'\{.*\}', texto, re.S)
-        if not m or texto.strip().find('{') > 40:
-            return None
-        try:
-            d = json.loads(m.group(0))
-            return d if isinstance(d, dict) and d.get('ferramenta') else None
-        except Exception:
-            return None
 
     # ---- ferramentas -----------------------------------------------------------------------
     def _executar_ferramenta(self, acao):
@@ -1204,7 +1148,7 @@ class Eta(QObject, Tarefas):
         except Exception:
             pass
 
-    def _memoria_pedido(self, texto, s):
+    def _memoria_pedido(self, texto, s, so_comandos=False):
         m = re.match(r'^(aprende|aprenda|lembra(-te)?|lembre(-se)?|memoriza|memorize|guarda na (tua |sua )?memoria|anota|anote)'
                      r'( que| isto| isso|:)?\s+(?P<nota>.+)', texto.strip(), re.I)
         if m and len(m.group('nota')) > 3:
@@ -1232,6 +1176,8 @@ class Eta(QObject, Tarefas):
                 partes.append('e guardei %d respostas para responder mais rápido' % r['respostas'])
             self._dizer('; '.join(partes) + '. Para eu esquecer algo, diga “esquece …”.')
             return True
+        if so_comandos:
+            return False
         # "como uso o GIMP", "o que é o Krita", "passo a passo do OBS", "ensina-me o LibreOffice"
         if re.search(r'\b(como (uso|usar|utilizo|funciona|mexo|trabalho)|o que (e|faz)|para que serve|ensina\w*|passo a passo|tutorial|guia)\b', s):
             app = APPS.procurar(texto)
@@ -1341,6 +1287,23 @@ class Eta(QObject, Tarefas):
         if re.fullmatch(r'(para|pare|parar|cancela|cancelar|chega|silencio|cala(-te)?)', s):
             self.parar()
             return
+        # com o cerebro (local ou nuvem): a IA entende o pedido e escolhe as ferramentas
+        if self._cerebro_pronto():
+            if self._memoria_pedido(texto, s, so_comandos=True):
+                eu = next((m for m in reversed(self._msgs) if m.get('papel') == 'eu'), None)
+                if eu is not None and not any(m.get('papel') == 'eta' and m['id'] > eu['id'] for m in self._msgs):
+                    eu['chamadas'] = [('lembrar', {'nota': texto})]
+                return
+            m = re.match(r'^(abr\w*|abre|inicia\w*|lanca|executa)\s+(o |a |os |as )?(.+?)[.!]?$', s)
+            if m:                                   # "abre o firefox": logo, sem esperar pela IA
+                app = next((a for a in APPS.instalados() if a[0] == m.group(3).strip() or a[3] == m.group(3).strip()), None)
+                if app:
+                    self._msgs[-1]['chamadas'] = [('abrir_aplicativo', {'nome': app[1]})]
+                    self._fazer('abrir o %s' % app[1], APPS.comando_abrir(app[2]))
+                    return
+            self._pensar()
+            return
+        # sem IA: regras
         # 0a) memoria: aprender, esquecer, o que sabe, como usar um aplicativo
         if self._memoria_pedido(texto, s):
             return
@@ -1496,7 +1459,7 @@ class Eta(QObject, Tarefas):
     def _ler_arquivo(self, caminho):
         nome = os.path.basename(caminho)
         self._add(papel='eu', texto='📎 ' + nome, anexo=caminho)
-        com_ia = self._estado == 'pronta'
+        com_ia = self._cerebro_pronto()
 
         def trabalho():
             tipo, texto, det = ARQ.extrair(caminho)
@@ -1506,7 +1469,8 @@ class Eta(QObject, Tarefas):
                     try:
                         pedido = ('Resuma em portugues do Brasil, em 3 a 5 topicos curtos (comece cada um com "- "), '
                                   'o conteudo deste arquivo chamado "%s":\n\n%s' % (nome, texto[:6000]))
-                        r = self._ia([dict(role='user', content=pedido)], max_tokens=350)
+                        r, _ = self._cerebro.falar([dict(role='user', content=pedido)], ferramentas=False, max_tokens=350,
+                                                   sem_pensar=bool((self._modelo or {}).get('sem_pensar')))
                         resumo = [re.sub(r'^[-•*\d.)\s]+', '', l).strip() for l in r.splitlines()
                                   if re.match(r'^\s*([-•*]|\d+[.)])\s+', l)]
                     except Exception:
@@ -1591,7 +1555,7 @@ class Eta(QObject, Tarefas):
 
     @Slot(str)
     def bloquearArquivo(self, caminho):
-        correr(['carinaeos-cadeado', 'bloquear', caminho], espera=False)
+        correr(['carinaeos-cadeado', 'trancar', caminho], espera=False)
 
     @Slot(str)
     def resumirArquivo(self, caminho):
@@ -1600,8 +1564,10 @@ class Eta(QObject, Tarefas):
     # ---- descarregar o cerebro e a voz ---------------------------------------------------------
     def _o_que_falta(self):
         falta = []
-        if not os.path.exists(MODELO):
-            falta.append((URL_MODELO, MODELO, TAMANHO_MODELO))
+        rec = CB.modelo_recomendado()
+        atual = CB.modelo_no_disco(DADOS)
+        if not atual or (atual.get('antigo') and not self._cerebro.nuvem()):
+            falta.append((rec['url'], os.path.join(DADOS, rec['arquivo']), rec['tamanho']))
         if not os.path.exists(VOZ.MODELO_VOZ):
             falta.append((VOZ.URL_MODELO_VOZ, VOZ.MODELO_VOZ, VOZ.TAMANHO_MODELO_VOZ))
         if shutil.which('piper') and not os.path.exists(VOZ.VOZ_PIPER):
@@ -1643,7 +1609,7 @@ class Eta(QObject, Tarefas):
                         raise IOError('download incompleto')
                     os.replace(parte, destino)
                     feito_total += tam
-                self._progresso.emit(2.0 if estado_antes == 'sem-modelo' or not self._saude() else 3.0)
+                self._progresso.emit(2.0 if any(d.endswith('.gguf') for _, d, _t in falta) or not self._saude() else 3.0)
             except Exception:
                 self._progresso.emit(-1.0)
         threading.Thread(target=tarefa, daemon=True).start()
@@ -1651,7 +1617,7 @@ class Eta(QObject, Tarefas):
     @Slot(float)
     def _atualizar_download(self, v):
         if v < 0:
-            self._estado = 'sem-modelo' if not os.path.exists(MODELO) else ('pronta' if self._saude() else 'a-iniciar')
+            self._estado = 'sem-modelo' if not CB.modelo_no_disco(DADOS) else ('pronta' if self._saude() else 'a-iniciar')
             self._dizer('O download foi interrompido. Verifique a internet e tente outra vez (continua de onde parou).')
         elif v >= 2.0:
             self._baixar_o_que = ''
@@ -1660,6 +1626,16 @@ class Eta(QObject, Tarefas):
                 self._dizer('Pronto! Já posso ouvir e falar ✦ Carregue no 🎤 (ou Meta+Shift+Espaço) e fale comigo.')
             else:
                 self._estado = 'a-iniciar'
+                if self._proc and self._proc.poll() is None:
+                    self._proc.terminate()       # estava com o modelo antigo
+                    try:
+                        self._proc.wait(5)
+                    except Exception:
+                        pass
+                novo = CB.modelo_no_disco(DADOS)
+                antigo = os.path.join(DADOS, 'modelo.gguf')
+                if novo and not novo.get('antigo') and os.path.exists(antigo):
+                    os.remove(antigo)            # o cerebro antigo da Eta ja nao e preciso
                 self._dizer('Pronto! A IA e a voz foram instaladas. Já pode conversar comigo por escrito ou a falar ✦')
                 threading.Thread(target=self._iniciar_ia, daemon=True).start()
         else:

@@ -10,6 +10,12 @@ A = Window.GetHeight();
 esc = A / 1080;
 if (esc < 0.5) esc = 0.5;
 
+# ceu do Atacama (escuro e desfocado) a aparecer devagar por tras de tudo
+ceu.imagem = Image("fundo.png");
+ceu.sprite = Sprite(ceu.imagem.Scale(L, A));
+ceu.sprite.SetPosition(Window.GetX(), Window.GetY(), 1);
+ceu.sprite.SetOpacity(0);
+
 # estrela
 tam = Math.Int(170 * esc);
 estrela.imagem = Image("logo.png").Scale(tam, tam);
@@ -20,12 +26,27 @@ estrela.sprite.SetPosition(estrela.x, estrela.y, 10);
 estrela.sprite.SetOpacity(0);
 estrela.opacidade = 0;
 
+# halo quente que "respira" a volta da estrela
+halo.tam = Math.Int(tam * 2.6);
+halo.sprite = Sprite(Image("brilho.png").Scale(halo.tam, halo.tam));
+halo.sprite.SetPosition(Window.GetX() + L / 2 - halo.tam / 2, estrela.y + tam / 2 - halo.tam / 2, 5);
+halo.sprite.SetOpacity(0);
+tempo = 0;
+
+# o nome por baixo
+nome.imagem = Image("texto.png");
+nome.l = Math.Int(300 * esc);
+nome.a = Math.Int(nome.l * nome.imagem.GetHeight() / nome.imagem.GetWidth());
+nome.sprite = Sprite(nome.imagem.Scale(nome.l, nome.a));
+nome.sprite.SetPosition(Window.GetX() + L / 2 - nome.l / 2, estrela.y + tam + Math.Int(14 * esc), 10);
+nome.sprite.SetOpacity(0);
+
 # barra de progresso (so no arranque; ao desligar fica so a estrela)
 barra.largura = Math.Int(240 * esc);
 barra.altura = Math.Int(5 * esc);
 if (barra.altura < 3) barra.altura = 3;
 barra.x = Window.GetX() + L / 2 - barra.largura / 2;
-barra.y = estrela.y + tam + Math.Int(70 * esc);
+barra.y = estrela.y + tam + Math.Int(90 * esc);
 barra.cheia = Image("barra-cheia.png");
 barra.fundo = Sprite(Image("barra-fundo.png").Scale(barra.largura, barra.altura));
 barra.fundo.SetPosition(barra.x, barra.y, 10);
@@ -37,9 +58,14 @@ barra.frente.SetOpacity(0);
 
 fun ao_atualizar()
 {
+  tempo += 1;
+  pulso = 0.55 + 0.35 * Math.Sin(tempo / 25);
+  halo.sprite.SetOpacity(pulso * estrela.opacidade);
+  ceu.sprite.SetOpacity(estrela.opacidade * 0.9);
+  nome.sprite.SetOpacity(estrela.opacidade);
   if (estrela.opacidade < 1)
   {
-    estrela.opacidade += 0.04;
+    estrela.opacidade += 0.025;
     if (estrela.opacidade > 1) estrela.opacidade = 1;
     estrela.sprite.SetOpacity(estrela.opacidade);
     if (barra.mostrar)

@@ -6,6 +6,8 @@ FUNDO=/usr/share/backgrounds/carinaeos/eta-carinae.jpg
 # a Dock fica sempre visivel, a menos que a pessoa tenha escolhido outra coisa no Supernova
 SEMPRE=true
 grep -qE '"visivel": "(janelas|esconder)"' "${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/supernova.json" 2>/dev/null && SEMPRE=false
+# etiquetas (as 7 cores) na barra lateral dos Arquivos, em todos os ambientes
+(carinaeos-etiquetas iniciar >/dev/null 2>&1 &)
 case "$XDG_CURRENT_DESKTOP" in
   *GNOME*)
     # a Dock: sempre ligada e sempre visivel (todas as vezes, para nunca ficar escondida)

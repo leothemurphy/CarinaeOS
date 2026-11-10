@@ -8,3 +8,4 @@ Icon=carinaeos-casa
 Categories=Utility;Network;
 Keywords=home assistant;casa;luz;luzes;cena;domotica;smart home;
 StartupWMClass=carinaeos-casa
+NoDisplay=true

@@ -48,16 +48,36 @@ for n in 64 128 256; do
   cp $M/logo-text-$n.png $M/logo-text-version-$n.png
 done
 
+# visual "Vidro" (Kvantum + Aurorae + icones WhiteSur, com as cores do CarinaeOS)
+bash tema-vidro.sh "$PWD/$I" "$PWD/cache/vidro" || echo "AVISO: tema Vidro nao instalado"
+
+# ArtCraft Launcher (instala e atualiza os aplicativos da Craft App Suite)
+mkdir -p config/packages.chroot
+rm -f config/packages.chroot/artcraft-launcher*
+ACV=$(curl -sfL https://api.github.com/repos/storytold/craft-launcher/releases/latest | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"].lstrip("v"))' 2>/dev/null || echo 0.9.0)
+if [ ! -s cache/artcraft-launcher-$ACV.deb ]; then
+  curl -sfL -o cache/artcraft-launcher-$ACV.deb \
+    https://github.com/storytold/craft-launcher/releases/download/v$ACV/artcraft-launcher-$ACV-linux-x86_64.deb || rm -f cache/artcraft-launcher-$ACV.deb
+fi
+[ -s cache/artcraft-launcher-$ACV.deb ] && cp cache/artcraft-launcher-$ACV.deb config/packages.chroot/artcraft-launcher_${ACV}_amd64.deb || echo "AVISO: sem o ArtCraft Launcher"
+
 # colecao de papeis de parede 8K (fotos do Webb/Hubble + desenhos do CarinaeOS) para Plasma, GNOME e XFCE
 python3 fundos/fundos.py "$PWD/$I" "$PWD/cache/fundos"
 install -m644 $T/cores/CarinaeOS.colors       $U/color-schemes/
 cp -a $T/sddm/carinaeos                       $U/sddm/themes/
 cp -a $T/plymouth/carinaeos                   $U/plymouth/themes/
+# fundo do arranque: o ceu do papel de parede, escuro e desfocado (PNG pequeno para o initramfs)
+python3 -c "
+from PIL import Image, ImageFilter, ImageEnhance
+im = Image.open('$U/wallpapers/CarinaeOS/contents/images/1920x1080.jpg').resize((960, 540), Image.LANCZOS)
+im = ImageEnhance.Brightness(im.filter(ImageFilter.GaussianBlur(6))).enhance(0.55)
+im.convert('P', palette=Image.ADAPTIVE, colors=200).save('$U/plymouth/themes/carinaeos/fundo.png', optimize=True)
+" || cp $T/plymouth/carinaeos/barra-fundo.png $U/plymouth/themes/carinaeos/fundo.png
 install -m644 arte/grub.png                   $U/carinaeos/grub.png
-install -m644 arte/calamares-*.png            $I/etc/calamares/branding/carinaeos/
+install -m644 arte/calamares-*.png arte/calamares-*.jpg $I/etc/calamares/branding/carinaeos/
 
 # Dock: lancadores das aplicacoes que existem nesta edicao
-sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:org.kde.gwenview.desktop,applications:org.kde.okular.desktop,applications:carinaeos-orbita.desktop,applications:carinaeos-supernova.desktop,applications:carinaeos-eta.desktop,applications:org.kde.merkuro.calendar.desktop,applications:systemsettings.desktop</default>#' \
+sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:carinaeos-central.desktop,applications:carinaeos-orbita.desktop,applications:carinaeos-eta.desktop,applications:org.kde.merkuro.calendar.desktop,applications:systemsettings.desktop</default>#' \
   $U/plasma/plasmoids/org.carinaeos.dock/contents/config/main.xml
 
 # ---- Eta: motor de IA local (llama.cpp, so o servidor, para CPU) -----------------

@@ -131,7 +131,20 @@ for n in distributor-logo distributor-logo-debian debian-logo install-debian kde
          org.kde.plasma.kickerdash org.kde.plasma.kickoff org.kde.plasma.kicker; do
   ln -sf $E $I/scalable/apps/$n.svg
 done
+# visual "Vidro": os icones coloridos (WhiteSur) por baixo dos do CarinaeOS
+if [ -d /usr/share/icons/WhiteSur-dark ]; then
+  sed -i 's/^Inherits=.*/Inherits=WhiteSur-dark,breeze-dark,breeze,hicolor/; s/^Comment=.*/Comment=Icones coloridos com os logotipos do CarinaeOS/' $I/index.theme
+fi
+# Arquivos (Dolphin, Nautilus, Thunar): icone proprio
+A=/usr/share/icons/hicolor/scalable/apps/carinaeos-arquivos.svg
+for n in system-file-manager file-manager org.kde.dolphin dolphin nautilus org.gnome.Nautilus thunar org.xfce.thunar; do
+  ln -sf $A $I/scalable/apps/$n.svg
+done
+sed -i 's/^Icon=.*/Icon=carinaeos-arquivos/' /usr/local/share/applications/org.kde.dolphin.desktop 2>/dev/null || true
 gtk-update-icon-cache -qtf $I || true
+for t in WhiteSur WhiteSur-dark WhiteSur-light; do
+  [ -d /usr/share/icons/$t ] && gtk-update-icon-cache -qtf /usr/share/icons/$t || true
+done
 
 # ---- icones, letras ---------------------------------------------------------------
 gtk-update-icon-cache -qtf /usr/share/icons/hicolor || true
@@ -151,6 +164,7 @@ renomear() {   # renomear <arquivo.desktop> <Nome> <Descricao>
       | sed "0,/^\[Desktop Entry\]\$/s//[Desktop Entry]\nName=$2\nGenericName=$3/" \
       > "/usr/local/share/applications/$1"
 }
+sed -i 's/^Icon=.*/Icon=carinaeos-arquivos/' /usr/local/share/applications/org.kde.dolphin.desktop
 renomear org.kde.marble.desktop "Mapas" "Mapas e globo terrestre"
 renomear org.kde.merkuro.calendar.desktop "Calendário" "Agenda, com a conta Google"
 renomear org.kde.merkuro.contact.desktop "Contactos" "Os seus contactos"
@@ -199,6 +213,56 @@ for K in /usr/share/kglobalaccel/org.kde.krunner.desktop /usr/share/applications
         sed -i '0,/^\[Desktop Entry\]/s//[Desktop Entry]\nX-KDE-Shortcuts=Ctrl+Space,Alt+Space,Alt+F2,Search/' "$K"
     fi
 done
+
+# ---- loja do KDE (Discover) fora dos menus: o CarinaeOS tem a Orbita e a Eta -----------
+for f in org.kde.discover.desktop org.kde.discover.urlhandler.desktop; do
+  [ -f /usr/share/applications/$f ] || continue
+  grep -v '^NoDisplay=' /usr/share/applications/$f | sed '0,/^\[Desktop Entry\]$/s//[Desktop Entry]\nNoDisplay=true/' > /usr/local/share/applications/$f
+done
+
+# ---- sessao sem rastro (convidado): criada no primeiro arranque do sistema instalado ----
+cat > /etc/systemd/system/carinaeos-convidado.service <<'EOT'
+[Unit]
+Description=CarinaeOS - conta de convidado (sessao sem rastro)
+ConditionKernelCommandLine=!boot=live
+ConditionPathExists=!/etc/carinaeos/convidado-criado
+After=local-fs.target
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c '/usr/lib/carinaeos/convidado ligar && mkdir -p /etc/carinaeos && touch /etc/carinaeos/convidado-criado'
+[Install]
+WantedBy=multi-user.target
+EOT
+systemctl enable carinaeos-convidado.service || true
+# a pasta pessoal do convidado vive na memoria (montada ao entrar, apagada ao sair) e entra sem senha
+for P in /etc/pam.d/sddm /etc/pam.d/gdm-password /etc/pam.d/lightdm; do
+  [ -f "$P" ] || continue
+  grep -q carinaeos/convidado "$P" && continue
+  sed -i '0,/^auth/s//auth    sufficient pam_succeed_if.so user = convidado quiet\nauth/' "$P"
+  if grep -qE '^(session|@include common-session)' "$P"; then
+    sed -i '0,/^\(session\|@include common-session\)/s//session optional pam_exec.so quiet \/usr\/lib\/carinaeos\/convidado pam\n&/' "$P"
+  else
+    printf 'session optional pam_exec.so quiet /usr/lib/carinaeos/convidado pam\n' >> "$P"
+  fi
+done
+chmod 755 /usr/lib/carinaeos/convidado /usr/lib/carinaeos/agente-senha 2>/dev/null || true
+
+# ---- agente de permissoes do CarinaeOS (janela de senha com a marca), no Plasma ---------
+if [ -f /usr/lib/systemd/user/plasma-polkit-agent.service ]; then
+  mkdir -p /usr/lib/systemd/user/plasma-polkit-agent.service.d
+  cat > /usr/lib/systemd/user/plasma-polkit-agent.service.d/carinaeos.conf <<'EOT'
+[Service]
+Type=simple
+ExecStart=
+ExecStart=/usr/lib/carinaeos/agente-senha
+EOT
+fi
+
+# ---- rede: pastas partilhadas do Windows/NAS e nomes .local ------------------------------
+if [ -f /etc/samba/smb.conf ]; then
+  grep -q 'client min protocol' /etc/samba/smb.conf || sed -i '/^\[global\]/a \   client min protocol = NT1\n   client max protocol = SMB3\n   name resolve order = bcast host lmhosts wins' /etc/samba/smb.conf
+fi
+systemctl enable avahi-daemon.service 2>/dev/null || true
 
 # ---- ecra de arranque (Plymouth) ------------------------------------------------
 plymouth-set-default-theme carinaeos

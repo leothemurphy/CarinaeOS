@@ -1,57 +1,66 @@
 #!/usr/bin/python3
-# CarinaeOS - cadeado: bloquear arquivos, pastas e aplicativos com senha.
-#
-#   carinaeos-cadeado bloquear <arquivos ou pastas...>   -> cria "<nome>.bloqueado"
-#   carinaeos-cadeado desbloquear <arquivos .bloqueado...>
-#   carinaeos-cadeado aplicativos                       -> escolher apps a bloquear
-#   carinaeos-cadeado abrir <id.desktop> [args...]      -> (usado pelos atalhos)
-#
-# Arquivos e pastas: cifrados com GnuPG (AES-256) com a senha escolhida; o
-# original so e apagado depois de o .bloqueado ser criado e verificado.
-# Aplicativos: o atalho do app passa a pedir a "senha de aplicativos" antes de
-# abrir. E uma protecao de uso diario (quem tiver acesso ao terminal consegue
-# contornar); para dados sensiveis use os Cofres (Plasma Vault) ou arquivos
-# bloqueados, que ficam mesmo cifrados.
+"""CarinaeOS - Cadeado: trancar pastas, arquivos e aplicativos com senha.
+
+  carinaeos-cadeado trancar <pastas ou arquivos...>
+  carinaeos-cadeado abrir <trancado...>          (duplo clique)
+  carinaeos-cadeado aplicativos                  (escolher apps que pedem senha)
+  carinaeos-cadeado abrir-app <id.desktop> [args]
+
+Uma pasta trancada fica no mesmo sitio e com o mesmo nome, com o icone de pasta com
+cadeado; so abre com a senha (duplo clique). Por dentro e um arquivo cifrado com GnuPG
+(AES-256): sem a senha, o conteudo nao se le de nenhuma maneira. O original so e apagado
+depois de o trancado ser criado e verificado. Arquivos ficam "nome.ext.trancado".
+"""
 import configparser, hashlib, hmac, json, os, shlex, shutil, subprocess, sys, tarfile, tempfile
 
 CONF = os.path.join(os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config')), 'carinaeos-cadeado.json')
 LOCAL_APPS = os.path.join(os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')), 'applications')
 TITULO = 'Cadeado do CarinaeOS'
-EXT = '.bloqueado'
-CONTEUDO = 'Conteúdo bloqueado' + EXT       # dentro de uma pasta bloqueada
-MARCA = 'X-CarinaeOS-Bloqueada=true'
+EXT = '.trancado'
+CAB_PASTA = b'CARINAEOS-PASTA1\n'
+CAB_ARQUI = b'CARINAEOS-ARQUI1\n'
+ANTIGO_EXT = '.bloqueado'
+ANTIGO_CONTEUDO = 'Conteúdo bloqueado.bloqueado'
 
 
-def kd(*args, entrada=None):
-    r = subprocess.run(['kdialog', '--title', TITULO, '--icon', 'object-locked', *args],
-                       input=entrada, capture_output=True, text=True)
-    return r.returncode, r.stdout.rstrip('\n')
+def pedir_senha(titulo, mensagem='', erro='', nova=False, botao='Continuar'):
+    args = ['carinaeos-pedir-senha', '--titulo', titulo, '--mensagem', mensagem, '--botao', botao]
+    if erro:
+        args += ['--erro', erro]
+    if nova:
+        args.append('--nova')
+    try:
+        r = subprocess.run(args, capture_output=True, text=True)
+    except FileNotFoundError:
+        r = subprocess.run(['kdialog', '--title', TITULO, '--password', titulo + '\n' + mensagem], capture_output=True, text=True)
+        return r.stdout.rstrip('\n') if r.returncode == 0 and r.stdout.strip() else None
+    return r.stdout if r.returncode == 0 and r.stdout else None
 
 
-def aviso(msg):
-    kd('--msgbox', msg)
+def nova_senha(titulo, mensagem=''):
+    return pedir_senha(titulo, mensagem, nova=True, botao='Trancar')
+
+
+def avisar(titulo, texto='', icone='object-locked', acoes=None):
+    """Notificacao; acoes=[(id, rotulo)] devolve o id escolhido (ou None)."""
+    args = ['notify-send', '-a', 'Cadeado', '-i', icone, titulo, texto]
+    for i, r in (acoes or []):
+        args[1:1] = ['-A', '%s=%s' % (i, r)]
+    if acoes:
+        args.insert(1, '--wait')
+    try:
+        r = subprocess.run(args, capture_output=True, text=True, timeout=600 if acoes else 10)
+        return r.stdout.strip() or None
+    except Exception:
+        return None
 
 
 def erro(msg):
-    kd('--error', msg)
+    avisar('Cadeado', msg, 'dialog-error')
 
 
-def pedir_senha(msg):
-    c, s = kd('--password', msg)
-    return s if c == 0 and s else None
-
-
-def nova_senha(msg):
-    s1 = pedir_senha(msg)
-    if s1 is None:
-        return None
-    s2 = pedir_senha('Repita a senha:')
-    if s2 is None:
-        return None
-    if s1 != s2:
-        erro('As senhas não coincidem.')
-        return None
-    return s1
+def aviso(msg):
+    avisar('Cadeado', msg)
 
 
 # ---- configuracao (senha de aplicativos + lista de apps bloqueados) ---------
@@ -79,133 +88,185 @@ def senha_certa(c, senha):
     return 'sal' in c and hmac.compare_digest(hash_senha(senha, c['sal']), c.get('hash', ''))
 
 
-# ---- arquivos e pastas -------------------------------------------------------
-def gpg(args, senha):
-    return subprocess.run(['gpg', '--batch', '--yes', '--quiet', '--pinentry-mode', 'loopback',
-                           '--passphrase-fd', '0', *args], input=senha + '\n', text=True,
-                          capture_output=True)
-
-
-def pasta_bloqueada(p):
+# ---- pastas e arquivos ----------------------------------------------------------
+def gpg(args, senha, entrada=None):
+    r, w = os.pipe()
+    os.write(w, (senha + '\n').encode())
+    os.close(w)
     try:
-        return MARCA in open(os.path.join(p, '.directory'), encoding='utf-8').read()
-    except Exception:
-        return False
+        return subprocess.run(['gpg', '--batch', '--yes', '--quiet', '--no-symkey-cache', '--pinentry-mode', 'loopback',
+                               '--passphrase-fd', str(r), *args], pass_fds=(r,), stdin=entrada, capture_output=True)
+    finally:
+        os.close(r)
 
 
-def cifrar(origem, destino, senha, membros):
-    """membros: lista de (caminho, nome no arquivo)"""
-    with tempfile.TemporaryDirectory() as t:
-        pacote = os.path.join(t, 'conteudo.tar')
+def cabecalho(p):
+    try:
+        with open(p, 'rb') as f:
+            return f.read(len(CAB_PASTA))
+    except OSError:
+        return b''
+
+
+def e_trancado(p):
+    return os.path.isfile(p) and cabecalho(p) in (CAB_PASTA, CAB_ARQUI)
+
+
+def trancar_um(p, senha):
+    pai, nome = os.path.split(p)
+    pasta = os.path.isdir(p) and not os.path.islink(p)
+    final = p if pasta else p + EXT
+    if not pasta and os.path.exists(final):
+        raise RuntimeError('já existe "%s"' % os.path.basename(final))
+    tmp = os.path.join(pai, '.%s.a-trancar' % nome)
+    with tempfile.TemporaryDirectory(dir=pai if os.access(pai, os.W_OK) else None) as t:
+        pacote = os.path.join(t, 'c.tar')
         with tarfile.open(pacote, 'w') as tar:
-            for caminho, nome in membros:
-                tar.add(caminho, arcname=nome)
-        r = gpg(['--symmetric', '--cipher-algo', 'AES256', '-o', destino, pacote], senha)
+            tar.add(p, arcname=nome)
+        cif = os.path.join(t, 'c.gpg')
+        r = gpg(['--symmetric', '--cipher-algo', 'AES256', '-o', cif, pacote], senha)
         if r.returncode != 0:
-            raise RuntimeError(r.stderr.strip())
-        r = gpg(['-o', os.path.join(t, 'verifica.tar'), '-d', destino], senha)   # verificar
+            raise RuntimeError(r.stderr.decode(errors='ignore').strip() or 'gpg falhou')
+        os.remove(pacote)
+        with open(cif, 'rb') as f:
+            r = gpg(['-o', os.path.join(t, 'v.tar'), '-d'], senha, entrada=f)     # verificar antes de apagar
         if r.returncode != 0:
-            raise RuntimeError('verificação falhou')
+            raise RuntimeError('a verificação falhou; nada foi apagado')
+        os.remove(os.path.join(t, 'v.tar'))
+        with open(tmp, 'wb') as o, open(cif, 'rb') as f:
+            o.write(CAB_PASTA if pasta else CAB_ARQUI)
+            shutil.copyfileobj(f, o, 1 << 20)
+    if pasta:
+        velho = os.path.join(pai, '.%s.a-apagar' % nome)
+        os.rename(p, velho)
+        os.rename(tmp, final)
+        shutil.rmtree(velho, ignore_errors=True)
+    else:
+        os.rename(tmp, final)
+        os.remove(p)
+    return final
 
 
-def bloquear(caminhos):
-    caminhos = [os.path.abspath(p).rstrip('/') for p in caminhos if not p.endswith(EXT)]
-    caminhos = [p for p in caminhos if not (os.path.isdir(p) and pasta_bloqueada(p))]
+def trancar(caminhos):
+    caminhos = [os.path.abspath(p).rstrip('/') for p in caminhos]
+    caminhos = [p for p in caminhos if os.path.exists(p) and not e_trancado(p) and not p.endswith(ANTIGO_EXT)]
     if not caminhos:
+        aviso('Isso já está trancado.')
         return
-    nomes = '\n'.join(os.path.basename(p) for p in caminhos)
-    senha = nova_senha('Escolha uma senha para bloquear:\n' + nomes)
+    nomes = ', '.join('“%s”' % os.path.basename(p) for p in caminhos[:4]) + ('…' if len(caminhos) > 4 else '')
+    senha = nova_senha('Trancar %s' % nomes,
+                       'Escolha uma senha. Sem ela, ninguém consegue abrir — nem você: guarde-a bem.')
     if senha is None:
         return
-    falhas = []
+    falhas, feitos = [], []
     for p in caminhos:
         try:
-            if os.path.isdir(p) and not os.path.islink(p):
-                # a pasta continua no mesmo sitio, com o mesmo nome e um cadeado
-                filhos = [n for n in os.listdir(p) if n != '.directory']
-                destino = os.path.join(p, CONTEUDO)
-                try:
-                    cifrar(p, destino, senha, [(os.path.join(p, n), n) for n in filhos])
-                except Exception:
-                    if os.path.exists(destino):
-                        os.remove(destino)
-                    raise
-                for n in filhos:
-                    f = os.path.join(p, n)
-                    if os.path.isdir(f) and not os.path.islink(f):
-                        shutil.rmtree(f)
-                    else:
-                        os.remove(f)
-                d = os.path.join(p, '.directory')
-                antigo = open(d, encoding='utf-8').read() if os.path.exists(d) else ''
-                with open(d, 'w', encoding='utf-8') as f:
-                    f.write('[Desktop Entry]\nIcon=folder-locked\n' + MARCA + '\n')
-                if antigo:
-                    with open(os.path.join(p, '.directory.antes-do-cadeado'), 'w', encoding='utf-8') as f:
-                        f.write(antigo)
-            else:
-                destino = p + EXT
-                try:
-                    cifrar(p, destino, senha, [(p, os.path.basename(p))])
-                except Exception:
-                    if os.path.exists(destino):
-                        os.remove(destino)
-                    raise
-                os.remove(p)
+            feitos.append(trancar_um(p, senha))
         except Exception as e:
             falhas.append('%s: %s' % (os.path.basename(p), e))
+    if feitos:
+        avisar('Trancado ✓', '%s só abre com a senha (duplo clique).' % nomes)
     if falhas:
-        erro('Não foi possível bloquear:\n' + '\n'.join(falhas))
+        erro('Não foi possível trancar:\n' + '\n'.join(falhas))
 
 
-def desbloquear(caminhos):
+def abrir_um(p, senha):
+    """Decifra; devolve o caminho do que ficou aberto. Levanta ValueError se a senha estiver errada."""
+    pai = os.path.dirname(p)
+    cab = cabecalho(p)
+    pasta = cab == CAB_PASTA
+    with tempfile.TemporaryDirectory(dir=pai if os.access(pai, os.W_OK) else None) as t:
+        pacote = os.path.join(t, 'c.tar')
+        with open(p, 'rb', buffering=0) as f:
+            f.read(len(cab))
+            r = gpg(['-o', pacote, '-d'], senha, entrada=f)
+        if r.returncode != 0:
+            raise ValueError('senha')
+        saida = os.path.join(t, 'x')
+        os.mkdir(saida)
+        with tarfile.open(pacote) as tar:
+            nomes = tar.getnames()
+            if any(n.startswith('/') or '..' in n.split('/') for n in nomes) or len({n.split('/')[0] for n in nomes}) != 1:
+                raise RuntimeError('conteúdo inválido')
+            tar.extractall(saida, filter='data')
+        nome = os.listdir(saida)[0]
+        if pasta:
+            destino = p                       # a pasta volta a ter o nome do trancado
+            os.remove(p)
+            os.rename(os.path.join(saida, nome), destino)
+        else:
+            destino = os.path.join(pai, nome)
+            if os.path.exists(destino):
+                raise RuntimeError('já existe "%s"' % nome)
+            os.rename(os.path.join(saida, nome), destino)
+            os.remove(p)
+    return destino
+
+
+def abrir_antigo(p, senha):
+    """Formato do rc7 (.bloqueado e 'Conteudo bloqueado.bloqueado' dentro da pasta)."""
+    pasta = os.path.dirname(p)
+    dentro = os.path.basename(p) == ANTIGO_CONTEUDO
+    with tempfile.TemporaryDirectory() as t:
+        pacote = os.path.join(t, 'c.tar')
+        r = gpg(['-o', pacote, '-d', p], senha)
+        if r.returncode != 0:
+            raise ValueError('senha')
+        with tarfile.open(pacote) as tar:
+            nomes = tar.getnames()
+            if any(n.startswith('/') or '..' in n.split('/') for n in nomes):
+                raise RuntimeError('conteúdo inválido')
+            tar.extractall(pasta, filter='data')
+    os.remove(p)
+    if dentro:
+        for d in ('.directory', '.directory.antes-do-cadeado'):
+            f = os.path.join(pasta, d)
+            if d == '.directory' and os.path.exists(f + '.antes-do-cadeado'):
+                continue
+            if os.path.exists(f):
+                os.replace(f, os.path.join(pasta, '.directory')) if d.endswith('cadeado') else os.remove(f)
+        return pasta
+    return p[:-len(ANTIGO_EXT)]
+
+
+def abrir(caminhos):
     alvos = []
     for p in caminhos:
         p = os.path.abspath(p).rstrip('/')
-        if os.path.isdir(p) and pasta_bloqueada(p) and os.path.exists(os.path.join(p, CONTEUDO)):
-            alvos.append(os.path.join(p, CONTEUDO))
-        elif p.endswith(EXT) and os.path.isfile(p):
+        if e_trancado(p) or (p.endswith(ANTIGO_EXT) and os.path.isfile(p)):
             alvos.append(p)
+        elif os.path.isdir(p) and os.path.isfile(os.path.join(p, ANTIGO_CONTEUDO)):
+            alvos.append(os.path.join(p, ANTIGO_CONTEUDO))
     if not alvos:
-        aviso('Não há nada bloqueado aqui.')
+        aviso('Não há nada trancado aqui.')
         return
-    rotulo = lambda a: os.path.basename(os.path.dirname(a)) if os.path.basename(a) == CONTEUDO else os.path.basename(a)
-    senha = pedir_senha('Digite a senha para desbloquear:\n' + '\n'.join(rotulo(a) for a in alvos))
-    if senha is None:
-        return
-    falhas = []
-    for a in alvos:
-        pasta = os.path.dirname(a)
-        dentro = os.path.basename(a) == CONTEUDO and pasta_bloqueada(pasta)
-        try:
-            with tempfile.TemporaryDirectory() as t:
-                pacote = os.path.join(t, 'conteudo.tar')
-                r = gpg(['-o', pacote, '-d', a], senha)
-                if r.returncode != 0:
-                    raise RuntimeError('senha incorreta')
-                with tarfile.open(pacote) as tar:
-                    nomes = tar.getnames()
-                    if any(n.startswith('/') or '..' in n.split('/') for n in nomes):
-                        raise RuntimeError('conteúdo inválido')
-                    topo = {n.split('/')[0] for n in nomes}
-                    if not dentro and len(topo) != 1:
-                        raise RuntimeError('conteúdo inválido')
-                    for n in topo:
-                        if n != CONTEUDO and os.path.exists(os.path.join(pasta, n)):
-                            raise RuntimeError('já existe "%s" nesta pasta' % n)
-                    tar.extractall(pasta, filter='data')
-            os.remove(a)
-            if dentro:
-                d = os.path.join(pasta, '.directory')
-                antes = os.path.join(pasta, '.directory.antes-do-cadeado')
-                if os.path.exists(antes):
-                    os.replace(antes, d)
-                elif os.path.exists(d):
-                    os.remove(d)
-        except Exception as e:
-            falhas.append('%s: %s' % (rotulo(a), e))
-    if falhas:
-        erro('Não foi possível desbloquear:\n' + '\n'.join(falhas))
+    for p in alvos:
+        nome = os.path.basename(os.path.dirname(p) if os.path.basename(p) == ANTIGO_CONTEUDO else p)
+        if nome.endswith(EXT):
+            nome = nome[:-len(EXT)]
+        e = ''
+        for _tentativa in range(5):
+            senha = pedir_senha('Abrir “%s”' % nome, 'Esta %s está trancada. Digite a senha para a abrir.'
+                                % ('pasta' if cabecalho(p) == CAB_PASTA or p.endswith(ANTIGO_CONTEUDO) else 'arquivo'),
+                                erro=e, botao='Abrir')
+            if senha is None:
+                return
+            try:
+                f = abrir_antigo(p, senha) if (p.endswith(ANTIGO_EXT)) else abrir_um(p, senha)
+            except ValueError:
+                e = 'Senha incorreta. Tente outra vez.'
+                continue
+            except Exception as x:
+                erro('Não foi possível abrir “%s”: %s' % (nome, x))
+                return
+            subprocess.Popen(['xdg-open', f], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if os.fork() == 0:              # oferecer trancar de novo, sem prender o duplo clique
+                os.setsid()
+                if avisar('“%s” está aberta' % nome, 'Quando acabar, tranque-a de novo.', 'object-unlocked',
+                          acoes=[('trancar', 'Trancar de novo')]) == 'trancar':
+                    trancar([f])
+                os._exit(0)
+            break
 
 
 # ---- aplicativos -------------------------------------------------------------
@@ -272,7 +333,7 @@ def aplicar_bloqueios(c):
                     continue
                 exec_orig = l[5:]
                 codigos = ' '.join(c2 for c2 in ('%U', '%u', '%F', '%f') if c2 in exec_orig)
-                l = 'Exec=carinaeos-cadeado abrir %s %s' % (app_id, codigos)
+                l = 'Exec=carinaeos-cadeado abrir-app %s %s' % (app_id, codigos)
             saida.append(l)
             if l.strip() == '[Desktop Entry]':
                 saida.append('X-CarinaeOS-Cadeado=true')
@@ -282,38 +343,56 @@ def aplicar_bloqueios(c):
         subprocess.run(['kbuildsycoca6'], capture_output=True)
 
 
+def escolher_apps(lista):
+    """lista = [id, nome, on/off, ...] -> ids marcados (ou None se cancelou)."""
+    if shutil.which('kdialog'):
+        r = subprocess.run(['kdialog', '--title', TITULO, '--separate-output', '--geometry', '520x620', '--checklist',
+                            'Marque os aplicativos que devem pedir senha para abrir:', *lista], capture_output=True, text=True)
+        return [l for l in r.stdout.splitlines() if l] if r.returncode == 0 else None
+    if shutil.which('zenity'):
+        linhas = []
+        for i in range(0, len(lista), 3):
+            linhas += ['TRUE' if lista[i + 2] == 'on' else 'FALSE', lista[i], lista[i + 1]]
+        r = subprocess.run(['zenity', '--list', '--checklist', '--title', TITULO, '--width', '520', '--height', '620',
+                            '--text', 'Marque os aplicativos que devem pedir senha para abrir:', '--column', '',
+                            '--column', 'id', '--column', 'Aplicativo', '--hide-column', '2', '--print-column', '2',
+                            '--separator', '\n', *linhas], capture_output=True, text=True)
+        return [l for l in r.stdout.splitlines() if l] if r.returncode == 0 else None
+    erro('Falta o kdialog ou o zenity para escolher os aplicativos.')
+    return None
+
+
 def gerir_apps():
     c = ler_conf()
     if 'sal' not in c:
-        aviso('Primeiro escolha uma senha para os aplicativos bloqueados.\n'
-              'Ela vai ser pedida sempre que abrir um deles.')
-        s = nova_senha('Nova senha de aplicativos:')
+        s = nova_senha('Senha dos aplicativos trancados', 'Esta senha vai ser pedida sempre que abrir um aplicativo trancado.')
         if s is None:
             return
         c['sal'] = os.urandom(16).hex()
         c['hash'] = hash_senha(s, c['sal'])
         gravar_conf(c)
     else:
-        s = pedir_senha('Digite a senha de aplicativos:')
-        if s is None:
-            return
-        if not senha_certa(c, s):
-            erro('Senha incorreta.')
-            return
+        e = ''
+        while True:
+            s = pedir_senha('Aplicativos trancados', 'Digite a senha dos aplicativos.', erro=e)
+            if s is None:
+                return
+            if senha_certa(c, s):
+                break
+            e = 'Senha incorreta.'
     lista = []
     for app_id, nome in apps_instalados():
         lista += [app_id, nome, 'on' if app_id in c['apps'] else 'off']
-    code, out = kd('--separate-output', '--geometry', '520x620', '--checklist',
-                   'Marque os aplicativos que devem pedir senha para abrir:', *lista)
-    if code != 0:
+    out = escolher_apps(lista)
+    if out is None:
         return
-    c['apps'] = [l for l in out.splitlines() if l]
+    c['apps'] = out
     gravar_conf(c)
     aplicar_bloqueios(c)
     aviso('Pronto. %d aplicativo(s) bloqueado(s).' % len(c['apps']))
 
 
-def abrir(app_id, args):
+def abrir_app(app_id, args):
     c = ler_conf()
     orig = desktop_sistema(app_id)
     if not orig:
@@ -322,12 +401,14 @@ def abrir(app_id, args):
     e = ler_desktop(orig)['Desktop Entry']
     nome = e.get('Name[pt_BR]') or e.get('Name') or app_id
     if app_id in c.get('apps', []):
-        s = pedir_senha('"%s" está bloqueado.\nDigite a senha de aplicativos:' % nome)
-        if s is None:
-            return 1
-        if not senha_certa(c, s):
-            erro('Senha incorreta.')
-            return 1
+        e = ''
+        while True:
+            s = pedir_senha('Abrir “%s”' % nome, 'Este aplicativo está trancado. Digite a senha dos aplicativos.', erro=e, botao='Abrir')
+            if s is None:
+                return 1
+            if senha_certa(c, s):
+                break
+            e = 'Senha incorreta.'
     cmd = []
     for p in shlex.split(e.get('Exec', '')):
         if p in ('%U', '%F'):
@@ -345,17 +426,17 @@ def abrir(app_id, args):
 
 def main():
     if len(sys.argv) < 2:
-        print(__doc__ if __doc__ else 'uso: carinaeos-cadeado bloquear|desbloquear|aplicativos|abrir')
+        print(__doc__)
         return 1
     acao, resto = sys.argv[1], sys.argv[2:]
-    if acao == 'bloquear':
-        bloquear(resto)
-    elif acao == 'desbloquear':
-        desbloquear(resto)
+    if acao in ('trancar', 'bloquear'):
+        trancar(resto)
+    elif acao in ('abrir', 'desbloquear', 'destrancar'):
+        abrir(resto)
     elif acao == 'aplicativos':
         gerir_apps()
-    elif acao == 'abrir' and resto:
-        return abrir(resto[0], resto[1:])
+    elif acao == 'abrir-app' and resto:
+        return abrir_app(resto[0], resto[1:])
     else:
         return 1
     return 0

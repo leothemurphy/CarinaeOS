@@ -20,9 +20,8 @@ com visual inspirado no macOS. Partes principais:
 - ORBITA: loja de aplicativos (Flathub). Instala Chrome, Firefox, LibreOffice, Spotify, Discord, Steam,
   WhatsApp, VS Code e muito mais, sem senha de administrador.
 - Arquivos (o gerenciador de arquivos, programa Dolphin).
-- CADEADO: clique direito num arquivo ou pasta > "Bloquear com senha". Pasta bloqueada fica com icone de
-  cadeado; para abrir, duplo clique em "Conteudo bloqueado.bloqueado" dentro dela. Para bloquear
-  aplicativos: abrir "Bloquear aplicativos" no Launchpad.
+- CADEADO: clique direito num arquivo ou pasta > "Trancar com senha". A pasta trancada fica com icone de
+  cadeado e so abre com a senha (duplo clique). Aplicativos: Central CarinaeOS > Cadeado > Aplicativos.
 - COFRES (Plasma Vault): pastas cifradas que abrem e fecham pelo icone de cadeado na barra de cima.
 - Configuracoes do Sistema: todas as opcoes (tela, rede, som, usuarios, idioma, teclado, energia...).
 - Atualizacoes do sistema: app "Discover" > Atualizacoes.
@@ -95,8 +94,8 @@ TOPICOS = [
          resposta='As atualizações do sistema ficam no Discover > Atualizações. Também pode pedir para eu verificar.',
          acao=('abrir as atualizações', 'plasma-discover --mode update')),
     dict(id='bloquear', palavras='bloquear senha cadeado proteger esconder privado pasta arquivo cofre',
-         resposta='Para bloquear um arquivo ou pasta: clique com o botão direito > "Bloquear com senha". '
-                  'Para aplicativos: abra "Bloquear aplicativos" no Launchpad. Para uma pasta cifrada que abre e fecha: use os Cofres (ícone de cadeado na barra de cima).',
+         resposta='Para trancar uma pasta ou arquivo: botão direito > "Trancar com senha". A pasta fica no mesmo sítio com um cadeado e só abre '
+                  'com a senha (duplo clique). Para aplicativos: Central CarinaeOS > Cadeado > Aplicativos.',
          acao=('abrir "Bloquear aplicativos"', 'carinaeos-cadeado aplicativos')),
     dict(id='captura', palavras='captura print screenshot foto da tela gravar tela',
          resposta='Tecla Print tira uma captura (app Spectacle). No Spectacle também pode gravar a tela.',

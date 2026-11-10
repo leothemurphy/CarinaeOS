@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=Desbloquear
-Comment=Abrir um arquivo ou pasta bloqueado com senha
-Exec=carinaeos-cadeado desbloquear %F
+Name=Destrancar
+Comment=Abrir uma pasta ou arquivo trancado com senha
+Exec=carinaeos-cadeado abrir %F
 Icon=object-unlocked
-MimeType=application/x-carinaeos-bloqueado;
+MimeType=application/x-carinaeos-pasta-trancada;application/x-carinaeos-trancado;application/x-carinaeos-bloqueado;
 NoDisplay=true

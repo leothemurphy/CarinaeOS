@@ -47,7 +47,7 @@ ApplicationWindow {
           texto: "Ligue o seu Home Assistant e controle luzes e cenas (também pela Eta: “acende a luz da sala”). O Calendário liga à conta Google e os eventos aparecem ao clicar no relógio. E os Mapas mostram o mundo inteiro.",
           itens: [], botao: "Abrir a Casa", cmd: "carinaeos-casa" },
         { titulo: "Segurança e privacidade", icone: "object-locked",
-          texto: "Bloqueie pastas, arquivos e aplicativos com senha: botão direito › “Bloquear com senha”. O que está bloqueado aparece com um cadeado.",
+          texto: "Tranque pastas, arquivos e aplicativos com senha: botão direito › “Trancar com senha”. A pasta fica com um cadeado e só abre com a senha.",
           itens: [], botao: "", cmd: "" },
         { titulo: "Ao seu gosto", icone: "preferences-desktop-wallpaper",
           texto: "Mais de 14 papéis de parede em 8K (fotos do James Webb e do Hubble e desenhos do CarinaeOS). E pode usar o CarinaeOS com KDE Plasma, GNOME ou XFCE — sempre com a mesma Dock e os mesmos fundos.",

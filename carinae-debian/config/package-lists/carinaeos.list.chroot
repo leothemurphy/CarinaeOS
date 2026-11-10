@@ -120,3 +120,28 @@ spice-vdagent
 # ---- instalador ------------------------------------------------------------
 calamares
 calamares-settings-debian
+# rc8: visual Vidro (Kvantum), rede SMB/NAS, impressoras, mais firmware, janelas de senha
+qt6-style-kvantum
+qt-style-kvantum
+kio-fuse
+smbclient
+cifs-utils
+wsdd2
+avahi-daemon
+libnss-mdns
+cups
+print-manager
+printer-driver-all
+sane-airscan
+ipp-usb
+skanlite
+firmware-atheros
+firmware-brcm80211
+firmware-mediatek
+firmware-intel-sound
+bluez-firmware
+zenity
+gir1.2-polkit-1.0
+fastfetch
+xdg-user-dirs
+hplip

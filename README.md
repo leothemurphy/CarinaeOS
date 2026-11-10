@@ -18,7 +18,8 @@ barra no topo, Launchpad, uma loja de aplicativos própria, um painel de efeitos
 assistente de IA que roda **no seu próprio computador**.
 
 O nome vem de **Eta Carinae**, uma das estrelas mais brilhantes e instáveis da nossa galáxia.
-Ela aparece no fundo de tela, e a estrela de quatro pontas é o símbolo do sistema.
+A estrela de quatro pontas é o símbolo do sistema, e brilha no céu real do deserto do Atacama
+nos papéis de parede.
 
 > **Estado:** versão de testes (*release candidate*). Já dá para usar e instalar, mas ainda pode
 > ter arestas. Encontrou alguma coisa? Abra uma [*issue*](../../issues).
@@ -31,8 +32,8 @@ Ela aparece no fundo de tela, e a estrela de quatro pontas é o símbolo do sist
     <td width="50%"><img src="docs/imagens/02-entrada.jpg" alt="Tela de entrada"></td>
   </tr>
   <tr>
-    <td><b>Área de trabalho</b>: barra no topo com o menu do aplicativo aberto, e Dock de vidro
-        que amplia os ícones ao passar o mouse, com <b>Downloads</b> e <b>Lixeira</b> no fim.</td>
+    <td><b>Área de trabalho</b>: o céu real do Atacama com a estrela do CarinaeOS, barra no topo e
+        Dock de vidro que amplia os ícones, com <b>Downloads</b> e <b>Lixeira</b> no fim.</td>
     <td><b>Tela de entrada</b>: relógio grande, senha embaixo e o céu da Eta Carinae ao fundo.
         Aceita senhas simples, como um PIN de 4 a 6 números.</td>
   </tr>
@@ -56,21 +57,44 @@ Ela aparece no fundo de tela, e a estrela de quatro pontas é o símbolo do sist
     <td><b>Supernova</b>: o painel de personalização. Efeitos de janela (lâmpada mágica,
         gelatina, explosão), Alt+Tab em Flip 3D ou em grade, ajustes da Dock e perfis prontos.</td>
   </tr>
+  <tr>
+    <td><img src="docs/imagens/08-central.jpg" alt="Central CarinaeOS"></td>
+    <td><img src="docs/imagens/09-arquivos.jpg" alt="Arquivos com etiquetas"></td>
+  </tr>
+  <tr>
+    <td><b>Central CarinaeOS</b>: todas as ferramentas do sistema num só lugar.</td>
+    <td><b>Arquivos</b> no visual Vidro, com as etiquetas coloridas na barra lateral.</td>
+  </tr>
 </table>
 
 E ainda:
 
+- **Visual Vidro**: janelas translúcidas com desfoque, botões redondos, ícones coloridos e
+  papéis de parede com **fotografias reais do céu do Atacama** (ESO) com a estrela do CarinaeOS a brilhar,
+  do arranque animado e da tela de entrada até à área de trabalho.
+- **Central CarinaeOS**: todas as ferramentas num só lugar — Eta, Supernova, Órbita, Casa, Ambiente,
+  Calendários, Janelas em zonas, Cadeado, Etiquetas, Histórico do Ctrl+C, Drivers e Privacidade.
+- **Janelas em zonas**: esquemas prontos (2 ou 3 colunas, grade, principal + duas); arraste com Shift para encaixar.
+  E **áreas de trabalho** como os Spaces do Mac (<kbd>Ctrl</kbd>+<kbd>⊞</kbd>+<kbd>←/→</kbd>, <kbd>⊞</kbd>+<kbd>W</kbd>).
+- **Histórico do Ctrl+C** com <kbd>⊞</kbd>+<kbd>V</kbd>.
+- **Drivers e hardware**: deteta placa NVIDIA, Wi-Fi, Bluetooth, impressoras e scanners, leitor de impressão digital,
+  ratos Logitech e de jogos, e instala o que falta com um clique.
+- **Sessão sem rastro**: “Convidado” na tela de entrada; tudo vive na memória e desaparece ao sair.
+- **Modo escuro em todo o lado**, até no Chrome, no Firefox e nos aplicativos GTK e Flatpak.
+- **Janelas de senha com a marca CarinaeOS** sempre que o sistema pede permissão.
 - **Estilo Mac ou estilo Windows 11**: barra em cima e Dock em baixo, ou barra de tarefas ao centro com a estrela no menu Iniciar. E também **GNOME** e **XFCE**, instalados com um clique e sempre com a Dock visível, o tema e os papéis de parede do CarinaeOS.
-- **Casa**: o seu Home Assistant no computador (luzes, cenas, clima, sensores) e este PC como dispositivo no Home Assistant.
-- **Calendário** com a conta Google (os eventos aparecem ao clicar no relógio) e **Mapas**.
-- **Etiquetas** coloridas nos Arquivos, como no Finder, também para arquivos em pastas de rede.
-- **Papéis de parede em 8K**: fotografias do James Webb e do Hubble e desenhos originais do CarinaeOS.
+- **Casa**: painéis do Home Assistant que monta como quiser, com 13 tipos de cartões (botão, luz, lista, sensor,
+  gráfico de 24 h, clima, cenas, som e TV, câmara, estores, tempo, número, texto), e este PC como dispositivo no Home Assistant.
+- **Calendários**: conta Google, iCloud (CalDAV) ou qualquer endereço iCal (Google, iCloud, Outlook, feriados), e **Mapas**.
+- **Etiquetas** coloridas nos Arquivos, como no Finder, na barra lateral (GNOME e XFCE também), até em pastas de rede.
+- **Papéis de parede em 8K**: o céu do Atacama com a estrela, fotografias do James Webb e do Hubble e desenhos originais.
+- **ArtCraft Launcher** já instalado, para baixar os aplicativos da Craft App Suite.
 - **Boas-vindas** depois de instalar, a mostrar tudo o que o sistema tem.
 
 - **Busca rápida** (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>), como o Spotlight: encontra aplicativos,
   arquivos e configurações, faz contas, converte unidades e pode perguntar à Eta.
-- **Cadeado em pastas, arquivos e aplicativos**: clique com o botão direito → *Bloquear com senha*.
-  O que está bloqueado aparece com um cadeado.
+- **Cadeado em pastas, arquivos e aplicativos**: botão direito → *Trancar com senha*. A pasta fica no mesmo
+  sítio com um cadeado e só abre com a senha (cifrada com AES-256). Funciona no Plasma, no GNOME e no XFCE.
 - **Céu vivo** (liga-se no Supernova): o fundo de tela muda de tom ao longo do dia — madrugada, manhã, tarde e noite.
 - **Alt+Tab em Flip 3D**, como no Windows Vista, ou em grade, como no Mac.
 - **Tudo em português**, do arranque ao instalador.
@@ -105,10 +129,16 @@ não aparecem na conversa e nunca são enviadas para a IA.
 
 **Aprende.** A Eta estuda tudo o que é instalado e guarda o que lê (PDFs, documentos) e as notas que lhe pede, para responder depois sem ter de procurar outra vez. As respostas ficam em cache: a mesma pergunta responde-se na hora.
 
+**Entende o que pede.** A Eta usa a IA para perceber o pedido e escolher as ferramentas certas
+(chamadas de função), em vez de adivinhar por palavras: “abre o libre office no modo claro” abre o LibreOffice
+**e** muda o tema; “e o volume a 40” lembra-se do contexto; se o pedido for ambíguo, pergunta com botões.
+Para saber coisas do computador (“qual é a minha placa de vídeo?”) corre um comando que só lê e explica o resultado.
+
 **A IA é local e privada.** Na primeira vez, a Eta pergunta se quer ativar a IA completa: são
-1,1 GB baixados uma única vez (modelo Qwen2.5 1.5B, a correr com o llama.cpp). Depois disso,
-funciona **sem internet** e nada do que escreve sai do seu computador. Mesmo sem a IA ativada,
-a Eta já responde às perguntas mais comuns e faz todas as tarefas da tabela acima.
+2,5 GB baixados uma única vez (modelo **Qwen3 4B**, a correr com o llama.cpp; em computadores com pouca
+memória, o Qwen3 1.7B). Depois disso, funciona **sem internet** e nada do que escreve sai do seu computador.
+Se preferir, em ⚙ › *Cérebro da Eta* pode ligar um modelo **na nuvem** com a sua própria chave
+(Claude, ChatGPT, Gemini, OpenRouter ou Groq). Mesmo sem IA, a Eta faz as tarefas mais comuns.
 
 Abra-a pela Dock, pelo menu da estrela, com <kbd>⊞</kbd>+<kbd>Espaço</kbd>, ou escrevendo uma
 pergunta na busca rápida.
@@ -123,6 +153,9 @@ pergunta na busca rápida.
 | <kbd>Ctrl</kbd>+<kbd>Espaço</kbd> | Busca rápida (como o Spotlight) |
 | <kbd>⊞</kbd>+<kbd>Espaço</kbd> | Abre a Eta |
 | <kbd>Alt</kbd>+<kbd>Tab</kbd> | Troca de janela em Flip 3D |
+| <kbd>⊞</kbd>+<kbd>V</kbd> | Histórico do Ctrl+C |
+| <kbd>⊞</kbd>+<kbd>W</kbd> | Todas as janelas e áreas de trabalho |
+| <kbd>⊞</kbd>+<kbd>T</kbd> | Desenhar as zonas das janelas (arraste com Shift para encaixar) |
 | <kbd>Print</kbd> | Captura de tela |
 
 ## 🚀 Experimentar em 5 minutos
@@ -218,7 +251,12 @@ O CarinaeOS existe graças a projetos livres incríveis:
 [Debian](https://www.debian.org/), [KDE Plasma](https://kde.org/plasma-desktop/),
 [Calamares](https://calamares.io/), [Flathub](https://flathub.org/),
 [llama.cpp](https://github.com/ggml-org/llama.cpp) (MIT),
-[Qwen2.5](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF) (Apache 2.0)
+[Qwen3](https://huggingface.co/Qwen) (Apache 2.0),
+[whisper.cpp](https://github.com/ggml-org/whisper.cpp) (MIT), [Piper](https://github.com/rhasspy/piper) (MIT),
+o tema e os ícones [WhiteSur](https://github.com/vinceliuice/WhiteSur-kde) de Vince Liuice (GPL-3.0), recoloridos para o CarinaeOS,
+as fotografias do [ESO](https://www.eso.org/public/images/) (Y. Beletsky, J. Colosimo, D. Malin, J. Busqué; CC BY 4.0)
+e do [ESA/Webb e ESA/Hubble](https://esawebb.org/images/) (CC BY 4.0),
+o [ArtCraft Launcher](https://github.com/storytold/craft-launcher)
 e a fonte [Inter](https://rsms.me/inter/) (SIL OFL).
 O código próprio do CarinaeOS (Dock, Eta, Órbita, Supernova, tema) é distribuído sob a
 **GPL-2.0-or-later**, como o KDE em que se baseia.

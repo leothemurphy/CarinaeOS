@@ -10,6 +10,7 @@
 #   e essa pasta aparece na barra lateral dos Arquivos.
 import json
 import os
+import shutil
 import subprocess
 import sys
 import urllib.parse
@@ -119,18 +120,92 @@ def mudar(urls, por=None, tirar=None):
     atualizar_pasta(db)
 
 
-def lugar_nos_arquivos():
-    """Pôr ~/Etiquetas na barra lateral dos Arquivos (uma vez)."""
+XBEL_NOVO = """<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xbel>
+<xbel xmlns:bookmark="http://www.freedesktop.org/standards/desktop-bookmarks" xmlns:kdepriv="http://www.kde.org/kdepriv" xmlns:mime="http://www.freedesktop.org/standards/shared-mime-info">
+ <info>
+  <metadata owner="http://www.kde.org">
+   <kde_places_version>4</kde_places_version>
+   <withRecentlyUsed>true</withRecentlyUsed>
+   <withBaloo>true</withBaloo>
+  </metadata>
+ </info>
+%s</xbel>
+"""
+
+
+def _marca(url, titulo, icone, ident, sistema=False):
+    return (' <bookmark href="%s">\n  <title>%s</title>\n  <info>\n   <metadata owner="http://freedesktop.org">\n'
+            '    <bookmark:icon name="%s"/>\n   </metadata>\n   <metadata owner="http://www.kde.org">\n'
+            '    <ID>%s</ID>\n%s   </metadata>\n  </info>\n </bookmark>\n'
+            % (url, titulo, icone, ident, '    <isSystemItem>true</isSystemItem>\n' if sistema else ''))
+
+
+def _pasta_xdg(nome, padrao):
+    try:
+        r = subprocess.run(['xdg-user-dir', nome], capture_output=True, text=True)
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except OSError:
+        pass
+    return os.path.join(HOME, padrao)
+
+
+def _xbel_padrao():
+    itens = [('file://' + HOME, 'Início', 'user-home'),
+             ('file://' + _pasta_xdg('DESKTOP', 'Área de trabalho'), 'Área de trabalho', 'user-desktop'),
+             ('file://' + _pasta_xdg('DOCUMENTS', 'Documentos'), 'Documentos', 'folder-documents'),
+             ('file://' + _pasta_xdg('DOWNLOAD', 'Downloads'), 'Downloads', 'folder-download'),
+             ('file://' + _pasta_xdg('MUSIC', 'Músicas'), 'Música', 'folder-music'),
+             ('file://' + _pasta_xdg('PICTURES', 'Imagens'), 'Imagens', 'folder-pictures'),
+             ('file://' + _pasta_xdg('VIDEOS', 'Vídeos'), 'Vídeos', 'folder-videos'),
+             ('trash:/', 'Lixeira', 'user-trash'),
+             ('remote:/', 'Rede', 'folder-network')]
+    t = int(__import__('time').time())
+    return XBEL_NOVO % ''.join(_marca(u, n, i, '%d/%d' % (t, k), True) for k, (u, n, i) in enumerate(itens))
+
+
+def lugar_nos_arquivos(tags):
+    """Cada etiqueta (as 7 cores e as outras em uso) na barra lateral dos Arquivos, como no Finder."""
     xbel = os.path.join(HOME, '.local/share/user-places.xbel')
     try:
         txt = open(xbel, encoding='utf-8').read()
     except OSError:
+        os.makedirs(os.path.dirname(xbel), exist_ok=True)
+        txt = _xbel_padrao()
+    if '</xbel>' not in txt:
         return
-    if 'file://%s"' % PASTA in txt or '</xbel>' not in txt:
-        return
-    marca = ('<bookmark href="file://%s">\n  <title>Etiquetas</title>\n  <info>\n   <metadata owner="http://freedesktop.org">\n'
-             '    <bookmark:icon name="tag"/>\n   </metadata>\n  </info>\n </bookmark>\n' % PASTA)
-    open(xbel, 'w', encoding='utf-8').write(txt.replace('</xbel>', ' ' + marca + '</xbel>', 1))
+    # tira a entrada antiga (uma so pasta "Etiquetas")
+    import re as _re
+    txt = _re.sub(r' ?<bookmark href="file://%s">.*?</bookmark>\n' % _re.escape(PASTA), '', txt, flags=_re.S)
+    novas = ''
+    for k, t in enumerate(tags):
+        url = 'file://' + urllib.parse.quote(os.path.join(PASTA, t))
+        if 'href="%s"' % url in txt:
+            continue
+        icone = 'folder-%s' % CORES[t] if t in CORES else 'tag'
+        novas += _marca(url, t, icone, 'carinaeos-etiqueta/%d' % k)
+    if novas or not os.path.exists(xbel):
+        open(xbel, 'w', encoding='utf-8').write(txt.replace('</xbel>', novas + '</xbel>', 1))
+    # GNOME (Nautilus) e XFCE (Thunar): marcadores do GTK
+    gtk = os.path.join(HOME, '.config/gtk-3.0/bookmarks')
+    try:
+        atual = open(gtk, encoding='utf-8').read()
+    except OSError:
+        atual = ''
+    linhas = [l for l in atual.splitlines() if l.strip()]
+    for t in tags:
+        url = 'file://' + urllib.parse.quote(os.path.join(PASTA, t))
+        if not any(l.split(' ')[0] == url for l in linhas):
+            linhas.append('%s %s' % (url, t))
+    os.makedirs(os.path.dirname(gtk), exist_ok=True)
+    open(gtk, 'w', encoding='utf-8').write('\n'.join(linhas) + '\n')
+
+
+def iniciar():
+    """No inicio da sessao: as pastas das 7 cores e a barra lateral."""
+    db = ler()
+    atualizar_pasta(db)
 
 
 def atualizar_pasta(db):
@@ -141,7 +216,9 @@ def atualizar_pasta(db):
             por_tag.setdefault(t, []).append(url)
     os.makedirs(PASTA, exist_ok=True)
     open(os.path.join(PASTA, '.directory'), 'w').write('[Desktop Entry]\nIcon=tag\n')
-    lugar_nos_arquivos()
+    for cor in CORES:                         # as cores existem sempre, como no Finder
+        por_tag.setdefault(cor, [])
+    lugar_nos_arquivos(list(CORES) + sorted(t for t in por_tag if t not in CORES))
     for t in os.listdir(PASTA):
         cam = os.path.join(PASTA, t)
         if os.path.isdir(cam) and t not in por_tag:
@@ -172,6 +249,9 @@ def atualizar_pasta(db):
 
 def main():
     a = sys.argv[1:]
+    if a and a[0] == 'iniciar':
+        iniciar()
+        return
     if not a or a[0] == 'listar':
         for url, tags in sorted(ler().items()):
             print('%s\t%s' % (', '.join(tags), url))
@@ -180,7 +260,9 @@ def main():
     if acao == 'pôr' and len(resto) >= 2:
         mudar(resto[1:], por=resto[0])
     elif acao == 'outra' and resto:
-        r = subprocess.run(['kdialog', '--title', 'Etiqueta', '--inputbox', 'Nome da etiqueta:'], capture_output=True, text=True)
+        cmd = (['kdialog', '--title', 'Etiqueta', '--inputbox', 'Nome da etiqueta:'] if shutil.which('kdialog') else
+               ['zenity', '--entry', '--title', 'Etiqueta', '--text', 'Nome da etiqueta:'])
+        r = subprocess.run(cmd, capture_output=True, text=True)
         nome = r.stdout.strip()
         if nome:
             mudar(resto, por=nome)

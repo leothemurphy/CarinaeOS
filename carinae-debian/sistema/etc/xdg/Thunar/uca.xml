@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+<action>
+	<icon>object-locked</icon>
+	<name>Trancar com senha</name>
+	<unique-id>carinaeos-1</unique-id>
+	<command>carinaeos-cadeado trancar %F</command>
+	<description>Trancar com senha</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>tag</icon>
+	<name>Etiqueta: Vermelho</name>
+	<unique-id>carinaeos-e0</unique-id>
+	<command>carinaeos-etiquetas pôr Vermelho %F</command>
+	<description>Etiqueta: Vermelho</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>tag</icon>
+	<name>Etiqueta: Laranja</name>
+	<unique-id>carinaeos-e1</unique-id>
+	<command>carinaeos-etiquetas pôr Laranja %F</command>
+	<description>Etiqueta: Laranja</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>tag</icon>
+	<name>Etiqueta: Amarelo</name>
+	<unique-id>carinaeos-e2</unique-id>
+	<command>carinaeos-etiquetas pôr Amarelo %F</command>
+	<description>Etiqueta: Amarelo</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>tag</icon>
+	<name>Etiqueta: Verde</name>
+	<unique-id>carinaeos-e3</unique-id>
+	<command>carinaeos-etiquetas pôr Verde %F</command>
+	<description>Etiqueta: Verde</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>tag</icon>
+	<name>Etiqueta: Azul</name>
+	<unique-id>carinaeos-e4</unique-id>
+	<command>carinaeos-etiquetas pôr Azul %F</command>
+	<description>Etiqueta: Azul</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>tag</icon>
+	<name>Etiqueta: Roxo</name>
+	<unique-id>carinaeos-e5</unique-id>
+	<command>carinaeos-etiquetas pôr Roxo %F</command>
+	<description>Etiqueta: Roxo</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>tag</icon>
+	<name>Etiqueta: Cinzento</name>
+	<unique-id>carinaeos-e6</unique-id>
+	<command>carinaeos-etiquetas pôr Cinzento %F</command>
+	<description>Etiqueta: Cinzento</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>tag</icon>
+	<name>Etiqueta: outra…</name>
+	<unique-id>carinaeos-e9</unique-id>
+	<command>carinaeos-etiquetas outra %F</command>
+	<description>Etiqueta: outra…</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>carinaeos-eta</icon>
+	<name>Perguntar à Eta sobre isto</name>
+	<unique-id>carinaeos-2</unique-id>
+	<command>carinaeos-eta --arquivo %f</command>
+	<description>Perguntar à Eta sobre isto</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+<action>
+	<icon>list-add</icon>
+	<name>Adicionar à Dock</name>
+	<unique-id>carinaeos-3</unique-id>
+	<command>carinaeos-dock-adicionar %f</command>
+	<description>Adicionar à Dock</description>
+	<patterns>*</patterns>
+	<directories/>
+	<audio-files/>
+	<image-files/>
+	<other-files/>
+	<text-files/>
+	<video-files/>
+</action>
+</actions>

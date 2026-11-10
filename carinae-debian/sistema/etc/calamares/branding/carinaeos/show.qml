@@ -12,9 +12,11 @@ Presentation {
         repeat: true
         onTriggered: nextSlide()
     }
-    Slide { Image { anchors.centerIn: parent; source: "calamares-slide1.png"; width: parent.width; height: parent.height; fillMode: Image.PreserveAspectFit; smooth: true } }
-    Slide { Image { anchors.centerIn: parent; source: "calamares-slide2.png"; width: parent.width; height: parent.height; fillMode: Image.PreserveAspectFit; smooth: true } }
-    Slide { Image { anchors.centerIn: parent; source: "calamares-slide3.png"; width: parent.width; height: parent.height; fillMode: Image.PreserveAspectFit; smooth: true } }
+    Slide { Image { anchors.centerIn: parent; source: "calamares-slide1.jpg"; width: parent.width; height: parent.height; fillMode: Image.PreserveAspectCrop; smooth: true; mipmap: true } }
+    Slide { Image { anchors.centerIn: parent; source: "calamares-slide2.jpg"; width: parent.width; height: parent.height; fillMode: Image.PreserveAspectCrop; smooth: true; mipmap: true } }
+    Slide { Image { anchors.centerIn: parent; source: "calamares-slide3.jpg"; width: parent.width; height: parent.height; fillMode: Image.PreserveAspectCrop; smooth: true; mipmap: true } }
+    Slide { Image { anchors.centerIn: parent; source: "calamares-slide4.jpg"; width: parent.width; height: parent.height; fillMode: Image.PreserveAspectCrop; smooth: true; mipmap: true } }
+    Slide { Image { anchors.centerIn: parent; source: "calamares-slide5.jpg"; width: parent.width; height: parent.height; fillMode: Image.PreserveAspectCrop; smooth: true; mipmap: true } }
     function onActivate() { avancar.running = true }
     function onLeave() { avancar.running = false }
 }

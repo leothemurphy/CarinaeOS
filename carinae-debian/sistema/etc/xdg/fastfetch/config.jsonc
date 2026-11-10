@@ -1,0 +1,38 @@
+// CarinaeOS - fastfetch com a estrela e as informações do CarinaeOS
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "file",
+    "source": "/usr/share/carinaeos/marca/fastfetch.txt",
+    "color": { "1": "38;5;230", "2": "38;5;215", "3": "38;5;204", "4": "38;5;80" },
+    "padding": { "top": 1, "right": 3 }
+  },
+  "display": {
+    "separator": "  ",
+    "color": { "keys": "38;5;215", "title": "38;5;230" },
+    "key": { "width": 14 }
+  },
+  "modules": [
+    "title",
+    { "type": "custom", "format": "\u001b[38;5;204m✦ CarinaeOS 1.0 \u001b[38;5;215m“Eta”\u001b[0m  ·  baseado no Debian 13" },
+    "break",
+    { "type": "os", "key": "Sistema", "format": "{pretty-name} {arch}" },
+    { "type": "command", "key": "Núcleo", "text": "uname -r | sed -E 's/\\+deb[0-9]+//; s/-amd64//; s/^/Linux /'" },
+    { "type": "host", "key": "Computador" },
+    { "type": "uptime", "key": "Ligado há" },
+    { "type": "packages", "key": "Programas" },
+    { "type": "de", "key": "Ambiente" },
+    { "type": "wm", "key": "Janelas" },
+    { "type": "display", "key": "Tela" },
+    { "type": "terminal", "key": "Terminal" },
+    "break",
+    { "type": "cpu", "key": "Processador" },
+    { "type": "gpu", "key": "Vídeo" },
+    { "type": "memory", "key": "Memória" },
+    { "type": "disk", "key": "Disco", "folders": "/" },
+    { "type": "battery", "key": "Bateria" },
+    { "type": "localip", "key": "Rede" },
+    "break",
+    "colors"
+  ]
+}

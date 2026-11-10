@@ -1,6 +1,6 @@
 [org.kde.kdecoration2]
-library=org.kde.breeze
-theme=Breeze
+library=org.kde.kwin.aurorae
+theme=__aurorae__svg__CarinaeOS
 ButtonsOnLeft=XIA
 ButtonsOnRight=
 
@@ -30,3 +30,7 @@ HighlightWindows=false
 
 [TabBoxAlternative]
 LayoutName=thumbnail_grid
+
+[Desktops]
+Number=4
+Rows=1

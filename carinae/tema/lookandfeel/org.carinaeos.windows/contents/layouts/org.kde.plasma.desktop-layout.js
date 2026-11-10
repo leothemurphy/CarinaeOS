@@ -30,7 +30,7 @@ var busca = barra.addWidget("org.kde.milou");            // pesquisa ao lado do 
 var tarefas = barra.addWidget("org.kde.plasma.icontasks");
 tarefas.currentConfigGroup = ["General"];
 tarefas.writeConfig("launchers", ["applications:org.kde.dolphin.desktop", "applications:firefox-esr.desktop",
-    "applications:carinaeos-orbita.desktop", "applications:carinaeos-eta.desktop", "applications:carinaeos-supernova.desktop",
+    "applications:carinaeos-orbita.desktop", "applications:carinaeos-eta.desktop", "applications:carinaeos-central.desktop",
     "applications:systemsettings.desktop"]);
 tarefas.writeConfig("indicateAudioStreams", true);
 tarefas.writeConfig("iconSpacing", 2);

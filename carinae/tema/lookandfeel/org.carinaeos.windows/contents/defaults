@@ -1,12 +1,12 @@
 [kdeglobals][KDE]
-widgetStyle=Breeze
+widgetStyle=kvantum
 
 [kdeglobals][General]
 ColorScheme=CarinaeOS
 AccentColor=255,180,110
 
 [kdeglobals][Icons]
-Theme=breeze-dark
+Theme=CarinaeOS
 
 [plasmarc][Theme]
 name=default

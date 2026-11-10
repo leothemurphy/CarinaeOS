@@ -6,3 +6,4 @@ Exec=carinaeos-cadeado aplicativos
 Icon=object-locked
 Categories=Settings;Security;
 Keywords=senha;bloquear;cadeado;privacidade;
+NoDisplay=true

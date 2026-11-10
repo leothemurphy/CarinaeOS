@@ -101,7 +101,7 @@ ApplicationWindow {
             Text {
                 width: parent.width; elide: Text.ElideRight
                 text: eta.atividade !== "" ? eta.atividade :
-                      eta.estado === "pronta" ? "assistente do CarinaeOS · IA ligada" :
+                      eta.estado === "pronta" || eta.nuvemCfg.ligada ? "assistente do CarinaeOS · " + eta.nomeCerebro :
                       eta.estado === "a-iniciar" ? "a acordar a IA…" :
                       eta.estado === "a-baixar" ? "a baixar…" : "assistente do CarinaeOS"
                 color: eta.atividade !== "" ? janela.ambar : janela.textoSuave; font.pixelSize: 12
@@ -128,6 +128,8 @@ ApplicationWindow {
                     MenuSeparator {}
                     MenuItem { text: (eta.falar ? "✓ " : "    ") + "Responder em voz alta quando falo"; onTriggered: eta.definirFalar(!eta.falar) }
                     MenuSeparator {}
+                    MenuItem { text: "Cérebro da Eta (neste computador ou na nuvem)…"; onTriggered: dialogoCerebro.open() }
+                    MenuSeparator {}
                     MenuItem { text: "O que a Eta aprendeu"; onTriggered: eta.enviar("o que você aprendeu?") }
                     MenuItem { text: "Esquecer as respostas guardadas"; onTriggered: eta.enviar("esquece as respostas") }
                     MenuItem { text: "Limpar a conversa"; onTriggered: eta.limpar() }
@@ -139,7 +141,7 @@ ApplicationWindow {
     // ---- aviso: ativar a IA / a voz ----------------------------------------------------------
     Rectangle {
         id: aviso
-        readonly property bool mostrar: eta.estado === "sem-modelo" || eta.estado === "a-baixar" || eta.estado === "erro" || eta.faltaVoz
+        readonly property bool mostrar: (eta.estado === "sem-modelo" && !eta.nuvemCfg.ligada) || eta.estado === "a-baixar" || eta.estado === "erro" || eta.faltaVoz || eta.cerebroAntigo
         visible: mostrar
         anchors.top: topo.bottom; anchors.topMargin: 12
         anchors.horizontalCenter: parent.horizontalCenter
@@ -157,7 +159,8 @@ ApplicationWindow {
                 width: parent.width; wrapMode: Text.WordWrap; color: "white"; font.pixelSize: 13
                 text: eta.estado === "a-baixar" ? "A baixar a IA e a voz da Eta… " + Math.round(eta.baixado * 100) + "% (pode continuar a usar o computador)"
                     : eta.estado === "erro" ? "A IA não conseguiu arrancar neste computador. Continuo a ajudar com arquivos, guias e tarefas."
-                    : eta.estado === "sem-modelo" ? "Ative a IA completa e a voz: baixa 1,3 GB uma única vez e depois funciona sem internet, sem enviar nada para fora do computador."
+                    : eta.cerebroAntigo ? "Há um cérebro novo para a Eta, muito mais inteligente (entende melhor o que pede). Baixa " + eta.tamanhoFalta + " uma vez."
+                    : eta.estado === "sem-modelo" ? "Ative a IA completa e a voz: baixa " + eta.tamanhoFalta + " uma única vez e depois funciona sem internet, sem enviar nada para fora do computador. (Ou ligue um cérebro na nuvem em ⚙.)"
                     : "Ative a voz para falar comigo: baixa 150 MB uma única vez."
             }
             Rectangle {
@@ -168,7 +171,7 @@ ApplicationWindow {
             Rectangle {
                 visible: eta.estado !== "a-baixar" && eta.estado !== "erro"
                 width: ativarTxt.implicitWidth + 32; height: 32; radius: 16; color: "white"
-                Text { id: ativarTxt; anchors.centerIn: parent; text: eta.estado === "sem-modelo" ? "Ativar a IA e a voz" : "Ativar a voz"; color: "#2a1640"; font.weight: Font.Bold }
+                Text { id: ativarTxt; anchors.centerIn: parent; text: eta.cerebroAntigo ? "Atualizar o cérebro" : eta.estado === "sem-modelo" ? "Ativar a IA e a voz" : "Ativar a voz"; color: "#2a1640"; font.weight: Font.Bold }
                 MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: eta.baixarCerebro() }
             }
         }
@@ -331,7 +334,7 @@ ApplicationWindow {
                                             { ic: "document-open", dica: "Abrir", acao: 0 },
                                             { ic: "folder-open", dica: "Mostrar na pasta", acao: 1 },
                                             { ic: "view-list-text", dica: "Ler e resumir", acao: 3 },
-                                            { ic: "object-locked", dica: "Bloquear com senha", acao: 2 }
+                                            { ic: "object-locked", dica: "Trancar com senha", acao: 2 }
                                         ]
                                         delegate: BotaoRedondo {
                                             required property var modelData
@@ -586,5 +589,63 @@ ApplicationWindow {
         id: nuvem
         visible: eta.nuvem && !(janela.visible && janela.active)
         onAbrir: { janela.visible = true; janela.raise(); janela.requestActivate(); eta.fecharNuvem() }
+    }
+
+    // ---- cerebro: local ou nuvem ------------------------------------------------------------------
+    Popup {
+        id: dialogoCerebro
+        modal: true; focus: true
+        anchors.centerIn: parent
+        width: Math.min(parent.width - 30, 440); padding: 20
+        property int escolhido: 0
+        onOpened: {
+            usarNuvem.checked = !!eta.nuvemCfg.ligada
+            var i = 0
+            for (var k = 0; k < eta.provedores.length; k++) if (eta.provedores[k].id === eta.nuvemCfg.provedor) i = k
+            provedor.currentIndex = i
+            modeloCampo.text = eta.nuvemCfg.modelo || eta.provedores[i].modelo
+            chaveCampo.text = ""
+        }
+        background: Rectangle { radius: 18; color: "#1d1530"; border.color: Qt.rgba(1, 1, 1, 0.12) }
+        contentItem: Column {
+            spacing: 12
+            Text { text: "Cérebro da Eta"; color: janela.texto; font.pixelSize: 18; font.weight: Font.Bold }
+            Text {
+                width: parent.width; wrapMode: Text.WordWrap; color: janela.textoSuave; font.pixelSize: 12
+                text: "Neste computador: privado e sem internet (" + (eta.estado === "pronta" ? "ligado" : "ainda não instalado") + "). " +
+                      "Na nuvem: mais inteligente e rápido em computadores modestos, mas as conversas vão para o serviço escolhido, " +
+                      "com a sua própria chave."
+            }
+            Switch { id: usarNuvem; text: "Usar um cérebro na nuvem"; palette.windowText: janela.texto }
+            Column {
+                width: parent.width; spacing: 8; enabled: usarNuvem.checked; opacity: enabled ? 1 : 0.45
+                ComboBox {
+                    id: provedor; width: parent.width
+                    model: eta.provedores; textRole: "nome"
+                    onActivated: modeloCampo.text = eta.provedores[currentIndex].modelo
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap; color: janela.textoSuave; font.pixelSize: 11
+                    text: "Onde obter a chave: " + (eta.provedores.length ? eta.provedores[provedor.currentIndex].chaveEm : "")
+                }
+                TextField {
+                    id: chaveCampo; width: parent.width; echoMode: TextInput.Password
+                    placeholderText: eta.nuvemCfg.temChave && eta.provedores[provedor.currentIndex].id === eta.nuvemCfg.provedor
+                                     ? "Chave guardada (escreva para trocar)" : "Cole aqui a sua chave da API"
+                }
+                TextField { id: modeloCampo; width: parent.width; placeholderText: "Modelo" }
+            }
+            Row {
+                anchors.right: parent.right; spacing: 8
+                Pilula { texto: "Cancelar"; onClicado: dialogoCerebro.close() }
+                Pilula {
+                    texto: "Guardar"
+                    onClicado: {
+                        eta.definirNuvem(eta.provedores[provedor.currentIndex].id, chaveCampo.text, modeloCampo.text, usarNuvem.checked)
+                        dialogoCerebro.close()
+                    }
+                }
+            }
+        }
     }
 }

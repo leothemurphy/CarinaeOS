@@ -1,0 +1,49 @@
+#!/usr/bin/python3
+# CarinaeOS - pede uma senha numa janela com a marca e escreve-a na saida (codigo 1 = cancelado).
+#   carinaeos-pedir-senha --titulo T [--mensagem M] [--subtitulo S] [--botao B] [--erro E] [--nova]
+import argparse
+import sys
+
+sys.path.insert(0, '/usr/share/carinaeos/comum')
+from senha import Pedido, QML  # noqa: E402
+
+from PySide6.QtGui import QGuiApplication, QIcon  # noqa: E402
+from PySide6.QtQml import QQmlApplicationEngine  # noqa: E402
+from PySide6.QtQuickControls2 import QQuickStyle  # noqa: E402
+
+a = argparse.ArgumentParser()
+a.add_argument('--titulo', default='Digite a senha')
+a.add_argument('--mensagem', default='')
+a.add_argument('--subtitulo', default='Cadeado do CarinaeOS')
+a.add_argument('--botao', default='Continuar')
+a.add_argument('--erro', default='')
+a.add_argument('--nova', action='store_true')
+o = a.parse_args()
+
+QQuickStyle.setStyle('Basic')
+app = QGuiApplication(sys.argv[:1])
+app.setDesktopFileName('carinaeos-central')
+app.setWindowIcon(QIcon.fromTheme('object-locked'))
+p = Pedido(o.titulo, o.mensagem, o.subtitulo, botao=o.botao, nova=o.nova,
+           rotulo='Nova senha' if o.nova else 'Senha')
+if o.erro:
+    p.mostrar_erro(o.erro)
+codigo = [1]
+
+
+def ok(s):
+    sys.stdout.write(s)
+    sys.stdout.flush()
+    codigo[0] = 0
+    app.quit()
+
+
+p.respondido.connect(ok)
+p.cancelado.connect(app.quit)
+m = QQmlApplicationEngine()
+m.rootContext().setContextProperty('pedido', p)
+m.load(QML)
+if not m.rootObjects():
+    sys.exit(2)
+app.exec()
+sys.exit(codigo[0])
