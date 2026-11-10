@@ -6,6 +6,14 @@ FUNDO=/usr/share/backgrounds/carinaeos/eta-carinae.jpg
 # a Dock fica sempre visivel, a menos que a pessoa tenha escolhido outra coisa no Supernova
 SEMPRE=true
 grep -qE '"visivel": "(janelas|esconder)"' "${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/supernova.json" 2>/dev/null && SEMPRE=false
+# sessao de teste: o atalho "Instalar o CarinaeOS" vai para a Area de trabalho em portugues
+if [ -d /run/live ] && [ -d "$HOME/Desktop" ]; then
+  AT=$(xdg-user-dir DESKTOP 2>/dev/null)
+  if [ -n "$AT" ] && [ "$AT" != "$HOME/Desktop" ]; then
+    mkdir -p "$AT"
+    cp -pn "$HOME"/Desktop/*.desktop "$AT"/ 2>/dev/null
+  fi
+fi
 # etiquetas (as 7 cores) na barra lateral dos Arquivos, em todos os ambientes
 (carinaeos-etiquetas iniciar >/dev/null 2>&1 &)
 

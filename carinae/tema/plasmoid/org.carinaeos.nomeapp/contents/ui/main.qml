@@ -18,17 +18,24 @@ PlasmoidItem {
         filterByVirtualDesktop: false
         filterByScreen: false
     }
-    readonly property var ativo: tarefas.activeTask
-    readonly property bool temJanela: ativo && ativo.valid
+    property var ativo: tarefas.activeTask
+    property bool temJanela: false
     property string nome: "Área de trabalho"
     function atualizar() {
-        if (!temJanela) { nome = "Área de trabalho"; return }
-        let n = tarefas.data(ativo, TaskManager.AbstractTasksModel.AppName) || tarefas.data(ativo, Qt.DisplayRole) || ""
+        const i = tarefas.activeTask
+        let n = i ? (tarefas.data(i, TaskManager.AbstractTasksModel.AppName) || tarefas.data(i, Qt.DisplayRole) || "") : ""
         n = String(n).replace(/ ESR$/, "")
-        nome = n.length > 28 ? n.slice(0, 27) + "…" : n
+        temJanela = n !== ""
+        ativo = i
+        nome = n === "" ? "Área de trabalho" : (n.length > 28 ? n.slice(0, 27) + "…" : n)
     }
-    onAtivoChanged: atualizar()
-    Connections { target: tarefas; function onDataChanged() { raiz.atualizar() } }
+    Connections {
+        target: tarefas
+        function onActiveTaskChanged() { raiz.atualizar() }
+        function onDataChanged() { raiz.atualizar() }
+        function onCountChanged() { raiz.atualizar() }
+    }
+    Timer { interval: 700; running: true; repeat: true; onTriggered: raiz.atualizar() }
     Component.onCompleted: atualizar()
 
     fullRepresentation: Item {

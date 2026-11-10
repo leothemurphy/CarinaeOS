@@ -32,6 +32,7 @@ var barra = new Panel;
 barra.location = "bottom";
 barra.height = 2 * Math.ceil(gridUnit * 2.4 / 2);
 barra.floating = false;
+barra.opacity = "opaque";
 barra.lengthMode = "fill";
 barra.hiding = "none";                                   // sempre visível
 

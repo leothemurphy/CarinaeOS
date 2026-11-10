@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="12" viewBox="0 0 48 12">
-  <rect id="topleft" x="0" y="0" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="top" x="4" y="0" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="topright" x="8" y="0" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="left" x="0" y="4" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="center" x="4" y="4" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="right" x="8" y="4" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="bottomleft" x="0" y="8" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="bottom" x="4" y="8" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="bottomright" x="8" y="8" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="mask-topleft" x="0" y="0" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="mask-top" x="4" y="0" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="mask-topright" x="8" y="0" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="mask-left" x="0" y="4" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="mask-center" x="4" y="4" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="mask-right" x="8" y="4" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="mask-bottomleft" x="0" y="8" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="mask-bottom" x="4" y="8" width="4" height="4" fill="#000000" fill-opacity="0"/>
-  <rect id="mask-bottomright" x="8" y="8" width="4" height="4" fill="#000000" fill-opacity="0"/>
+  <rect id="topleft" x="0" y="0" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="top" x="4" y="0" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="topright" x="8" y="0" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="left" x="0" y="4" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="center" x="4" y="4" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="right" x="8" y="4" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="bottomleft" x="0" y="8" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="bottom" x="4" y="8" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="bottomright" x="8" y="8" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="mask-topleft" x="0" y="0" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="mask-top" x="4" y="0" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="mask-topright" x="8" y="0" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="mask-left" x="0" y="4" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="mask-center" x="4" y="4" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="mask-right" x="8" y="4" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="mask-bottomleft" x="0" y="8" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="mask-bottom" x="4" y="8" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
+  <rect id="mask-bottomright" x="8" y="8" width="4" height="4" fill="#17121f" fill-opacity="0.9"/>
   <rect id="hint-top-margin" x="40" y="0" width="2" height="2" fill="none"/>
   <rect id="hint-bottom-margin" x="40" y="0" width="2" height="2" fill="none"/>
   <rect id="hint-left-margin" x="40" y="0" width="2" height="2" fill="none"/>

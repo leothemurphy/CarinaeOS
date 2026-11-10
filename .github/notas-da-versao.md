@@ -24,7 +24,8 @@ A sessão de teste entra sozinha, sem senha. Para instalar, abra **Instalar o Ca
 - Botões do Mac à esquerda em todas as janelas, também GTK, Chrome e Firefox.
 - Barra de cima com o nome do aplicativo e o seu menu em todos os estilos, também no Windows 11.
 - Dock do GNOME com as animações do Mac; NumLock ligado ao entrar; foto e fundo da tela de entrada.
-- Slides do instalador corrigidos.
+- Slides do instalador corrigidos; atalho “Instalar o CarinaeOS” de volta na área de trabalho.
+- Estilo Windows 11 com barra de tarefas escura e a barra de cima; nome do aplicativo sempre certo.
 
 Guia completo no [README](https://github.com/leothemurphy/carinaeos#readme).
 
