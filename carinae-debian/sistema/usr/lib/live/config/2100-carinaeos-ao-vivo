@@ -1,0 +1,37 @@
+#!/bin/sh
+# CarinaeOS — só na sessão ao vivo (pen drive / ISO), nunca no sistema instalado:
+#  - entra direto na área de trabalho (sem a senha "live");
+#  - o instalador e as tarefas de administrador não pedem senha;
+#  - a tela não se bloqueia sozinha.
+# Estes ficheiros são criados no arranque, na camada de escrita da sessão ao vivo:
+# o instalador copia o sistema a partir da imagem, por isso nada disto passa para o disco.
+
+. /lib/live/config.sh 2>/dev/null || true
+U="${LIVE_USERNAME:-carinae}"
+
+mkdir -p /etc/sddm.conf.d
+cat > /etc/sddm.conf.d/zz-carinaeos-ao-vivo.conf <<FIM
+[Autologin]
+User=$U
+Session=plasma
+Relogin=false
+FIM
+
+mkdir -p /etc/polkit-1/rules.d
+cat > /etc/polkit-1/rules.d/49-carinaeos-ao-vivo.rules <<FIM
+// sessão ao vivo do CarinaeOS: o usuário de teste pode instalar o sistema sem senha
+polkit.addRule(function (action, subject) {
+    if (subject.user == "$U") return polkit.Result.YES;
+});
+FIM
+
+H=$(getent passwd "$U" | cut -d: -f6)
+if [ -n "$H" ] && [ -d "$H" ]; then
+    mkdir -p "$H/.config"
+    cat > "$H/.config/kscreenlockerrc" <<FIM
+[Daemon]
+Autolock=false
+LockOnResume=false
+FIM
+    chown -R "$U:$U" "$H/.config"
+fi

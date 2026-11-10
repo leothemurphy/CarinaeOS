@@ -1,0 +1,10 @@
+#!/bin/sh
+# CarinaeOS - mudar o papel de parede em qualquer ambiente (Plasma, GNOME, XFCE)
+F="$1"; [ -d "$F" ] && F=$(ls -S "$F"/contents/images/* 2>/dev/null | head -1)
+[ -f "$F" ] || { echo "uso: carinaeos-fundo IMAGEM" >&2; exit 1; }
+case "$XDG_CURRENT_DESKTOP" in
+  *GNOME*) gsettings set org.gnome.desktop.background picture-uri "file://$F"
+           gsettings set org.gnome.desktop.background picture-uri-dark "file://$F" ;;
+  *XFCE*)  for p in $(xfconf-query -c xfce4-desktop -l | grep -E 'last-image$'); do xfconf-query -c xfce4-desktop -p "$p" -s "$F"; done ;;
+  *)       plasma-apply-wallpaperimage "${1}" >/dev/null ;;
+esac

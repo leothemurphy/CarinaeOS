@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Casa
+GenericName=Home Assistant
+Comment=Controle as luzes, cenas e aparelhos da sua casa (Home Assistant)
+Exec=carinaeos-casa
+Icon=carinaeos-casa
+Categories=Utility;Network;
+Keywords=home assistant;casa;luz;luzes;cena;domotica;smart home;
+StartupWMClass=carinaeos-casa

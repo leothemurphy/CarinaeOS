@@ -1,0 +1,86 @@
+#!/usr/bin/python3
+# CarinaeOS - pôr qualquer aplicativo, pasta ou arquivo na Dock.
+#   carinaeos-dock-adicionar CAMINHO...            -> põe na fila; a Dock adiciona em ~1 s
+#   carinaeos-dock-adicionar --imprimir CAMINHO... -> só escreve o endereço do lançador (usado pela Dock)
+# Pastas e arquivos ganham um pequeno lançador em ~/.local/share/applications/carinaeos-dock-*.desktop
+import hashlib
+import os
+import subprocess
+import sys
+
+HOME = os.path.expanduser('~')
+APPS = os.path.join(HOME, '.local/share/applications')
+FILA = os.path.join(HOME, '.cache/carinaeos/dock-adicionar')
+ICONES_PASTA = {'DESKTOP': 'user-desktop', 'DOCUMENTS': 'folder-documents', 'DOWNLOAD': 'folder-downloads',
+                'MUSIC': 'folder-music', 'PICTURES': 'folder-pictures', 'VIDEOS': 'folder-videos',
+                'PUBLICSHARE': 'folder-publicshare', 'TEMPLATES': 'folder-templates'}
+
+
+def xdg(nome):
+    try:
+        return subprocess.run(['xdg-user-dir', nome], capture_output=True, text=True, timeout=5).stdout.strip()
+    except Exception:
+        return ''
+
+
+def icone_pasta(p):
+    for k, ic in ICONES_PASTA.items():
+        if os.path.abspath(p) == os.path.abspath(xdg(k) or '/nada'):
+            return ic
+    if os.path.abspath(p) == HOME:
+        return 'user-home'
+    return 'folder'
+
+
+def icone_arquivo(p):
+    try:
+        mime = subprocess.run(['xdg-mime', 'query', 'filetype', p], capture_output=True, text=True, timeout=5).stdout.strip()
+        if mime:
+            return mime.replace('/', '-')
+    except Exception:
+        pass
+    return 'text-x-generic'
+
+
+def lancador(caminho):
+    caminho = os.path.abspath(os.path.expanduser(caminho))
+    if caminho.startswith('applications:'):
+        return caminho
+    if caminho.endswith('.desktop') and os.path.isfile(caminho):
+        return 'file://' + caminho
+    if not os.path.exists(caminho):
+        return None
+    nome = os.path.basename(caminho.rstrip('/')) or caminho
+    chave = hashlib.sha1(caminho.encode()).hexdigest()[:10]
+    destino = os.path.join(APPS, 'carinaeos-dock-%s.desktop' % chave)
+    aspas = caminho.replace('\\', '\\\\').replace('"', '\\"')
+    if os.path.isdir(caminho):
+        exe, icone, tipo = 'dolphin --new-window "%s"' % aspas, icone_pasta(caminho), 'Pasta'
+    elif os.access(caminho, os.X_OK) and caminho.lower().endswith(('.appimage', '.sh', '.run')):
+        exe, icone, tipo = '"%s"' % aspas, 'application-x-executable', 'Programa'
+    else:
+        exe, icone, tipo = 'xdg-open "%s"' % aspas, icone_arquivo(caminho), 'Arquivo'
+    os.makedirs(APPS, exist_ok=True)
+    with open(destino, 'w', encoding='utf-8') as f:
+        f.write('[Desktop Entry]\nType=Application\nName=%s\nComment=%s: %s\nExec=%s\nIcon=%s\n'
+                'NoDisplay=true\nX-CarinaeOS-Dock=true\n' % (nome, tipo, caminho, exe, icone))
+    return 'file://' + destino
+
+
+def main():
+    args = sys.argv[1:]
+    imprimir = '--imprimir' in args
+    urls = [u for u in (lancador(a) for a in args if a != '--imprimir') if u]
+    if imprimir:
+        print('\n'.join(urls))
+        return
+    os.makedirs(os.path.dirname(FILA), exist_ok=True)
+    with open(FILA, 'a', encoding='utf-8') as f:
+        for u in urls:
+            f.write(u + '\n')
+    if urls and sys.stdout.isatty():
+        print('Adicionado à Dock: %d item(ns).' % len(urls))
+
+
+if __name__ == '__main__':
+    main()

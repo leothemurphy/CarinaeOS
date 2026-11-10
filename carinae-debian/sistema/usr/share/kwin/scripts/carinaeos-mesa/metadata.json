@@ -1,0 +1,13 @@
+{
+    "KPlugin": {
+        "Id": "carinaeos-mesa",
+        "Name": "CarinaeOS — mesa",
+        "Description": "Clicar no papel de parede afasta as janelas (como no Mac) e põe a nuvem da Eta no canto.",
+        "Authors": [{ "Name": "Leonardo Mendes e Claude" }],
+        "License": "GPL-2.0-or-later",
+        "EnabledByDefault": true
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js",
+    "KPackageStructure": "KWin/Script"
+}

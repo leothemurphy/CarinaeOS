@@ -1,0 +1,151 @@
+#!/usr/bin/python3
+# CarinaeOS - este computador no Home Assistant (MQTT, descoberta automatica).
+# Sensores: processador, memoria, disco livre, ligado ha, volume, bateria.
+# Botoes: desligar, reiniciar, suspender, bloquear ecra, apagar ecra, silenciar.
+# Numero: volume. Aviso: mostra uma notificacao no ecra.
+import json
+import os
+import re
+import shutil
+import socket
+import subprocess
+import sys
+import time
+
+sys.path.insert(0, '/usr/share/carinaeos/comum')
+import casa_ha as HA  # noqa: E402
+
+try:
+    import paho.mqtt.client as mqtt
+except ImportError:
+    sys.exit('python3-paho-mqtt nao esta instalado')
+
+HOST = socket.gethostname()
+UID = 'carinaeos_' + re.sub(r'\W', '_', HOST)
+BASE = 'carinaeos/' + HOST
+
+
+def sh(cmd):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=10).stdout
+    except Exception:
+        return ''
+
+
+def volume():
+    m = re.search(r'([\d.]+)', sh(['wpctl', 'get-volume', '@DEFAULT_AUDIO_SINK@']))
+    return round(float(m.group(1)) * 100) if m else 0
+
+
+_cpu_antes = None
+
+
+def cpu():
+    global _cpu_antes
+    v = [int(x) for x in open('/proc/stat').readline().split()[1:]]
+    ocioso, total = v[3] + v[4], sum(v)
+    if _cpu_antes is None:
+        _cpu_antes = (ocioso, total)
+        return 0
+    d_oc, d_tot = ocioso - _cpu_antes[0], total - _cpu_antes[1]
+    _cpu_antes = (ocioso, total)
+    return round(100 * (1 - d_oc / d_tot)) if d_tot else 0
+
+
+def estado():
+    mem = {}
+    for l in open('/proc/meminfo'):
+        k, v = l.split(':')
+        mem[k] = int(v.split()[0])
+    bat = 0
+    for b in ('BAT0', 'BAT1'):
+        p = '/sys/class/power_supply/%s/capacity' % b
+        if os.path.exists(p):
+            bat = int(open(p).read().strip() or 0)
+    return {'cpu': cpu(), 'memoria': round(100 * (1 - mem.get('MemAvailable', 0) / max(1, mem.get('MemTotal', 1)))),
+            'disco': round(shutil.disk_usage(os.path.expanduser('~')).free / 1e9, 1),
+            'ligado_ha': int(float(open('/proc/uptime').read().split()[0]) / 60), 'volume': volume(), 'bateria': bat}
+
+
+def descoberta(c):
+    disp = {'availability_topic': BASE + '/disponivel',
+            'device': {'identifiers': [UID], 'name': 'CarinaeOS (%s)' % HOST, 'manufacturer': 'CarinaeOS', 'model': 'Computador'}}
+    sens = [('cpu', 'Processador', '%', 'mdi:cpu-64-bit', None), ('memoria', 'Memória em uso', '%', 'mdi:memory', None),
+            ('disco', 'Disco livre', 'GB', 'mdi:harddisk', None), ('ligado_ha', 'Ligado há', 'min', 'mdi:timer-outline', None),
+            ('volume', 'Volume', '%', 'mdi:volume-high', None)]
+    if any(os.path.exists('/sys/class/power_supply/%s' % b) for b in ('BAT0', 'BAT1')):
+        sens.append(('bateria', 'Bateria', '%', None, 'battery'))
+    for chave, nome, unid, icone, classe in sens:
+        cfg = dict(disp, name=nome, unique_id='%s_%s' % (UID, chave), state_topic=BASE + '/estado',
+                   value_template='{{ value_json.%s }}' % chave, unit_of_measurement=unid, state_class='measurement')
+        if icone:
+            cfg['icon'] = icone
+        if classe:
+            cfg['device_class'] = classe
+        c.publish('homeassistant/sensor/%s/%s/config' % (UID, chave), json.dumps(cfg), retain=True)
+    for chave, nome, icone in (('desligar', 'Desligar', 'mdi:power'), ('reiniciar', 'Reiniciar', 'mdi:restart'),
+                               ('suspender', 'Suspender', 'mdi:sleep'), ('bloquear', 'Bloquear o ecrã', 'mdi:lock'),
+                               ('apagar_tela', 'Apagar o ecrã', 'mdi:monitor-off'), ('mudo', 'Silenciar / ativar som', 'mdi:volume-mute')):
+        c.publish('homeassistant/button/%s/%s/config' % (UID, chave), json.dumps(dict(
+            disp, name=nome, unique_id='%s_%s' % (UID, chave), command_topic=BASE + '/comando', payload_press=chave, icon=icone)), retain=True)
+    c.publish('homeassistant/number/%s/volume_ctl/config' % UID, json.dumps(dict(
+        disp, name='Volume (ajustar)', unique_id=UID + '_volume_ctl', command_topic=BASE + '/volume', state_topic=BASE + '/estado',
+        value_template='{{ value_json.volume }}', min=0, max=100, step=5, icon='mdi:volume-high')), retain=True)
+    c.publish('homeassistant/notify/%s/aviso/config' % UID, json.dumps(dict(
+        disp, name='Aviso no ecrã', unique_id=UID + '_aviso', command_topic=BASE + '/aviso')), retain=True)
+    c.publish(BASE + '/disponivel', 'online', retain=True)
+
+
+def comando(ch):
+    acoes = {'desligar': ['systemctl', 'poweroff'], 'reiniciar': ['systemctl', 'reboot'], 'suspender': ['systemctl', 'suspend'],
+             'bloquear': ['loginctl', 'lock-session'], 'mudo': ['wpctl', 'set-mute', '@DEFAULT_AUDIO_SINK@', 'toggle'],
+             'apagar_tela': ['bash', '-c', 'kscreen-doctor --dpms off 2>/dev/null || xset dpms force off']}
+    if ch in ('desligar', 'reiniciar'):
+        sh(['notify-send', '-a', 'Casa', 'Home Assistant', 'A %s o computador…' % ch.rstrip('r')])
+        time.sleep(3)
+    if ch in acoes:
+        subprocess.Popen(acoes[ch])
+
+
+def main():
+    cfg = HA.ler()
+    if not cfg.get('agente') or not cfg.get('mqttHost'):
+        sys.exit(0)
+    try:
+        c = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id='carinaeos-' + HOST)
+    except AttributeError:
+        c = mqtt.Client(client_id='carinaeos-' + HOST)
+    if cfg.get('mqttUsuario'):
+        c.username_pw_set(cfg['mqttUsuario'], cfg.get('mqttSenha', ''))
+    c.will_set(BASE + '/disponivel', 'offline', retain=True)
+
+    def ligou(cli, ud, flags, rc, *a):
+        if getattr(rc, 'value', rc) == 0:
+            cli.subscribe([(BASE + '/comando', 0), (BASE + '/volume', 0), (BASE + '/aviso', 0)])
+            descoberta(cli)
+
+    def mensagem(cli, ud, msg):
+        txt = msg.payload.decode(errors='replace').strip()
+        if msg.topic.endswith('/comando'):
+            comando(txt)
+        elif msg.topic.endswith('/volume'):
+            try:
+                sh(['wpctl', 'set-volume', '@DEFAULT_AUDIO_SINK@', '%.2f' % (max(0, min(100, float(txt))) / 100)])
+            except ValueError:
+                pass
+        elif msg.topic.endswith('/aviso'):
+            sh(['notify-send', '-a', 'Casa', '-i', 'carinaeos-casa', 'Home Assistant', txt[:300]])
+
+    c.on_connect, c.on_message = ligou, mensagem
+    c.connect_async(cfg['mqttHost'], int(cfg.get('mqttPorta', 1883)), 30)
+    c.loop_start()
+    while True:
+        try:
+            c.publish(BASE + '/estado', json.dumps(estado()), retain=True)
+        except Exception:
+            pass
+        time.sleep(15)
+
+
+if __name__ == '__main__':
+    main()

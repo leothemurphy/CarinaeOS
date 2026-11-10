@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Ambiente de trabalho
+GenericName=Trocar entre KDE Plasma, GNOME e XFCE
+Comment=Instale e troque de ambiente de trabalho (Plasma, GNOME, XFCE)
+Exec=carinaeos-ambientes
+Icon=preferences-desktop
+Categories=Settings;DesktopSettings;System;
+Keywords=gnome;xfce;plasma;kde;ambiente;desktop;sessao;

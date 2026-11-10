@@ -48,6 +48,23 @@ gvfs-backends
 gvfs-fuse
 packagekit-tools
 python3-dbus
+# Eta: voz, arquivos, casa
+pipewire-bin
+espeak-ng
+poppler-utils
+tesseract-ocr
+tesseract-ocr-por
+qml6-module-qtquick-dialogs
+python3-paho-mqtt
+libnotify-bin
+python3-pip
+# Mapas e Calendario (com contas Google pelo Akonadi)
+marble
+merkuro
+kdepim-runtime
+kdepim-addons
+akonadi-server
+plasma-calendar-addons
 python3-gi
 qml6-module-qt-labs-folderlistmodel
 qml6-module-qtcore

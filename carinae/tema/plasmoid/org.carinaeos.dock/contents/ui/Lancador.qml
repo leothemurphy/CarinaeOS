@@ -16,6 +16,7 @@ import QtQuick.Controls as QQC2
 
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.private.kicker as Kicker
+import org.kde.plasma.plasma5support as P5Support
 
 Kicker.DashboardWindow {
     id: lp
@@ -55,6 +56,17 @@ Kicker.DashboardWindow {
         Component.onCompleted: refresh()
     }
 
+    // "firefox-esr.desktop" -> "applications:firefox-esr.desktop" (o formato da Dock)
+    function idLancador(f: string): string {
+        if (f === "") return "";
+        if (f.startsWith("applications:") || f.startsWith("file:")) return f;
+        if (f.endsWith(".desktop")) return "applications:" + f;
+        return f;
+    }
+    function naDock(id: string): bool {
+        return id !== "" && lp.dock.modelo.launcherPosition(id) !== -1;
+    }
+
     function abrir(app: var): void {
         if (recolha.model) {
             recolha.model.trigger(app.linha, "", null);
@@ -70,8 +82,26 @@ Kicker.DashboardWindow {
         }
     }
 
+    // o fundo do Launchpad é o papel de parede atual (desfocado)
+    property string fundoAtual: ""
+    P5Support.DataSource {
+        id: lerFundo
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            let f = (dados["stdout"] || "").trim();
+            if (f === "") return;
+            if (!f.startsWith("file:")) f = "file://" + f;
+            // pacote de papel de parede (pasta): usar a maior imagem lá dentro
+            lp.fundoAtual = f;
+        }
+    }
+
     onVisibleChanged: {
         if (visible) {
+            lerFundo.connectSource("f=$(grep -A4 '\\[Wallpaper\\]\\[org.kde.image\\]\\[General\\]' \"$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc\" | sed -n 's/^Image=//p' | head -1); "
+                + "f=${f#file://}; if [ -d \"$f\" ]; then ls -S \"$f\"/contents/images/* 2>/dev/null | tail -1; else echo \"$f\"; fi #" + Date.now());
             busca.text = "";
             busca.forceActiveFocus();
             paginas.positionViewAtIndex(0, ListView.Beginning);
@@ -103,7 +133,8 @@ Kicker.DashboardWindow {
                 delegate: Item {
                     required property int index
                     required property var model
-                    readonly property var dados: ({ nome: model.display, icone: model.decoration, linha: index })
+                    readonly property var dados: ({ nome: model.display, icone: model.decoration, linha: index,
+                                                    id: lp.idLancador(model.favoriteId || "") })
                 }
             }
             Timer {
@@ -122,11 +153,27 @@ Kicker.DashboardWindow {
             }
         }
 
+        // botão direito num aplicativo: abrir / pôr ou tirar da Dock
+        QQC2.Menu {
+            id: menuApp
+            property var app: null
+            readonly property bool fixado: app ? lp.naDock(app.id) : false
+            QQC2.MenuItem { text: "Abrir"; onTriggered: lp.abrir(menuApp.app) }
+            QQC2.MenuItem {
+                text: menuApp.fixado ? "Remover da Dock" : "Adicionar à Dock"
+                enabled: menuApp.app && menuApp.app.id !== ""
+                onTriggered: {
+                    if (menuApp.fixado) lp.dock.modelo.requestRemoveLauncher(menuApp.app.id);
+                    else lp.dock.modelo.requestAddLauncher(menuApp.app.id);
+                }
+            }
+        }
+
         // fundo: a imagem da área de trabalho desfocada e escurecida
         Image {
             id: fundo
             anchors.fill: parent
-            source: "file:///usr/share/wallpapers/CarinaeOS/contents/images/1920x1080.jpg"
+            source: lp.fundoAtual !== "" ? lp.fundoAtual : "file:///usr/share/wallpapers/CarinaeOS/contents/images/1920x1080.jpg"
             fillMode: Image.PreserveAspectCrop
             visible: false
         }
@@ -287,7 +334,17 @@ Kicker.DashboardWindow {
                                     id: rato
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                    onClicked: if (celula.app) lp.abrir(celula.app)
+                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                    onClicked: (ev) => {
+                                        if (!celula.app) return;
+                                        if (ev.button === Qt.RightButton) {
+                                            menuApp.app = celula.app;
+                                            menuApp.popup();
+                                        } else {
+                                            lp.abrir(celula.app);
+                                        }
+                                    }
+                                    onPressAndHold: if (celula.app) { menuApp.app = celula.app; menuApp.popup(); }
                                 }
                             }
                         }

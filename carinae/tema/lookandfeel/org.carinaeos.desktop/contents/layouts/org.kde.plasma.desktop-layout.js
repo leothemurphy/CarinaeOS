@@ -36,6 +36,11 @@ relogio.currentConfigGroup = ["Appearance"];
 relogio.writeConfig("showDate", true);
 relogio.writeConfig("dateFormat", "custom");
 relogio.writeConfig("customDateFormat", "ddd d MMM");
+// eventos do Calendário (inclui a conta Google ligada no Calendário) ao clicar no relógio
+relogio.currentConfigGroup = ["General"];
+relogio.writeConfig("enabledCalendarPlugins", "pimevents,holidaysevents");
+relogio.currentConfigGroup = ["General", "PlasmaCalendarHolidaysEvents"];
+relogio.writeConfig("selectedRegions", "br_pt,pt_pt");
 
 // ---- Dock de baixo -----------------------------------------------------------
 var dock = new Panel;
@@ -45,5 +50,5 @@ dock.floating = true;
 dock.alignment = "center";
 dock.lengthMode = "fit";
 dock.opacity = "translucent";
-dock.hiding = "dodgewindows";                   // sai do caminho das janelas
+dock.hiding = "none";                           // sempre visivel (como a barra de cima)
 dock.addWidget("org.carinaeos.dock");

@@ -126,4 +126,28 @@ TOPICOS = [
                   'Ligue um disco externo, ative os backups e escolha as pastas (por exemplo, a sua pasta pessoal). '
                   'Também pode simplesmente copiar as pastas para um disco externo no app Arquivos.',
          acao=('abrir as configurações de Backups', 'kcmshell6 kcm_kup')),
+    dict(id='calendario', palavras='calendario agenda google eventos compromissos lembrete reuniao conta',
+         resposta='O Calendário do CarinaeOS (Merkuro) liga à sua conta Google: abra o Calendário > menu ☰ > '
+                  'Configurações > Contas (ou "Fontes de calendário") > Adicionar > Google, entre na sua conta e autorize. '
+                  'Os eventos aparecem no Calendário e também ao clicar no relógio da barra de cima.',
+         acao=('abrir o Calendário', 'merkuro-calendar')),
+    dict(id='mapas', palavras='mapa mapas globo rota caminho localizacao cidade endereco',
+         resposta='O app Mapas mostra o globo e os mapas do OpenStreetMap: procure uma cidade ou morada na barra de pesquisa, '
+                  'e use o separador "Rotas" para calcular um caminho.',
+         acao=('abrir os Mapas', 'marble')),
+    dict(id='casa', palavras='casa home assistant luzes domotica inteligente cena',
+         resposta='O app Casa liga ao seu Home Assistant: escreva o endereço e um token de acesso (no Home Assistant: '
+                  'perfil > Segurança > Tokens de acesso de longa duração). Depois pode pedir-me, por exemplo, '
+                  '"acende a luz da sala" ou "ativa a cena cinema". No separador "Este computador", o PC aparece no Home Assistant por MQTT.',
+         acao=('abrir a Casa', 'carinaeos-casa')),
+    dict(id='ambiente', palavras='ambiente gnome xfce plasma desktop trocar sessao interface',
+         resposta='Pode usar o CarinaeOS com KDE Plasma, GNOME ou XFCE: abra "Ambiente de trabalho" (no Launchpad ou no Supernova), '
+                  'escolha um e carregue em Instalar. Depois termine a sessão: a tela de entrada abre no ambiente escolhido, '
+                  'com a Dock, o tema e os papéis de parede do CarinaeOS.',
+         acao=('abrir a troca de ambiente de trabalho', 'carinaeos-ambientes')),
+    dict(id='dock', palavras='dock adicionar fixar pasta aplicativo app icone barra baixo',
+         resposta='Para pôr algo na Dock: arraste um aplicativo, pasta ou arquivo para a Dock; ou, no Launchpad, botão direito > '
+                  '"Adicionar à Dock"; ou, nos Arquivos, botão direito numa pasta > "Adicionar à Dock". Para tirar: botão direito '
+                  'no ícone da Dock > "Remover do Dock". O estilo da Dock muda-se no Supernova.',
+         acao=('abrir o Supernova', 'carinaeos-supernova')),
 ]

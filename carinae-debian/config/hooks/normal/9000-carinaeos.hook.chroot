@@ -20,6 +20,51 @@ SUPPORT_URL="https://github.com/leothemurphy/carinaeos/issues"
 BUG_REPORT_URL="https://github.com/leothemurphy/carinaeos/issues"
 EOT
 ln -sf ../usr/lib/os-release /etc/os-release
+# a copia em /etc tambem fica desviada (atualizacoes do base-files nao a trocam)
+cat > /etc/lsb-release <<'EOT'
+DISTRIB_ID=CarinaeOS
+DISTRIB_RELEASE=1.0
+DISTRIB_CODENAME=eta
+DISTRIB_DESCRIPTION="CarinaeOS 1.0 (Eta)"
+EOT
+
+# ---- nenhum logotipo do Debian: o "Sobre este sistema" (KDE), o GNOME, o XFCE ----
+# o desktop-base (do Debian) traz o seu /etc/xdg/kcm-about-distrorc (logo Debian, "versao 13"):
+# desviado, para que nem as atualizacoes o tragam de volta.
+dpkg-divert --quiet --local --rename --divert /etc/xdg/kcm-about-distrorc.debian --add /etc/xdg/kcm-about-distrorc
+cat > /etc/xdg/kcm-about-distrorc <<'EOT'
+[General]
+LogoPath=/usr/share/carinaeos/marca/logo-256.png
+Website=https://github.com/leothemurphy/carinaeos
+Version=1.0 (Eta)
+Variant=Edição Plasma
+EOT
+# logotipos do desktop-base e emblemas "debian": desviados e trocados pelos do CarinaeOS
+M=/usr/share/carinaeos/marca
+for f in /usr/share/desktop-base/debian-logos/*; do
+  [ -e "$f" ] || continue
+  n=$(basename "$f")
+  dpkg-divert --quiet --local --rename --divert "$f.debian" --add "$f"
+  [ -e "$M/$n" ] && ln -sf "$M/$n" "$f" || ln -sf "$M/logo-256.png" "$f"
+done
+for f in $(find /usr/share/icons /usr/share/pixmaps -iname '*debian*' \( -name '*.png' -o -name '*.svg' -o -name '*.xpm' \) 2>/dev/null); do
+  case "$f" in *.debian) continue ;; esac
+  dpkg-divert --quiet --local --rename --divert "$f.debian" --add "$f" || continue
+  case "$f" in
+    *.svg) ln -sf "$M/logo.svg" "$f" ;;
+    *) ln -sf "$M/logo-128.png" "$f" ;;
+  esac
+done
+# alternativas do desktop-base (logotipos do fornecedor e fundo do GRUB) apontam para o CarinaeOS
+update-alternatives --install /usr/share/images/vendor-logos vendor-logos $M 1000 || true
+update-alternatives --set vendor-logos $M || true
+for n in 64 128 256; do
+  update-alternatives --install /usr/share/icons/hicolor/${n}x${n}/emblems/emblem-vendor.png emblem-vendor-$n $M/logo-$n.png 1000 2>/dev/null || true
+done
+update-alternatives --install /usr/share/icons/hicolor/scalable/emblems/emblem-vendor.svg emblem-vendor-scalable $M/logo.svg 1000 2>/dev/null || true
+update-alternatives --install /usr/share/images/desktop-base/desktop-grub.png desktop-grub /usr/share/carinaeos/grub.png 1000 2>/dev/null || true
+update-alternatives --set desktop-grub /usr/share/carinaeos/grub.png 2>/dev/null || true
+
 echo 'CarinaeOS 1.0 \n \l' > /etc/issue
 echo 'CarinaeOS 1.0' > /etc/issue.net
 
@@ -78,7 +123,7 @@ EOT
 E=/usr/share/icons/hicolor/scalable/apps/carinaeos.svg
 S=/usr/share/icons/hicolor/scalable/apps/carinaeos-estrela.svg
 for n in start-here start-here-kde start-here-kde-plasma start-here-kde-symbolic start-here-symbolic \
-         start-here-debian distributor-logo distributor-logo-debian debian-logo emblem-debian \
+         start-here-debian distributor-logo distributor-logo-debian debian-logo emblem-debian emblem-vendor debian-swirl \
          kde plasma kde-symbolic plasma-symbolic; do
   ln -sf $S $I/scalable/places/$n.svg
 done
@@ -98,6 +143,21 @@ mkdir -p /usr/local/share/applications
 sed -E '/^(Name|GenericName)(\[[^]]*\])?=/d' /usr/share/applications/org.kde.dolphin.desktop \
   | sed '0,/^\[Desktop Entry\]$/s//[Desktop Entry]\nName=Arquivos\nGenericName=Gerenciador de arquivos/' \
   > /usr/local/share/applications/org.kde.dolphin.desktop
+
+# Mapas (Marble) e Calendario (Merkuro): nomes simples, em portugues
+renomear() {   # renomear <arquivo.desktop> <Nome> <Descricao>
+    [ -f "/usr/share/applications/$1" ] || return 0
+    sed -E '/^(Name|GenericName)(\[[^]]*\])?=/d' "/usr/share/applications/$1" \
+      | sed "0,/^\[Desktop Entry\]\$/s//[Desktop Entry]\nName=$2\nGenericName=$3/" \
+      > "/usr/local/share/applications/$1"
+}
+renomear org.kde.marble.desktop "Mapas" "Mapas e globo terrestre"
+renomear org.kde.merkuro.calendar.desktop "Calendário" "Agenda, com a conta Google"
+renomear org.kde.merkuro.contact.desktop "Contactos" "Os seus contactos"
+
+# Eta: voz natural (Piper). Se nao der (sem internet), fica a voz do espeak-ng.
+pip install --break-system-packages --no-cache-dir --quiet piper-tts \
+  || echo "AVISO: Piper nao instalado; a Eta usa o espeak-ng"
 
 # ---- senhas simples: um PIN de 4 a 6 numeros basta para entrar no sistema -------
 sed -i -E 's/(pam_unix\.so) obscure /\1 minlen=4 /' /etc/pam.d/common-password

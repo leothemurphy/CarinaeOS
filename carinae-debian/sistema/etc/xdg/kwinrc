@@ -13,6 +13,8 @@ wobblywindowsEnabled=true
 scaleEnabled=true
 translucencyEnabled=true
 slideEnabled=true
+windowapertureEnabled=true
+carinaeos-mesaEnabled=true
 
 [Effect-magiclamp]
 AnimationDuration=320

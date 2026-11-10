@@ -114,8 +114,12 @@ Item {
                     return;
                 }
                 if (mouse.button === Qt.MiddleButton) {
-                    dock.modelo.requestNewInstance(tarefa.indice());
-                    salto.restart();
+                    if (dock.cliqueMeio === "fechar" && !tarefa.model.IsLauncher) {
+                        dock.modelo.requestClose(tarefa.indice());     // como o mod "Middle click to close" do Windhawk
+                    } else {
+                        dock.modelo.requestNewInstance(tarefa.indice());
+                        salto.restart();
+                    }
                     return;
                 }
                 if (tarefa.model.IsLauncher) {

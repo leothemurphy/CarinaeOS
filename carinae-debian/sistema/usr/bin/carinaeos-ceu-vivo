@@ -1,10 +1,23 @@
 #!/bin/sh
-# CarinaeOS - Ceu vivo: o fundo de Eta Carinae muda de tom com a hora do dia
-H=$(date +%H)
-if   [ "$H" -ge 5 ]  && [ "$H" -lt 8 ];  then V=madrugada
-elif [ "$H" -ge 8 ]  && [ "$H" -lt 16 ]; then V=manha
-elif [ "$H" -ge 16 ] && [ "$H" -lt 20 ]; then V=tarde
-else V=noite; fi
+# CarinaeOS - papel de parede vivo (Supernova > Área de trabalho > Papel de parede vivo)
+#   ceu:     o fundo de Eta Carinae muda de tom com a hora do dia
+#   galeria: um fundo diferente da colecao CarinaeOS a cada hora
+FORCAR="$1"
+MODO=$(cat "${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/fundo-modo" 2>/dev/null || echo ceu)
 E="${XDG_CACHE_HOME:-$HOME/.cache}/carinaeos-ceu-vivo"
-[ "$(cat "$E" 2>/dev/null)" = "$V" ] && [ "$1" != "--forcar" ] && exit 0
-plasma-apply-wallpaperimage "/usr/share/carinaeos/ceu/$V.jpg" >/dev/null 2>&1 && { mkdir -p "$(dirname "$E")"; echo "$V" > "$E"; }
+H=$(date +%H)
+if [ "$MODO" = galeria ]; then
+  set -- /usr/share/wallpapers/CarinaeOS*/
+  N=$#; [ "$N" -gt 0 ] || exit 0
+  I=$(( ($(date +%j) * 24 + ${H#0}) % N + 1 ))
+  eval "V=\${$I}"
+  ALVO="$V"
+else
+  if   [ "$H" -ge 5 ]  && [ "$H" -lt 8 ];  then V=madrugada
+  elif [ "$H" -ge 8 ]  && [ "$H" -lt 16 ]; then V=manha
+  elif [ "$H" -ge 16 ] && [ "$H" -lt 20 ]; then V=tarde
+  else V=noite; fi
+  ALVO="/usr/share/carinaeos/ceu/$V.jpg"
+fi
+[ "$(cat "$E" 2>/dev/null)" = "$V" ] && [ "$FORCAR" != "--forcar" ] && exit 0
+carinaeos-fundo "$ALVO" && { mkdir -p "$(dirname "$E")"; echo "$V" > "$E"; }

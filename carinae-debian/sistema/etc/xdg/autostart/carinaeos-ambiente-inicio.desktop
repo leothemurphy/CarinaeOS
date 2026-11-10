@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=CarinaeOS — visual no GNOME e no XFCE
+Exec=carinaeos-ambiente-inicio
+OnlyShowIn=GNOME;XFCE;
+NoDisplay=true
+X-GNOME-Autostart-Phase=Applications

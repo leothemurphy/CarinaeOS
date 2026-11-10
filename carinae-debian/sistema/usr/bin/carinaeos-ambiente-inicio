@@ -1,0 +1,49 @@
+#!/bin/sh
+# CarinaeOS - ao entrar no GNOME ou no XFCE: aplica o visual do CarinaeOS (uma vez por usuario)
+# e garante a Dock sempre visivel. No Plasma nao faz nada.
+FEITO="${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/inicio-$(echo "$XDG_CURRENT_DESKTOP" | tr 'A-Z:' 'a-z_')"
+FUNDO=/usr/share/backgrounds/carinaeos/eta-carinae.jpg
+# a Dock fica sempre visivel, a menos que a pessoa tenha escolhido outra coisa no Supernova
+SEMPRE=true
+grep -qE '"visivel": "(janelas|esconder)"' "${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/supernova.json" 2>/dev/null && SEMPRE=false
+case "$XDG_CURRENT_DESKTOP" in
+  *GNOME*)
+    # a Dock: sempre ligada e sempre visivel (todas as vezes, para nunca ficar escondida)
+    for e in dash-to-dock@micxgx.gmail.com ubuntu-appindicators@ubuntu.com blur-my-shell@aunetx; do
+      gnome-extensions enable "$e" 2>/dev/null
+    done
+    D=org.gnome.shell.extensions.dash-to-dock
+    if $SEMPRE; then
+      gsettings set $D dock-fixed true; gsettings set $D autohide false; gsettings set $D intellihide false
+    fi
+    gsettings set $D dock-position BOTTOM
+    if [ ! -e "$FEITO" ]; then
+      gsettings set org.gnome.desktop.background picture-uri "file://$FUNDO"
+      gsettings set org.gnome.desktop.background picture-uri-dark "file://$FUNDO"
+      gsettings set org.gnome.desktop.interface color-scheme prefer-dark
+      gsettings set org.gnome.desktop.wm.preferences button-layout 'close,minimize,maximize:'
+    fi
+    ;;
+  *XFCE*)
+    if [ ! -e "$FEITO" ]; then
+      for p in $(xfconf-query -c xfce4-desktop -l 2>/dev/null | grep -E 'last-image$'); do
+        xfconf-query -c xfce4-desktop -p "$p" -s "$FUNDO"
+      done
+      xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -n -t string -s "$FUNDO" 2>/dev/null
+      xfconf-query -c xsettings -p /Net/ThemeName -n -t string -s Adwaita-dark 2>/dev/null
+      xfconf-query -c xsettings -p /Net/IconThemeName -n -t string -s CarinaeOS 2>/dev/null
+      xfconf-query -c xfwm4 -p /general/button_layout -n -t string -s 'CHM|' 2>/dev/null
+      # barra so em cima (como no Plasma e no GNOME); a Dock em baixo e o Plank
+      xfconf-query -c xfce4-panel -p /panels -n -t int -s 1 --force-array 2>/dev/null
+      xfconf-query -c xfce4-panel -p /panels/panel-1/position -n -t string -s 'p=6;x=0;y=0' 2>/dev/null
+      xfce4-panel -r 2>/dev/null &
+      # Plank (a Dock) sempre visivel
+      dconf write /net/launchpad/plank/docks/dock1/hide-mode 0 2>/dev/null
+      dconf write /net/launchpad/plank/docks/dock1/icon-size 48 2>/dev/null
+    fi
+    $SEMPRE && dconf write /net/launchpad/plank/docks/dock1/hide-mode 0 2>/dev/null
+    pgrep -x plank >/dev/null || (plank >/dev/null 2>&1 &)
+    ;;
+  *) exit 0 ;;
+esac
+mkdir -p "$(dirname "$FEITO")"; touch "$FEITO"

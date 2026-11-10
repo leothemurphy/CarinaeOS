@@ -242,3 +242,17 @@ def app_flathub(nome):
         if len(partes) >= 2 and '.' in partes[0]:
             return partes[0].strip(), partes[1].strip()
     return None
+
+
+def cmd_instalar_apt(pacote):
+    """Instala pelo apt com a senha do sistema (pkexec) e com o andamento legivel (Status-Fd)."""
+    p = shlex.quote(pacote)
+    interno = ('apt-get update -q -o APT::Status-Fd=1 && DEBIAN_FRONTEND=noninteractive '
+               'apt-get install -y -o APT::Status-Fd=1 %s' % p)
+    return 'pkexec bash -c %s && (kbuildsycoca6 >/dev/null 2>&1; true)' % shlex.quote(interno)
+
+
+def cmd_instalar_flatpak(ident):
+    """O flatpak so mostra a percentagem num terminal: o 'script' da-lhe um terminal falso."""
+    return ("script -qfec %s /dev/null && (kbuildsycoca6 >/dev/null 2>&1; true)"
+            % shlex.quote('flatpak install --user -y flathub %s' % shlex.quote(ident)))

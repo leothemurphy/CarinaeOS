@@ -1,0 +1,43 @@
+# CarinaeOS - visual padrao quando se usa o GNOME (instalado pela troca de ambientes)
+[org.gnome.shell]
+enabled-extensions=['dash-to-dock@micxgx.gmail.com', 'ubuntu-appindicators@ubuntu.com', 'blur-my-shell@aunetx']
+favorite-apps=['org.gnome.Nautilus.desktop', 'firefox-esr.desktop', 'org.gnome.Console.desktop', 'carinaeos-orbita.desktop', 'carinaeos-supernova.desktop', 'carinaeos-eta.desktop', 'org.gnome.Settings.desktop']
+
+[org.gnome.shell.extensions.dash-to-dock]
+dock-position='BOTTOM'
+dock-fixed=true
+autohide=false
+intellihide=false
+extend-height=false
+dash-max-icon-size=48
+show-trash=true
+show-mounts=true
+custom-background-color=true
+background-color='#d9d4de'
+transparency-mode='FIXED'
+background-opacity=0.3
+custom-theme-shrink=true
+click-action='minimize-or-previews'
+scroll-action='cycle-windows'
+show-apps-at-top=true
+
+[org.gnome.desktop.interface]
+color-scheme='prefer-dark'
+font-name='Inter 11'
+cursor-theme='breeze_cursors'
+icon-theme='CarinaeOS'
+enable-hot-corners=false
+
+[org.gnome.desktop.wm.preferences]
+button-layout='close,minimize,maximize:'
+
+[org.gnome.desktop.background]
+picture-uri='file:///usr/share/backgrounds/carinaeos/eta-carinae.jpg'
+picture-uri-dark='file:///usr/share/backgrounds/carinaeos/eta-carinae.jpg'
+picture-options='zoom'
+
+[org.gnome.desktop.screensaver]
+picture-uri='file:///usr/share/backgrounds/carinaeos/eta-carinae.jpg'
+
+[org.gnome.mutter]
+center-new-windows=true

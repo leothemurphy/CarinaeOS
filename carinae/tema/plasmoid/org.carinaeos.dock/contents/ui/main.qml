@@ -125,6 +125,29 @@ PlasmoidItem {
         }
     }
 
+    // ---- estilos da Dock (escolhidos no Supernova) -----------------------------
+    // inspirados nos temas do "Windows 11 Taskbar Styler" do Windhawk e no macOS
+    property string estilo: "mac"
+    property bool rodaVolume: true          // roda do rato sobre a Dock muda o volume
+    property int passoVolume: 5
+    property string cliqueMeio: "nova"      // "nova" janela ou "fechar"
+    readonly property var estilos: ({
+        mac:          { c1: Qt.rgba(1, 1, 1, 0.26), c2: Qt.rgba(1, 1, 1, 0.16), borda: Qt.rgba(1, 1, 1, 0.38), raio: 0.30, sombra: 0.12 },
+        escuro:       { c1: Qt.rgba(0.12, 0.11, 0.15, 0.62), c2: Qt.rgba(0.08, 0.07, 0.10, 0.70), borda: Qt.rgba(1, 1, 1, 0.14), raio: 0.30, sombra: 0.2 },
+        transparente: { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0.3, sombra: 0 },
+        bolhas:       { c1: Qt.rgba(1, 1, 1, 0.34), c2: Qt.rgba(0.85, 0.92, 1, 0.20), borda: Qt.rgba(1, 1, 1, 0.65), raio: 0.5, sombra: 0.15 },
+        squircle:     { c1: Qt.rgba(0.20, 0.20, 0.22, 0.80), c2: Qt.rgba(0.16, 0.16, 0.18, 0.85), borda: Qt.rgba(1, 1, 1, 0.10), raio: 0.38, sombra: 0.25 },
+        rosepine:     { c1: "#e6191724", c2: "#e61f1d2e", borda: "#ebbcba", raio: 0.32, sombra: 0.2 },
+        xp:           { c1: "#3a81f3", c2: "#245edb", borda: "#9ec2ff", raio: 0.14, sombra: 0.3 },
+        vista:        { c1: Qt.rgba(0.35, 0.45, 0.55, 0.45), c2: Qt.rgba(0.02, 0.03, 0.05, 0.75), borda: Qt.rgba(1, 1, 1, 0.45), raio: 0.16, sombra: 0.35 },
+        translucido:  { c1: Qt.rgba(1, 1, 1, 0.08), c2: Qt.rgba(1, 1, 1, 0.05), borda: Qt.rgba(1, 1, 1, 0.12), raio: 0.30, sombra: 0 },
+        docklike:     { c1: Qt.rgba(0.14, 0.14, 0.14, 0.72), c2: Qt.rgba(0.10, 0.10, 0.10, 0.72), borda: Qt.rgba(1, 1, 1, 0.18), raio: 0.26, sombra: 0.2 },
+        matter:       { c1: "#2b2930", c2: "#25232a", borda: "transparent", raio: 0.5, sombra: 0.3 },
+        lucent:       { c1: Qt.rgba(1, 1, 1, 0.50), c2: Qt.rgba(1, 1, 1, 0.36), borda: Qt.rgba(1, 1, 1, 0.85), raio: 0.34, sombra: 0.1 },
+        neon:         { c1: Qt.rgba(0.07, 0.04, 0.12, 0.78), c2: Qt.rgba(0.10, 0.04, 0.12, 0.78), borda: "#ff6f91", raio: 0.34, sombra: 0.0, brilho: true }
+    })
+    readonly property var e: estilos[estilo] || estilos.mac
+
     // ---- definições vindas do Supernova -------------------------------------
     // o Supernova escreve ~/.config/carinaeos-dock.json; a Dock lê-o e aplica.
     property string ultimaConfig: ""
@@ -135,15 +158,25 @@ PlasmoidItem {
         onNewData: (fonte, dados) => {
             disconnectSource(fonte);
             const txt = (dados["stdout"] || "").trim();
-            if (!txt || txt === dock.ultimaConfig) return;
-            dock.ultimaConfig = txt;
+            const partes = txt.split("\n===FILA===\n");
+            const fila = (partes[1] || "").split("\n").filter(l => l.trim() !== "");
+            for (const url of fila) {
+                if (tasksModel.launcherPosition(url) === -1) tasksModel.requestAddLauncher(url);
+            }
+            const cfg = (partes[0] || "").replace("===FILA===", "").trim();
+            if (!cfg || cfg === dock.ultimaConfig) return;
+            dock.ultimaConfig = cfg;
             try {
-                const c = JSON.parse(txt);
+                const c = JSON.parse(cfg);
                 const conf = Plasmoid.configuration;
                 if (c.iconSize !== undefined && conf.iconSize !== c.iconSize) conf.iconSize = c.iconSize;
                 if (c.zoom !== undefined && Math.abs(conf.zoom - c.zoom) > 0.001) conf.zoom = c.zoom;
                 if (c.bounce !== undefined && conf.bounce !== c.bounce) conf.bounce = c.bounce;
                 if (c.showTrash !== undefined && conf.showTrash !== c.showTrash) conf.showTrash = c.showTrash;
+                if (c.estilo !== undefined) dock.estilo = c.estilo;
+                if (c.rodaVolume !== undefined) dock.rodaVolume = c.rodaVolume;
+                if (c.passoVolume !== undefined) dock.passoVolume = c.passoVolume;
+                if (c.cliqueMeio !== undefined) dock.cliqueMeio = c.cliqueMeio;
             } catch (e) {
                 console.warn("carinaeos-dock.json inválido:", e);
             }
@@ -154,7 +187,9 @@ PlasmoidItem {
         running: true
         repeat: true
         triggeredOnStart: true
-        onTriggered: leitor.connectSource("cat \"$HOME/.config/carinaeos-dock.json\" 2>/dev/null")
+        // a fila (~/.cache/carinaeos/dock-adicionar) e lida e apagada de uma vez
+        onTriggered: leitor.connectSource("cat \"$HOME/.config/carinaeos-dock.json\" 2>/dev/null; echo; echo ===FILA===; "
+            + "f=\"$HOME/.cache/carinaeos/dock-adicionar\"; [ -s \"$f\" ] && { cat \"$f\"; rm -f \"$f\"; }; true")
     }
 
     // ---- Launchpad: estrela da Dock e tecla Meta ----------------------------
@@ -181,22 +216,101 @@ PlasmoidItem {
         anchors.bottomMargin: dock.baixo
         width: fila.width + dock.espaco
         height: dock.base + dock.margem * 2
-        radius: Math.round(height * 0.3)
-        // vidro fosco claro, como no macOS: deixa ver o papel de parede
+        radius: Math.round(height * dock.e.raio)
+        // o vidro muda com o estilo escolhido no Supernova (Mac claro por omissão)
         gradient: Gradient {
-            GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0.26) }
-            GradientStop { position: 1; color: Qt.rgba(1, 1, 1, 0.16) }
+            GradientStop { position: 0; color: dock.e.c1 }
+            GradientStop { position: 1; color: dock.e.c2 }
         }
-        border.color: Qt.rgba(1, 1, 1, 0.38)
-        border.width: 1
+        border.color: dock.e.borda
+        border.width: dock.e.brilho ? 2 : 1
+        Behavior on radius { NumberAnimation { duration: 200 } }
         Rectangle {     // sombra suave por baixo do vidro
             z: -1
             anchors.fill: parent
             anchors.topMargin: 2
             anchors.bottomMargin: -2
             radius: parent.radius
-            color: Qt.rgba(0, 0, 0, 0.12)
+            color: Qt.rgba(0, 0, 0, dock.e.sombra)
         }
+        Rectangle {     // neon: segunda borda a brilhar
+            visible: dock.e.brilho === true
+            anchors.fill: parent; anchors.margins: -3
+            radius: parent.radius + 3; color: "transparent"
+            border.width: 2; border.color: "#ffb46e"; opacity: 0.45
+            SequentialAnimation on opacity {
+                running: dock.e.brilho === true; loops: Animation.Infinite
+                NumberAnimation { to: 0.15; duration: 1600; easing.type: Easing.InOutSine }
+                NumberAnimation { to: 0.55; duration: 1600; easing.type: Easing.InOutSine }
+            }
+        }
+        // brilho do topo (XP e Vista)
+        Rectangle {
+            visible: dock.estilo === "xp" || dock.estilo === "vista"
+            anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
+            anchors.margins: 2
+            height: parent.height * 0.45; radius: parent.radius
+            color: Qt.rgba(1, 1, 1, dock.estilo === "xp" ? 0.18 : 0.12)
+        }
+    }
+
+    // ---- arrastar para a Dock: aplicativos (.desktop), pastas ou arquivos -------
+    P5Support.DataSource {
+        id: ajudante
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            for (const l of (dados["stdout"] || "").split("\n")) {
+                const url = l.trim();
+                if (url !== "" && tasksModel.launcherPosition(url) === -1) tasksModel.requestAddLauncher(url);
+            }
+        }
+    }
+    function citar(t: string): string {
+        return "'" + t.replace(/'/g, "'\\''") + "'";
+    }
+    DropArea {
+        id: soltar
+        anchors.fill: vidro
+        anchors.topMargin: -dock.base
+        keys: ["text/uri-list"]
+        onDropped: (d) => {
+            if (!d.hasUrls) return;
+            const caminhos = [];
+            for (const u of d.urls) {
+                const s = u.toString();
+                if (s.endsWith(".desktop")) {
+                    tasksModel.requestAddLauncher(s);
+                } else if (s.startsWith("file://")) {
+                    caminhos.push(dock.citar(decodeURIComponent(s.substring(7))));
+                }
+            }
+            if (caminhos.length) ajudante.connectSource("carinaeos-dock-adicionar --imprimir " + caminhos.join(" "));
+            d.accept(Qt.CopyAction);
+        }
+    }
+    Rectangle {
+        anchors.fill: vidro
+        radius: vidro.radius
+        visible: soltar.containsDrag
+        color: Qt.rgba(1, 0.7, 0.43, 0.18)
+        border.color: "#ffb46e"; border.width: 2
+    }
+
+    // roda do rato sobre a Dock: volume (como o mod "Taskbar Volume Control" do Windhawk)
+    P5Support.DataSource { id: som; engine: "executable"; connectedSources: []; onNewData: (f) => disconnectSource(f) }
+    WheelHandler {
+        enabled: dock.rodaVolume
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: (ev) => {
+            const sobe = ev.angleDelta.y > 0;
+            som.connectSource("wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ " + dock.passoVolume + "%" + (sobe ? "+" : "-") + " #" + Date.now());
+        }
+    }
+    Item {
+        id: _fimVidro
+        visible: false
     }
 
     Row {

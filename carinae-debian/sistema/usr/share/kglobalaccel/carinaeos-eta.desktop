@@ -2,10 +2,17 @@
 Type=Application
 Name=Eta
 GenericName=Assistente do sistema
-Comment=Converse, encontre arquivos e mude configurações com ajuda
-Exec=carinaeos-eta
+Comment=Converse por escrito ou por voz, envie arquivos, mude configurações e controle a casa
+Exec=carinaeos-eta %F
 Icon=carinaeos-eta
 Categories=Utility;System;
-Keywords=assistente;ia;ajuda;chat;procurar;arquivos;perguntar;
+Keywords=assistente;ia;ajuda;chat;procurar;arquivos;perguntar;voz;falar;
 StartupWMClass=carinaeos-eta
 X-KDE-Shortcuts=Meta+Space
+Actions=ouvir;
+
+[Desktop Action ouvir]
+Name=Falar com a Eta
+Icon=audio-input-microphone
+Exec=carinaeos-eta --ouvir
+X-KDE-Shortcuts=Meta+Shift+Space

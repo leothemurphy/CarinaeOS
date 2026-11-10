@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Service
+MimeType=application/octet-stream;text/plain;application/pdf;image/*;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.oasis.opendocument.text;
+X-KDE-ServiceTypes=KonqPopupMenu/Plugin
+Actions=perguntar;
+X-KDE-Priority=TopLevel
+
+[Desktop Action perguntar]
+Name=Perguntar à Eta sobre este arquivo
+Icon=carinaeos-eta
+Exec=carinaeos-eta --arquivo %F

@@ -27,6 +27,28 @@ install -d $U/plasma/desktoptheme
 cp -a $T/plasmastyle/carinaeos               $U/plasma/desktoptheme/
 cp -a $T/lookandfeel/org.carinaeos.desktop    $U/plasma/look-and-feel/
 cp -a $T/wallpaper/CarinaeOS                  $U/wallpapers/
+# marca CarinaeOS em PNG, para substituir os logotipos do Debian (desktop-base, emblemas)
+M=$U/carinaeos/marca
+install -d $M
+cat > /tmp/carinaeos-logo-texto.svg <<EOT
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 160">
+  <image href="file://$PWD/$T/icones/carinaeos.svg" x="0" y="0" width="160" height="160"/>
+  <text x="176" y="104" font-family="Inter, DejaVu Sans, sans-serif" font-size="72" font-weight="700" fill="#f4eee8">CarinaeOS</text>
+</svg>
+EOT
+cp $T/icones/carinaeos.svg $M/logo.svg
+cp /tmp/carinaeos-logo-texto.svg $M/logo-text.svg
+cp /tmp/carinaeos-logo-texto.svg $M/logo-text-version.svg
+for n in 16 22 24 32 48 64 128 256 512; do
+  rsvg-convert -w $n -h $n $T/icones/carinaeos.svg -o $M/logo-$n.png
+done
+for n in 64 128 256; do
+  rsvg-convert -h $n /tmp/carinaeos-logo-texto.svg -o $M/logo-text-$n.png
+  cp $M/logo-text-$n.png $M/logo-text-version-$n.png
+done
+
+# colecao de papeis de parede 8K (fotos do Webb/Hubble + desenhos do CarinaeOS) para Plasma, GNOME e XFCE
+python3 fundos/fundos.py "$PWD/$I" "$PWD/cache/fundos"
 install -m644 $T/cores/CarinaeOS.colors       $U/color-schemes/
 cp -a $T/sddm/carinaeos                       $U/sddm/themes/
 cp -a $T/plymouth/carinaeos                   $U/plymouth/themes/
@@ -34,7 +56,7 @@ install -m644 arte/grub.png                   $U/carinaeos/grub.png
 install -m644 arte/calamares-*.png            $I/etc/calamares/branding/carinaeos/
 
 # Dock: lancadores das aplicacoes que existem nesta edicao
-sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:org.kde.gwenview.desktop,applications:org.kde.okular.desktop,applications:carinaeos-orbita.desktop,applications:carinaeos-supernova.desktop,applications:carinaeos-eta.desktop,applications:systemsettings.desktop</default>#' \
+sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:org.kde.gwenview.desktop,applications:org.kde.okular.desktop,applications:carinaeos-orbita.desktop,applications:carinaeos-supernova.desktop,applications:carinaeos-eta.desktop,applications:org.kde.merkuro.calendar.desktop,applications:systemsettings.desktop</default>#' \
   $U/plasma/plasmoids/org.carinaeos.dock/contents/config/main.xml
 
 # ---- Eta: motor de IA local (llama.cpp, so o servidor, para CPU) -----------------
@@ -56,6 +78,23 @@ fi
 install -d $I/opt/carinaeos/llama
 install -m755 $LC/llama-server $I/opt/carinaeos/llama/
 install -m644 $LC/LICENSE $I/opt/carinaeos/llama/LICENSE
+
+# ---- Eta: ouvido (whisper.cpp, reconhecimento de fala no proprio computador) --------
+WHISPER_VERSAO=v1.9.5
+WC=cache/whisper-$WHISPER_VERSAO
+if [ ! -x $WC/whisper-cli ]; then
+  rm -rf cache/whisper-src && mkdir -p cache
+  git clone -q --depth 1 --branch $WHISPER_VERSAO https://github.com/ggml-org/whisper.cpp cache/whisper-src
+  cmake -S cache/whisper-src -B cache/whisper-src/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF \
+        -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_SDL2=OFF >/dev/null
+  cmake --build cache/whisper-src/build --target whisper-cli -j"$(nproc)"
+  mkdir -p $WC && install -m755 cache/whisper-src/build/bin/whisper-cli $WC/
+  cp cache/whisper-src/LICENSE $WC/LICENSE
+  rm -rf cache/whisper-src
+fi
+install -d $I/opt/carinaeos/whisper
+install -m755 $WC/whisper-cli $I/opt/carinaeos/whisper/
+install -m644 $WC/LICENSE $I/opt/carinaeos/whisper/LICENSE
 
 # ---- menus de arranque da ISO (BIOS: syslinux; UEFI: GRUB) ----------------------
 B=config/bootloaders

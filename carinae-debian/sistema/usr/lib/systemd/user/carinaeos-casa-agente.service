@@ -1,0 +1,11 @@
+[Unit]
+Description=CarinaeOS - este computador no Home Assistant (MQTT)
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/carinaeos-casa-agente
+Restart=on-failure
+RestartSec=20
+
+[Install]
+WantedBy=default.target
