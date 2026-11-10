@@ -11,7 +11,7 @@ Rectangle {
     signal pedirApagar()
     signal pedirMover(int para)
 
-    readonly property var est: casa.estados
+    readonly property var est: janela.est
     readonly property var e0: dados.ents.length ? (est[dados.ents[0]] || null) : null
     readonly property color texto: "#f6f2ff"
     readonly property color suave: "#b9b0cc"
@@ -163,7 +163,7 @@ Rectangle {
             Canvas {
                 id: tela
                 width: parent.width; height: 90
-                readonly property var pts: casa.historicos[c.dados.ents[0]] || []
+                readonly property var pts: janela.extras.hist[c.dados.ents[0]] || []
                 onPtsChanged: requestPaint()
                 onWidthChanged: requestPaint()
                 onPaint: {
@@ -274,8 +274,8 @@ Rectangle {
             Rectangle {
                 width: parent.width; height: width * 9 / 16; radius: 14; color: "#000"; clip: true
                 Image { anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true; cache: false
-                        source: casa.cameras[c.dados.ents[0]] || "" }
-                Text { anchors.centerIn: parent; visible: !casa.cameras[c.dados.ents[0]]; text: "A carregar a imagem…"; color: c.suave }
+                        source: janela.extras.cams[c.dados.ents[0]] || "" }
+                Text { anchors.centerIn: parent; visible: !janela.extras.cams[c.dados.ents[0]]; text: "A carregar a imagem…"; color: c.suave }
             }
         }
     }

@@ -8,6 +8,26 @@ for (var j = 0; j < desktopsArray.length; j++) {
     d.writeConfig("Image", "file:///usr/share/wallpapers/CarinaeOS");
 }
 
+// ---- barra de cima, igual a do estilo Mac (menu estrela, menus do app, bandeja e relogio) ----
+var topo = new Panel;
+topo.location = "top";
+topo.height = 2 * Math.ceil(gridUnit * 1.4 / 2);
+topo.floating = false;
+topo.opacity = "translucent";
+topo.addWidget("org.carinaeos.menuestrela");
+topo.addWidget("org.carinaeos.nomeapp");
+topo.addWidget("org.kde.plasma.appmenu");
+topo.addWidget("org.kde.plasma.panelspacer");
+topo.addWidget("org.kde.plasma.systemtray");
+var relogioTopo = topo.addWidget("org.kde.plasma.digitalclock");
+relogioTopo.currentConfigGroup = ["Appearance"];
+relogioTopo.writeConfig("showDate", true);
+relogioTopo.writeConfig("dateFormat", "custom");
+relogioTopo.writeConfig("customDateFormat", "ddd d MMM");
+relogioTopo.currentConfigGroup = ["General"];
+relogioTopo.writeConfig("enabledCalendarPlugins", "pimevents,holidaysevents");
+
+// ---- barra de tarefas em baixo ----------------------------------------------------------------
 var barra = new Panel;
 barra.location = "bottom";
 barra.height = 2 * Math.ceil(gridUnit * 2.4 / 2);
@@ -36,11 +56,4 @@ tarefas.writeConfig("indicateAudioStreams", true);
 tarefas.writeConfig("iconSpacing", 2);
 
 barra.addWidget("org.kde.plasma.panelspacer");
-barra.addWidget("org.kde.plasma.systemtray");
-var relogio = barra.addWidget("org.kde.plasma.digitalclock");
-relogio.currentConfigGroup = ["Appearance"];
-relogio.writeConfig("showDate", true);
-relogio.writeConfig("dateDisplayFormat", "BelowTime");
-relogio.currentConfigGroup = ["General"];
-relogio.writeConfig("enabledCalendarPlugins", "pimevents,holidaysevents");
 barra.addWidget("org.kde.plasma.showdesktop");

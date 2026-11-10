@@ -25,7 +25,7 @@ AMBIENTES = [
          sessao='plasma.desktop', pacotes=[], visual='org.carinaeos.desktop'),
     dict(id='windows', nome='Estilo Windows 11', icone='start-here', tamanho='já instalado',
          desc='Barra de tarefas em baixo com os ícones ao centro e o menu Iniciar com a estrela do CarinaeOS, '
-              'pesquisa, ícones do sistema e relógio à direita, botões das janelas à direita.',
+              'pesquisa e a mesma barra de cima do estilo Mac (menu estrela, menus do aplicativo, bandeja e relógio).',
          sessoes=['/usr/share/wayland-sessions/plasma.desktop', '/usr/share/xsessions/plasmax11.desktop'],
          sessao='plasma.desktop', pacotes=[], visual='org.carinaeos.windows'),
     dict(id='gnome', nome='GNOME', icone='view-app-grid', tamanho='cerca de 900 MB',
@@ -39,7 +39,7 @@ AMBIENTES = [
          desc='Leve e rápido, ótimo para computadores mais antigos. Vem com uma Dock (Plank) e os papéis de parede do CarinaeOS.',
          sessoes=['/usr/share/xsessions/xfce.desktop'],
          sessao='xfce.desktop',
-         pacotes=['task-xfce-desktop', 'plank', 'xfce4-whiskermenu-plugin', 'zenity']),
+         pacotes=['task-xfce-desktop', 'plank', 'xfce4-whiskermenu-plugin', 'zenity', 'numlockx']),
 ]
 
 
@@ -95,11 +95,13 @@ class Ambientes(QObject):
         # manter o SDDM (a tela de entrada do CarinaeOS) mesmo que o GNOME traga o GDM
         interno = ('echo "shared/default-x-display-manager select sddm" | debconf-set-selections; '
                    'echo "gdm3 shared/default-x-display-manager select sddm" | debconf-set-selections; '
+                   'dpkg --configure -a; DEBIAN_FRONTEND=noninteractive apt-get -f install -y; '
                    'apt-get update -q -o APT::Status-Fd=1 && '
                    'DEBIAN_FRONTEND=noninteractive apt-get install -y -o APT::Status-Fd=1 %s && '
                    'echo /usr/sbin/sddm > /etc/X11/default-display-manager && '
-                   '(systemctl disable gdm3 2>/dev/null; systemctl enable sddm 2>/dev/null; glib-compile-schemas /usr/share/glib-2.0/schemas; true)'
-                   % pac)
+                   '(systemctl disable gdm3 2>/dev/null; systemctl enable sddm 2>/dev/null; %s'
+                   'glib-compile-schemas /usr/share/glib-2.0/schemas; true)'
+                   % (pac, '/usr/lib/carinaeos/gnome-extras; ' if ident == 'gnome' else ''))
         self._a_instalar = ident
         self._progresso = 0.0
         self._etapa = 'A pedir autorização…'

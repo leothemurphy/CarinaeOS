@@ -172,7 +172,14 @@ class Pensamento:
         return CB.PROMPT + '\nAmbiente de trabalho em uso: %s.' % AMBI.NOME
 
     def _cerebro_pronto(self):
-        return self._estado == 'pronta' or bool(self._cerebro.nuvem())
+        if bool(self._cerebro.nuvem()):
+            return True
+        if self._estado == 'pronta' and self._proc is not None and self._proc.poll() is not None:
+            # o servidor fechou: voltar a arranca-lo e responder sem IA desta vez
+            self._estado = 'a-iniciar'
+            threading.Thread(target=self._iniciar_ia, daemon=True).start()
+            return False
+        return self._estado == 'pronta'
 
     # ---- pensar ---------------------------------------------------------------------------------
     def _pensar(self):

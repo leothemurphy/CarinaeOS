@@ -83,12 +83,19 @@ E ainda:
 - **Modo escuro em todo o lado**, até no Chrome, no Firefox e nos aplicativos GTK e Flatpak.
 - **Janelas de senha com a marca CarinaeOS** sempre que o sistema pede permissão.
 - **Estilo Mac ou estilo Windows 11**: barra em cima e Dock em baixo, ou barra de tarefas ao centro com a estrela no menu Iniciar. E também **GNOME** e **XFCE**, instalados com um clique e sempre com a Dock visível, o tema e os papéis de parede do CarinaeOS.
-- **Casa**: painéis do Home Assistant que monta como quiser, com 13 tipos de cartões (botão, luz, lista, sensor,
+- **Casa**: painéis do Home Assistant que monta como quiser (leves, sem travar, mesmo com centenas de aparelhos), com 13 tipos de cartões (botão, luz, lista, sensor,
   gráfico de 24 h, clima, cenas, som e TV, câmara, estores, tempo, número, texto), e este PC como dispositivo no Home Assistant.
 - **Calendários**: conta Google, iCloud (CalDAV) ou qualquer endereço iCal (Google, iCloud, Outlook, feriados), e **Mapas**.
 - **Etiquetas** coloridas nos Arquivos, como no Finder, na barra lateral (GNOME e XFCE também), até em pastas de rede.
 - **Papéis de parede em 8K**: o céu do Atacama com a estrela, fotografias do James Webb e do Hubble e desenhos originais.
 - **ArtCraft Launcher** já instalado, para baixar os aplicativos da Craft App Suite.
+- **AppImage com duplo clique** (por exemplo o Elegoo Slicer para impressoras 3D): o CarinaeOS instala-o no menu,
+  com ícone, e oferece pô-lo na Dock.
+- **Tela de entrada à sua maneira**: a sua foto e a imagem de fundo do login (Central › Tela de entrada).
+- **Todas as janelas com os botões do Mac à esquerda**, com as mesmas cores, também nos aplicativos GTK e nos
+  navegadores (Chrome, Chromium, Firefox).
+- **Barra de cima em todos os estilos** (Mac, Windows 11, GNOME e XFCE), com o nome do aplicativo em negrito e o seu menu.
+- **NumLock ligado** ao entrar, para escrever a senha logo.
 - **Boas-vindas** depois de instalar, a mostrar tudo o que o sistema tem.
 
 - **Busca rápida** (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>), como o Spotlight: encontra aplicativos,
@@ -137,7 +144,9 @@ Para saber coisas do computador (“qual é a minha placa de vídeo?”) corre u
 **A IA é local e privada.** Na primeira vez, a Eta pergunta se quer ativar a IA completa: são
 2,5 GB baixados uma única vez (modelo **Qwen3 4B**, a correr com o llama.cpp; em computadores com pouca
 memória, o Qwen3 1.7B). Depois disso, funciona **sem internet** e nada do que escreve sai do seu computador.
-Se preferir, em ⚙ › *Cérebro da Eta* pode ligar um modelo **na nuvem** com a sua própria chave
+Em ⚙ › *Cérebro da Eta* escolhe o cérebro **leve** (Qwen3 1.7B, ~1,5 GB de memória) ou **completo**
+(Qwen3 4B), ou **desliga a IA** de vez (nada fica a ocupar memória, nem em segundo plano). O modelo também sai
+da memória sozinho ao fim de 5 minutos parado. Também pode ligar um modelo **na nuvem** com a sua própria chave
 (Claude, ChatGPT, Gemini, OpenRouter ou Groq). Mesmo sem IA, a Eta faz as tarefas mais comuns.
 
 Abra-a pela Dock, pelo menu da estrela, com <kbd>⊞</kbd>+<kbd>Espaço</kbd>, ou escrevendo uma

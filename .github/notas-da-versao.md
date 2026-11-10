@@ -17,12 +17,14 @@ Depois, use a ISO numa máquina virtual ou grave-a num pen drive (balenaEtcher o
 A sessão de teste entra sozinha, sem senha. Para instalar, abra **Instalar o CarinaeOS** na área de trabalho.
 
 ### Novidades desta versão
-- Eta com um cérebro novo (Qwen3 4B, ou na nuvem com a sua chave) que entende pedidos com várias ações e contexto.
-- Visual Vidro: janelas translúcidas, ícones coloridos e o céu real do Atacama com a estrela do CarinaeOS.
-- Central CarinaeOS com todas as ferramentas; Casa com painéis montáveis; Calendários Google, iCloud e iCal.
-- Cadeado que tranca a própria pasta; etiquetas na barra lateral; menus no GNOME e no XFCE.
-- Janelas em zonas, histórico do Ctrl+C, drivers e hardware, sessão sem rastro, modo escuro forçado.
-- Fim do retângulo cinzento atrás da Dock; fastfetch com a estrela; janelas de senha com a marca CarinaeOS.
+- Eta: IA pode ser desligada (liberta a memória) ou usar o cérebro leve; sai da memória sozinha quando parada.
+- Casa sem travar, mesmo com centenas de aparelhos.
+- AppImage com duplo clique (ex.: Elegoo Slicer): instala no menu e na Dock.
+- Calendários por endereço iCal (Google, iCloud, Outlook) sincronizados a cada 30 minutos.
+- Botões do Mac à esquerda em todas as janelas, também GTK, Chrome e Firefox.
+- Barra de cima com o nome do aplicativo e o seu menu em todos os estilos, também no Windows 11.
+- Dock do GNOME com as animações do Mac; NumLock ligado ao entrar; foto e fundo da tela de entrada.
+- Slides do instalador corrigidos.
 
 Guia completo no [README](https://github.com/leothemurphy/carinaeos#readme).
 

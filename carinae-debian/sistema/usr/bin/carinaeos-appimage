@@ -1,0 +1,113 @@
+#!/usr/bin/python3
+"""CarinaeOS - AppImage com dois cliques: fica instalado no menu (e opcionalmente na Dock) e abre.
+
+  carinaeos-appimage <arquivo.AppImage>
+
+Copia o AppImage para ~/Aplicativos, marca-o como executável, tira de dentro o ícone e o
+nome, cria a entrada no menu e abre o programa. Precisa do libfuse2 (vem no CarinaeOS);
+se o AppImage não conseguir montar-se, corre-o extraído.
+"""
+import configparser
+import glob
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+HOME = os.path.expanduser('~')
+PASTA = os.path.join(HOME, 'Aplicativos')
+APPS = os.path.join(os.environ.get('XDG_DATA_HOME', os.path.join(HOME, '.local/share')), 'applications')
+ICONES = os.path.join(os.environ.get('XDG_DATA_HOME', os.path.join(HOME, '.local/share')), 'icons/hicolor/256x256/apps')
+
+
+def avisar(titulo, texto, icone='application-x-executable', acoes=None):
+    args = ['notify-send', '-a', 'Aplicativos', '-i', icone, titulo, texto]
+    for i, r in (acoes or []):
+        args[1:1] = ['-A', '%s=%s' % (i, r)]
+    if acoes:
+        args.insert(1, '--wait')
+    try:
+        r = subprocess.run(args, capture_output=True, text=True, timeout=120 if acoes else 10)
+        return r.stdout.strip() or None
+    except Exception:
+        return None
+
+
+def extrair(appimage, destino):
+    subprocess.run([appimage, '--appimage-extract', '*.desktop'], cwd=destino, capture_output=True, timeout=120)
+    subprocess.run([appimage, '--appimage-extract', '.DirIcon'], cwd=destino, capture_output=True, timeout=120)
+    for pad in ('*.png', '*.svg', 'usr/share/icons/hicolor/256x256/apps/*.png'):
+        subprocess.run([appimage, '--appimage-extract', pad], cwd=destino, capture_output=True, timeout=120)
+    return os.path.join(destino, 'squashfs-root')
+
+
+def principal():
+    if len(sys.argv) < 2:
+        print(__doc__)
+        return 1
+    origem = os.path.abspath(sys.argv[1])
+    os.makedirs(PASTA, exist_ok=True)
+    os.makedirs(APPS, exist_ok=True)
+    os.makedirs(ICONES, exist_ok=True)
+    nome_arq = os.path.basename(origem)
+    final = origem if os.path.dirname(origem) == PASTA else os.path.join(PASTA, nome_arq)
+    if final != origem:
+        shutil.copy2(origem, final)
+    os.chmod(final, 0o755)
+    ident = re.sub(r'[^a-z0-9]+', '-', re.sub(r'(?i)[-_ ]?(v?\d+(\.\d+)+.*)?\.appimage$', '', nome_arq).lower()).strip('-') or 'app'
+    nome, icone, categorias = re.sub(r'[-_]', ' ', ident).title(), 'application-x-executable', 'Utility;'
+    with tempfile.TemporaryDirectory() as t:
+        raiz = extrair(final, t)
+        des = glob.glob(os.path.join(raiz, '*.desktop'))
+        if des:
+            c = configparser.ConfigParser(interpolation=None, strict=False)
+            c.optionxform = str
+            try:
+                c.read(des[0], encoding='utf-8')
+                e = c['Desktop Entry']
+                nome = e.get('Name', nome)
+                categorias = e.get('Categories', categorias)
+                icone_nome = e.get('Icon', '')
+            except Exception:
+                icone_nome = ''
+        else:
+            icone_nome = ''
+        cand = [os.path.join(raiz, '.DirIcon')] + glob.glob(os.path.join(raiz, icone_nome + '.png')) + \
+            glob.glob(os.path.join(raiz, icone_nome + '.svg')) + glob.glob(os.path.join(raiz, '*.png')) + \
+            glob.glob(os.path.join(raiz, 'usr/share/icons/hicolor/256x256/apps/*.png'))
+        for f in cand:
+            if os.path.isfile(f) and os.path.getsize(f) > 0:
+                ext = '.svg' if open(f, 'rb').read(5).lstrip().startswith(b'<') else '.png'
+                destino_ic = os.path.join(ICONES, 'appimage-%s%s' % (ident, ext))
+                shutil.copyfile(os.path.realpath(f), destino_ic)
+                icone = destino_ic
+                break
+    desktop = os.path.join(APPS, 'appimage-%s.desktop' % ident)
+    with open(desktop, 'w', encoding='utf-8') as f:
+        f.write('[Desktop Entry]\nType=Application\nName=%s\nExec="%s" %%U\nIcon=%s\nCategories=%s\nTerminal=false\n'
+                'Comment=Aplicativo (AppImage) em %s\nX-CarinaeOS-AppImage=true\n' % (nome, final, icone, categorias, PASTA))
+    subprocess.run(['update-desktop-database', APPS], capture_output=True)
+    subprocess.run(['kbuildsycoca6'], capture_output=True)
+    # abrir; se nao montar (sem FUSE), correr extraido
+    p = subprocess.Popen([final], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                         env=dict(os.environ, APPIMAGE_EXTRACT_AND_RUN='0'))
+    try:
+        p.wait(4)
+        if p.returncode not in (0, None):
+            subprocess.Popen([final, '--appimage-extract-and-run'], start_new_session=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except subprocess.TimeoutExpired:
+        pass
+    if os.fork() == 0:
+        os.setsid()
+        if avisar('%s instalado ✓' % nome, 'Está no menu de aplicativos. Quer fixá-lo na Dock?', icone,
+                  [('dock', 'Pôr na Dock')]) == 'dock':
+            subprocess.run(['carinaeos-dock-adicionar', desktop])
+        os._exit(0)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(principal())

@@ -51,3 +51,18 @@ jobs:
           gh release create "$TAG" --title "CarinaeOS ($TAG)" --prerelease \
             --notes-file ../.github/notas-da-versao.md \
             CarinaeOS-1.0-amd64.iso.parte* CarinaeOS-1.0-amd64.iso.sha256
+
+      - name: Deixar só a versão atual
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=carinaeos-v$(head -1 carinae-debian/VERSAO | tr -d ' \n')
+          [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && exit 0
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          gh release list --limit 200 --json tagName --jq '.[].tagName' | while read t; do
+            [ "$t" = "$TAG" ] || gh release delete "$t" --yes --cleanup-tag || true
+          done
+          # etiquetas antigas que ficaram sem lançamento
+          git ls-remote --tags origin | awk '{print $2}' | sed 's#refs/tags/##; /\^{}$/d' | while read t; do
+            [ "$t" = "$TAG" ] || git push origin --delete "refs/tags/$t" || true
+          done

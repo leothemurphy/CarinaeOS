@@ -24,8 +24,13 @@ images:
     productLogo:         "calamares-logo.png"
     productIcon:         "calamares-logo.png"
     productWelcome:      "calamares-boasvindas.jpg"
-slideshow:               "show.qml"
-slideshowAPI: 2
+# lista de imagens: funciona mesmo quando o Calamares nao tem suporte a QML
+slideshow:
+    - "calamares-slide1.jpg"
+    - "calamares-slide2.jpg"
+    - "calamares-slide3.jpg"
+    - "calamares-slide4.jpg"
+    - "calamares-slide5.jpg"
 style:
    SidebarBackground:        "#14101c"
    SidebarText:              "#f2ece4"

@@ -18,10 +18,10 @@ Image=CarinaeOS
 cursorTheme=breeze_cursors
 
 [kwinrc][org.kde.kdecoration2]
-library=org.kde.breeze
-theme=Breeze
-ButtonsOnLeft=M
-ButtonsOnRight=IAX
+library=org.kde.kwin.aurorae
+theme=__aurorae__svg__CarinaeOS
+ButtonsOnLeft=XIA
+ButtonsOnRight=
 
 [ksplashrc][KSplash]
 Theme=org.carinaeos.desktop

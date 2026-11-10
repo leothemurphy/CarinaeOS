@@ -234,6 +234,7 @@ ExecStart=/bin/sh -c '/usr/lib/carinaeos/convidado ligar && mkdir -p /etc/carina
 WantedBy=multi-user.target
 EOT
 systemctl enable carinaeos-convidado.service || true
+systemctl --global enable carinaeos-calendarios.timer 2>/dev/null || true
 # a pasta pessoal do convidado vive na memoria (montada ao entrar, apagada ao sair) e entra sem senha
 for P in /etc/pam.d/sddm /etc/pam.d/gdm-password /etc/pam.d/lightdm; do
   [ -f "$P" ] || continue
@@ -263,6 +264,8 @@ if [ -f /etc/samba/smb.conf ]; then
   grep -q 'client min protocol' /etc/samba/smb.conf || sed -i '/^\[global\]/a \   client min protocol = NT1\n   client max protocol = SMB3\n   name resolve order = bcast host lmhosts wins' /etc/samba/smb.conf
 fi
 systemctl enable avahi-daemon.service 2>/dev/null || true
+# o servidor SMB do kernel (ksmbd) vem como dependencia mas nao esta configurado: nao arrancar
+systemctl mask ksmbd.service 2>/dev/null || true
 
 # ---- ecra de arranque (Plymouth) ------------------------------------------------
 plymouth-set-default-theme carinaeos

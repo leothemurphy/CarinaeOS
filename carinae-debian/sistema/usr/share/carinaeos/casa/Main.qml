@@ -18,6 +18,9 @@ ApplicationWindow {
     property string separador: "casa"
     property int painel: 0
     property bool editar: false
+    readonly property var est: JSON.parse(casa.estadosJson)
+    readonly property var extras: JSON.parse(casa.extrasJson)
+    readonly property var todas: JSON.parse(casa.todasJson)
 
     Rectangle {
         anchors.fill: parent
@@ -162,10 +165,10 @@ ApplicationWindow {
                 Column {
                     visible: rolar.cartoes.length === 0
                     width: parent.width - 16; spacing: 14; topPadding: 60
-                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: casa.todas.length ? "Este painel está vazio" : "A carregar a casa…"; color: janela.texto; font.pixelSize: 20; font.weight: Font.DemiBold }
+                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: janela.todas.length ? "Este painel está vazio" : "A carregar a casa…"; color: janela.texto; font.pixelSize: 20; font.weight: Font.DemiBold }
                     Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Monte-o como quiser: botões, luzes, gráficos, câmaras, clima, cenas…"; color: janela.textoSuave }
                     Row {
-                        visible: casa.todas.length > 0
+                        visible: janela.todas.length > 0
                         anchors.horizontalCenter: parent.horizontalCenter; spacing: 10
                         Rectangle {
                             width: 190; height: 40; radius: 20
@@ -354,7 +357,7 @@ ApplicationWindow {
                     anchors.top: opc.bottom; anchors.topMargin: 8; anchors.bottom: botoes.top; anchors.bottomMargin: 10
                     width: parent.width; clip: true; spacing: 2
                     ScrollBar.vertical: ScrollBar {}
-                    model: casa.todas.filter(e => (dlgCartao.info.dominios.length === 0 || dlgCartao.info.dominios.indexOf(e.dominio) !== -1)
+                    model: janela.todas.filter(e => (dlgCartao.info.dominios.length === 0 || dlgCartao.info.dominios.indexOf(e.dominio) !== -1)
                                               && (procura.text === "" || (e.nome + " " + e.id).toLowerCase().indexOf(procura.text.toLowerCase()) !== -1))
                     delegate: Rectangle {
                         required property var modelData

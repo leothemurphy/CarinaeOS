@@ -50,15 +50,19 @@ def ram_gb():
     return 4
 
 
-def modelo_recomendado():
-    r = ram_gb()
-    for m in MODELOS:
-        if not m.get('antigo') and r >= m['ram_gb']:
-            return m
-    return MODELOS[1]
+def modelo_recomendado(preferido=''):
+    """'completo' (Qwen3 4B, ~3 GB de memoria) ou 'leve' (Qwen3 1.7B, ~1,5 GB). Sem escolha: pela memoria."""
+    if preferido == 'completo':
+        return MODELOS[0]
+    if preferido == 'leve':
+        return MODELOS[1]
+    return MODELOS[0] if ram_gb() >= 12 else MODELOS[1]
 
 
-def modelo_no_disco(pasta):
+def modelo_no_disco(pasta, preferido=''):
+    rec = modelo_recomendado(preferido)
+    if os.path.exists(os.path.join(pasta, rec['arquivo'])):
+        return rec
     for m in MODELOS:
         if os.path.exists(os.path.join(pasta, m['arquivo'])):
             return m

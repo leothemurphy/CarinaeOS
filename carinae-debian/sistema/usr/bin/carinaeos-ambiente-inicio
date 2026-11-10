@@ -8,12 +8,52 @@ SEMPRE=true
 grep -qE '"visivel": "(janelas|esconder)"' "${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/supernova.json" 2>/dev/null && SEMPRE=false
 # etiquetas (as 7 cores) na barra lateral dos Arquivos, em todos os ambientes
 (carinaeos-etiquetas iniciar >/dev/null 2>&1 &)
+
+# navegadores com a barra de titulo do sistema (os botoes do Mac a esquerda, iguais aos das outras janelas)
+python3 - <<'EOT' 2>/dev/null
+import json, os, subprocess
+for perfil in ('google-chrome', 'chromium', 'BraveSoftware/Brave-Browser', 'microsoft-edge'):
+    f = os.path.expanduser('~/.config/%s/Default/Preferences' % perfil)
+    if not os.path.exists(f):
+        continue
+    if subprocess.run(['pgrep', '-f', perfil.split('/')[0]], capture_output=True).returncode == 0:
+        continue
+    d = json.load(open(f))
+    b = d.setdefault('browser', {})
+    if b.get('custom_chrome_frame') is not False and not b.get('carinaeos_frame'):
+        b['custom_chrome_frame'] = False
+        b['carinaeos_frame'] = True
+        json.dump(d, open(f, 'w'))
+EOT
+
+# GTK com o mesmo visual (botoes do Mac a esquerda), uma vez
+GTKF="${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/gtk-feito"
+if [ ! -e "$GTKF" ] && [ -d /usr/share/themes/WhiteSur-Dark ]; then
+  for v in 3.0 4.0; do
+    F="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-$v/settings.ini"
+    mkdir -p "$(dirname "$F")"
+    [ -f "$F" ] || printf '[Settings]\n' > "$F"
+    sed -i '/^gtk-theme-name=/d; /^gtk-decoration-layout=/d' "$F"
+    sed -i 's/^\[Settings\]$/[Settings]\ngtk-theme-name=WhiteSur-Dark\ngtk-decoration-layout=close,minimize,maximize:/' "$F"
+  done
+  gsettings set org.gnome.desktop.interface gtk-theme WhiteSur-Dark 2>/dev/null
+  gsettings set org.gnome.desktop.wm.preferences button-layout 'close,minimize,maximize:' 2>/dev/null
+  mkdir -p "$(dirname "$GTKF")"; touch "$GTKF"
+fi
 case "$XDG_CURRENT_DESKTOP" in
   *GNOME*)
     # a Dock: sempre ligada e sempre visivel (todas as vezes, para nunca ficar escondida)
-    for e in dash-to-dock@micxgx.gmail.com ubuntu-appindicators@ubuntu.com blur-my-shell@aunetx; do
+    # Dock com as animacoes do Mac (lupa e saltos: Dash2Dock Animated); sem ela, o Dash to Dock
+    if [ -d /usr/share/gnome-shell/extensions/dash2dock-lite@icedman.github.com ]; then
+      gnome-extensions disable dash-to-dock@micxgx.gmail.com 2>/dev/null
+      gnome-extensions enable dash2dock-lite@icedman.github.com 2>/dev/null
+    else
+      gnome-extensions enable dash-to-dock@micxgx.gmail.com 2>/dev/null
+    fi
+    for e in ubuntu-appindicators@ubuntu.com blur-my-shell@aunetx carinaeos-estrela@carinaeos.org; do
       gnome-extensions enable "$e" 2>/dev/null
     done
+    gsettings set org.gnome.desktop.peripherals.keyboard numlock-state true 2>/dev/null
     D=org.gnome.shell.extensions.dash-to-dock
     if $SEMPRE; then
       gsettings set $D dock-fixed true; gsettings set $D autohide false; gsettings set $D intellihide false
@@ -32,7 +72,16 @@ case "$XDG_CURRENT_DESKTOP" in
         xfconf-query -c xfce4-desktop -p "$p" -s "$FUNDO"
       done
       xfconf-query -c xfce4-desktop -p /backdrop/screen0/monitor0/workspace0/last-image -n -t string -s "$FUNDO" 2>/dev/null
-      xfconf-query -c xsettings -p /Net/ThemeName -n -t string -s Adwaita-dark 2>/dev/null
+      xfconf-query -c xsettings -p /Net/ThemeName -n -t string -s WhiteSur-Dark 2>/dev/null
+      xfconf-query -c xfwm4 -p /general/theme -n -t string -s WhiteSur-Dark 2>/dev/null
+      dconf write /net/launchpad/plank/docks/dock1/theme "'WhiteSur-Dark'" 2>/dev/null
+      dconf write /net/launchpad/plank/docks/dock1/zoom-enabled true 2>/dev/null
+      dconf write /net/launchpad/plank/docks/dock1/zoom-percent 160 2>/dev/null
+      # o botao do menu com a estrela do CarinaeOS
+      for p in $(xfconf-query -c xfce4-panel -l 2>/dev/null | grep -E '/plugin-[0-9]+$'); do
+        [ "$(xfconf-query -c xfce4-panel -p "$p" 2>/dev/null)" = whiskermenu ] && \
+          xfconf-query -c xfce4-panel -p "$p/button-icon" -n -t string -s carinaeos-estrela 2>/dev/null
+      done
       xfconf-query -c xsettings -p /Net/IconThemeName -n -t string -s CarinaeOS 2>/dev/null
       xfconf-query -c xfwm4 -p /general/button_layout -n -t string -s 'CHM|' 2>/dev/null
       # barra so em cima (como no Plasma e no GNOME); a Dock em baixo e o Plank
@@ -45,6 +94,7 @@ case "$XDG_CURRENT_DESKTOP" in
     fi
     $SEMPRE && dconf write /net/launchpad/plank/docks/dock1/hide-mode 0 2>/dev/null
     pgrep -x plank >/dev/null || (plank >/dev/null 2>&1 &)
+    command -v numlockx >/dev/null && numlockx on
     ;;
   *KDE*)
     # trocou de estilo (Mac / Windows 11) a partir de outro ambiente: aplicar agora

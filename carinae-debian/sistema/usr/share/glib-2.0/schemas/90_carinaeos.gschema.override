@@ -1,7 +1,7 @@
 # CarinaeOS - visual padrao quando se usa o GNOME (instalado pela troca de ambientes)
 [org.gnome.shell]
-enabled-extensions=['dash-to-dock@micxgx.gmail.com', 'ubuntu-appindicators@ubuntu.com', 'blur-my-shell@aunetx']
-favorite-apps=['org.gnome.Nautilus.desktop', 'firefox-esr.desktop', 'org.gnome.Console.desktop', 'carinaeos-orbita.desktop', 'carinaeos-supernova.desktop', 'carinaeos-eta.desktop', 'org.gnome.Settings.desktop']
+enabled-extensions=['dash2dock-lite@icedman.github.com', 'ubuntu-appindicators@ubuntu.com', 'blur-my-shell@aunetx', 'carinaeos-estrela@carinaeos.org']
+favorite-apps=['org.gnome.Nautilus.desktop', 'firefox-esr.desktop', 'org.gnome.Console.desktop', 'carinaeos-orbita.desktop', 'carinaeos-central.desktop', 'carinaeos-eta.desktop', 'org.gnome.Settings.desktop']
 
 [org.gnome.shell.extensions.dash-to-dock]
 dock-position='BOTTOM'
@@ -26,7 +26,12 @@ color-scheme='prefer-dark'
 font-name='Inter 11'
 cursor-theme='breeze_cursors'
 icon-theme='CarinaeOS'
+gtk-theme='WhiteSur-Dark'
 enable-hot-corners=false
+
+[org.gnome.desktop.peripherals.keyboard]
+numlock-state=true
+remember-numlock-state=true
 
 [org.gnome.desktop.wm.preferences]
 button-layout='close,minimize,maximize:'

@@ -1,0 +1,12 @@
+#!/bin/sh
+# CarinaeOS - extras do GNOME (corre como root depois de instalar o GNOME):
+# a Dock com as animacoes do Mac (Dash2Dock Animated, de icedman, GPL-3.0).
+E=/usr/share/gnome-shell/extensions/dash2dock-lite@icedman.github.com
+T=$(mktemp -d)
+if curl -sfL -o "$T/d.tar.gz" https://codeload.github.com/icedman/dash2dock-lite/tar.gz/refs/heads/main; then
+  tar -xzf "$T/d.tar.gz" -C "$T" && rm -rf "$E" && mkdir -p "$E" && cp -r "$T"/dash2dock-lite-main/* "$E"/
+  [ -d "$E/schemas" ] && glib-compile-schemas "$E/schemas"
+  chmod -R a+rX "$E"
+fi
+rm -rf "$T"
+exit 0

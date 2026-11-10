@@ -63,6 +63,15 @@ EOT
 recolorir "$AU/"*.svg
 sed -i -E 's/^ActiveFocusedTabColor=.*/ActiveFocusedTabColor=52,42,73/; s/^ActiveTextColor=.*/ActiveTextColor=242,236,250/' "$AU/CarinaeOSrc"
 
+# ---- GTK (GNOME, XFCE, Chrome, Firefox, apps GTK): o mesmo visual, botões do Mac à esquerda ----
+buscar WhiteSur-gtk-theme whitesur-gtk
+mkdir -p "$U/themes"
+tar -xJf "$C/whitesur-gtk/release/WhiteSur-Dark.tar.xz" -C "$U/themes"
+mkdir -p "$R/etc/gtk-3.0" "$R/etc/gtk-4.0"
+for v in 3.0 4.0; do
+  printf '[Settings]\ngtk-theme-name=WhiteSur-Dark\ngtk-icon-theme-name=CarinaeOS\ngtk-application-prefer-dark-theme=true\ngtk-decoration-layout=close,minimize,maximize:\ngtk-font-name=Inter 10\ngtk-cursor-theme-name=breeze_cursors\n' > "$R/etc/gtk-$v/settings.ini"
+done
+
 # ---- ícones WhiteSur (claro e escuro) ------------------------------------------------------
 if [ ! -d "$U/icons/WhiteSur-dark" ]; then
   ( cd "$C/whitesur-icones" && ./install.sh -d "$U/icons" -n WhiteSur -t default >/dev/null )

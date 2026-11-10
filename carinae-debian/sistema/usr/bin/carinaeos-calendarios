@@ -1,0 +1,84 @@
+#!/usr/bin/python3
+"""CarinaeOS - calendários por endereço (iCal/ICS do Google, iCloud, Outlook, feriados…).
+
+  carinaeos-calendarios sincronizar        baixa todos (corre ao entrar e a cada 30 minutos)
+  carinaeos-calendarios adicionar URL NOME baixa e liga ao Calendário (Akonadi)
+
+O calendário é baixado para ~/.local/share/carinaeos/calendarios/ e o Calendário lê esse arquivo
+(mais fiável do que pôr o endereço da internet diretamente no Akonadi)."""
+import json
+import os
+import re
+import sys
+import urllib.request
+
+CFG = os.path.expanduser('~/.config/carinaeos/calendarios.json')
+PASTA = os.path.expanduser('~/.local/share/carinaeos/calendarios')
+
+
+def ler():
+    try:
+        return json.load(open(CFG, encoding='utf-8'))
+    except (OSError, ValueError):
+        return []
+
+
+def gravar(lista):
+    os.makedirs(os.path.dirname(CFG), exist_ok=True)
+    json.dump(lista, open(CFG, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+
+
+def normalizar(url):
+    url = url.strip()
+    if url.startswith('webcal://'):
+        url = 'https://' + url[len('webcal://'):]
+    return url
+
+
+def baixar(url, arquivo):
+    req = urllib.request.Request(normalizar(url), headers={'User-Agent': 'CarinaeOS-Calendario/1.0'})
+    with urllib.request.urlopen(req, timeout=40) as r:
+        dados = r.read()
+    if b'BEGIN:VCALENDAR' not in dados[:2000]:
+        raise ValueError('o endereço não devolveu um calendário iCal (confirme que é o “endereço secreto em formato iCal”)')
+    os.makedirs(PASTA, exist_ok=True)
+    with open(arquivo + '.parte', 'wb') as f:
+        f.write(dados)
+    os.replace(arquivo + '.parte', arquivo)
+    return dados.count(b'BEGIN:VEVENT')
+
+
+def sincronizar():
+    erros = 0
+    for c in ler():
+        try:
+            baixar(c['url'], c['arquivo'])
+        except Exception as e:
+            erros += 1
+            print('AVISO: %s: %s' % (c.get('nome'), e), file=sys.stderr)
+    return erros
+
+
+def adicionar(url, nome):
+    url = normalizar(url)
+    if not re.match(r'^https?://', url):
+        raise ValueError('O endereço tem de começar por https:// ou webcal://')
+    slug = re.sub(r'[^a-z0-9]+', '-', nome.lower()).strip('-') or 'calendario'
+    arquivo = os.path.join(PASTA, slug + '.ics')
+    n = baixar(url, arquivo)
+    lista = [c for c in ler() if c['url'] != url]
+    lista.append(dict(url=url, nome=nome, arquivo=arquivo))
+    gravar(lista)
+    return arquivo, n
+
+
+if __name__ == '__main__':
+    a = sys.argv[1:]
+    if a and a[0] == 'sincronizar':
+        sys.exit(1 if sincronizar() else 0)
+    if len(a) >= 3 and a[0] == 'adicionar':
+        f, n = adicionar(a[1], a[2])
+        print(f, n)
+        sys.exit(0)
+    print(__doc__)
+    sys.exit(1)

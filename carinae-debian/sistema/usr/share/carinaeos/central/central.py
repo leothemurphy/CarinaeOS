@@ -31,6 +31,7 @@ FERRAMENTAS = [
     dict(id='etiquetas', nome='Etiquetas', desc='Arquivos organizados por cores', icone='tag', cmd='xdg-open ' + os.path.join(HOME, 'Etiquetas')),
     dict(id='clipboard', nome='Histórico do Ctrl+C', desc='Tudo o que copiou (Meta+V)', icone='edit-paste', pagina='clipboard'),
     dict(id='drivers', nome='Drivers e hardware', desc='Placa de vídeo, Wi-Fi, impressoras, impressão digital', icone='preferences-devices-pci', pagina='drivers'),
+    dict(id='entrada', nome='Tela de entrada', desc='A sua foto e a imagem de fundo do login', icone='preferences-desktop-user', pagina='entrada'),
     dict(id='privacidade', nome='Privacidade', desc='Sessão sem rastro e modo escuro em todo o lado', icone='preferences-system-privacy', pagina='privacidade'),
     dict(id='fundos', nome='Papéis de parede', desc='Fotos do céu em 8K e o Céu vivo', icone='preferences-desktop-wallpaper', cmd='carinaeos-ceu-vivo galeria'),
     dict(id='boasvindas', nome='Boas-vindas', desc='Tudo o que o CarinaeOS tem, num passeio', icone='carinaeos', cmd='carinaeos-boasvindas'),
@@ -73,34 +74,46 @@ def criar_recurso(tipo):
 
 
 def adicionar_ical(url, nome):
-    url = url.strip()
-    if url.startswith('webcal://'):
-        url = 'https://' + url[len('webcal://'):]
-    if not re.match(r'^https?://', url):
-        raise ValueError('O endereço tem de começar por https:// ou webcal://')
-    ident = criar_recurso('akonadi_ical_resource')
-    svc = 'org.freedesktop.Akonadi.Resource.' + ident
-    for _ in range(20):
+    """Baixa o calendario (carinaeos-calendarios) e liga o arquivo local ao Akonadi."""
+    r = subprocess.run(['carinaeos-calendarios', 'adicionar', url, nome], capture_output=True, text=True, timeout=90)
+    if r.returncode != 0:
+        raise RuntimeError((r.stderr.strip().splitlines() or ['não consegui baixar o calendário'])[-1].replace('ValueError: ', ''))
+    arquivo, eventos = r.stdout.split()
+    subprocess.run(['akonadictl', 'start'], capture_output=True, timeout=30)
+    ident = None
+    for _ in range(30):
         try:
-            qdbus(svc, '/Settings', 'org.kde.Akonadi.ICal.Settings.setPath', url)
+            ident = criar_recurso('akonadi_ical_resource')
+            break
+        except Exception:
+            __import__('time').sleep(1)
+    if not ident:
+        raise RuntimeError('o serviço de calendários (Akonadi) não arrancou')
+    svc = 'org.freedesktop.Akonadi.Resource.' + ident
+    for _ in range(30):
+        try:
+            qdbus(svc, '/Settings', 'org.kde.Akonadi.ICal.Settings.setPath', arquivo)
             break
         except Exception:
             __import__('time').sleep(0.5)
     else:
         raise RuntimeError('o serviço de calendários não respondeu')
-    qdbus(svc, '/Settings', 'org.kde.Akonadi.ICal.Settings.setReadOnly', 'true')
-    qdbus(svc, '/Settings', 'org.kde.Akonadi.ICal.Settings.setMonitorFile', 'false')
-    try:
-        qdbus(svc, '/Settings', 'org.kde.Akonadi.ICal.Settings.setDisplayName', nome)
-    except Exception:
-        pass
+    for metodo, valor in (('setReadOnly', 'true'), ('setMonitorFile', 'true'), ('setDisplayName', nome)):
+        try:
+            qdbus(svc, '/Settings', 'org.kde.Akonadi.ICal.Settings.' + metodo, valor)
+        except Exception:
+            pass
     qdbus(svc, '/Settings', 'org.kde.Akonadi.ICal.Settings.save')
     qdbus('org.freedesktop.Akonadi.Control', '/AgentManager',
           'org.freedesktop.Akonadi.AgentManager.setAgentInstanceName', ident, nome)
-    qdbus('org.freedesktop.Akonadi.Agent.' + ident, '/', 'org.freedesktop.Akonadi.Agent.Control.reconfigure')
+    try:
+        qdbus('org.freedesktop.Akonadi.Agent.' + ident, '/', 'org.freedesktop.Akonadi.Agent.Control.reconfigure')
+    except Exception:
+        pass
     qdbus('org.freedesktop.Akonadi.Control', '/AgentManager',
           'org.freedesktop.Akonadi.AgentManager.agentInstanceSynchronize', ident)
-    return ident
+    subprocess.run(['systemctl', '--user', 'enable', '--now', 'carinaeos-calendarios.timer'], capture_output=True)
+    return int(eventos)
 
 
 def configurar_conta(tipo):
@@ -343,7 +356,7 @@ class Central(QObject):
     @Slot(str, str)
     def adicionarIcal(self, url, nome):
         def depois(r):
-            self._fim('Calendário “%s” adicionado ✓ Aparece no Calendário e no relógio da barra.' % (nome or 'novo'))(r)
+            self._fim(lambda n: 'Calendário “%s” adicionado ✓ %d eventos. Aparece no Calendário e no relógio da barra; atualiza a cada 30 min.' % (nome or 'novo', n))(r)
             self.lerCalendarios()
         self._fundo(lambda: adicionar_ical(url, nome.strip() or 'Calendário'), depois, 'A adicionar o calendário…')
 
@@ -412,6 +425,51 @@ class Central(QObject):
             if p.returncode != 0:
                 raise RuntimeError((p.stdout + p.stderr).strip().splitlines()[-1] if (p.stdout + p.stderr).strip() else 'cancelado')
         self._fundo(trabalho, depois, 'A instalar %s… (o sistema pede a sua senha)' % it['nome'])
+
+    # tela de entrada
+    fotoUsuario = Property(str, lambda s: s._foto(), notify=mudou)
+
+    def _foto(self):
+        for f in ('/var/lib/AccountsService/icons/' + os.environ.get('USER', ''), os.path.join(HOME, '.face.icon'),
+                  os.path.join(HOME, '.face')):
+            if os.path.exists(f) and os.access(f, os.R_OK):
+                return 'file://' + f + '?%d' % int(os.path.getmtime(f))
+        return ''
+
+    @Slot(str)
+    def definirFoto(self, url):
+        caminho = url.replace('file://', '')
+
+        def trabalho():
+            from PIL import Image
+            im = Image.open(caminho).convert('RGB')
+            lado = min(im.size)
+            im = im.crop(((im.width - lado) // 2, (im.height - lado) // 2, (im.width + lado) // 2, (im.height + lado) // 2))
+            im = im.resize((512, 512), Image.LANCZOS)
+            face = os.path.join(HOME, '.face.icon')
+            im.save(face, 'PNG')
+            os.chmod(face, 0o644)
+            try:
+                os.remove(os.path.join(HOME, '.face'))
+            except OSError:
+                pass
+            os.symlink(face, os.path.join(HOME, '.face'))
+            r = subprocess.run(['busctl', 'call', 'org.freedesktop.Accounts', '/org/freedesktop/Accounts/User%d' % os.getuid(),
+                                'org.freedesktop.Accounts.User', 'SetIconFile', 's', face], capture_output=True, text=True)
+            if r.returncode != 0:
+                raise RuntimeError(r.stderr.strip() or 'o serviço de contas recusou')
+        self._fundo(trabalho, self._fim('Foto mudada ✓ Aparece na tela de entrada e no menu.'))
+
+    @Slot(str)
+    def definirFundoEntrada(self, url):
+        caminho = url.replace('file://', '')
+        self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/fundo-entrada', caminho], check=True),
+                    self._fim('Fundo da tela de entrada mudado ✓ Vê-o na próxima vez que entrar.'), 'A guardar…')
+
+    @Slot()
+    def reporFundoEntrada(self):
+        self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/fundo-entrada', '--repor'], check=True),
+                    self._fim('A tela de entrada voltou ao céu do CarinaeOS ✓'))
 
     # privacidade
     @Slot(bool)

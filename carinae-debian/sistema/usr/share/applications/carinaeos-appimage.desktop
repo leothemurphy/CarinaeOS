@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Instalar AppImage
+Comment=Abrir e pôr no menu um aplicativo AppImage
+Exec=carinaeos-appimage %f
+Icon=application-x-executable
+MimeType=application/vnd.appimage;application/x-iso9660-appimage;application/x-appimage;
+NoDisplay=true

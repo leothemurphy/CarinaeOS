@@ -26,7 +26,12 @@ ApplicationWindow {
     font.pixelSize: 14
 
     // fechar a janela nao para o que esta a fazer: a nuvem continua a mostrar
-    onClosing: (fecho) => { if (eta.ocupada) { fecho.accepted = false; janela.visible = false } }
+    // fechar a janela fecha a Eta (e a IA sai da memoria), a nao ser que esteja a trabalhar
+    // ou que o usuario tenha pedido para a manter em segundo plano
+    onClosing: (fecho) => {
+        if (eta.ocupada || eta.segundoPlano) { fecho.accepted = false; janela.visible = false }
+        else Qt.quit()
+    }
 
     // copiar texto para a area de transferencia
     TextEdit { id: copiador; visible: false }
@@ -101,7 +106,8 @@ ApplicationWindow {
             Text {
                 width: parent.width; elide: Text.ElideRight
                 text: eta.atividade !== "" ? eta.atividade :
-                      eta.estado === "pronta" || eta.nuvemCfg.ligada ? "assistente do CarinaeOS · " + eta.nomeCerebro :
+                      eta.nuvemCfg.ligada || eta.estado === "pronta" ? "assistente do CarinaeOS · " + eta.nomeCerebro :
+                          eta.estado === "desligada" ? "IA desligada · tarefas simples" :
                       eta.estado === "a-iniciar" ? "a acordar a IA…" :
                       eta.estado === "a-baixar" ? "a baixar…" : "assistente do CarinaeOS"
                 color: eta.atividade !== "" ? janela.ambar : janela.textoSuave; font.pixelSize: 12
@@ -128,7 +134,9 @@ ApplicationWindow {
                     MenuSeparator {}
                     MenuItem { text: (eta.falar ? "✓ " : "    ") + "Responder em voz alta quando falo"; onTriggered: eta.definirFalar(!eta.falar) }
                     MenuSeparator {}
-                    MenuItem { text: "Cérebro da Eta (neste computador ou na nuvem)…"; onTriggered: dialogoCerebro.open() }
+                    MenuItem { text: "Cérebro da Eta (leve, completo ou na nuvem)…"; onTriggered: dialogoCerebro.open() }
+                    MenuItem { text: eta.iaLigada ? "Desligar a IA (liberta a memória)" : "Ligar a IA"; onTriggered: eta.definirIA(!eta.iaLigada) }
+                    MenuItem { text: "Manter a Eta aberta em segundo plano"; checkable: true; checked: eta.segundoPlano; onTriggered: eta.definirSegundoPlano(checked) }
                     MenuSeparator {}
                     MenuItem { text: "O que a Eta aprendeu"; onTriggered: eta.enviar("o que você aprendeu?") }
                     MenuItem { text: "Esquecer as respostas guardadas"; onTriggered: eta.enviar("esquece as respostas") }
@@ -616,6 +624,27 @@ ApplicationWindow {
                       "Na nuvem: mais inteligente e rápido em computadores modestos, mas as conversas vão para o serviço escolhido, " +
                       "com a sua própria chave."
             }
+            Text { text: "Neste computador"; color: janela.texto; font.pixelSize: 13; font.weight: Font.DemiBold }
+            Row {
+                spacing: 8
+                Repeater {
+                    model: [{ id: "leve", t: "Leve · 1,1 GB", d: "≈1,5 GB de memória" }, { id: "completo", t: "Completo · 2,5 GB", d: "≈3 GB de memória, entende melhor" }]
+                    delegate: Rectangle {
+                        required property var modelData
+                        width: 190; height: 54; radius: 12
+                        color: eta.modeloEscolhido === modelData.id ? Qt.rgba(1, 0.7, 0.45, 0.25) : Qt.rgba(1, 1, 1, 0.06)
+                        border.color: eta.modeloEscolhido === modelData.id ? "#ffb46e" : Qt.rgba(1, 1, 1, 0.1)
+                        Column {
+                            anchors.centerIn: parent
+                            Text { text: modelData.t; color: janela.texto; font.pixelSize: 13; font.weight: Font.DemiBold; anchors.horizontalCenter: parent.horizontalCenter }
+                            Text { text: modelData.d; color: janela.textoSuave; font.pixelSize: 10; anchors.horizontalCenter: parent.horizontalCenter }
+                        }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: eta.definirModelo(modelData.id) }
+                    }
+                }
+            }
+            Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.textoSuave; font.pixelSize: 11
+                   text: "O modelo sai sozinho da memória ao fim de 5 minutos sem uso, e quando fecha a Eta." }
             Switch { id: usarNuvem; text: "Usar um cérebro na nuvem"; palette.windowText: janela.texto }
             Column {
                 width: parent.width; spacing: 8; enabled: usarNuvem.checked; opacity: enabled ? 1 : 0.45

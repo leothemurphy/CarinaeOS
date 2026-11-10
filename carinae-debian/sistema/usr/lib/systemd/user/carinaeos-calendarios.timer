@@ -1,0 +1,9 @@
+[Unit]
+Description=CarinaeOS - atualizar os calendários a cada 30 minutos
+
+[Timer]
+OnStartupSec=1min
+OnUnitActiveSec=30min
+
+[Install]
+WantedBy=timers.target

@@ -27,6 +27,7 @@ barra.opacity = "translucent";
 
 barra.addWidget("org.carinaeos.menuestrela");   // menu estrela (como o da maca)
 
+barra.addWidget("org.carinaeos.nomeapp");
 barra.addWidget("org.kde.plasma.appmenu");
 barra.addWidget("org.kde.plasma.panelspacer");
 barra.addWidget("org.kde.plasma.systemtray");

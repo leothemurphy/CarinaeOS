@@ -1,0 +1,21 @@
+#!/bin/sh
+# CarinaeOS - imagem de fundo da tela de entrada (SDDM). Corre como root (pkexec).
+#   fundo-entrada <imagem>   |   fundo-entrada --repor
+set -e
+T=/usr/share/sddm/themes/carinaeos
+D=/var/lib/carinaeos
+if [ "$1" = "--repor" ]; then
+  rm -f "$T/theme.conf.user" "$D/fundo-entrada.jpg"
+  exit 0
+fi
+[ -f "$1" ] || exit 2
+mkdir -p "$D"
+python3 -c "
+import sys
+from PIL import Image
+im = Image.open(sys.argv[1]).convert('RGB')
+im.thumbnail((3840, 2160))
+im.save(sys.argv[2], quality=92)
+" "$1" "$D/fundo-entrada.jpg"
+chmod 644 "$D/fundo-entrada.jpg"
+printf '[General]\nbackground=%s\n' "$D/fundo-entrada.jpg" > "$T/theme.conf.user"

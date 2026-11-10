@@ -1,6 +1,7 @@
 // CarinaeOS - Central: todas as ferramentas num só lugar
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 
 ApplicationWindow {
     id: janela
@@ -339,6 +340,49 @@ ApplicationWindow {
                 }
             }
 
+            // ===== tela de entrada =====
+            Column {
+                visible: janela.pagina === "entrada"
+                width: conteudo.largura; spacing: 18
+                Text { text: "Tela de entrada"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
+                Row {
+                    spacing: 22
+                    Rectangle {
+                        width: 132; height: 132; radius: 66; color: Qt.rgba(1, 1, 1, 0.08); clip: true
+                        border.color: Qt.rgba(1, 0.72, 0.45, 0.6); border.width: 2
+                        Image { anchors.fill: parent; anchors.margins: 2; source: central.fotoUsuario; fillMode: Image.PreserveAspectCrop; visible: source != ""; cache: false }
+                        Text { anchors.centerIn: parent; text: "🙂"; font.pixelSize: 54; visible: central.fotoUsuario === "" }
+                    }
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter; spacing: 8
+                        Text { text: "A sua foto"; color: janela.texto; font.pixelSize: 18; font.weight: Font.DemiBold }
+                        Text { text: "Aparece na tela de entrada, no ecrã de bloqueio e no menu."; color: janela.suave }
+                        Rectangle {
+                            width: 170; height: 38; radius: 19; color: janela.ambar
+                            Text { anchors.centerIn: parent; text: "Escolher foto…"; color: "#1a0f14"; font.weight: Font.Bold }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: escolherFoto.open() }
+                        }
+                    }
+                }
+                Rectangle { width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.08) }
+                Text { text: "Imagem de fundo do login"; color: janela.texto; font.pixelSize: 18; font.weight: Font.DemiBold }
+                Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave
+                       text: "Qualquer foto sua (fica desfocada atrás do relógio e da sua foto). Pede a senha de administrador." }
+                Row {
+                    spacing: 10
+                    Rectangle {
+                        width: 190; height: 38; radius: 19; color: janela.ambar
+                        Text { anchors.centerIn: parent; text: "Escolher imagem…"; color: "#1a0f14"; font.weight: Font.Bold }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: escolherFundo.open() }
+                    }
+                    Rectangle {
+                        width: 210; height: 38; radius: 19; color: Qt.rgba(1, 1, 1, 0.08)
+                        Text { anchors.centerIn: parent; text: "Voltar ao céu do CarinaeOS"; color: janela.texto }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: central.reporFundoEntrada() }
+                    }
+                }
+            }
+
             // ===== privacidade =====
             Column {
                 visible: janela.pagina === "privacidade"
@@ -378,5 +422,17 @@ ApplicationWindow {
                 }
             }
         }
+    }
+    FileDialog {
+        id: escolherFoto
+        title: "Escolha a sua foto"
+        nameFilters: ["Imagens (*.jpg *.jpeg *.png *.webp *.bmp)"]
+        onAccepted: central.definirFoto(selectedFile.toString())
+    }
+    FileDialog {
+        id: escolherFundo
+        title: "Escolha a imagem da tela de entrada"
+        nameFilters: ["Imagens (*.jpg *.jpeg *.png *.webp)"]
+        onAccepted: central.definirFundoEntrada(selectedFile.toString())
     }
 }

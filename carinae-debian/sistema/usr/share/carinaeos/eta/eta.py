@@ -564,8 +564,9 @@ class Eta(QObject, Pensamento, Tarefas):
         self._pensando = False
         self._cfg = self._ler_cfg()
         self._cerebro = CB.Cerebro(self._cfg)
-        self._modelo = CB.modelo_no_disco(DADOS)
-        self._estado = 'a-iniciar' if self._modelo else 'sem-modelo'
+        self._modelo = CB.modelo_no_disco(DADOS, self._cfg.get('modelo', ''))
+        self._estado = ('desligada' if self._cfg.get('ia_desligada') else
+                        'a-iniciar' if self._modelo else 'sem-modelo')
         self._baixado = 0.0
         self._baixar_o_que = ''
         self._proc = None
@@ -863,35 +864,98 @@ class Eta(QObject, Pensamento, Tarefas):
             pass
 
     def _iniciar_ia(self):
+        if self._cfg.get('ia_desligada'):
+            self._estado = 'desligada'
+            self.mudou.emit()
+            return
         if self._saude():
             self._estado = 'pronta'
             self.mudou.emit()
             return
-        self._modelo = CB.modelo_no_disco(DADOS)
+        self._modelo = CB.modelo_no_disco(DADOS, self._cfg.get('modelo', ''))
         if not (os.path.exists(SERVIDOR) and self._modelo):
             self._estado = 'sem-modelo'
             self.mudou.emit()
             return
         threads = max(1, (os.cpu_count() or 2))
-        try:
-            self._proc = subprocess.Popen(
-                [SERVIDOR, '-m', os.path.join(DADOS, self._modelo['arquivo']), '-c', '12288', '-np', '1',
-                 '-t', str(threads), '--host', '127.0.0.1', '--port', str(PORTA), '--no-webui', '--jinja'],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except Exception:
-            self._estado = 'erro'
-            self.mudou.emit()
-            return
-        for _ in range(240):
-            if self._saude():
-                self._estado = 'pronta'
+        base = [SERVIDOR, '-m', os.path.join(DADOS, self._modelo['arquivo']), '-np', '1',
+                '-t', str(threads), '--host', '127.0.0.1', '--port', str(PORTA), '--no-webui', '--jinja']
+        # pouca memoria: contexto de 8k com cache comprimida, sem cache extra de prompts, e o modelo
+        # sai da memoria sozinho ao fim de 5 minutos parado (volta a carregar no pedido seguinte)
+        leve = ['-c', '8192', '-fa', 'on', '-ctk', 'q8_0', '-ctv', 'q8_0', '--cache-ram', '0',
+                '--sleep-idle-seconds', '300']
+        for extra in (leve, ['-c', '8192']):
+            try:
+                self._proc = subprocess.Popen(base + extra, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception:
+                self._estado = 'erro'
                 self.mudou.emit()
-                self._aquecer()
                 return
-            if self._proc.poll() is not None:
+            for _ in range(240):
+                if self._saude():
+                    self._estado = 'pronta'
+                    self.mudou.emit()
+                    self._aquecer()
+                    return
+                if self._proc.poll() is not None:
+                    break
+                time.sleep(0.5)
+            if self._proc.poll() is None:
                 break
-            time.sleep(0.5)
         self._estado = 'erro'
+        self.mudou.emit()
+
+    def _parar_ia(self):
+        if self._proc and self._proc.poll() is None:
+            self._proc.terminate()
+            try:
+                self._proc.wait(5)
+            except Exception:
+                self._proc.kill()
+        self._proc = None
+
+    @Slot(bool)
+    def definirIA(self, ligada):
+        """Desligar a IA: o modelo sai da memoria e nao volta a arrancar (nem em segundo plano)."""
+        self._cfg['ia_desligada'] = not ligada
+        self._gravar_cfg()
+        if ligada:
+            self._estado = 'a-iniciar' if CB.modelo_no_disco(DADOS) else 'sem-modelo'
+            self._add(papel='feito', texto='IA ligada ✓')
+            if self._estado == 'a-iniciar':
+                threading.Thread(target=self._iniciar_ia, daemon=True).start()
+        else:
+            self._parar_ia()
+            self._estado = 'desligada'
+            self._add(papel='feito', texto='IA desligada ✓ A memória foi libertada. Continuo a fazer as tarefas simples '
+                                           '(abrir, instalar, ajustes) sem IA.')
+        self.mudou.emit()
+
+    @Slot(str)
+    def definirModelo(self, qual):
+        """'leve' ou 'completo'."""
+        self._cfg['modelo'] = qual
+        self._gravar_cfg()
+        rec = CB.modelo_recomendado(qual)
+        if os.path.exists(os.path.join(DADOS, rec['arquivo'])):
+            self._parar_ia()
+            self._estado = 'a-iniciar'
+            threading.Thread(target=self._iniciar_ia, daemon=True).start()
+            self._add(papel='feito', texto='A usar o cérebro %s (%s) ✓' % ('completo' if qual == 'completo' else 'leve', rec['nome']))
+        else:
+            self._add(papel='feito', texto='Vou baixar o cérebro %s (%s, %.1f GB).' % (
+                'completo' if qual == 'completo' else 'leve', rec['nome'], rec['tamanho'] / 1e9))
+            self.baixarCerebro()
+        self.mudou.emit()
+
+    iaLigada = Property(bool, lambda s: not s._cfg.get('ia_desligada'), notify=mudou)
+    modeloEscolhido = Property(str, lambda s: s._cfg.get('modelo') or ('completo' if CB.ram_gb() >= 12 else 'leve'), notify=mudou)
+    segundoPlano = Property(bool, lambda s: bool(s._cfg.get('segundo_plano')), notify=mudou)
+
+    @Slot(bool)
+    def definirSegundoPlano(self, sim):
+        self._cfg['segundo_plano'] = bool(sim)
+        self._gravar_cfg()
         self.mudou.emit()
 
     @Slot(int, str)
@@ -1564,9 +1628,11 @@ class Eta(QObject, Pensamento, Tarefas):
     # ---- descarregar o cerebro e a voz ---------------------------------------------------------
     def _o_que_falta(self):
         falta = []
-        rec = CB.modelo_recomendado()
-        atual = CB.modelo_no_disco(DADOS)
-        if not atual or (atual.get('antigo') and not self._cerebro.nuvem()):
+        rec = CB.modelo_recomendado(self._cfg.get('modelo', ''))
+        atual = CB.modelo_no_disco(DADOS, self._cfg.get('modelo', ''))
+        if self._cfg.get('ia_desligada') or self._cerebro.nuvem():
+            pass
+        elif not atual or atual.get('antigo') or (self._cfg.get('modelo') and atual is not rec):
             falta.append((rec['url'], os.path.join(DADOS, rec['arquivo']), rec['tamanho']))
         if not os.path.exists(VOZ.MODELO_VOZ):
             falta.append((VOZ.URL_MODELO_VOZ, VOZ.MODELO_VOZ, VOZ.TAMANHO_MODELO_VOZ))

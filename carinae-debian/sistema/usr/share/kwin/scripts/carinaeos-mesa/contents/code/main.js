@@ -24,14 +24,23 @@ function cursorSobreJanela() {
     return false;
 }
 
+// No Plasma 6, clicar no papel de parede nao ativa a janela da mesa: a ativacao passa para
+// "nenhuma janela" (null). E a propriedade workspace.showingDesktop nao existe no script, por isso
+// usa-se o atalho "Mostrar a area de trabalho" do KWin (com o efeito que afasta as janelas).
+var mostrando = false;
 workspace.windowActivated.connect(function (w) {
-    if (!opcao("mostrarMesaAoClicar", true)) return;
-    if (!w || !w.desktopWindow || workspace.showingDesktop) return;
+    if (w && (w.normalWindow || w.dialog)) { mostrando = false; return; }
+    if (!opcao("mostrarMesaAoClicar", true) || mostrando) return;
+    if (w && !w.desktopWindow) return;
     var tem = false;
     var lista = workspace.stackingOrder;
     for (var i = 0; i < lista.length; i++) if (janelaNormal(lista[i])) { tem = true; break; }
-    // so quando foi mesmo um clique no papel de parede (o cursor nao esta sobre nenhuma janela)
-    if (tem && !cursorSobreJanela()) workspace.showingDesktop = true;
+    // so quando foi mesmo um clique no papel de parede (o cursor nao esta sobre nenhuma janela nem na Dock)
+    if (tem && !cursorSobreJanela()) {
+        mostrando = true;
+        callDBus("org.kde.kglobalaccel", "/component/kwin", "org.kde.kglobalaccel.Component",
+                 "invokeShortcut", "Show Desktop");
+    }
 });
 
 // ---- nuvem da Eta ----------------------------------------------------------------------

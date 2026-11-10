@@ -86,6 +86,8 @@ class Casa(QObject):
         self._cfg = HA.ler()
         self._todas = []
         self._estados = {}
+        self._json_estados = '{}'
+        self._json_todas = '[]'
         self._hist = {}
         self._cams = {}
         self._erro = ''
@@ -113,10 +115,13 @@ class Casa(QObject):
     agente = Property(bool, lambda s: bool(s._cfg.get('agente')), notify=mudou)
     mqttHost = Property(str, lambda s: s._cfg.get('mqttHost', ''), notify=mudou)
     mqttUsuario = Property(str, lambda s: s._cfg.get('mqttUsuario', ''), notify=mudou)
-    estados = Property('QVariantMap', lambda s: s._estados, notify=mudouEstados)
-    historicos = Property('QVariantMap', lambda s: s._hist, notify=mudouEstados)
-    cameras = Property('QVariantMap', lambda s: s._cams, notify=mudouEstados)
-    todas = Property('QVariantList', lambda s: s._todas, notify=mudouEstados)
+    # tudo passa para o QML como texto JSON (uma conversao por atualizacao, nao uma por cartao):
+    # com centenas de aparelhos, a conversao repetida de dicionarios travava a janela
+    estadosJson = Property(str, lambda s: s._json_estados, notify=mudouEstados)
+    extrasJson = Property(str, lambda s: json.dumps(dict(hist={k: v for k, v in s._hist.items() if not k.startswith('_t_')},
+                                                         cams=s._cams)), notify=mudouEstados)
+    todasJson = Property(str, lambda s: s._json_todas, notify=mudouEstados)
+    total = Property(int, lambda s: len(s._todas), notify=mudouEstados)
     paineis = Property('QVariantList', lambda s: s._p['paineis'], notify=mudouPaineis)
     tipos = Property('QVariantList', lambda s: TIPOS, constant=True)
 
@@ -178,6 +183,10 @@ class Casa(QObject):
                 if estados != self._estados:
                     primeira = not self._todas
                     self._todas, self._estados = r, estados
+                    usados = {eid for p in self._p['paineis'] for c in p['cartoes'] for eid in c['ents']}
+                    self._json_estados = json.dumps({k: v for k, v in estados.items() if k in usados})
+                    if primeira or len(r) != json.loads(self._json_todas or '[]').__len__():
+                        self._json_todas = json.dumps([dict(id=e['id'], nome=e['nome'], dominio=e['dominio']) for e in r])
                     self.mudouEstados.emit()
                     if primeira:
                         self._atualizar_extras()
@@ -238,6 +247,9 @@ class Casa(QObject):
         if e and e['dominio'] in ('light', 'switch', 'fan', 'input_boolean'):  # resposta imediata no ecra
             e = dict(e, estado='off' if e['estado'] == 'on' else 'on')
             self._estados = dict(self._estados, **{eid: e})
+            d = json.loads(self._json_estados)
+            d[eid] = e
+            self._json_estados = json.dumps(d)
             self.mudouEstados.emit()
         self._acao(lambda: HA.alternar(eid, None, self._cfg))
 
@@ -267,6 +279,9 @@ class Casa(QObject):
 
     # ---- paineis e cartoes -------------------------------------------------------------------------
     def _gravar(self):
+        usados = {eid for p in self._p['paineis'] for c in p['cartoes'] for eid in c['ents']}
+        self._json_estados = json.dumps({k: v for k, v in self._estados.items() if k in usados})
+        self.mudouEstados.emit()
         os.makedirs(os.path.dirname(PAINEIS), exist_ok=True)
         with open(PAINEIS + '.tmp', 'w', encoding='utf-8') as f:
             json.dump(self._p, f, ensure_ascii=False, indent=1)

@@ -1,0 +1,8 @@
+[Unit]
+Description=CarinaeOS - atualizar os calendários por endereço (iCal)
+After=network-online.target
+ConditionPathExists=%h/.config/carinaeos/calendarios.json
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/carinaeos-calendarios sincronizar

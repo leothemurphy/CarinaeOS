@@ -1,0 +1,8 @@
+{
+  "policies": {
+    "Preferences": {
+      "browser.tabs.inTitlebar": { "Value": 0, "Status": "default" },
+      "widget.use-xdg-desktop-portal.file-picker": { "Value": 1, "Status": "default" }
+    }
+  }
+}

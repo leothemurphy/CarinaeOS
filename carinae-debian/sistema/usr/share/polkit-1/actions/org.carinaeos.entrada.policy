@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN" "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <vendor>CarinaeOS</vendor>
+  <icon_name>carinaeos</icon_name>
+  <action id="org.carinaeos.fundo-entrada">
+    <description>Mudar o fundo da tela de entrada</description>
+    <message>Para mudar a imagem da tela de entrada é preciso a sua senha.</message>
+    <defaults><allow_any>auth_admin</allow_any><allow_inactive>auth_admin</allow_inactive><allow_active>auth_admin_keep</allow_active></defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/carinaeos/fundo-entrada</annotate>
+  </action>
+</policyconfig>

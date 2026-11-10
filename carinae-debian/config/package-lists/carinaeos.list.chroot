@@ -145,3 +145,9 @@ gir1.2-polkit-1.0
 fastfetch
 xdg-user-dirs
 hplip
+curl
+libfuse2t64
+libwebkit2gtk-4.1-0
+gstreamer1.0-plugins-good
+gstreamer1.0-libav
+numlockx

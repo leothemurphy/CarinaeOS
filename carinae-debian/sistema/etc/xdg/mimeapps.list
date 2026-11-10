@@ -1,0 +1,9 @@
+[Default Applications]
+application/vnd.appimage=carinaeos-appimage.desktop
+application/x-iso9660-appimage=carinaeos-appimage.desktop
+application/x-appimage=carinaeos-appimage.desktop
+application/x-carinaeos-pasta-trancada=carinaeos-desbloquear.desktop
+application/x-carinaeos-trancado=carinaeos-desbloquear.desktop
+
+[Added Associations]
+application/vnd.appimage=carinaeos-appimage.desktop

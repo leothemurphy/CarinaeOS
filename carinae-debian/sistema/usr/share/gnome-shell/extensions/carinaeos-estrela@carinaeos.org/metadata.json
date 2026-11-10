@@ -1,0 +1,7 @@
+{
+  "uuid": "carinaeos-estrela@carinaeos.org",
+  "name": "Menu estrela do CarinaeOS",
+  "description": "A estrela do CarinaeOS no canto da barra de cima, com o mesmo menu do estilo Mac.",
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "version": 1
+}
