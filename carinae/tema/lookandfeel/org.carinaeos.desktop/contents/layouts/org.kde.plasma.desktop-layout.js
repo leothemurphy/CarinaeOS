@@ -30,6 +30,7 @@ barra.addWidget("org.carinaeos.menuestrela");   // menu estrela (como o da maca)
 barra.addWidget("org.carinaeos.nomeapp");
 barra.addWidget("org.kde.plasma.appmenu");
 barra.addWidget("org.kde.plasma.panelspacer");
+barra.addWidget("org.carinaeos.pesquisa");     // lupa: a Pesquisa (Ctrl+Espaço)
 barra.addWidget("org.kde.plasma.systemtray");
 
 var relogio = barra.addWidget("org.kde.plasma.digitalclock");

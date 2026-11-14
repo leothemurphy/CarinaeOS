@@ -1,0 +1,14 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [ { "Name": "CarinaeOS" } ],
+        "Category": "Application Launchers",
+        "Description": "Botão de pesquisa do CarinaeOS: aplicativos, arquivos (indexados), ações e configurações",
+        "Icon": "search",
+        "Id": "org.carinaeos.pesquisa",
+        "License": "GPL-2.0-or-later",
+        "Name": "Pesquisa",
+        "Version": "0.1"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

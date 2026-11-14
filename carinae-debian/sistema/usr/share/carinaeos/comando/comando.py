@@ -19,6 +19,8 @@ import time
 
 sys.path.insert(0, '/usr/share/carinaeos/comum')
 from base import Icones  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import acoes as AC  # noqa: E402
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot  # noqa: E402
 from PySide6.QtGui import QGuiApplication, QIcon  # noqa: E402
@@ -163,6 +165,7 @@ class Comando(QObject):
         self._gen = 0
         self._uso = self._ler_uso()
         self._modo = ''
+        self._tempo = None
         if psutil:
             psutil.cpu_percent(None)
         self._relogio = QTimer(self)
@@ -240,7 +243,9 @@ class Comando(QObject):
 
     # ---- resultados ----------------------------------------------------------------------
     def _item(self, grupo, tipo, titulo, sub, icone, alvo, extra=None):
-        d = dict(grupo=grupo, tipo=tipo, titulo=titulo, sub=sub, icone=icone, alvo=alvo)
+        botao = {'conta': 'Copiar', 'clip': 'Copiar', 'cmd': 'Abrir', 'terminal': 'Executar'}.get(tipo, 'Abrir')
+        d = dict(grupo=grupo, tipo=tipo, titulo=titulo, sub=sub, icone=icone, alvo=alvo, botao=botao,
+                 controlo='', rotulo='', descricao='', valor=0.0, dados='')
         if extra:
             d.update(extra)
         return d
@@ -314,6 +319,27 @@ class Comando(QObject):
             url = t if re.match(r'^https?://', t, re.I) else 'https://' + t
             r.append(self._item('Web', 'url', 'Abrir %s' % t, 'No navegador', 'internet-web-browser', url))
 
+        for a in AC.reconhecer(t):
+            valor = 0.0
+            if a['controlo'] and a.get('ler'):
+                try:
+                    valor = float(a['ler']())
+                except Exception:
+                    valor = 0.0
+            r.append(self._item('Ações', 'acao', a['titulo'], 'Ação', a['icone'], a['id'],
+                                dict(botao=a['botao'], controlo=a['controlo'] or '', rotulo=a.get('rotulo', ''),
+                                     descricao=a['descricao'], valor=valor)))
+
+        if self._tempo and self._tempo.get('q') == t:
+            r.append(self._item('Tempo', 'tempo', self._tempo['titulo'], 'Previsão do tempo', 'weather-few-clouds',
+                                self._tempo['url'], dict(dados=json.dumps(self._tempo))))
+
+        if re.search(r'\b(cpu|processador|memoria|ram|desempenho|disco|espaco livre|lento)\b', c):
+            self.atualizarEstado()
+            r.append(self._item('Sistema', 'estado', 'Uso do computador', 'CPU, memória e disco agora',
+                                'utilities-system-monitor', 'plasma-systemmonitor',
+                                dict(dados=json.dumps(self._estado), botao='Monitor')))
+
         apps = []
         for a in self._carregar_apps():
             p = self._pontuar(c, a['nome'], a['chaves'])
@@ -336,7 +362,7 @@ class Comando(QObject):
         for a in self._arquivos:
             r.append(a)
 
-        r.append(self._item('Web', 'web', 'Pesquisar “%s” na web' % t, 'DuckDuckGo', 'internet-web-browser',
+        r.append(self._item('Web', 'web', t, 'Pesquisar com o DuckDuckGo • Navegador', 'search',
                             'https://duckduckgo.com/?q=' + __import__('urllib.parse').parse.quote(t)))
         return r
 
@@ -402,6 +428,51 @@ class Comando(QObject):
     def modo(self):
         return self._modo
 
+    def _talvez_tempo(self, texto, gen):
+        m = re.match(r'^\s*(?:tempo|clima|previs[aã]o(?: do tempo)?|weather)\s+(?:em|no|na|de|in|para)?\s*(.+?)\s*$',
+                     texto, re.I)
+        if not m:
+            return
+        cidade = m.group(1)
+
+        def t():
+            time.sleep(0.4)
+            if gen != self._gen:
+                return
+            try:
+                import urllib.parse
+                import urllib.request
+                url = 'https://wttr.in/%s?format=j1&lang=pt' % urllib.parse.quote(cidade)
+                with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'curl/8'}), timeout=6) as f:
+                    j = json.load(f)
+                atual = j['current_condition'][0]
+                dia = j['weather'][0]
+                desc = (atual.get('lang_pt') or atual.get('weatherDesc') or [{'value': ''}])[0]['value']
+                local = j.get('nearest_area', [{}])[0].get('areaName', [{'value': cidade}])[0]['value']
+                self._tempo = dict(q=texto.strip(), titulo='Tempo em ' + cidade.title(), cidade=local,
+                                   hora=time.strftime('%H:%M'), temp=atual['temp_C'], max=dia['maxtempC'],
+                                   min=dia['mintempC'], desc=desc, codigo=atual.get('weatherCode', ''),
+                                   url='https://wttr.in/' + urllib.parse.quote(cidade))
+                self.arquivosProntos.emit(gen, self._arquivos)
+            except Exception:
+                pass
+        threading.Thread(target=t, daemon=True).start()
+
+    @Property('QVariantList', notify=resultadosMudaram)
+    def correcoes(self):
+        if self._modo or not self._consulta.strip():
+            return []
+        return AC.correcoes(self._consulta, [a['nome'] for a in self._apps[:300]])
+
+    @Slot(int, float)
+    def definirValor(self, i, v):
+        if not 0 <= i < len(self._resultados) or self._resultados[i]['tipo'] != 'acao':
+            return
+        for a in AC.A:
+            if a['id'] == self._resultados[i]['alvo'] and a.get('definir'):
+                a['definir'](v)
+                self._resultados[i]['valor'] = v
+
     @Slot(str)
     def procurar(self, texto):
         self._consulta = texto
@@ -410,6 +481,7 @@ class Comando(QObject):
         self._resultados = self._procurar(texto)
         self.resultadosMudaram.emit()
         t = texto.strip()
+        self._talvez_tempo(t, self._gen)
         if self._modo == '' and len(t) >= 3 and not t.startswith('>') and conta(t) is None:
             g = self._gen
 
@@ -431,7 +503,16 @@ class Comando(QObject):
             return False
         it = self._resultados[i]
         tipo, alvo = it['tipo'], it['alvo']
-        if tipo == 'app':
+        if tipo == 'acao':
+            for a in AC.A:
+                if a['id'] == alvo:
+                    self._contar('acao:' + alvo)
+                    a['fazer']()
+        elif tipo in ('tempo',):
+            correr(['xdg-open', alvo])
+        elif tipo == 'estado':
+            correr('plasma-systemmonitor')
+        elif tipo == 'app':
             self._contar('app:' + alvo)
             self._abrir_app(alvo)
         elif tipo == 'cmd':
@@ -476,6 +557,11 @@ class Comando(QObject):
                   dict(id='copiar', nome='Copiar o caminho', icone='edit-copy')]
         elif tipo in ('conta', 'clip'):
             a.append(dict(id='abrir', nome='Copiar', icone='edit-copy'))
+        elif tipo == 'acao':
+            a.append(dict(id='abrir', nome=it['botao'], icone=it['icone']))
+            a.append(dict(id='definicoes', nome='Abrir as Configurações', icone='preferences-system'))
+        elif tipo in ('tempo', 'estado'):
+            a.append(dict(id='abrir', nome='Abrir', icone='go-next'))
         elif tipo in ('cmd', 'url', 'web', 'terminal'):
             a.append(dict(id='abrir', nome='Executar', icone='media-playback-start'))
             if tipo in ('url', 'web'):
@@ -489,7 +575,9 @@ class Comando(QObject):
         it = self._resultados[i]
         if acao == 'abrir':
             return self.executar(i)
-        if acao == 'pasta':
+        if acao == 'definicoes':
+            correr('systemsettings')
+        elif acao == 'pasta':
             correr(['dolphin', '--select', it['alvo']])
         elif acao == 'copiar':
             self._copiar(it['alvo'])

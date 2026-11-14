@@ -1,4 +1,6 @@
-// CarinaeOS - Comando (Ctrl+Espaco)
+// CarinaeOS - Pesquisa (Ctrl+Espaco ou a lupa da barra de cima)
+// Como a nova pesquisa do Windows: a caixa em baixo, os resultados por cima, acoes que se
+// fazem ali mesmo (volume, brilho, tema, Wi-Fi, janelas…), correcoes de palavras e cartoes.
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Window
@@ -6,20 +8,23 @@ import QtQuick.Window
 Window {
     id: janela
     title: "CarinaeOS — Comando"
-    width: 840
-    height: caixa.height
+    // tamanho fixo (o painel cresce por dentro, encostado em baixo)
+    width: 660
+    height: 620
     color: "transparent"
-    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
     visible: false
 
-    readonly property color texto: "#f4f1fa"
-    readonly property color suave: "#9c96ab"
+    readonly property color texto: "#f3f1f7"
+    readonly property color suave: "#a7a2b5"
+    readonly property color realce: "#7aa7ff"
     readonly property color linha: Qt.rgba(1, 1, 1, 0.08)
     property int atual: 0
     property bool emAcoes: false
     property var listaAcoes: []
-    property bool foiAtiva: false
     property int acaoAtual: 0
+    property bool foiAtiva: false
+    readonly property var selecionado: atual < modelo.count ? modelo.get(atual) : null
 
     function aparecer() {
         busca.text = "";
@@ -31,24 +36,24 @@ Window {
         raise();
         requestActivate();
         busca.forceActiveFocus();
-        comando.acompanhar(true);
         entrada.restart();
     }
+    function escrever(t) { busca.text = t; }   // usado nos testes
     function esconder() {
-        comando.acompanhar(false);
         visible = false;
     }
     function executar(i) {
+        if (i < 0 || i >= modelo.count) return;
         if (comando.executar(i)) esconder();
         else { busca.text = ""; atual = 0; busca.forceActiveFocus(); }
     }
     function mover(d) {
-        const n = lista.count;
+        const n = modelo.count;
         if (n === 0) return;
         let i = atual;
         for (let k = 0; k < n; ++k) {
             i = Math.max(0, Math.min(n - 1, i + d));
-            if (comando.resultados[i].tipo !== "nada") break;
+            if (modelo.get(i).tipo !== "nada") break;
         }
         atual = i;
         lista.positionViewAtIndex(atual, ListView.Contain);
@@ -59,14 +64,21 @@ Window {
         acaoAtual = 0;
         emAcoes = true;
     }
+    function usarCorrecao(p) {
+        const t = busca.text.replace(/\s+$/, "");
+        const i = t.lastIndexOf(" ");
+        busca.text = (i === -1 ? "" : t.substring(0, i + 1)) + p + " ";
+        busca.forceActiveFocus();
+    }
 
+    ListModel { id: modelo }
     Connections {
         target: comando
         function onMostrar() { janela.aparecer(); }
         function onResultadosMudaram() {
             modelo.clear();
             for (const r of comando.resultados) modelo.append(r);
-            if (janela.atual >= lista.count) janela.atual = 0;
+            if (janela.atual >= modelo.count) janela.atual = 0;
         }
     }
     // só fecha ao perder o foco depois de o ter tido (no Wayland a ativação pode chegar tarde)
@@ -75,59 +87,319 @@ Window {
         else if (visible && foiAtiva) esconder();
     }
 
+    // clique na parte vazia (transparente) da janela fecha
+    MouseArea { anchors.fill: parent; onClicked: janela.esconder() }
+
     Rectangle {
-        id: caixa
-        width: parent.width
-        height: col.height
-        radius: 26
-        color: Qt.rgba(0.07, 0.06, 0.1, 0.93)
+        id: painel
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: parent.width - 20
+        height: Math.min(parent.height - 10, col.height + 16)
+        radius: 18
+        color: Qt.rgba(0.11, 0.10, 0.15, 0.94)
         border.width: 1
-        border.color: Qt.rgba(1, 1, 1, 0.13)
-        opacity: 0
-        scale: 0.97
+        border.color: Qt.rgba(1, 1, 1, 0.12)
+        MouseArea { anchors.fill: parent }   // cliques no painel não fecham
+        transform: Translate { id: subir; y: 0 }
         ParallelAnimation {
             id: entrada
-            NumberAnimation { target: caixa; property: "opacity"; from: 0; to: 1; duration: 140; easing.type: Easing.OutCubic }
-            NumberAnimation { target: caixa; property: "scale"; from: 0.97; to: 1; duration: 180; easing.type: Easing.OutCubic }
+            NumberAnimation { target: subir; property: "y"; from: 24; to: 0; duration: 200; easing.type: Easing.OutCubic }
+            NumberAnimation { target: painel; property: "opacity"; from: 0.4; to: 1; duration: 160 }
         }
-        // brilho suave por cima, como vidro
-        Rectangle {
+        Rectangle {   // brilho de vidro por cima
             anchors.fill: parent
             radius: parent.radius
             gradient: Gradient {
-                GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0.06) }
-                GradientStop { position: 0.4; color: Qt.rgba(1, 1, 1, 0) }
+                GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0.05) }
+                GradientStop { position: 0.5; color: Qt.rgba(1, 1, 1, 0) }
             }
         }
 
         Column {
             id: col
-            width: parent.width
+            x: 8; y: 8
+            width: parent.width - 16
+            spacing: 6
 
-            // ---- pesquisa --------------------------------------------------------------
+            // ---- resultados --------------------------------------------------------------------
+            ListView {
+                id: lista
+                width: parent.width
+                height: Math.min(contentHeight, janela.height - 190)
+                visible: modelo.count > 0
+                clip: true
+                model: modelo
+                spacing: 2
+                boundsBehavior: Flickable.StopAtBounds
+                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                delegate: Rectangle {
+                    id: item
+                    required property int index
+                    required property var model
+                    readonly property bool escolhido: index === janela.atual && model.tipo !== "nada"
+                    readonly property bool cartao: model.tipo === "tempo" || model.tipo === "estado"
+                    width: lista.width
+                    height: cabeca.height + (detalhe.visible ? detalhe.height + 10 : 0) + 8
+                    radius: 10
+                    color: escolhido ? Qt.rgba(1, 1, 1, 0.075) : (ma.containsMouse ? Qt.rgba(1, 1, 1, 0.04) : "transparent")
+
+                    // barra azul à esquerda do escolhido (como no Windows)
+                    Rectangle {
+                        visible: item.escolhido
+                        x: 1; y: 18
+                        width: 3; height: 18; radius: 1.5
+                        color: janela.realce
+                    }
+                    MouseArea {
+                        id: ma
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        onClicked: ev => {
+                            if (item.model.tipo === "nada") return;
+                            if (ev.button === Qt.RightButton) { janela.atual = item.index; janela.abrirAcoes(); }
+                            else if (janela.atual === item.index || item.model.controlo === "") janela.executar(item.index);
+                            else janela.atual = item.index;
+                        }
+                    }
+
+                    Item {
+                        id: cabeca
+                        y: 4
+                        width: parent.width
+                        height: 46
+                        Image {
+                            id: ic
+                            x: 14
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 22; height: 22
+                            sourceSize: Qt.size(44, 44)
+                            source: "image://icone/" + item.model.icone
+                            asynchronous: true
+                        }
+                        Column {
+                            anchors.left: ic.right
+                            anchors.leftMargin: 14
+                            anchors.right: botoes.left
+                            anchors.rightMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 1
+                            Text {
+                                width: parent.width
+                                elide: Text.ElideRight
+                                text: item.model.titulo
+                                color: janela.texto
+                                font.pixelSize: item.model.tipo === "conta" ? 18 : 14
+                                font.weight: item.model.tipo === "conta" ? Font.DemiBold : Font.Medium
+                                textFormat: Text.PlainText
+                            }
+                            Row {
+                                spacing: 5
+                                visible: item.model.sub !== ""
+                                Rectangle {   // selo "Ação"
+                                    visible: item.model.tipo === "acao"
+                                    width: 11; height: 11; radius: 2
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    color: janela.realce
+                                    Text { anchors.centerIn: parent; text: "✦"; color: "#0b1530"; font.pixelSize: 8 }
+                                }
+                                Text {
+                                    width: Math.min(implicitWidth, cabeca.width - 140)
+                                    elide: Text.ElideMiddle
+                                    text: item.model.sub
+                                    color: item.model.tipo === "acao" ? janela.realce : janela.suave
+                                    font.pixelSize: 12
+                                    textFormat: Text.PlainText
+                                }
+                            }
+                        }
+                        Row {
+                            id: botoes
+                            anchors.right: parent.right
+                            anchors.rightMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 4
+                            visible: item.escolhido || ma.containsMouse
+                            Rectangle {
+                                width: 30; height: 28; radius: 6
+                                color: mais.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                                Text { anchors.centerIn: parent; text: "···"; color: janela.texto; font.pixelSize: 15; font.weight: Font.Bold }
+                                MouseArea { id: mais; anchors.fill: parent; hoverEnabled: true; onClicked: { janela.atual = item.index; janela.abrirAcoes(); } }
+                            }
+                            Rectangle {
+                                width: 30; height: 28; radius: 6
+                                color: entrar.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: item.model.tipo === "web" || item.model.tipo === "url" || item.model.tipo === "tempo" ? "↗" : "↵"
+                                    color: janela.texto; font.pixelSize: 15
+                                }
+                                MouseArea { id: entrar; anchors.fill: parent; hoverEnabled: true; onClicked: janela.executar(item.index) }
+                            }
+                        }
+                    }
+
+                    // ---- o cartão por baixo do escolhido: controlo da ação, tempo, uso do PC ----------
+                    Rectangle {
+                        id: detalhe
+                        visible: (item.escolhido && item.model.controlo !== "") || item.cartao
+                        anchors.top: cabeca.bottom
+                        anchors.topMargin: 2
+                        x: 10
+                        width: parent.width - 20
+                        height: corpo.height + 28
+                        radius: 10
+                        color: Qt.rgba(1, 1, 1, 0.055)
+                        readonly property var d: {
+                            try { return item.model.dados ? JSON.parse(item.model.dados) : ({}); } catch (e) { return ({}); }
+                        }
+                        Column {
+                            id: corpo
+                            x: 16; y: 14
+                            width: parent.width - 32
+                            spacing: 6
+
+                            // controlo deslizante (volume, brilho) ou interruptor (Wi-Fi, Bluetooth, mudo)
+                            Text { visible: item.model.controlo !== ""; text: item.model.rotulo; color: janela.texto; font.pixelSize: 14; font.weight: Font.DemiBold }
+                            Text { visible: item.model.descricao !== "" && item.model.controlo !== ""; width: parent.width; wrapMode: Text.WordWrap; text: item.model.descricao; color: janela.suave; font.pixelSize: 12 }
+                            Slider {
+                                id: desl
+                                visible: item.model.controlo === "deslizante"
+                                width: parent.width
+                                from: 0; to: 1
+                                value: item.model.valor
+                                onMoved: comando.definirValor(item.index, value)
+                                background: Rectangle {
+                                    x: desl.leftPadding
+                                    y: desl.topPadding + desl.availableHeight / 2 - height / 2
+                                    width: desl.availableWidth; height: 4; radius: 2
+                                    color: Qt.rgba(1, 1, 1, 0.25)
+                                    Rectangle { width: desl.visualPosition * parent.width; height: parent.height; radius: 2; color: janela.realce }
+                                }
+                                handle: Rectangle {
+                                    x: desl.leftPadding + desl.visualPosition * (desl.availableWidth - width)
+                                    y: desl.topPadding + desl.availableHeight / 2 - height / 2
+                                    width: 18; height: 18; radius: 9
+                                    color: "#2b2a35"
+                                    border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.3)
+                                    Rectangle { anchors.centerIn: parent; width: desl.pressed ? 12 : 9; height: width; radius: width / 2; color: janela.realce }
+                                }
+                            }
+                            Switch {
+                                visible: item.model.controlo === "interruptor"
+                                checked: item.model.valor > 0.5
+                                text: checked ? "Ligado" : "Desligado"
+                                onToggled: comando.definirValor(item.index, checked ? 1 : 0)
+                            }
+
+                            // cartão do tempo
+                            Item {
+                                visible: item.model.tipo === "tempo"
+                                width: parent.width; height: 120
+                                Column {
+                                    spacing: 2
+                                    Text { text: (detalhe.d.cidade || "") + " · " + (detalhe.d.hora || ""); color: janela.texto; font.pixelSize: 14; font.weight: Font.DemiBold }
+                                    Text { text: "°C"; color: janela.suave; font.pixelSize: 12 }
+                                    Row {
+                                        spacing: 14
+                                        Text { text: (detalhe.d.temp || "–") + "°"; color: janela.texto; font.pixelSize: 54; font.weight: Font.DemiBold }
+                                        Column {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            Text { text: "Máx. " + (detalhe.d.max || "–") + "°  ·  Mín. " + (detalhe.d.min || "–") + "°"; color: janela.texto; font.pixelSize: 13 }
+                                            Text { text: detalhe.d.desc || ""; color: janela.suave; font.pixelSize: 13 }
+                                        }
+                                    }
+                                }
+                                Image {
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 84; height: 84
+                                    sourceSize: Qt.size(168, 168)
+                                    source: "image://icone/" + (/^(113)$/.test(detalhe.d.codigo || "") ? "weather-clear"
+                                        : /^(116|119)$/.test(detalhe.d.codigo || "") ? "weather-few-clouds"
+                                        : /^(122|143|248|260)$/.test(detalhe.d.codigo || "") ? "weather-overcast"
+                                        : /^(2|3)/.test(detalhe.d.codigo || "") ? "weather-showers" : "weather-few-clouds")
+                                }
+                            }
+
+                            // cartão do uso do computador
+                            Row {
+                                visible: item.model.tipo === "estado"
+                                spacing: 22
+                                Repeater {
+                                    model: [["CPU", detalhe.d.cpu || "—", ""],
+                                            ["Memória", detalhe.d.memoria || "—", detalhe.d.memoriaTotal || ""],
+                                            ["Disco livre", detalhe.d.disco || "—", detalhe.d.discoTotal || ""]]
+                                    delegate: Column {
+                                        required property var modelData
+                                        Text { text: parent.modelData[0]; color: janela.suave; font.pixelSize: 12 }
+                                        Text { text: parent.modelData[1]; color: janela.texto; font.pixelSize: 24; font.weight: Font.DemiBold }
+                                        Text { text: parent.modelData[2]; color: janela.suave; font.pixelSize: 11 }
+                                    }
+                                }
+                            }
+                            Text {
+                                visible: item.model.tipo === "estado" && (detalhe.d.topCpu || []).length > 0
+                                text: "A gastar mais agora: " + (detalhe.d.topCpu || []).map(p => p.nome + " " + p.valor).join(" · ")
+                                color: janela.suave; font.pixelSize: 12; width: parent.width; elide: Text.ElideRight
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---- correções (palavras parecidas com a última escrita) ------------------------------
             Item {
                 width: parent.width
-                height: 72
-                Text {
-                    id: seta
-                    x: 26
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: comando.modo === "clip" ? "⧉" : "❯"
-                    color: comando.modo === "clip" ? "#8fb2ff" : janela.suave
-                    font.pixelSize: 22
+                height: chips.visible ? 34 : 0
+                Rectangle {
+                    id: chips
+                    visible: comando.correcoes.length > 0
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    height: 32
+                    width: linhaChips.width + 14
+                    radius: 8
+                    color: Qt.rgba(0.2, 0.19, 0.26, 0.98)
+                    border.width: 1
+                    border.color: Qt.rgba(1, 1, 1, 0.1)
+                    Row {
+                        id: linhaChips
+                        anchors.centerIn: parent
+                        spacing: 4
+                        Repeater {
+                            model: comando.correcoes
+                            delegate: Rectangle {
+                                required property string modelData
+                                width: tc.implicitWidth + 20; height: 24; radius: 6
+                                color: mc.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : "transparent"
+                                Text { id: tc; anchors.centerIn: parent; text: parent.modelData; color: janela.texto; font.pixelSize: 13 }
+                                MouseArea { id: mc; anchors.fill: parent; hoverEnabled: true; onClicked: janela.usarCorrecao(parent.modelData) }
+                            }
+                        }
+                    }
                 }
+            }
+
+            // ---- caixa de pesquisa, em baixo -----------------------------------------------------------
+            Rectangle {
+                width: parent.width
+                height: 92
+                radius: 12
+                color: Qt.rgba(1, 1, 1, 0.06)
+                border.width: 1
+                border.color: busca.activeFocus ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08)
+
                 TextField {
                     id: busca
-                    anchors.left: seta.right
-                    anchors.leftMargin: 14
-                    anchors.right: modoChip.left
-                    anchors.rightMargin: 12
-                    anchors.verticalCenter: parent.verticalCenter
+                    x: 8; y: 6
+                    width: parent.width - 16
                     background: Item {}
                     color: janela.texto
-                    font.pixelSize: 24
-                    placeholderText: comando.modo === "clip" ? "Procurar no que copiou…" : "Aplicativos, arquivos, comandos, contas…"
-                    placeholderTextColor: Qt.rgba(1, 1, 1, 0.38)
+                    font.pixelSize: 15
+                    placeholderText: comando.modo === "clip" ? "Procurar no que copiou…" : "Pesquise aplicativos, arquivos, configurações ou peça uma ação"
+                    placeholderTextColor: Qt.rgba(1, 1, 1, 0.4)
                     selectByMouse: true
                     onTextChanged: { comando.procurar(text); janela.atual = 0; janela.emAcoes = false; }
                     Keys.onPressed: ev => {
@@ -145,9 +417,10 @@ Window {
                         else if (ev.key === Qt.Key_Up) { janela.mover(-1); ev.accepted = true; }
                         else if (ev.key === Qt.Key_Return || ev.key === Qt.Key_Enter) { janela.executar(janela.atual); ev.accepted = true; }
                         else if (ctrl && ev.key === Qt.Key_K) { janela.abrirAcoes(); ev.accepted = true; }
+                        else if (ev.key === Qt.Key_Tab && comando.correcoes.length > 0) { janela.usarCorrecao(comando.correcoes[0]); ev.accepted = true; }
                         else if (ctrl && ev.key >= Qt.Key_1 && ev.key <= Qt.Key_9) {
                             const i = ev.key - Qt.Key_1;
-                            if (i < lista.count) janela.executar(i);
+                            if (i < modelo.count) janela.executar(i);
                             ev.accepted = true;
                         } else if (ev.key === Qt.Key_Escape) {
                             if (comando.modo !== "") { comando.definirModo(""); busca.text = ""; }
@@ -159,308 +432,47 @@ Window {
                         }
                     }
                 }
+                Text {
+                    x: 16
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 14
+                    text: comando.modo === "clip" ? "Área de transferência · Esc volta" : "Ctrl+K: mais opções · Tab: corrigir"
+                    color: Qt.rgba(1, 1, 1, 0.32)
+                    font.pixelSize: 11
+                }
+                // botão principal (Abrir, Diminuir, Aplicar…)
                 Rectangle {
-                    id: modoChip
                     anchors.right: parent.right
-                    anchors.rightMargin: 22
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: 30
-                    width: chipTexto.implicitWidth + 44
-                    radius: 9
-                    color: Qt.rgba(1, 1, 1, 0.06)
-                    border.width: 1
-                    border.color: Qt.rgba(1, 1, 1, 0.10)
-                    Rectangle {
-                        x: 6; anchors.verticalCenter: parent.verticalCenter
-                        width: 26; height: 20; radius: 5
-                        color: Qt.rgba(1, 1, 1, 0.10)
-                        Text { anchors.centerIn: parent; text: comando.modo === "clip" ? "Esc" : ">"; color: janela.texto; font.pixelSize: 11 }
-                    }
-                    Text {
-                        id: chipTexto
-                        x: 38; anchors.verticalCenter: parent.verticalCenter
-                        text: comando.modo === "clip" ? "Voltar" : "Terminal"
-                        color: janela.texto
-                        font.pixelSize: 13
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (comando.modo !== "") comando.definirModo("");
-                            else busca.text = "> ";
-                            busca.forceActiveFocus();
-                        }
-                    }
-                }
-            }
-
-            Rectangle { width: parent.width; height: 1; color: janela.linha }
-
-            // ---- estado do computador ----------------------------------------------------
-            Row {
-                id: cartoes
-                visible: comando.modo === "" && busca.text === ""
-                x: 18
-                topPadding: 16
-                bottomPadding: 6
-                spacing: 10
-                readonly property var e: comando.estado
-
-                component Cartao: Rectangle {
-                    id: ct
-                    property string titulo: ""
-                    property string icone: ""
-                    default property alias dentro: corpo.data
-                    height: 108
-                    radius: 16
-                    color: Qt.rgba(1, 1, 1, 0.045)
-                    border.width: 1
-                    border.color: Qt.rgba(1, 1, 1, 0.08)
-                    Row {
-                        x: 14; y: 12; spacing: 6
-                        Image { source: "image://icone/" + ct.icone; width: 14; height: 14; sourceSize: Qt.size(28, 28); opacity: 0.8; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: ct.titulo; color: "#9c96ab"; font.pixelSize: 11; font.weight: Font.DemiBold; font.letterSpacing: 0.8 }
-                    }
-                    Item { id: corpo; x: 14; y: 36; width: parent.width - 28; height: parent.height - 46 }
-                }
-                component Barra: Rectangle {
-                    id: barra
-                    property real valor: 0
-                    width: parent.width; height: 4; radius: 2
-                    color: Qt.rgba(1, 1, 1, 0.08)
-                    Rectangle {
-                        width: barra.width * Math.max(0, Math.min(1, barra.valor)); height: parent.height; radius: 2
-                        gradient: Gradient {
-                            orientation: Gradient.Horizontal
-                            GradientStop { position: 0; color: "#5b7cff" }
-                            GradientStop { position: 1; color: barra.valor > 0.85 ? "#ff6f6f" : "#a35bff" }
-                        }
-                    }
-                }
-
-                Cartao {
-                    width: 118; titulo: "CPU"; icone: "cpu"
-                    Text { y: 4; text: (cartoes.e.cpu || "—"); color: janela.texto; font.pixelSize: 34; font.weight: Font.DemiBold }
-                }
-                Cartao {
-                    width: 132; titulo: "MEMÓRIA"; icone: "memory"
-                    Column {
-                        width: parent.width; spacing: 4
-                        Text { text: cartoes.e.memoria || "—"; color: janela.texto; font.pixelSize: 24; font.weight: Font.DemiBold }
-                        Text { text: cartoes.e.memoriaTotal || ""; color: janela.suave; font.pixelSize: 11 }
-                        Barra { valor: cartoes.e.memoriaPct || 0 }
-                    }
-                }
-                Cartao {
-                    width: 132; titulo: "DISCO"; icone: "drive-harddisk"
-                    Column {
-                        width: parent.width; spacing: 4
-                        Text { text: cartoes.e.disco || "—"; color: janela.texto; font.pixelSize: 24; font.weight: Font.DemiBold }
-                        Text { text: cartoes.e.discoTotal || ""; color: janela.suave; font.pixelSize: 11 }
-                        Barra { valor: cartoes.e.discoPct || 0 }
-                    }
-                }
-                Cartao {
-                    width: 196; titulo: "MAIS CPU"; icone: "utilities-system-monitor"
-                    Column {
-                        width: parent.width; spacing: 5
-                        Repeater {
-                            model: cartoes.e.topCpu || []
-                            delegate: Item {
-                                required property var modelData
-                                width: parent.width; height: 16
-                                Text { width: parent.width - 44; elide: Text.ElideRight; text: parent.modelData.nome; color: janela.texto; font.pixelSize: 12 }
-                                Text { anchors.right: parent.right; text: parent.modelData.valor; color: janela.suave; font.pixelSize: 12 }
-                            }
-                        }
-                    }
-                }
-                Cartao {
-                    width: 196; titulo: "MAIS MEMÓRIA"; icone: "memory"
-                    Column {
-                        width: parent.width; spacing: 5
-                        Repeater {
-                            model: cartoes.e.topMem || []
-                            delegate: Item {
-                                required property var modelData
-                                width: parent.width; height: 16
-                                Text { width: parent.width - 66; elide: Text.ElideRight; text: parent.modelData.nome; color: janela.texto; font.pixelSize: 12 }
-                                Text { anchors.right: parent.right; text: parent.modelData.valor; color: janela.suave; font.pixelSize: 12 }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ---- resultados ------------------------------------------------------------------
-            ListView {
-                id: lista
-                x: 10
-                width: parent.width - 20
-                height: Math.min(contentHeight, 8 * 50 + 3 * 34)
-                clip: true
-                model: ListModel { id: modelo }
-                boundsBehavior: Flickable.StopAtBounds
-                currentIndex: janela.atual
-                topMargin: 8
-                bottomMargin: 8
-                ScrollBar.vertical: ScrollBar {}
-
-                section.property: "grupo"
-                section.delegate: Item {
-                    required property string section
-                    width: lista.width
-                    height: 34
-                    Text {
-                        x: 14
-                        anchors.bottom: parent.bottom
-                        anchors.bottomMargin: 7
-                        text: parent.section
-                        color: janela.suave
-                        font.pixelSize: 13
-                        font.weight: Font.DemiBold
-                    }
-                }
-
-                delegate: Rectangle {
-                    id: linhaRes
-                    required property var model
-                    required property int index
-                    readonly property bool escolhido: index === janela.atual
-                    width: lista.width
-                    height: model.tipo === "nada" ? 64 : 50
-                    radius: 12
-                    color: escolhido && model.tipo !== "nada" ? Qt.rgba(1, 1, 1, 0.085) : (mr.containsMouse ? Qt.rgba(1, 1, 1, 0.04) : "transparent")
-                    border.width: escolhido && model.tipo !== "nada" ? 1 : 0
-                    border.color: Qt.rgba(1, 1, 1, 0.08)
-
-                    Image {
-                        id: ic
-                        x: 14
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 28; height: 28
-                        sourceSize: Qt.size(56, 56)
-                        source: "image://icone/" + linhaRes.model.icone
-                        asynchronous: true
-                    }
-                    Column {
-                        anchors.left: ic.right
-                        anchors.leftMargin: 14
-                        anchors.right: atalho.left
-                        anchors.rightMargin: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
-                        Text {
-                            width: parent.width
-                            elide: Text.ElideRight
-                            text: linhaRes.model.titulo
-                            color: janela.texto
-                            font.pixelSize: linhaRes.model.tipo === "conta" ? 20 : 15
-                            font.weight: linhaRes.model.tipo === "conta" ? Font.DemiBold : Font.Normal
-                            textFormat: Text.PlainText
-                        }
-                        Text {
-                            width: parent.width
-                            elide: Text.ElideMiddle
-                            text: linhaRes.model.sub
-                            visible: text !== ""
-                            color: janela.suave
-                            font.pixelSize: 12
-                            textFormat: Text.PlainText
-                        }
-                    }
-                    Row {
-                        id: atalho
-                        anchors.right: parent.right
-                        anchors.rightMargin: 14
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 3
-                        visible: linhaRes.index < 9 && linhaRes.model.tipo !== "nada" && (linhaRes.escolhido || mr.containsMouse || linhaRes.index < 5)
-                        Repeater {
-                            model: ["Ctrl", String(linhaRes.index + 1)]
-                            delegate: Rectangle {
-                                required property string modelData
-                                width: Math.max(24, t.implicitWidth + 12); height: 24; radius: 6
-                                color: Qt.rgba(1, 1, 1, 0.07)
-                                Text { id: t; anchors.centerIn: parent; text: parent.modelData; color: janela.suave; font.pixelSize: 11 }
-                            }
-                        }
-                    }
-                    MouseArea {
-                        id: mr
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        acceptedButtons: Qt.LeftButton | Qt.RightButton
-                        cursorShape: linhaRes.model.tipo === "nada" ? Qt.ArrowCursor : Qt.PointingHandCursor
-                        onClicked: ev => {
-                            if (linhaRes.model.tipo === "nada") return;
-                            janela.atual = linhaRes.index;
-                            if (ev.button === Qt.RightButton) janela.abrirAcoes();
-                            else janela.executar(linhaRes.index);
-                        }
-                    }
-                }
-            }
-
-            Rectangle { width: parent.width; height: 1; color: janela.linha }
-
-            // ---- rodapé -----------------------------------------------------------------------
-            Item {
-                width: parent.width
-                height: 54
-                Row {
-                    x: 20
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 10
-                    Image { source: "image://icone/carinaeos-estrela"; width: 22; height: 22; sourceSize: Qt.size(44, 44); anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: comando.modo === "clip" ? "Área de transferência" : "Comando"; color: janela.suave; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
-                }
-                Row {
-                    anchors.right: parent.right
-                    anchors.rightMargin: 14
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 6
-                    component Tecla: Rectangle {
-                        property string t: ""
-                        width: Math.max(26, tt.implicitWidth + 12); height: 24; radius: 6
-                        color: Qt.rgba(1, 1, 1, 0.08)
-                        Text { id: tt; anchors.centerIn: parent; text: parent.t; color: "#f4f1fa"; font.pixelSize: 12 }
-                    }
-                    Text {
-                        text: {
-                            const r = comando.resultados[janela.atual];
-                            if (!r) return "Abrir";
-                            return r.tipo === "conta" || r.tipo === "clip" ? "Copiar" : r.tipo === "cmd" || r.tipo === "terminal" ? "Executar" : "Abrir";
-                        }
-                        color: janela.texto; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter
-                    }
-                    Tecla { t: "↵"; anchors.verticalCenter: parent.verticalCenter }
-                    Rectangle { width: 1; height: 18; color: janela.linha; anchors.verticalCenter: parent.verticalCenter }
-                    Text { text: "Ações"; color: janela.texto; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter }
-                    Tecla { t: "Ctrl"; anchors.verticalCenter: parent.verticalCenter }
-                    Tecla { t: "K"; anchors.verticalCenter: parent.verticalCenter }
+                    anchors.bottom: parent.bottom
+                    anchors.margins: 10
+                    visible: janela.selecionado !== null && janela.selecionado.tipo !== "nada"
+                    width: rotuloBotao.implicitWidth + 30
+                    height: 32
+                    radius: 7
+                    color: mb.pressed ? Qt.darker(janela.realce, 1.2) : (mb.containsMouse ? Qt.lighter(janela.realce, 1.08) : janela.realce)
+                    Text { id: rotuloBotao; anchors.centerIn: parent; text: janela.selecionado ? janela.selecionado.botao : ""; color: "#081428"; font.pixelSize: 14; font.weight: Font.DemiBold }
+                    MouseArea { id: mb; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: janela.executar(janela.atual) }
                 }
             }
         }
 
-        // ---- painel de ações (Ctrl+K) -------------------------------------------------------
+        // ---- mais opções (··· ou Ctrl+K) ------------------------------------------------------------
         Rectangle {
             visible: janela.emAcoes
             anchors.right: parent.right
-            anchors.rightMargin: 14
+            anchors.rightMargin: 16
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 60
-            width: 300
-            height: colAcoes.height + 16
-            radius: 14
-            color: Qt.rgba(0.12, 0.11, 0.16, 0.98)
+            anchors.bottomMargin: 108
+            width: 280
+            height: colAcoes.height + 12
+            radius: 10
+            color: Qt.rgba(0.17, 0.16, 0.22, 0.99)
             border.width: 1
             border.color: Qt.rgba(1, 1, 1, 0.14)
             Column {
                 id: colAcoes
-                x: 8; y: 8
-                width: parent.width - 16
+                x: 6; y: 6
+                width: parent.width - 12
                 Repeater {
                     model: janela.listaAcoes
                     delegate: Rectangle {
@@ -468,11 +480,11 @@ Window {
                         required property var modelData
                         required property int index
                         width: colAcoes.width
-                        height: 38
-                        radius: 9
+                        height: 36
+                        radius: 7
                         color: index === janela.acaoAtual ? Qt.rgba(1, 1, 1, 0.09) : "transparent"
-                        Image { id: aic; x: 10; anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; sourceSize: Qt.size(36, 36); source: "image://icone/" + ac.modelData.icone }
-                        Text { anchors.left: aic.right; anchors.leftMargin: 10; anchors.verticalCenter: parent.verticalCenter; text: ac.modelData.nome; color: janela.texto; font.pixelSize: 14 }
+                        Image { id: aic; x: 10; anchors.verticalCenter: parent.verticalCenter; width: 16; height: 16; sourceSize: Qt.size(32, 32); source: "image://icone/" + ac.modelData.icone }
+                        Text { anchors.left: aic.right; anchors.leftMargin: 10; anchors.verticalCenter: parent.verticalCenter; text: ac.modelData.nome; color: janela.texto; font.pixelSize: 13 }
                         MouseArea {
                             anchors.fill: parent
                             hoverEnabled: true

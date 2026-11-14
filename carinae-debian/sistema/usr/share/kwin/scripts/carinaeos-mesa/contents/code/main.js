@@ -42,7 +42,7 @@ workspace.windowActivated.connect(function (w) {
     }
 });
 
-// ---- Comando (Ctrl+Espaço): sempre por cima, ao centro, a um quarto da altura -----------------
+// ---- Pesquisa (Ctrl+Espaço / lupa): por cima de tudo, ao centro, encostada à Dock (como no Windows) -----------------
 function talvezComando(w) {
     if (!w || (w.resourceClass !== "carinaeos-comando" && w.caption !== "CarinaeOS — Comando")) return;
     w.keepAbove = true;
@@ -51,10 +51,10 @@ function talvezComando(w) {
     w.skipPager = true;
     w.onAllDesktops = true;
     var centrar = function () {
-        var area = workspace.clientArea(KWin.MaximizeArea, workspace.activeScreen, workspace.currentDesktop);
+        var area = workspace.clientArea(KWin.MaximizeArea, w);
         var g = w.frameGeometry;
         var x = Math.round(area.x + (area.width - g.width) / 2);
-        var y = Math.round(area.y + Math.max(20, area.height * 0.18));
+        var y = Math.round(area.y + area.height - g.height - 6);
         if (Math.abs(g.x - x) > 1 || Math.abs(g.y - y) > 1)
             w.frameGeometry = { x: x, y: y, width: g.width, height: g.height };
     };

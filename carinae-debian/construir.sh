@@ -24,6 +24,7 @@ install -m644 $T/icones/*.svg $U/icons/hicolor/scalable/apps/
 cp -a $T/plasmoid/org.carinaeos.dock         $U/plasma/plasmoids/
 cp -a $T/plasmoid/org.carinaeos.menuestrela  $U/plasma/plasmoids/
 cp -a $T/plasmoid/org.carinaeos.nomeapp      $U/plasma/plasmoids/
+cp -a $T/plasmoid/org.carinaeos.pesquisa     $U/plasma/plasmoids/
 install -d $U/plasma/desktoptheme
 cp -a $T/plasmastyle/carinaeos               $U/plasma/desktoptheme/
 cp -a $T/lookandfeel/org.carinaeos.desktop    $U/plasma/look-and-feel/
