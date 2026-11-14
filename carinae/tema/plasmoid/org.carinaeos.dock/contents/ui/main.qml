@@ -35,10 +35,37 @@ PlasmoidItem {
     readonly property bool lixeira: Plasmoid.configuration.showTrash
 
     readonly property int fixadas: tasksModel.launcherList.length
+    // separadores escolhidos pela pessoa (botão direito › Adicionar separador): ficam à direita destes lançadores
+    readonly property var separadores: Plasmoid.configuration.separators
+    readonly property int largSep: Math.round(base * 0.42)
+    readonly property var slotsComSep: {
+        const r = [];
+        const l = tasksModel.launcherList;
+        for (const u of separadores) {
+            const i = l.indexOf(u);
+            if (i !== -1) r.push(i < meio ? i : i + 1);
+        }
+        return r;
+    }
+    function sepAntes(slot: int): int {
+        let n = 0;
+        for (const s of slotsComSep) if (s < slot) n++;
+        return n;
+    }
+    function temSeparador(lancador: string): bool {
+        return lancador !== "" && separadores.indexOf(lancador) !== -1;
+    }
+    function alternarSeparador(lancador: string): void {
+        if (lancador === "") return;
+        const l = separadores.slice();
+        const i = l.indexOf(lancador);
+        if (i === -1) l.push(lancador); else l.splice(i, 1);
+        Plasmoid.configuration.separators = l;
+    }
     readonly property int meio: Math.ceil(fixadas / 2)           // a estrela fica aqui
     // apps + estrela + [Downloads + lixeira]
     readonly property int slots: tasksModel.count + 1 + (lixeira ? 2 : 0)
-    readonly property real larguraRepouso: slots * (base + espaco) + espaco + (lixeira ? separador : 0)
+    readonly property real larguraRepouso: slots * (base + espaco) + espaco + (lixeira ? separador : 0) + slotsComSep.length * largSep
     // espaço reservado para a ampliação (o painel não muda de tamanho)
     readonly property real folga: base * (zoom - 1) * 2.6
 
@@ -63,7 +90,7 @@ PlasmoidItem {
     Behavior on forca { NumberAnimation { duration: dock.sobre ? 200 : 340; easing.type: Easing.OutCubic } }
 
     function centroRepouso(slot: int): real {
-        let x = espaco + slot * (base + espaco) + base / 2;
+        let x = espaco + slot * (base + espaco) + base / 2 + sepAntes(slot) * largSep;
         if (lixeira && slot >= slots - 2) {
             x += separador;
         }

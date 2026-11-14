@@ -16,6 +16,9 @@
     <entry name="bounce" type="Bool">
       <default>true</default>
     </entry>
+    <entry name="separators" type="StringList">
+      <default></default>
+    </entry>
     <entry name="showTrash" type="Bool">
       <default>true</default>
     </entry>

@@ -54,7 +54,7 @@ function talvezComando(w) {
         var area = workspace.clientArea(KWin.MaximizeArea, w);
         var g = w.frameGeometry;
         var x = Math.round(area.x + (area.width - g.width) / 2);
-        var y = Math.round(area.y + area.height - g.height - 6);
+        var y = Math.round(area.y + area.height - g.height - 92);   // por cima da Dock (as janelas passam por baixo dela)
         if (Math.abs(g.x - x) > 1 || Math.abs(g.y - y) > 1)
             w.frameGeometry = { x: x, y: y, width: g.width, height: g.height };
     };

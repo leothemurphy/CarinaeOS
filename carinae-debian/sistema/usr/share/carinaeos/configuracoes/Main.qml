@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import QtQuick.Dialogs
 
 ApplicationWindow {
     id: janela
@@ -228,6 +229,65 @@ ApplicationWindow {
                     Linha { titulo: "Endereço IP"; sub: (janela.e.ip || []).join("  ·  ") || "—" }
                 }
 
+                // pastas partilhadas na rede: como "Outros locais › Ligar ao servidor" do Fedora
+                Grupo {
+                    visible: janela.pagina === "rede"
+                    titulo: "Pastas partilhadas na rede"
+                    Linha {
+                        titulo: "Procurar computadores e NAS na rede"
+                        sub: "Windows, Mac, discos de rede (NAS) e impressoras partilhadas"
+                        icone: "network-workgroup"
+                        clicavel: true
+                        onCarregado: ajustes.abrir("dolphin --new-window smb:/")
+                        Seta {}
+                    }
+                    Item {
+                        width: parent.width; height: 92
+                        Text { x: 16; y: 12; text: "Ligar a um servidor"; color: janela.texto; font.pixelSize: 14 }
+                        Rectangle {
+                            id: caixaSrv
+                            x: 16; y: 40; width: parent.width - 32 - btLigar.width - 10; height: 36; radius: 8
+                            color: Qt.rgba(1, 1, 1, 0.07)
+                            border.color: endSrv.activeFocus ? janela.realce : janela.linha
+                            TextField {
+                                id: endSrv
+                                anchors.fill: parent; anchors.leftMargin: 6
+                                background: Item {}
+                                color: janela.texto
+                                placeholderText: "ex.: 192.168.1.20/fotos, \\\\nas\\fotos, sftp://pi@10.0.0.5"
+                                placeholderTextColor: janela.suave
+                                font.pixelSize: 13
+                                onAccepted: { ajustes.ligarServidor(text); text = ""; }
+                            }
+                        }
+                        Botao {
+                            id: btLigar
+                            x: caixaSrv.x + caixaSrv.width + 10; y: 41
+                            texto: "Ligar"; principal: true
+                            onCarregado: { ajustes.ligarServidor(endSrv.text); endSrv.text = ""; }
+                        }
+                    }
+                    Repeater {
+                        model: janela.e.servidores || []
+                        delegate: Linha {
+                            required property var modelData
+                            titulo: modelData.nome
+                            sub: modelData.url
+                            icone: "folder-remote"
+                            clicavel: true
+                            onCarregado: ajustes.abrir("dolphin --new-window '" + modelData.url.replace(/'/g, "") + "'")
+                            Botao { texto: "Esquecer"; onCarregado: ajustes.esquecerServidor(modelData.url) }
+                        }
+                    }
+                }
+                Text {
+                    visible: janela.pagina === "rede"
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    color: janela.suave; font.pixelSize: 12
+                    text: "Os servidores ligados ficam também na barra lateral de Meus documentos. Endereços aceites: smb:// (Windows, NAS, Mac), sftp:// (Linux, servidores), nfs://, ftp:// e webdav://."
+                }
+
                 // ===== Bluetooth =====
                 Grupo {
                     visible: janela.pagina === "bluetooth"
@@ -331,6 +391,25 @@ ApplicationWindow {
                         width: parent.width
                         padding: 14
                         spacing: 12
+                        // as duas cenas em movimento
+                        Repeater {
+                            model: [1, 2]
+                            delegate: Rectangle {
+                                required property int modelData
+                                width: 182; height: 104; radius: 10
+                                color: "transparent"
+                                border.width: ma1.containsMouse ? 2 : 0
+                                border.color: janela.realce
+                                Image { anchors.fill: parent; anchors.margins: 2; fillMode: Image.PreserveAspectCrop; asynchronous: true
+                                        source: "file:///usr/share/wallpapers/CarinaeOS-NebulosaSobreOLago" + (parent.modelData === 2 ? "2" : "") + "/contents/screenshot.jpg" }
+                                Rectangle {
+                                    x: 8; y: 8; height: 22; width: rotAn.implicitWidth + 16; radius: 11
+                                    color: Qt.rgba(0, 0, 0, 0.55)
+                                    Text { id: rotAn; anchors.centerIn: parent; text: "▶ Animado"; color: "white"; font.pixelSize: 11 }
+                                }
+                                MouseArea { id: ma1; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: ajustes.definirAnimado(parent.modelData) }
+                            }
+                        }
                         Repeater {
                             model: janela.e.fundos || []
                             delegate: Rectangle {
@@ -366,9 +445,36 @@ ApplicationWindow {
                 // ===== Partilha =====
                 Grupo {
                     visible: janela.pagina === "partilha"
+                    titulo: "Partilha de pastas"
+                    Linha {
+                        visible: !janela.e.samba
+                        titulo: "Partilhar pastas deste computador"
+                        sub: "Outros computadores da casa (Windows, Mac, telemóveis) passam a ver as pastas que escolher."
+                        Botao { texto: "Ativar"; principal: true; onCarregado: ajustes.ativarPartilha() }
+                    }
+                    Repeater {
+                        model: janela.e.partilhas || []
+                        delegate: Linha {
+                            required property var modelData
+                            titulo: modelData.nome
+                            sub: modelData.caminho + (modelData.escrita ? " · todos podem alterar" : " · só leitura")
+                            icone: "folder-publicshare"
+                            Botao { texto: "Deixar de partilhar"; onCarregado: ajustes.deixarDePartilhar(modelData.nome) }
+                        }
+                    }
+                    Linha {
+                        visible: !!janela.e.samba
+                        titulo: "Partilhar uma pasta…"
+                        sub: "Os outros entram sem senha. Escolha se também podem alterar."
+                        icone: "list-add"
+                        CheckBox { id: escritaPart; text: "Podem alterar" }
+                        Botao { texto: "Escolher pasta"; principal: true; onCarregado: escolherPasta.open() }
+                    }
+                }
+                Grupo {
+                    visible: janela.pagina === "partilha"
                     Linha { titulo: "Acesso remoto (SSH)"; sub: janela.e.ssh === 1 ? ("ssh " + (janela.e.usuario || "") + "@" + ((janela.e.ip || [])[0] || "")) : "Desligado"
                             Switch { checked: janela.e.ssh === 1; onToggled: ajustes.definirSSH(checked) } }
-                    Linha { titulo: "Partilhar uma pasta com a rede"; sub: "Nos Arquivos: botão direito na pasta › Propriedades › Partilha" }
                 }
 
                 // ===== Data e hora =====
@@ -454,6 +560,12 @@ ApplicationWindow {
                 Item { Layout.preferredHeight: 40 }
             }
         }
+    }
+
+    FolderDialog {
+        id: escolherPasta
+        title: "Escolha a pasta a partilhar"
+        onAccepted: ajustes.partilharPasta(selectedFolder.toString(), escritaPart.checked)
     }
 
     // senha do Wi-Fi

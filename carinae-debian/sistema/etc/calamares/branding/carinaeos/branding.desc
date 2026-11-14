@@ -3,7 +3,7 @@ componentName:   carinaeos
 welcomeStyleCalamares: false
 welcomeExpandingLogo: true
 windowExpanding: normal
-windowSize: 1000px,680px
+windowSize: 960px,600px
 windowPlacement: center
 strings:
     productName:         CarinaeOS
@@ -19,7 +19,7 @@ strings:
     releaseNotesUrl:     https://github.com/leothemurphy/carinaeos
     donateUrl:           https://github.com/leothemurphy/carinaeos
 sidebar: qml
-navigation: qml
+navigation: widget
 images:
     productLogo:         "calamares-logo.png"
     productIcon:         "calamares-logo.png"

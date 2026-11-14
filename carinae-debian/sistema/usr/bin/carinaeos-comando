@@ -1,2 +1,11 @@
 #!/bin/sh
+# Pesquisa (Ctrl+Espaco): se ja estiver a correr (arranca com a sessao), so pede para aparecer — instantaneo.
+python3 -S -c '
+import os, socket, sys
+p = os.path.join(os.environ.get("TMPDIR") or "/tmp", "carinaeos-comando-%d" % os.getuid())
+s = socket.socket(socket.AF_UNIX)
+s.settimeout(0.5)
+s.connect(p)
+s.sendall(b"mostrar\n")
+' 2>/dev/null && [ "$1" != --fundo ] && exit 0
 exec python3 /usr/share/carinaeos/comando/comando.py "$@"

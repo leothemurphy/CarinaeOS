@@ -53,7 +53,15 @@ Window {
         width: parent.width - 52; spacing: 12
         Text { width: parent.width; wrapMode: Text.WordWrap; text: pedido.titulo; color: "white"; font.pixelSize: 17; font.weight: Font.DemiBold; font.family: "Inter" }
         Text { width: parent.width; wrapMode: Text.WordWrap; text: pedido.mensagem; color: "#bdb3d1"; font.pixelSize: 13; font.family: "Inter"; visible: text !== "" }
-        Text { width: parent.width; wrapMode: Text.WordWrap; text: pedido.detalhe; color: "#8e84a6"; font.pixelSize: 11; font.family: "monospace"; visible: text !== "" }
+        Text {
+            id: verDet
+            property bool aberto: false
+            visible: pedido.detalhe !== ""
+            text: (aberto ? "▾ " : "▸ ") + "Detalhes"
+            color: "#a99fc4"; font.pixelSize: 12; font.family: "Inter"
+            MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: verDet.aberto = !verDet.aberto }
+        }
+        Text { width: parent.width; wrapMode: Text.WrapAnywhere; text: pedido.detalhe; color: "#8e84a6"; font.pixelSize: 11; font.family: "monospace"; visible: verDet.aberto && text !== "" }
         Item {
             width: parent.width; height: campos.implicitHeight
             Column {

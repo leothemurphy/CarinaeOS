@@ -173,7 +173,7 @@ renomear org.kde.marble.desktop "Mapas" "Mapas e globo terrestre"
 renomear org.kde.merkuro.calendar.desktop "Calendário" "Agenda, com a conta Google"
 renomear org.kde.merkuro.contact.desktop "Contactos" "Os seus contactos"
 # nenhum nome "KDE"/"K…" no menu: cada aplicativo pelo que faz
-renomear org.kde.dolphin.desktop "Arquivos" "Pastas e arquivos"
+renomear org.kde.dolphin.desktop "Meus documentos" "Pastas e arquivos"
 sed -i 's/^Icon=.*/Icon=carinaeos-arquivos/' /usr/local/share/applications/org.kde.dolphin.desktop
 renomear org.kde.konsole.desktop "Terminal" "Linha de comandos"
 renomear org.kde.ark.desktop "Compactador" "Comprimir e extrair arquivos"
@@ -213,6 +213,8 @@ s = re.sub(r'passwordRequirements:.*?(?=\n\S|\Z)', """passwordRequirements:
     maxLength: -1
 allowWeakPasswords: true
 allowWeakPasswordsDefault: true""", s, flags=re.S)
+if 'hostname:' not in s:
+    s += '\nhostname:\n    location: EtcFile\n    writeHostsFile: true\n    template: "${first}-carinaeos"\n'
 open(p, 'w').write(s)
 EOT
 
@@ -306,6 +308,77 @@ update-initramfs -u -k all
 # ---- menu de arranque do sistema instalado ----------------------------------------
 # (o update-grub so corre depois da instalacao; aqui fica a configuracao pronta)
 true
+
+# ---- nomes nas janelas: "Meus documentos" (gestor de arquivos) e "Terminal", e a barra lateral
+# como a do Explorador do Windows ("Acesso rapido", "Este computador", "Rede"). Muda-se a traducao.
+python3 - <<'EOT'
+import gettext, glob, os, struct
+TROCAS = {
+    'dolphin': {'Dolphin': 'Meus documentos'},
+    'konsole': {'Konsole': 'Terminal'},
+    'kio6': {'Places': 'Acesso rápido', 'Devices': 'Este computador', 'Removable Devices': 'Dispositivos removíveis',
+             'Remote': 'Rede'},
+}
+def escrever(caminho, cat):
+    chaves = sorted(cat.keys(), key=lambda k: k.encode('utf-8'))
+    ids = b''; strs = b''; offs = []
+    for k in chaves:
+        kb, vb = k.encode('utf-8'), cat[k].encode('utf-8')
+        offs.append((len(ids), len(kb), len(strs), len(vb)))
+        ids += kb + b'\0'; strs += vb + b'\0'
+    n = len(chaves); ki = 7 * 4; vi = ki + n * 8; ks = vi + n * 8; vs = ks + len(ids)
+    tab_k = b''.join(struct.pack('<II', l, ks + o) for o, l, _, _ in offs)
+    tab_v = b''.join(struct.pack('<II', l, vs + o) for _, _, o, l in offs)
+    with open(caminho, 'wb') as f:
+        f.write(struct.pack('<IIIIIII', 0x950412de, 0, n, ki, vi, 0, 0) + tab_k + tab_v + ids + strs)
+for lingua in ('pt_BR', 'pt'):
+    for dominio, trocas in TROCAS.items():
+        mo = '/usr/share/locale/%s/LC_MESSAGES/%s.mo' % (lingua, dominio)
+        if not os.path.exists(mo):
+            continue
+        with open(mo, 'rb') as f:
+            t = gettext.GNUTranslations(f)
+        cat = {}
+        for k, v in t._catalog.items():
+            if isinstance(k, tuple):      # plurais: "msgid\0msgid_plural" -> "f0\0f1"
+                continue
+            cat[k] = v
+        # os plurais, juntados como no formato .mo
+        plur = {}
+        for k, v in t._catalog.items():
+            if isinstance(k, tuple):
+                plur.setdefault(k[0], {})[k[1]] = v
+        info = t._info
+        for (mid, formas) in plur.items():
+            pass
+        mudou = 0
+        for k in list(cat):
+            base = k.split('\x04')[-1]
+            if base in trocas and k != '':
+                cat[k] = trocas[base]; mudou += 1
+        for base, novo in trocas.items():
+            for ctx in ('', '@title\x04', '@item\x04'):
+                if ctx + base not in cat:
+                    cat[ctx + base] = novo
+        # reescrever so as entradas simples e os plurais originais: usamos o .mo original para os plurais
+        print('traducao', lingua, dominio, mudou)
+        orig = open(mo, 'rb').read()
+        # ler as entradas cruas (com plurais) do original
+        mag, rev, n, ko, vo = struct.unpack('<IIIII', orig[:20])
+        crus = {}
+        for i in range(n):
+            kl, kp = struct.unpack('<II', orig[ko + 8 * i: ko + 8 * i + 8])
+            vl, vp = struct.unpack('<II', orig[vo + 8 * i: vo + 8 * i + 8])
+            crus[orig[kp:kp + kl].decode('utf-8')] = orig[vp:vp + vl].decode('utf-8')
+        for k, v in list(crus.items()):
+            base = k.split('\x04')[-1]
+            if '\0' not in k and base in trocas:
+                crus[k] = trocas[base]
+        for base, novo in trocas.items():
+            for ctx in ('', '@title\x04', '@item\x04'):
+                crus.setdefault(ctx + base, novo)
+        escrever(mo, crus)
+EOT
 
 # marca do fim da construcao: o Launchpad mostra como "Instalados recentemente" o que for mais novo do que isto
 mkdir -p /usr/lib/carinaeos && touch /usr/lib/carinaeos/.base

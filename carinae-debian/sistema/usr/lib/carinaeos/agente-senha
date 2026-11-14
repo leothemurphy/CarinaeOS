@@ -61,6 +61,34 @@ NOMES = {
 }
 
 
+def explicar(comando, mensagem):
+    """Uma frase simples sobre o que vai ser feito (em vez da linha de comando crua)."""
+    import re as _re
+    c = comando or ''
+    debs = _re.findall(r'([^/\s]+?)(?:_[^/\s]*)?(?:-linux[^/\s]*)?\.deb\b', c)
+    if debs:
+        nome = _re.sub(r'[-_][0-9][^ ]*$', '', debs[0])
+        return 'Instalar o aplicativo “%s”.' % nome
+    m = _re.search(r'apt(?:-get)?\b.*?\binstall\b\s+(?:-\S+\s+)*([a-z0-9][a-z0-9+.\-]+)', c)
+    if m:
+        return 'Instalar “%s” e o que ele precisa.' % m.group(1)
+    if _re.search(r'apt(?:-get)?\b.*\b(remove|purge)\b', c):
+        return 'Remover um aplicativo.'
+    if _re.search(r'apt(?:-get)?\b.*\b(upgrade|full-upgrade|dist-upgrade)\b', c):
+        return 'Instalar as atualizações do sistema.'
+    if 'carinaeos/ssh' in c:
+        return 'Ligar ou desligar o acesso remoto (SSH).'
+    if 'carinaeos/partilha' in c:
+        return 'Deixar partilhar pastas deste computador com a rede.'
+    if 'carinaeos/convidado' in c:
+        return 'Ligar ou desligar a sessão sem rastro.'
+    if 'carinaeos/fundo-entrada' in c:
+        return 'Mudar a imagem da tela de entrada.'
+    if c:
+        return 'Um aplicativo quer fazer uma alteração no sistema.'
+    return mensagem
+
+
 def resumo(action_id):
     for k, v in NOMES.items():
         if action_id.startswith(k):
@@ -127,8 +155,9 @@ class Agente(dbus.service.Object):
             p['usuario'] = 'root'
         quem = 'a senha do administrador (root)' if p['usuario'] == 'root' else 'a sua senha (%s)' % p['usuario']
         comando = p['detalhes'].get('command_line', '') or p['detalhes'].get('polkit.message', '')
+        frase = explicar(comando, p['mensagem'])
         p['ui'] = Pedido('O sistema precisa da sua permissão',
-                         '%s\n\nPara %s, digite %s.' % (p['mensagem'], resumo(p['acao']), quem),
+                         '%s\n\nPara continuar, digite %s.' % (frase, quem),
                          subtitulo='Permissão de administrador', detalhe=comando[:300], botao='Autorizar')
         p['ui'].respondido.connect(lambda s, p=p: self._responder(p, s))
         p['ui'].cancelado.connect(lambda p=p: self._terminar(p, False, cancelado=True))

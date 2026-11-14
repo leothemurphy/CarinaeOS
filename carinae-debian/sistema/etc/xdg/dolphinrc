@@ -1,0 +1,25 @@
+# CarinaeOS — "Meus documentos" arrumado como o Explorador do Windows
+[General]
+# caminho em "migalhas" (Início › Documentos › …), clicaveis
+EditableUrl=false
+ShowFullPath=false
+ShowStatusBar=true
+ShowZoomSlider=true
+ShowSpaceInfo=true
+BrowseThroughArchives=true
+OpenExternallyCalledFolderInNewTab=false
+RememberOpenedTabs=false
+ShowSelectionToggle=true
+# abre sempre na pasta pessoal
+HomeUrl=
+StartupUrl=
+
+[PlacesPanel]
+IconSize=22
+
+[MainWindow]
+MenuBar=Disabled
+ToolBarsMovable=Disabled
+
+[DetailsMode]
+PreviewSize=22

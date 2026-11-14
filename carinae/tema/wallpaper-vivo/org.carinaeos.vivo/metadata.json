@@ -1,0 +1,13 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Authors": [ { "Name": "CarinaeOS" } ],
+        "Description": "A nebulosa sobre o lago, em movimento: estrelas a cintilar, estrelas cadentes e o lago a brilhar",
+        "Icon": "preferences-desktop-wallpaper",
+        "Id": "org.carinaeos.vivo",
+        "License": "GPL-2.0-or-later",
+        "Name": "CarinaeOS animado",
+        "Version": "1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

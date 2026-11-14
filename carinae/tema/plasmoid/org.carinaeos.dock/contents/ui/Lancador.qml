@@ -720,7 +720,7 @@ Kicker.DashboardWindow {
                         ItemLado { u: palco.u; texto: "Início"; icone: "go-home"; ativo: lp.filtro === "" && lp.vista === "inicio"; onEscolhido: lp.mudarVista("inicio") }
                         ItemLado { u: palco.u; texto: "Todos os aplicativos"; icone: "view-app-grid"; numero: String(lp.itens.length); ativo: lp.filtro === "" && lp.vista === "todos"; onEscolhido: lp.mudarVista("todos") }
                         ItemLado { u: palco.u; texto: "Favoritos"; icone: "starred-symbolic"; numero: String(lp.dock.modelo.launcherList.length); ativo: lp.filtro === "" && lp.vista === "favoritos"; onEscolhido: lp.mudarVista("favoritos") }
-                        ItemLado { u: palco.u; texto: "Instalados recentemente"; icone: "document-new"; numero: String(lp.lista && lp.novos ? lp.novos.filter(c => lp.porChave(c) !== null).length : 0); visible: lp.novos.length > 0; ativo: lp.filtro === "" && lp.vista === "novos"; onEscolhido: lp.mudarVista("novos") }
+                        ItemLado { u: palco.u; texto: "Recém-instalados"; icone: "document-new"; numero: String(lp.lista && lp.novos ? lp.novos.filter(c => lp.porChave(c) !== null).length : 0); visible: lp.novos.length > 0; ativo: lp.filtro === "" && lp.vista === "novos"; onEscolhido: lp.mudarVista("novos") }
                         ItemLado { u: palco.u; texto: "Mais usados"; icone: "office-chart-line"; visible: lp.usadosModelo !== null; ativo: lp.filtro === "" && lp.vista === "usados"; onEscolhido: lp.mudarVista("usados") }
                         ItemLado { u: palco.u; texto: "Deck"; icone: "view-grid-symbolic"; numero: String(lp.deck.length); ativo: lp.filtro === "" && lp.vista === "deck"; onEscolhido: lp.mudarVista("deck") }
 

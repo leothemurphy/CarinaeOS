@@ -703,7 +703,11 @@ def main():
     motor.load(os.path.join(AQUI, 'Main.qml'))
     if not motor.rootObjects():
         return 1
-    comando.mostrar.emit()
+    if '--fundo' in sys.argv:
+        # arranque com a sessao: fica pronta (lista de aplicativos ja carregada) sem aparecer
+        QTimer.singleShot(1500, comando._carregar_apps)
+    else:
+        comando.mostrar.emit()
     return app.exec()
 
 

@@ -7,10 +7,14 @@
 // ---- mesa ----------------------------------------------------------------
 var mesas = desktopsForActivity(currentActivity());
 for (var j = 0; j < mesas.length; j++) {
-    mesas[j].wallpaperPlugin = "org.kde.image";
+    // a imagem fixa fica configurada (é a que se usa se escolher "estático" nas Configurações)
     mesas[j].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
     mesas[j].writeConfig("Image", "file:///usr/share/wallpapers/CarinaeOS/");
     mesas[j].writeConfig("FillMode", 2);   // recortar para preencher
+    // por omissão: a nebulosa em movimento
+    mesas[j].wallpaperPlugin = "org.carinaeos.vivo";
+    mesas[j].currentConfigGroup = ["Wallpaper", "org.carinaeos.vivo", "General"];
+    mesas[j].writeConfig("Variante", 1);
     // icones da mesa como no Mac: em colunas, encostados a direita
     mesas[j].currentConfigGroup = ["General"];
     mesas[j].writeConfig("arrangement", 1);

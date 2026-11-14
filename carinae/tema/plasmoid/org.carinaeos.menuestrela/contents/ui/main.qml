@@ -7,6 +7,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Window
 
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
@@ -32,6 +33,26 @@ PlasmoidItem {
     }
     function correr(cmd: string): void {
         executar.connectSource(cmd);
+    }
+
+    // fundo escuro da barra de cima inteira (o tema deixa o painel transparente por causa da Dock):
+    // este applet é o primeiro da barra, por isso desenha-se por trás de todos os outros
+    Rectangle {
+        id: fundoBarra
+        z: -100
+        color: Qt.rgba(0.07, 0.055, 0.11, 0.84)
+        property point origem: Qt.point(0, 0)
+        x: -origem.x
+        y: -origem.y
+        width: raiz.Window.window ? raiz.Window.window.width : 4000
+        height: raiz.Window.window ? raiz.Window.window.height : raiz.height
+        function medir(): void {
+            const p = raiz.mapToItem(null, 0, 0);
+            origem = Qt.point(p.x, p.y);
+        }
+        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.rgba(1, 1, 1, 0.07) }
+        Timer { interval: 500; running: true; repeat: true; onTriggered: fundoBarra.medir() }
+        Component.onCompleted: medir()
     }
 
     Rectangle {

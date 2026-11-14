@@ -39,7 +39,7 @@ Item {
     }
     MouseArea { anchors.fill: parent; onClicked: raiz.atual = (raiz.atual + 1) % raiz.slides.length }
     Timer {
-        interval: 7000; repeat: true; running: true
+        interval: 20000; repeat: true; running: true
         onTriggered: raiz.atual = (raiz.atual + 1) % raiz.slides.length
     }
     function onActivate() { raiz.ativo = true }

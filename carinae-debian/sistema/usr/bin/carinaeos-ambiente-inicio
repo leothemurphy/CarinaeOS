@@ -1,11 +1,13 @@
 #!/bin/sh
-# CarinaeOS - ao entrar no GNOME ou no XFCE: aplica o visual do CarinaeOS (uma vez por usuario)
-# e garante a Dock sempre visivel. No Plasma nao faz nada.
+# CarinaeOS - ao entrar: ajustes do visual do CarinaeOS (Dock por cima das janelas maximizadas,
+# etiquetas, navegadores com os botoes do Mac).
 FEITO="${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/inicio-$(echo "$XDG_CURRENT_DESKTOP" | tr 'A-Z:' 'a-z_')"
 FUNDO=/usr/share/backgrounds/carinaeos/eta-carinae.jpg
 # a Dock fica sempre visivel, a menos que a pessoa tenha escolhido outra coisa no Supernova
 SEMPRE=true
 grep -qE '"visivel": "(janelas|esconder)"' "${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/supernova.json" 2>/dev/null && SEMPRE=false
+# sessao de teste: sem bloqueio automatico do ecra (a pessoa ainda nao escolheu uma senha)
+[ -d /run/live ] && kwriteconfig6 --file kscreenlockerrc --group Daemon --key Autolock false 2>/dev/null
 # sessao de teste: o atalho "Instalar o CarinaeOS" vai para a Area de trabalho em portugues
 if [ -d /run/live ] && [ -d "$HOME/Desktop" ]; then
   AT=$(xdg-user-dir DESKTOP 2>/dev/null)
@@ -14,6 +16,27 @@ if [ -d /run/live ] && [ -d "$HOME/Desktop" ]; then
     cp -pn "$HOME"/Desktop/*.desktop "$AT"/ 2>/dev/null
   fi
 fi
+# Plasma: as janelas maximizadas ocupam o ecra todo, por baixo da Dock (modo "as janelas passam por baixo").
+# O modo so se guarda no plasmashellrc, com o numero do painel da Dock, e o Plasma tem de estar parado.
+case "$XDG_CURRENT_DESKTOP" in *KDE*)
+  [ "$SEMPRE" = true ] && (
+    RC="${XDG_CONFIG_HOME:-$HOME/.config}"
+    for i in $(seq 1 30); do
+      ID=$(awk '/^\[Containments\]\[[0-9]+\]\[Applets\]\[[0-9]+\]$/ { split($0, a, "]"); c = substr(a[2], 2) }
+                /^plugin=org.carinaeos.dock$/ { print c; exit }' "$RC/plasma-org.kde.plasma.desktop-appletsrc" 2>/dev/null)
+      [ -n "$ID" ] && break
+      sleep 2
+    done
+    if [ -n "$ID" ] && [ "$(kreadconfig6 --file plasmashellrc --group PlasmaViews --group "Panel $ID" --key panelVisibility)" != 3 ]; then
+      sleep 3
+      systemctl --user stop plasma-plasmashell.service
+      kwriteconfig6 --file plasmashellrc --group PlasmaViews --group "Panel $ID" --key panelVisibility 3
+      systemctl --user start plasma-plasmashell.service
+    fi
+  ) &
+  ;;
+esac
+
 # etiquetas (as 7 cores) na barra lateral dos Arquivos, em todos os ambientes
 (carinaeos-etiquetas iniciar >/dev/null 2>&1 &)
 

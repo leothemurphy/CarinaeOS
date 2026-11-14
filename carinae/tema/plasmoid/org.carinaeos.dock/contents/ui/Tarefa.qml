@@ -25,9 +25,15 @@ Item {
     readonly property int slot: naPrimeira ? index : index + 1
     readonly property real s: dock.escala(slot)
     property real pulo: 0
+    // o lançador fixado correspondente (para os separadores e para arrastar)
+    readonly property int posLancador: dock.modelo.launcherPosition(url())
+    readonly property string lancador: posLancador !== -1 ? dock.modelo.launcherList[posLancador] : ""
+    readonly property bool separadorDepois: mostrar && dock.temSeparador(lancador)
+    property bool arrastando: false
 
     visible: mostrar
-    width: mostrar ? dock.base * s : 0
+    width: mostrar ? dock.base * s + (separadorDepois ? dock.largSep + dock.espaco : 0) : 0
+    z: arrastando ? 10 : 0
     height: parent ? parent.height : 0
 
     function indice(): var {
@@ -48,9 +54,20 @@ Item {
         source: tarefa.model.decoration
         width: dock.base * tarefa.s
         height: width
-        anchors.horizontalCenter: parent.horizontalCenter
+        x: (dock.base * tarefa.s - width) / 2
+        opacity: tarefa.arrastando ? 0.75 : 1
         y: parent.height - dock.baixo - dock.margem - height - tarefa.pulo
         active: rato.containsMouse
+    }
+    // separador escolhido pela pessoa, à direita do ícone
+    Rectangle {
+        visible: tarefa.separadorDepois
+        x: dock.base * tarefa.s + (dock.largSep + dock.espaco) / 2
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: dock.baixo + dock.margem * 1.3
+        width: 1
+        height: dock.base * 0.8
+        color: Qt.rgba(1, 1, 1, 0.3)
     }
     Rotulo {
         alvo: icone
@@ -65,7 +82,7 @@ Item {
         width: Math.max(4, Math.round(dock.base / 11))
         height: width
         radius: width / 2
-        anchors.horizontalCenter: parent.horizontalCenter
+        x: (dock.base * tarefa.s - width) / 2
         anchors.bottom: parent.bottom
         anchors.bottomMargin: dock.baixo + Math.max(2, dock.margem * 0.25)
         color: tarefa.model.IsActive ? "#FFB46E" : Qt.rgba(1, 1, 1, 0.7)
@@ -97,7 +114,7 @@ Item {
 
     Item {
         anchors.left: parent.left
-        anchors.right: parent.right
+        width: dock.base * tarefa.s
         anchors.bottom: parent.bottom
         height: dock.baixo + dock.margem * 2 + icone.height
 
@@ -106,8 +123,42 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+            preventStealing: true
+
+            // arrastar para os lados reorganiza os ícones fixados (como no Mac)
+            property real inicioX: 0
+            property bool moveu: false
+            onPressed: mouse => {
+                inicioX = mapToItem(null, mouse.x, 0).x;
+                moveu = false;
+            }
+            onPositionChanged: mouse => {
+                if (!pressed || !(pressedButtons & Qt.LeftButton) || tarefa.posLancador === -1) return;
+                const gx = mapToItem(null, mouse.x, 0).x;
+                const dx = gx - inicioX;
+                if (!tarefa.arrastando && Math.abs(dx) > dock.base * 0.35) tarefa.arrastando = true;
+                if (!tarefa.arrastando) return;
+                const passo = dock.base + dock.espaco;
+                if (dx > passo * 0.6 && tarefa.index < dock.fixadas - 1) {
+                    dock.modelo.move(tarefa.index, tarefa.index + 1);
+                    inicioX += passo;
+                    moveu = true;
+                } else if (dx < -passo * 0.6 && tarefa.index > 0) {
+                    dock.modelo.move(tarefa.index, tarefa.index - 1);
+                    inicioX -= passo;
+                    moveu = true;
+                }
+            }
+            onReleased: {
+                if (tarefa.arrastando) {
+                    tarefa.arrastando = false;
+                    if (moveu) dock.modelo.syncLaunchers();
+                }
+            }
+            onCanceled: tarefa.arrastando = false
 
             onClicked: mouse => {
+                if (moveu) { moveu = false; return; }
                 if (mouse.button === Qt.RightButton) {
                     menu.visualParent = tarefa;
                     menu.openRelative();
@@ -149,7 +200,7 @@ Item {
         }
         PlasmaExtras.MenuItem {
             readonly property bool fixada: dock.modelo.launcherPosition(tarefa.url()) !== -1
-            text: fixada ? i18nc("@action:inmenu", "Remover do Dock") : i18nc("@action:inmenu", "Manter no Dock")
+            text: fixada ? i18nc("@action:inmenu", "Remover da Dock") : i18nc("@action:inmenu", "Manter na Dock")
             icon: fixada ? "window-unpin" : "window-pin"
             onClicked: {
                 if (fixada) {
@@ -158,6 +209,12 @@ Item {
                     dock.modelo.requestAddLauncher(tarefa.url());
                 }
             }
+        }
+        PlasmaExtras.MenuItem {
+            visible: tarefa.lancador !== ""
+            text: tarefa.separadorDepois ? "Tirar o separador" : "Adicionar separador à direita"
+            icon: "distribute-horizontal-x"
+            onClicked: dock.alternarSeparador(tarefa.lancador)
         }
         PlasmaExtras.MenuItem {
             text: i18nc("@action:inmenu", "Fechar")

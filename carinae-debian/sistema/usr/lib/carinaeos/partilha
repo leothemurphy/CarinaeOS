@@ -1,0 +1,22 @@
+#!/bin/sh
+# CarinaeOS - partilha de pastas com a rede (Samba), como no Fedora. Corre como root (pkexec).
+#   partilha ligar UTILIZADOR  -> instala o Samba (se faltar), deixa o utilizador partilhar pastas
+set -e
+case "$1" in
+  ligar)
+    U="$2"; [ -n "$U" ] || exit 2
+    if [ ! -x /usr/sbin/smbd ]; then
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update -q || true
+      apt-get install -y -q samba
+    fi
+    mkdir -p /var/lib/samba/usershares
+    getent group sambashare >/dev/null || groupadd -r sambashare
+    chgrp sambashare /var/lib/samba/usershares && chmod 1770 /var/lib/samba/usershares
+    usermod -aG sambashare "$U"
+    grep -q '^[[:space:]]*usershare allow guests' /etc/samba/smb.conf || \
+      sed -i 's/^\[global\]$/[global]\n   usershare allow guests = yes\n   usershare max shares = 100/' /etc/samba/smb.conf
+    systemctl enable --now smbd nmbd 2>/dev/null || systemctl enable --now smbd
+    ;;
+  *) echo "uso: $0 ligar UTILIZADOR" >&2; exit 2 ;;
+esac

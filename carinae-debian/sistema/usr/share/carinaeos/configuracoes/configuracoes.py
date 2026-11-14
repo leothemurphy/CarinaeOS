@@ -67,6 +67,66 @@ def tamanho(n):
         n /= 1024.0
 
 
+SERVIDORES = os.path.join(HOME, '.config/carinaeos/servidores.json')
+
+
+def servidores():
+    try:
+        with open(SERVIDORES) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return []
+
+
+def normalizar_endereco(t):
+    t = t.strip()
+    if not t:
+        return ''
+    if re.match(r'^[a-z]+://', t):
+        return t
+    if t.startswith('\\\\'):                       # \\servidor\pasta (como no Windows)
+        return 'smb://' + t.lstrip('\\').replace('\\', '/')
+    return 'smb://' + t.lstrip('/')
+
+
+def adicionar_local(url, nome):
+    """Põe o endereço na barra lateral de "Meus documentos" (user-places.xbel)."""
+    import xml.etree.ElementTree as ET
+    f = os.path.join(HOME, '.local/share/user-places.xbel')
+    try:
+        arvore = ET.parse(f)
+        raiz = arvore.getroot()
+    except Exception:
+        return
+    for b in raiz.findall('bookmark'):
+        if b.get('href') == url:
+            return
+    b = ET.SubElement(raiz, 'bookmark', href=url)
+    ET.SubElement(b, 'title').text = nome
+    info = ET.SubElement(b, 'info')
+    md = ET.SubElement(info, 'metadata', owner='http://freedesktop.org')
+    ic = ET.SubElement(md, '{http://www.freedesktop.org/standards/desktop-bookmarks}icon')
+    ic.set('name', 'folder-remote')
+    ET.register_namespace('bookmark', 'http://www.freedesktop.org/standards/desktop-bookmarks')
+    arvore.write(f, encoding='utf-8', xml_declaration=True)
+
+
+def partilhas():
+    r = []
+    out = cmd(['net', 'usershare', 'info'])
+    atual = None
+    for l in out.splitlines():
+        m = re.match(r'^\[(.+)\]$', l.strip())
+        if m:
+            atual = dict(nome=m.group(1), caminho='', escrita=False)
+            r.append(atual)
+        elif atual and l.startswith('path='):
+            atual['caminho'] = l[5:]
+        elif atual and l.startswith('usershare_acl='):
+            atual['escrita'] = ':F' in l
+    return r
+
+
 def sobre():
     info = {}
     try:
@@ -155,6 +215,7 @@ class Config(QObject):
                                  for x in cmd(['nmcli', '-t', '-f', 'NAME,TYPE,DEVICE', 'con', 'show', '--active']).splitlines()
                                  if x.count(':') >= 2]
                 e['ip'] = cmd(['hostname', '-I']).split()[:2]
+                e['servidores'] = servidores()
             elif pagina == 'bluetooth':
                 e['bluetooth'] = 'Powered: yes' in cmd(['bluetoothctl', 'show'])
                 e['aparelhos'] = [l.split(' ', 2)[2] for l in cmd(['bluetoothctl', 'devices', 'Paired']).splitlines()
@@ -194,6 +255,8 @@ class Config(QObject):
                     e['indexacao'] = True
                 e['indexados'] = cmd(['sh', '-c', "balooctl6 status 2>/dev/null | grep -iE 'total|arquivos|files' | head -2"])
             elif pagina == 'partilha':
+                e['samba'] = os.path.exists('/usr/sbin/smbd') and 'sambashare' in cmd(['id', '-nG']).split()
+                e['partilhas'] = partilhas() if e['samba'] else []
                 e['ssh'] = -1 if not os.path.exists('/usr/sbin/sshd') else (1 if cmd(['systemctl', 'is-active', 'ssh']) == 'active' else 0)
                 e['ip'] = cmd(['hostname', '-I']).split()[:2]
                 e['usuario'] = os.environ.get('USER') or os.path.basename(HOME)
@@ -274,6 +337,14 @@ class Config(QObject):
         bg(['plasma-apply-wallpaperimage', caminho])
         self._aviso('Papel de parede aplicado ✓')
 
+    @Slot(int)
+    def definirAnimado(self, variante):
+        js = ('var d = desktops(); for (var i = 0; i < d.length; i++) { d[i].wallpaperPlugin = "org.carinaeos.vivo"; '
+              'd[i].currentConfigGroup = ["Wallpaper", "org.carinaeos.vivo", "General"]; d[i].writeConfig("Variante", %d); }'
+              % (2 if variante == 2 else 1))
+        bg(['qdbus6', 'org.kde.plasmashell', '/PlasmaShell', 'org.kde.PlasmaShell.evaluateScript', js])
+        self._aviso('Papel de parede animado aplicado ✓')
+
     @Slot(bool)
     def definirIndexacao(self, ligar):
         bg(['balooctl6', 'enable' if ligar else 'disable'])
@@ -288,6 +359,62 @@ class Config(QObject):
             self.ler('partilha')
         self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/ssh', 'ligar' if ligar else 'desligar'],
                                            capture_output=True, timeout=600), depois)
+
+    # ---- pastas partilhadas na rede (como "Outros locais" do Fedora) ----------------------------------
+    @Slot(str)
+    def ligarServidor(self, texto):
+        url = normalizar_endereco(texto)
+        if not url:
+            return
+        lista = [x for x in servidores() if x.get('url') != url]
+        nome = re.sub(r'^[a-z]+://', '', url).rstrip('/')
+        lista.insert(0, dict(url=url, nome=nome))
+        os.makedirs(os.path.dirname(SERVIDORES), exist_ok=True)
+        with open(SERVIDORES, 'w') as f:
+            json.dump(lista[:12], f)
+        adicionar_local(url, nome.split('/')[-1] or nome)
+        bg(['dolphin', '--new-window', url])
+        self._aviso('A ligar a %s… (se pedir, escreva o usuário e a senha do servidor)' % nome)
+        self.ler('rede')
+
+    @Slot(str)
+    def esquecerServidor(self, url):
+        lista = [x for x in servidores() if x.get('url') != url]
+        with open(SERVIDORES, 'w') as f:
+            json.dump(lista, f)
+        self.ler('rede')
+
+    @Slot()
+    def ativarPartilha(self):
+        self._aviso('A preparar a partilha de pastas…')
+        u = os.environ.get('USER') or os.path.basename(HOME)
+
+        def depois(r):
+            ok = not isinstance(r, Exception) and r.returncode == 0
+            self._aviso('Pronto ✓ Termine a sessão e entre de novo para partilhar pastas.' if ok else 'Não foi possível ativar.')
+            self.ler('partilha')
+        self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/partilha', 'ligar', u],
+                                           capture_output=True, timeout=900), depois)
+
+    @Slot(str, bool)
+    def partilharPasta(self, caminho, escrita):
+        if caminho.startswith('file://'):
+            from urllib.parse import unquote
+            caminho = unquote(caminho[7:])
+        nome = re.sub(r'[^A-Za-z0-9_-]', '_', os.path.basename(caminho.rstrip('/')) or 'pasta')[:40]
+        acl = 'Everyone:F' if escrita else 'Everyone:R'
+        r = subprocess.run(['net', 'usershare', 'add', nome, caminho, 'Partilhada pelo CarinaeOS', acl, 'guest_ok=y'],
+                           capture_output=True, text=True)
+        if r.returncode == 0 and escrita:
+            subprocess.run(['chmod', 'o+rwx', caminho])
+        self._aviso(('“%s” está partilhada na rede ✓' % nome) if r.returncode == 0
+                    else 'Não foi possível partilhar: ' + (r.stderr.strip() or r.stdout.strip())[:120])
+        self.ler('partilha')
+
+    @Slot(str)
+    def deixarDePartilhar(self, nome):
+        subprocess.run(['net', 'usershare', 'delete', nome], capture_output=True)
+        self.ler('partilha')
 
     @Slot(bool)
     def definirHoraAuto(self, ligar):
