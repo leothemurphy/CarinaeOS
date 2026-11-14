@@ -17,6 +17,7 @@ Depois, use a ISO numa máquina virtual ou grave-a num pen drive (balenaEtcher o
 A sessão de teste entra sozinha, sem senha. Para instalar, abra **Instalar o CarinaeOS** na área de trabalho.
 
 ### Novidades desta versão
+- **Instalação em português de ponta a ponta**: começa em Lisboa e as datas e horas ficam em português (na rc14 o ecrã de entrada mostrava “Saturday… November”).
 - **Janelas maximizadas ocupam o ecrã todo**, por baixo da Dock (agora a sério), e a **barra de cima é escura** e legível.
 - **Dock reorganizável**: arraste os ícones para os lados; botão direito › *Adicionar separador à direita* para separar por tipos.
 - **Pesquisa instantânea** com Ctrl+Espaço (fica pronta em segundo plano desde que entra).
