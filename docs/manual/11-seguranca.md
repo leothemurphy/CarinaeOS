@@ -1,13 +1,11 @@
-# 12. Segurança e privacidade
+# 11. Segurança e privacidade
 
 ## O que já vem protegido
 
 - **Usuário normal + senha de administrador:** nada muda o sistema sem a sua autorização. A janela de
   senha do CarinaeOS (com o banner e a estrela) diz exatamente o que vai ser feito.
-- **Atualizações de segurança** do Debian (a Eta e a Órbita avisam).
+- **Atualizações de segurança** do Debian (a Órbita avisa).
 - **Flatpak isolados** do resto do sistema; **AppArmor** ativo para vários serviços.
-- **A IA corre no computador:** as conversas com a Eta não saem daqui (a não ser que ligue o cérebro na nuvem
-  ou a pesquisa na internet, e só o que for pesquisado).
 
 ## Boas práticas
 
@@ -15,7 +13,7 @@
 - Mantenha o sistema atualizado (“atualiza o sistema”).
 - Use senhas diferentes e um gestor: **KeePassXC** ou **Bitwarden** (Órbita).
 - Ative a **cifra do disco** ao instalar, sobretudo em portáteis.
-- Faça cópias de segurança (capítulo 5).
+- Faça cópias de segurança (capítulo 4).
 
 ## Cifrar
 
@@ -40,7 +38,7 @@ desaparecem ao terminar a sessão. Ótimo para emprestar o computador.
 
 ## Firewall
 
-`sudo apt install ufw plasma-firewall && sudo ufw enable` (capítulo 6).
+`sudo apt install ufw plasma-firewall && sudo ufw enable` (capítulo 5).
 
 ## Navegadores
 

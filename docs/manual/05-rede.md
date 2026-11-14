@@ -1,8 +1,8 @@
-# 6. Rede, HD na rede e pastas partilhadas
+# 5. Rede, HD na rede e pastas partilhadas
 
 ## Internet: Wi-Fi e cabo
 
-- **Wi-Fi:** ícone de rede na barra de cima › escolha a rede › senha. A Eta: “liga-me ao Wi-Fi”.
+- **Wi-Fi:** ícone de rede na barra de cima › escolha a rede › senha.
 - **Cabo:** liga sozinho.
 - **Ver o seu IP:** passe o rato no ícone de rede, ou `ip -br a` no terminal. IP público: `curl ifconfig.me`.
 - **IP fixo:** Configurações › Wi-Fi e Internet › (a rede) › IPv4 › Método *Manual*: endereço, máscara
@@ -37,7 +37,6 @@ e as pastas partilhadas do Windows falam **SMB** (também chamado CIFS ou “par
 3. Para ficar sempre à mão: botão direito na pasta › **Adicionar aos Locais** (aparece na barra lateral),
    ou **Adicionar à Dock**.
 
-A Eta faz o mesmo: “conecta na pasta de rede 192.168.1.20/fotos” — pede o usuário e a senha numa janela segura.
 
 ### Montar como uma pasta normal (para todos os programas)
 
@@ -93,7 +92,10 @@ No NFS as permissões vêm do servidor (o seu uid tem de existir lá ou estar ma
 - **Copiar:** `scp arquivo usuario@pc:/destino/` ou `rsync -avP pasta/ usuario@pc:/destino/`
 - **Montar como pasta:** `sudo apt install sshfs` e `sshfs usuario@pc:/home/usuario ~/remoto` (desmontar: `fusermount3 -u ~/remoto`).
 - **Entrar sem senha (chaves):** `ssh-keygen -t ed25519` e depois `ssh-copy-id usuario@pc`.
-- **Ligar o servidor SSH neste PC:** `sudo apt install openssh-server` (arranca sozinho; porta 22).
+- **Ligar o servidor SSH neste PC:** Central › **Acesso remoto (SSH)** › ligar (instala-o se faltar e
+  mostra o comando para entrar, ex.: `ssh leo@192.168.1.20`). No terminal: `sudo apt install openssh-server`
+  e `sudo systemctl enable --now ssh` (porta 22). Desligue quando não precisar. A senha só se escreve
+  no pedido do próprio SSH — nunca numa conversa ou num site.
 
 ## WebDAV e nuvens (Nextcloud, ownCloud, Box…)
 
@@ -131,7 +133,7 @@ Para o Windows encontrar este PC em *Rede*, o **wsdd2** já vem instalado (e o A
 ## Impressoras e scanners na rede
 
 Impressoras modernas (AirPrint/IPP Everywhere) aparecem sozinhas em Configurações › Impressoras.
-Ver o capítulo 8.
+Ver o capítulo 7.
 
 ## Firewall
 

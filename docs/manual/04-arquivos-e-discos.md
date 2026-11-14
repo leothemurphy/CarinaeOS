@@ -1,4 +1,4 @@
-# 5. Arquivos e discos
+# 4. Arquivos e discos
 
 ## O gerenciador de arquivos (Arquivos / Dolphin)
 
@@ -9,14 +9,14 @@
 - **Ctrl+L** escreve um endereço: `/etc`, `~/Projetos`, `smb://nas/fotos`, `sftp://pc`, `trash:/`, `recentlyused:/`.
 - **Ctrl+F** procura; **F4** abre um terminal embutido na pasta atual.
 - **Pré-visualização:** espaço ou F11 (painel de informações).
-- **Botão direito:** Comprimir/Extrair (Ark), Trancar com senha, Etiquetas, Perguntar à Eta, Adicionar à Dock,
+- **Botão direito:** Comprimir/Extrair (Ark), Trancar com senha, Etiquetas, Adicionar à Dock,
   Abrir com…, Partilhar, Propriedades (permissões).
 - **Abrir como administrador:** não abra o Dolphin com sudo; use o endereço `admin:/` (ex.: `admin:/etc`).
 
 ## Pen drives, HD externos e cartões
 
 Ao ligar, aparece uma notificação e o disco surge em *Dispositivos*. Clique para o abrir (montar).
-Antes de tirar, clique no ⏏ (ejetar) para gravar tudo com segurança. A Eta faz: “abre o HD externo”,
+Antes de tirar, clique no ⏏ (ejetar) para gravar tudo com segurança.
 “tira o pen drive”.
 
 - **HD cifrado (LUKS/BitLocker):** ao abrir pede a senha. BitLocker funciona se tiver a chave de recuperação ou a senha.

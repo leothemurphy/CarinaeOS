@@ -1,6 +1,5 @@
 #!/usr/bin/python3
-# CarinaeOS - Manual: le o manual (/usr/share/doc/carinaeos/manual/*.md) com capitulos, pesquisa
-# e um botao para perguntar a Eta.
+# CarinaeOS - Manual: le o manual (/usr/share/doc/carinaeos/manual/*.md) com capitulos e pesquisa.
 import glob
 import os
 import re
@@ -102,10 +101,6 @@ class Manual(QObject):
                         return res
         return res
 
-    @Slot(str)
-    def perguntarEta(self, pergunta):
-        subprocess.Popen(['carinaeos-eta', pergunta], start_new_session=True,
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 if __name__ == '__main__':

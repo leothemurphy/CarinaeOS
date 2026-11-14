@@ -1,6 +1,6 @@
-# 9. O Debian por baixo
+# 8. O Debian por baixo
 
-O CarinaeOS é o **Debian 13 “trixie”** com outro visual, ferramentas e a Eta. Tudo o que vale para o
+O CarinaeOS é o **Debian 13 “trixie”** com outro visual e ferramentas próprias. Tudo o que vale para o
 Debian vale aqui: os mesmos pacotes, repositórios, comandos e documentação (wiki.debian.org).
 
 ## Versões do Debian
@@ -48,7 +48,7 @@ do Debian: é a causa número um de sistemas partidos.
 
 ## apt, dpkg e companhia
 
-- **apt** — instala, remove e atualiza resolvendo dependências (capítulo 7).
+- **apt** — instala, remove e atualiza resolvendo dependências (capítulo 6).
 - **dpkg** — a base: instala `.deb` sem resolver dependências e consulta o que está instalado.
 
 ```
@@ -68,7 +68,7 @@ $ less /var/log/apt/history.log     # histórico do que foi instalado/removido
 
 ## Atualizações
 
-- A Eta e a Órbita avisam e instalam (“tem atualizações?”). Também Configurações › Atualizações (Discover em modo atualização).
+- A Órbita avisa e instala. Também Configurações › Atualizações (Discover em modo atualização).
 - Terminal: `sudo apt update && sudo apt full-upgrade && flatpak update`.
 - **Automáticas de segurança:** `sudo apt install unattended-upgrades && sudo dpkg-reconfigure unattended-upgrades`.
 - **Mudança de versão** (13 → 14, quando sair): trocar `trixie` por `forky` nas fontes e `full-upgrade`.

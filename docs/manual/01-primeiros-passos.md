@@ -49,17 +49,15 @@ No fim, reinicie e tire a pen drive.
 
 - Aparece a tela de entrada (com o NumLock já ligado) e depois as **Boas-vindas**, um passeio por
   tudo o que o CarinaeOS tem. Pode voltar a abri-las em Central › Boas-vindas.
-- A **Eta** pergunta se quer ativar a IA completa (baixa uma vez 1,1 a 2,5 GB). Pode também deixá-la
-  desligada ou ligar um cérebro na nuvem (capítulo 3).
-- Ligue-se à internet pelo ícone de rede na barra de cima e faça as atualizações (a Eta faz:
-  “atualiza o sistema”).
+- Ligue-se à internet pelo ícone de rede na barra de cima e faça as atualizações
+  (Central › Atualizações, ou `sudo apt update && sudo apt full-upgrade`).
 
 ## Contas e senhas
 
 - **Mudar a senha:** Configurações › Usuários, ou no terminal `passwd`.
 - **Criar outro usuário:** Configurações › Usuários › Adicionar novo usuário.
 - **Entrar sem senha (automático):** Configurações › Cores e temas › Tela de entrada (SDDM) › Comportamento.
-- **Sessão sem rastro (convidado):** Central › Privacidade (capítulo 12).
+- **Sessão sem rastro (convidado):** Central › Privacidade (capítulo 11).
 - **A sua foto e o fundo do login:** Central › Tela de entrada.
 
 ## Ligar, desligar, suspender

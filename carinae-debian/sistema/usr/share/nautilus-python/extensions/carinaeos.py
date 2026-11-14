@@ -1,5 +1,5 @@
 # CarinaeOS - menus do botao direito no GNOME Arquivos (Nautilus): trancar com senha,
-# etiquetas, perguntar a Eta e adicionar a Dock (os mesmos que no Dolphin do Plasma).
+# etiquetas e adicionar a Dock (os mesmos que no Dolphin do Plasma).
 import subprocess
 from urllib.parse import unquote, urlparse
 
@@ -48,9 +48,6 @@ class CarinaeOS(GObject.GObject, Nautilus.MenuProvider):
         sub.append_item(tirar)
         itens.append(topo)
         if len(locais) == 1:
-            eta = Nautilus.MenuItem(name='CarinaeOS::eta', label='Perguntar à Eta sobre isto', icon='carinaeos-eta')
-            eta.connect('activate', lambda *_: _correr('carinaeos-eta', '--arquivo', locais[0]))
-            itens.append(eta)
             dock = Nautilus.MenuItem(name='CarinaeOS::dock', label='Adicionar à Dock', icon='list-add')
             dock.connect('activate', lambda *_: _correr('carinaeos-dock-adicionar', locais[0]))
             itens.append(dock)

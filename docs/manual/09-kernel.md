@@ -1,4 +1,4 @@
-# 10. O kernel Linux
+# 9. O kernel Linux
 
 O **kernel** (núcleo) é o programa que fala diretamente com o hardware: gere a memória, os processos,
 os discos e sistemas de arquivos, a rede, o som, a energia, e traz os drivers. Tudo o resto (systemd,
@@ -100,7 +100,7 @@ Pequeno sistema que o kernel usa no arranque para encontrar o disco (também o c
 
 - O Debian mantém o kernel atual e o anterior; escolha outro no GRUB › *Opções avançadas*.
 - **Kernel mais novo** (hardware muito recente): `sudo apt install -t trixie-backports linux-image-amd64`
-  (depois de ligar os backports, capítulo 9).
+  (depois de ligar os backports, capítulo 8).
 - Remover antigos: `sudo apt autoremove --purge`.
 
 ## Swap e zram

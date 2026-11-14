@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Comando
+GenericName=Pesquisa rápida
+Comment=Aplicativos, arquivos, comandos, contas, área de transferência e o estado do computador (Ctrl+Espaço)
+Exec=carinaeos-comando
+Icon=carinaeos-estrela
+Categories=Utility;
+Keywords=pesquisa;procurar;spotlight;raycast;comando;calculadora;clipboard;
+StartupWMClass=carinaeos-comando
+X-KDE-Shortcuts=Ctrl+Space,Meta+Space,Alt+Space

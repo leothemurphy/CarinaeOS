@@ -169,9 +169,6 @@ renomear org.kde.marble.desktop "Mapas" "Mapas e globo terrestre"
 renomear org.kde.merkuro.calendar.desktop "Calendário" "Agenda, com a conta Google"
 renomear org.kde.merkuro.contact.desktop "Contactos" "Os seus contactos"
 
-# Eta: voz natural (Piper). Se nao der (sem internet), fica a voz do espeak-ng.
-pip install --break-system-packages --no-cache-dir --quiet piper-tts \
-  || echo "AVISO: Piper nao instalado; a Eta usa o espeak-ng"
 
 # ---- senhas simples: um PIN de 4 a 6 numeros basta para entrar no sistema -------
 sed -i -E 's/(pam_unix\.so) obscure /\1 minlen=4 /' /etc/pam.d/common-password
@@ -202,19 +199,19 @@ flatpak update --appstream flathub || true
 # ---- Ceu vivo: servico do utilizador (desligado ate ser ligado no Supernova) ---
 chmod 755 /usr/bin/carinaeos-* || true
 
-# Busca como o Spotlight: Ctrl+Espaco abre o KRunner (o kglobalaccel le os atalhos
+# KRunner fica no Alt+F2 (o Ctrl+Espaco e do Comando do CarinaeOS) (o kglobalaccel le os atalhos
 # padrao do ficheiro .desktop em /usr/share/kglobalaccel)
 for K in /usr/share/kglobalaccel/org.kde.krunner.desktop /usr/share/applications/org.kde.krunner.desktop; do
     [ -f "$K" ] || continue
     if grep -q '^X-KDE-Shortcuts=' "$K"; then
         # so o primeiro (a acao principal); "RunClipboard" mantem Alt+Shift+F2
-        sed -i '0,/^X-KDE-Shortcuts=.*/s//X-KDE-Shortcuts=Ctrl+Space,Alt+Space,Alt+F2,Search/' "$K"
+        sed -i '0,/^X-KDE-Shortcuts=.*/s//X-KDE-Shortcuts=Alt+F2,Search/' "$K"
     else
-        sed -i '0,/^\[Desktop Entry\]/s//[Desktop Entry]\nX-KDE-Shortcuts=Ctrl+Space,Alt+Space,Alt+F2,Search/' "$K"
+        sed -i '0,/^\[Desktop Entry\]/s//[Desktop Entry]\nX-KDE-Shortcuts=Alt+F2,Search/' "$K"
     fi
 done
 
-# ---- loja do KDE (Discover) fora dos menus: o CarinaeOS tem a Orbita e a Eta -----------
+# ---- loja do KDE (Discover) fora dos menus: o CarinaeOS tem a Orbita -----------
 for f in org.kde.discover.desktop org.kde.discover.urlhandler.desktop; do
   [ -f /usr/share/applications/$f ] || continue
   grep -v '^NoDisplay=' /usr/share/applications/$f | sed '0,/^\[Desktop Entry\]$/s//[Desktop Entry]\nNoDisplay=true/' > /usr/local/share/applications/$f
@@ -234,6 +231,10 @@ ExecStart=/bin/sh -c '/usr/lib/carinaeos/convidado ligar && mkdir -p /etc/carina
 WantedBy=multi-user.target
 EOT
 systemctl enable carinaeos-convidado.service || true
+# SSH instalado mas desligado: liga-se em Central › Acesso remoto (SSH)
+systemctl disable ssh.service ssh.socket 2>/dev/null || true
+# sem chaves de servidor na imagem: cada computador gera as suas ao ligar o SSH
+rm -f /etc/ssh/ssh_host_*
 systemctl --global enable carinaeos-calendarios.timer 2>/dev/null || true
 # a pasta pessoal do convidado vive na memoria (montada ao entrar, apagada ao sair) e entra sem senha
 for P in /etc/pam.d/sddm /etc/pam.d/gdm-password /etc/pam.d/lightdm; do

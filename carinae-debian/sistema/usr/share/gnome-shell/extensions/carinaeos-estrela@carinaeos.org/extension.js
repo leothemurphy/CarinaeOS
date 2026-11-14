@@ -25,7 +25,6 @@ export default class Estrela extends Extension {
         item('Central CarinaeOS…', 'carinaeos-central');
         item('Configurações do sistema…', 'gnome-control-center');
         item('Órbita (aplicativos)…', 'carinaeos-orbita');
-        item('Perguntar à Eta…', 'carinaeos-eta');
         linha();
         item('Bloquear o ecrã', 'loginctl lock-session');
         item('Terminar sessão…', 'gnome-session-quit --logout');

@@ -20,7 +20,6 @@ HOME = os.path.expanduser('~')
 CFG = os.path.join(HOME, '.config')
 
 FERRAMENTAS = [
-    dict(id='eta', nome='Eta', desc='A assistente: pergunte ou peça qualquer coisa', icone='carinaeos-eta', cmd='carinaeos-eta'),
     dict(id='supernova', nome='Supernova', desc='Personalizar: Dock, janelas, efeitos, perfis', icone='carinaeos-supernova', cmd='carinaeos-supernova'),
     dict(id='orbita', nome='Órbita', desc='Loja de aplicativos', icone='carinaeos-orbita', cmd='carinaeos-orbita'),
     dict(id='ambientes', nome='Ambiente e estilo', desc='Mac, Windows 11, GNOME ou XFCE', icone='preferences-desktop-theme-global', cmd='carinaeos-ambientes'),
@@ -32,6 +31,7 @@ FERRAMENTAS = [
     dict(id='clipboard', nome='Histórico do Ctrl+C', desc='Tudo o que copiou (Meta+V)', icone='edit-paste', pagina='clipboard'),
     dict(id='drivers', nome='Drivers e hardware', desc='Placa de vídeo, Wi-Fi, impressoras, impressão digital', icone='preferences-devices-pci', pagina='drivers'),
     dict(id='entrada', nome='Tela de entrada', desc='A sua foto e a imagem de fundo do login', icone='preferences-desktop-user', pagina='entrada'),
+    dict(id='ssh', nome='Acesso remoto (SSH)', desc='Entrar neste computador a partir de outro', icone='network-server', pagina='ssh'),
     dict(id='privacidade', nome='Privacidade', desc='Sessão sem rastro e modo escuro em todo o lado', icone='preferences-system-privacy', pagina='privacidade'),
     dict(id='fundos', nome='Papéis de parede', desc='Fotos do céu em 8K e o Céu vivo', icone='preferences-desktop-wallpaper', cmd='carinaeos-ceu-vivo galeria'),
     dict(id='boasvindas', nome='Boas-vindas', desc='Tudo o que o CarinaeOS tem, num passeio', icone='carinaeos', cmd='carinaeos-boasvindas'),
@@ -217,6 +217,22 @@ def hardware():
     return itens
 
 
+# ---- acesso remoto (SSH) ----------------------------------------------------------------------------
+def ssh_estado():
+    if not os.path.exists('/usr/sbin/sshd'):
+        return -1
+    r = subprocess.run(['systemctl', 'is-active', 'ssh'], capture_output=True, text=True)
+    return 1 if r.stdout.strip() == 'active' else 0
+
+
+def enderecos():
+    try:
+        r = subprocess.run(['hostname', '-I'], capture_output=True, text=True, timeout=5).stdout.split()
+    except Exception:
+        r = []
+    return [ip for ip in r if ':' not in ip] or r[:2]
+
+
 # ---- privacidade: sessao sem rastro e modo escuro forcado -------------------------------------------
 def convidado_ativo():
     try:
@@ -318,6 +334,9 @@ class Central(QObject):
     zonas = Property('QVariantList', lambda s: [dict(id=k, nome=v['nome'], tiles=json.dumps(v['tiles'])) for k, v in ZONAS.items()], constant=True)
     escuroForcado = Property(bool, lambda s: escuro_forcado(), notify=mudou)
     convidado = Property(int, lambda s: {None: -1, False: 0, True: 1}[convidado_ativo()], notify=mudou)
+    ssh = Property(int, lambda s: ssh_estado(), notify=mudou)
+    sshEnderecos = Property('QVariantList', lambda s: enderecos(), notify=mudou)
+    usuario = Property(str, lambda s: os.environ.get('USER') or os.path.basename(HOME), constant=True)
     plasma = Property(bool, lambda s: 'KDE' in os.environ.get('XDG_CURRENT_DESKTOP', 'KDE'), constant=True)
 
     def _fundo(self, trabalho, depois, aviso=''):
@@ -477,6 +496,17 @@ class Central(QObject):
     def definirEscuro(self, ligar):
         self._fundo(lambda: definir_escuro(ligar), self._fim(
             'Modo escuro forçado %s ✓ Feche e abra os navegadores para ver.' % ('ligado' if ligar else 'desligado')))
+
+    @Slot(bool)
+    def definirSSH(self, ligar):
+        cmd = ['pkexec', '/usr/lib/carinaeos/ssh', 'ligar' if ligar else 'desligar']
+        self._fundo(lambda: subprocess.run(cmd, check=True), self._fim(
+            'Acesso remoto %s ✓' % ('ligado' if ligar else 'desligado')),
+            'A instalar e ligar o servidor SSH…' if ligar and ssh_estado() < 0 else '')
+
+    @Slot()
+    def lerSSH(self):
+        self.mudou.emit()
 
     @Slot(bool)
     def definirConvidado(self, ligar):

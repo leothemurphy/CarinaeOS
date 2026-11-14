@@ -5,7 +5,7 @@
 <p align="center">
   <a href="../../releases"><b>⬇ Baixar a ISO</b></a> ·
   <a href="#-experimentar-em-5-minutos">Experimentar</a> ·
-  <a href="#-eta-a-assistente-do-sistema">Conhecer a Eta</a> ·
+  <a href="#-launchpad-comando-e-deck">Launchpad, Comando e Deck</a> ·
   <a href="#-como-é-feito">Como é feito</a>
 </p>
 
@@ -14,12 +14,12 @@
 **CarinaeOS** é um sistema operacional para computadores, feito para quem quer um Linux
 **bonito e fácil desde o primeiro minuto**, sem precisar abrir o terminal.
 Ele junta a solidez do **Debian 13** com o **KDE Plasma 6** e dá-lhe uma cara nova: Dock com lupa,
-barra no topo, Launchpad, uma loja de aplicativos própria, um painel de efeitos e a **Eta**, uma
-assistente de IA que roda **no seu próprio computador**.
+barra no topo, um Launchpad em vidro fosco com categorias e Deck, a barra **Comando**
+(<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>), uma loja de aplicativos própria e um painel de efeitos.
 
 O nome vem de **Eta Carinae**, uma das estrelas mais brilhantes e instáveis da nossa galáxia.
-A estrela de quatro pontas é o símbolo do sistema, e brilha no céu real do deserto do Atacama
-nos papéis de parede.
+A estrela de quatro pontas é o símbolo do sistema; o papel de parede é uma nebulosa violeta
+sobre um lago espelhado.
 
 > **Estado:** versão de testes (*release candidate*). Já dá para usar e instalar, mas ainda pode
 > ter arestas. Encontrou alguma coisa? Abra uma [*issue*](../../issues).
@@ -42,8 +42,8 @@ nos papéis de parede.
     <td><img src="docs/imagens/01-arranque.jpg" alt="Arranque com a estrela"></td>
   </tr>
   <tr>
-    <td><b>Launchpad</b>: clique na estrela (ou aperte a tecla ⊞/⌘) e veja todos os aplicativos
-        em páginas, com busca.</td>
+    <td><b>Launchpad</b>: clique na estrela (ou aperte a tecla ⊞/⌘): categorias em cartões,
+        favoritos, mais usados, o Deck e o detalhe de cada aplicativo, tudo em vidro fosco.</td>
     <td><b>Arranque com a estrela</b>: do menu de arranque à tela de carregamento e ao instalador,
         tudo com a marca CarinaeOS. Nenhum logotipo do Debian ou do KDE à vista.</td>
   </tr>
@@ -72,8 +72,8 @@ E ainda:
 - **Visual Vidro**: janelas translúcidas com desfoque, botões redondos, ícones coloridos e
   papéis de parede com **fotografias reais do céu do Atacama** (ESO) com a estrela do CarinaeOS a brilhar,
   do arranque animado e da tela de entrada até à área de trabalho.
-- **Central CarinaeOS**: todas as ferramentas num só lugar — Eta, Supernova, Órbita, Casa, Ambiente,
-  Calendários, Janelas em zonas, Cadeado, Etiquetas, Histórico do Ctrl+C, Drivers e Privacidade.
+- **Central CarinaeOS**: todas as ferramentas num só lugar — Supernova, Órbita, Casa, Ambiente,
+  Calendários, Janelas em zonas, Cadeado, Etiquetas, Histórico do Ctrl+C, Drivers, Acesso remoto (SSH) e Privacidade.
 - **Janelas em zonas**: esquemas prontos (2 ou 3 colunas, grade, principal + duas); arraste com Shift para encaixar.
   E **áreas de trabalho** como os Spaces do Mac (<kbd>Ctrl</kbd>+<kbd>⊞</kbd>+<kbd>←/→</kbd>, <kbd>⊞</kbd>+<kbd>W</kbd>).
 - **Histórico do Ctrl+C** com <kbd>⊞</kbd>+<kbd>V</kbd>.
@@ -98,77 +98,47 @@ E ainda:
 - **NumLock ligado** ao entrar, para escrever a senha logo.
 - **Boas-vindas** depois de instalar, a mostrar tudo o que o sistema tem.
 
-- **Busca rápida** (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>), como o Spotlight: encontra aplicativos,
-  arquivos e configurações, faz contas, converte unidades e pode perguntar à Eta.
+- **Acesso remoto por SSH** com um interruptor (Central › Acesso remoto), com o comando certo para entrar a partir de outro computador.
 - **Cadeado em pastas, arquivos e aplicativos**: botão direito → *Trancar com senha*. A pasta fica no mesmo
   sítio com um cadeado e só abre com a senha (cifrada com AES-256). Funciona no Plasma, no GNOME e no XFCE.
 - **Céu vivo** (liga-se no Supernova): o fundo de tela muda de tom ao longo do dia — madrugada, manhã, tarde e noite.
 - **Alt+Tab em Flip 3D**, como no Windows Vista, ou em grade, como no Mac.
 - **Tudo em português**, do arranque ao instalador.
 
-## ✦ Eta, a assistente do sistema
+## ✦ Launchpad, Comando e Deck
 
-<img src="docs/imagens/05-eta.jpg" alt="Eta encontrando um disco externo" width="360" align="right">
+**Launchpad** (estrela da Dock ou tecla <kbd>⊞</kbd>): o ecrã inteiro em vidro fosco sobre o papel de parede.
+À esquerda, as vistas — *Início*, *Todos os aplicativos*, *Favoritos* (os da Dock), *Mais usados* e *Deck* — e as
+categorias com o número de aplicativos. No *Início*, cada categoria é um cartão colorido com os seus aplicativos
+(Internet, Gráficos, Multimédia, Jogos, Sistema…). À direita, o detalhe do aplicativo por baixo do rato:
+descrição, **Abrir**, as **ações rápidas** (Nova janela, Nova janela privada…), *Fixar na Dock* e *Adicionar ao Deck*.
+Escreva para pesquisar; setas e Enter também funcionam.
 
-A **Eta** conhece o CarinaeOS por dentro. Pode conversar com ela em português:
+**Deck**: uma grelha de botões grandes, como um Stream Deck, para o que faz todos os dias — captura de ecrã,
+terminal, transferências, monitor do sistema, todas as janelas, bloquear… Junte aplicativos (botão direito ›
+*Adicionar ao Deck*), comandos ou sites; tire com o botão direito.
 
-| Você diz… | A Eta… |
-|---|---|
-| “Encontre o meu currículo” | procura na sua pasta pessoal e lista os arquivos com botões **Abrir**, **Mostrar na pasta** e **Bloquear** |
-| “Como mudo o fundo de tela?” | explica o passo a passo e oferece-se para abrir a configuração certa |
-| “Liga a luz noturna” · “Aumenta o volume” | faz por você |
-| “Abre o meu HD externo” | encontra o disco, pede a senha se ele for protegido (BitLocker ou LUKS) e abre-o nos Arquivos |
-| “Ejeta o pen drive” | fecha o disco para você tirar o cabo em segurança |
-| “Liga à pasta de rede 192.168.1.20/fotos” | pede o usuário e a senha e liga-se ao NAS ou ao outro computador |
-| “Quero ligar ao Wi-Fi” | mostra as redes à volta e pede a senha |
-| “Verificar atualizações” | diz o que há para atualizar (e o que é de segurança) e instala tudo |
-| “Instala o GIMP” · “Abre o terminal” | pergunta se faz por si ou se prefere os comandos, e mostra o andamento com um botão Parar |
-| “Como uso o LibreOffice?” | dá o passo a passo de qualquer aplicativo instalado |
-| “Lembra que…” · “O que você aprendeu?” | guarda notas e lembra-se delas mais tarde |
-| “Acende a luz da sala” | controla a casa pelo Home Assistant |
-| (arraste um PDF para a janela) | lê, resume, responde a perguntas e pergunta se guarda numa pasta ou manda para a lixeira |
-
-**Nada é feito sem a sua permissão.** Antes de mudar qualquer coisa, a Eta mostra um cartão com o
-comando exato e os botões **Permitir** / **Recusar**. As senhas que digita para ela ficam escondidas,
-não aparecem na conversa e nunca são enviadas para a IA.
-
-**Fala e ouve.** Carregue no 🎤 ou em <kbd>⊞</kbd>+<kbd>Shift</kbd>+<kbd>Espaço</kbd>: uma nuvem aparece no canto, a ouvir, como a Siri. O reconhecimento de voz (whisper.cpp) também corre no computador.
-
-**Aprende.** A Eta estuda tudo o que é instalado e guarda o que lê (PDFs, documentos) e as notas que lhe pede, para responder depois sem ter de procurar outra vez. As respostas ficam em cache: a mesma pergunta responde-se na hora.
-
-**Entende o que pede.** A Eta usa a IA para perceber o pedido e escolher as ferramentas certas
-(chamadas de função), em vez de adivinhar por palavras: “abre o libre office no modo claro” abre o LibreOffice
-**e** muda o tema; “e o volume a 40” lembra-se do contexto; se o pedido for ambíguo, pergunta com botões.
-Para saber coisas do computador (“qual é a minha placa de vídeo?”) corre um comando que só lê e explica o resultado.
-
-**A IA é local e privada.** Na primeira vez, a Eta pergunta se quer ativar a IA completa: são
-2,5 GB baixados uma única vez (modelo **Qwen3 4B**, a correr com o llama.cpp; em computadores com pouca
-memória, o Qwen3 1.7B). Depois disso, funciona **sem internet** e nada do que escreve sai do seu computador.
-Em ⚙ › *Cérebro da Eta* escolhe o cérebro **leve** (Qwen3 1.7B, ~1,5 GB de memória) ou **completo**
-(Qwen3 4B), ou **desliga a IA** de vez (nada fica a ocupar memória, nem em segundo plano). O modelo também sai
-da memória sozinho ao fim de 5 minutos parado. Também pode ligar um modelo **na nuvem** com a sua própria chave
-(Claude, ChatGPT, Gemini, OpenRouter ou Groq). Mesmo sem IA, a Eta faz as tarefas mais comuns.
-
-Abra-a pela Dock, pelo menu da estrela, com <kbd>⊞</kbd>+<kbd>Espaço</kbd>, ou escrevendo uma
-pergunta na busca rápida.
-
-<br clear="right">
+**Comando** (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>), inspirado no Raycast: uma barra ao centro do ecrã que mostra
+logo a **CPU, a memória, o disco livre e os programas que mais gastam**, e encontra aplicativos, comandos do
+sistema (bloquear, Wi-Fi, som, ecrãs, SSH…), **arquivos**, o **histórico da área de transferência**, faz **contas**
+(`2*3,5`), abre sites e pesquisa na web. Comece com `>` para correr um comando no terminal.
+<kbd>Ctrl</kbd>+<kbd>1…9</kbd> abre o resultado, <kbd>Ctrl</kbd>+<kbd>K</kbd> mostra as ações (mostrar na pasta,
+copiar o caminho, adicionar à Dock…).
 
 ## 📖 Manual
 
-O **[Manual do CarinaeOS](docs/manual/00-indice.md)** explica tudo: a área de trabalho, a Eta, as ferramentas,
+O **[Manual do CarinaeOS](docs/manual/00-indice.md)** explica tudo: a área de trabalho, as ferramentas,
 arquivos e discos, **HD na rede e pastas partilhadas** (SMB/NAS, NFS, SSH), programas (apt, Flatpak, AppImage),
 hardware e drivers, o Debian, o kernel Linux e uma referência grande de **comandos do terminal**.
-Vem dentro do sistema como o aplicativo *Manual* e **a Eta conhece-o inteiro**: basta perguntar.
-Quando não sabe, a Eta pode pesquisar na internet (desliga-se no ⚙).
+Vem dentro do sistema como o aplicativo *Manual*, com pesquisa.
 
 ## ⌨️ Atalhos úteis
 
 | Atalho | O que faz |
 |---|---|
 | <kbd>⊞</kbd> (tecla Windows / ⌘) | Abre o Launchpad |
-| <kbd>Ctrl</kbd>+<kbd>Espaço</kbd> | Busca rápida (como o Spotlight) |
-| <kbd>⊞</kbd>+<kbd>Espaço</kbd> | Abre a Eta |
+| <kbd>Ctrl</kbd>+<kbd>Espaço</kbd> (ou <kbd>⊞</kbd>+<kbd>Espaço</kbd>) | Comando: aplicativos, arquivos, contas, área de transferência |
+| <kbd>Alt</kbd>+<kbd>F2</kbd> | KRunner (a pesquisa do KDE) |
 | <kbd>Alt</kbd>+<kbd>Tab</kbd> | Troca de janela em Flip 3D |
 | <kbd>⊞</kbd>+<kbd>V</kbd> | Histórico do Ctrl+C |
 | <kbd>⊞</kbd>+<kbd>W</kbd> | Todas as janelas e áreas de trabalho |
@@ -210,8 +180,7 @@ Quando não sabe, a Eta pode pesquisar na internet (desliga-se no ⚙).
 > **Dica:** na sessão de teste (sem instalar), tudo o que instala ou muda fica na memória e
 > desaparece quando desliga. Para guardar, instale o CarinaeOS no disco.
 
-**Requisitos:** processador de 64 bits (x86-64), 4 GB de memória (8 GB para usar a IA da Eta com
-folga) e 30 GB de disco. Funciona com e sem UEFI.
+**Requisitos:** processador de 64 bits (x86-64), 4 GB de memória e 30 GB de disco. Funciona com e sem UEFI.
 
 ## 🛠 Como é feito
 
@@ -228,19 +197,19 @@ carinae-debian/              a receita da ISO
 │   ├── package-lists/       os pacotes que vão no sistema
 │   └── hooks/               ajustes feitos dentro do sistema (marca, senhas, atalhos…)
 └── sistema/                 arquivos copiados para dentro do sistema
-    ├── usr/bin/             carinaeos-cadeado, carinaeos-eta, carinaeos-orbita, …
+    ├── usr/bin/             carinaeos-cadeado, carinaeos-comando, carinaeos-orbita, …
     └── usr/share/carinaeos/ os aplicativos próprios (Python + Qt Quick)
-        ├── eta/             a assistente
+        ├── comando/         a barra Comando (Ctrl+Espaço)
         ├── orbita/          a loja
         └── supernova/       o painel de efeitos
 
 carinae/tema/                o visual
-├── plasmoid/                a Dock (com o Launchpad) e o menu da estrela
+├── plasmoid/                a Dock (com o Launchpad e o Deck) e o menu da estrela
 ├── lookandfeel/             a disposição da área de trabalho
 ├── plasmastyle/  cores/     o estilo do Plasma e o esquema de cores
 ├── sddm/  plymouth/  grub/  tela de entrada, carregamento e menu de arranque
 ├── icones/                  a estrela e os ícones dos aplicativos próprios
-└── wallpaper/               o céu da Eta Carinae
+└── wallpaper/               o papel de parede padrão
 
 carinae/lfs/                 a primeira versão, feita do zero com Linux From Scratch (arquivo histórico)
 ```
@@ -260,22 +229,19 @@ carinae/lfs/                 a primeira versão, feita do zero com Linux From Sc
 
 O CarinaeOS foi idealizado e desenvolvido por **Leonardo Mendes**, em parceria com o
 **Claude**, a IA da [Anthropic](https://www.anthropic.com/), do primeiro rascunho em
-Linux From Scratch à versão atual: o visual, a Dock, a Eta, a Órbita, o Supernova e a receita da ISO.
+Linux From Scratch à versão atual: o visual, a Dock, o Launchpad, o Comando, a Órbita, o Supernova e a receita da ISO.
 
 ## 🙏 Créditos
 
 O CarinaeOS existe graças a projetos livres incríveis:
 [Debian](https://www.debian.org/), [KDE Plasma](https://kde.org/plasma-desktop/),
 [Calamares](https://calamares.io/), [Flathub](https://flathub.org/),
-[llama.cpp](https://github.com/ggml-org/llama.cpp) (MIT),
-[Qwen3](https://huggingface.co/Qwen) (Apache 2.0),
-[whisper.cpp](https://github.com/ggml-org/whisper.cpp) (MIT), [Piper](https://github.com/rhasspy/piper) (MIT),
 o tema e os ícones [WhiteSur](https://github.com/vinceliuice/WhiteSur-kde) de Vince Liuice (GPL-3.0), recoloridos para o CarinaeOS,
 as fotografias do [ESO](https://www.eso.org/public/images/) (Y. Beletsky, J. Colosimo, D. Malin, J. Busqué; CC BY 4.0)
 e do [ESA/Webb e ESA/Hubble](https://esawebb.org/images/) (CC BY 4.0),
 o [ArtCraft Launcher](https://github.com/storytold/craft-launcher)
 e a fonte [Inter](https://rsms.me/inter/) (SIL OFL).
-O código próprio do CarinaeOS (Dock, Eta, Órbita, Supernova, tema) é distribuído sob a
+O código próprio do CarinaeOS (Dock, Launchpad, Comando, Órbita, Supernova, tema) é distribuído sob a
 **GPL-2.0-or-later**, como o KDE em que se baseia.
 
 <p align="center"><sub>Desenvolvido com ✦ por <b>Leonardo Mendes</b> e <b>Claude</b> (Anthropic)</sub></p>

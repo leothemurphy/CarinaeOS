@@ -1,4 +1,4 @@
-# CarinaeOS - ligacao ao Home Assistant (usada pela app Casa, pela Eta e pelo agente).
+# CarinaeOS - ligacao ao Home Assistant (usada pela app Casa e pelo agente).
 # A configuracao fica em ~/.config/carinaeos/casa.json (so o proprio usuario a pode ler).
 import json
 import os

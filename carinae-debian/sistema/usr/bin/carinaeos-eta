@@ -1,2 +1,0 @@
-#!/bin/sh
-exec python3 /usr/share/carinaeos/eta/eta.py "$@"

@@ -38,7 +38,7 @@ ApplicationWindow {
         Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Ligar ao Home Assistant"; color: janela.texto; font.pixelSize: 26; font.weight: Font.Bold }
         Text {
             width: parent.width; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; color: janela.textoSuave; font.pixelSize: 13
-            text: "Controle luzes, cenas e aparelhos daqui e pela Eta (“acende a luz da sala”). No Home Assistant, abra o seu perfil › Segurança › “Tokens de acesso de longa duração” › Criar token, e cole-o aqui."
+            text: "Controle luzes, cenas e aparelhos daqui. No Home Assistant, abra o seu perfil › Segurança › “Tokens de acesso de longa duração” › Criar token, e cole-o aqui."
         }
         TextField { id: campoUrl; width: parent.width; placeholderText: "Endereço (ex.: homeassistant.local ou 192.168.1.20)"; text: casa.url; color: janela.texto
                     background: Rectangle { radius: 10; color: Qt.rgba(1, 1, 1, 0.06); border.color: Qt.rgba(1, 1, 1, 0.15) } }

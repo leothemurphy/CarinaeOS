@@ -20,6 +20,7 @@ ApplicationWindow {
     function carregar() {
         if (pagina === "calendarios") central.lerCalendarios()
         if (pagina === "drivers") central.lerHardware()
+        if (pagina === "ssh") central.lerSSH()
     }
     onPaginaChanged: carregar()
     Component.onCompleted: carregar()
@@ -379,6 +380,50 @@ ApplicationWindow {
                         width: 210; height: 38; radius: 19; color: Qt.rgba(1, 1, 1, 0.08)
                         Text { anchors.centerIn: parent; text: "Voltar ao céu do CarinaeOS"; color: janela.texto }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: central.reporFundoEntrada() }
+                    }
+                }
+            }
+
+            // ===== acesso remoto (SSH) =====
+            Column {
+                visible: janela.pagina === "ssh"
+                width: conteudo.largura; spacing: 16
+                Text { text: "Acesso remoto (SSH)"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
+                Rectangle {
+                    width: parent.width; height: sCol1.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: sCol1
+                        x: 18; y: 16; width: parent.width - 160; spacing: 6
+                        Text { text: "Permitir entrar neste computador por SSH"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: central.ssh < 0 ? "O servidor SSH ainda não está instalado: ao ligar, é instalado (precisa de internet) e fica a funcionar já e em cada arranque."
+                                                     : "Outro computador da rede pode abrir um terminal aqui, ou copiar arquivos (SFTP), com o seu usuário e a sua senha. Desligue quando não precisar." }
+                    }
+                    Switch {
+                        anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter
+                        enabled: !central.ocupado
+                        checked: central.ssh === 1
+                        onToggled: central.definirSSH(checked)
+                    }
+                }
+                Rectangle {
+                    visible: central.ssh === 1
+                    width: parent.width; height: sCol2.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: sCol2
+                        x: 18; y: 16; width: parent.width - 36; spacing: 8
+                        Text { text: "Para entrar a partir de outro computador"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Repeater {
+                            model: central.sshEnderecos
+                            delegate: TextEdit {
+                                required property string modelData
+                                readOnly: true; selectByMouse: true
+                                text: "ssh " + central.usuario + "@" + modelData
+                                color: "#ffd6a8"; font.family: "monospace"; font.pixelSize: 16
+                            }
+                        }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: "No Windows, macOS ou Linux, escreva isto num terminal e depois a sua senha. Para copiar arquivos: no gestor de arquivos, “sftp://" + central.usuario + "@" + (central.sshEnderecos[0] || "IP") + "”. Nunca escreva a sua senha em conversas ou sites — só no pedido de senha do próprio SSH." }
                     }
                 }
             }

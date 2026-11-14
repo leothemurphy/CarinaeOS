@@ -88,6 +88,70 @@ def pacote(raiz, pasta, nome, im, autor, licenca, descricao):
     return nome, '/usr/share/backgrounds/carinaeos/%s.jpg' % pasta
 
 
+# ---- "Nebulosa sobre o lago": o papel de parede padrao do CarinaeOS (desde a 1.0-rc12) -----------
+AQUI = os.path.dirname(os.path.abspath(__file__))
+NEBULOSAS = [('nebulosa-lago-1.jpg', 'NebulosaSobreOLago', 'Nebulosa sobre o lago'),
+             ('nebulosa-lago-2.jpg', 'NebulosaSobreOLago2', 'Nebulosa sobre o lago II')]
+
+
+def _em_16_9(im, w, h):
+    iw, ih = im.size
+    if iw / ih > w / h:
+        cw = int(ih * w / h)
+        im = im.crop(((iw - cw) // 2, 0, (iw - cw) // 2 + cw, ih))
+    else:
+        ch = int(iw * h / w)
+        im = im.crop((0, (ih - ch) // 2, iw, (ih - ch) // 2 + ch))
+    from PIL import ImageFilter
+    return im.resize((w, h), Image.LANCZOS).filter(ImageFilter.UnsharpMask(radius=2, percent=40, threshold=2))
+
+
+def _gravar(pasta_imgs, im):
+    os.makedirs(pasta_imgs, exist_ok=True)
+    for n in os.listdir(pasta_imgs):
+        os.remove(os.path.join(pasta_imgs, n))
+    for (lw, lh) in ((3840, 2160), (2560, 1440), (1920, 1080)):
+        (im if lw == 3840 else im.resize((lw, lh), Image.LANCZOS)).save(
+            os.path.join(pasta_imgs, '%dx%d.jpg' % (lw, lh)), quality=92, optimize=True)
+
+
+def nebulosas(raiz, lista):
+    from PIL import ImageFilter
+    for i, (arq, pasta, nome) in enumerate(NEBULOSAS):
+        im = _em_16_9(Image.open(os.path.join(AQUI, arq)).convert('RGB'), 3840, 2160)
+        base = os.path.join(raiz, 'usr/share/wallpapers', 'CarinaeOS-' + pasta)
+        _gravar(os.path.join(base, 'contents/images'), im)
+        im.resize((400, 225), Image.LANCZOS).save(os.path.join(base, 'contents/screenshot.jpg'), quality=85)
+        with open(os.path.join(base, 'metadata.json'), 'w', encoding='utf-8') as f:
+            json.dump({'KPlugin': {'Id': 'CarinaeOS-' + pasta, 'Name': nome, 'License': 'CC-BY-SA-4.0',
+                                   'Authors': [{'Name': 'CarinaeOS'}],
+                                   'Description': 'Nebulosa violeta sobre um lago espelhado.'}}, f, ensure_ascii=False, indent=2)
+        bg = os.path.join(raiz, 'usr/share/backgrounds/carinaeos')
+        os.makedirs(bg, exist_ok=True)
+        lig = os.path.join(bg, pasta + '.jpg')
+        if os.path.lexists(lig):
+            os.remove(lig)
+        os.symlink('/usr/share/wallpapers/CarinaeOS-%s/contents/images/3840x2160.jpg' % pasta, lig)
+        lista.insert(i, (nome, '/usr/share/backgrounds/carinaeos/%s.jpg' % pasta))
+        if i == 0:
+            # passa a ser o fundo padrao (Plasma, ecra de bloqueio, entrada, arranque, GNOME, XFCE)
+            orig = os.path.join(raiz, 'usr/share/wallpapers/CarinaeOS')
+            _gravar(os.path.join(orig, 'contents/images'), im)
+            im.resize((400, 225), Image.LANCZOS).save(os.path.join(orig, 'contents/screenshot.jpg'), quality=85)
+            with open(os.path.join(orig, 'metadata.json'), 'w', encoding='utf-8') as f:
+                json.dump({'KPackageStructure': 'Wallpaper/Images',
+                           'KPlugin': {'Id': 'CarinaeOS', 'Name': 'CarinaeOS — ' + nome, 'License': 'CC-BY-SA-4.0',
+                                       'Authors': [{'Name': 'CarinaeOS'}]}}, f, ensure_ascii=False, indent=4)
+            marca = os.path.join(raiz, 'usr/share/carinaeos/marca')
+            os.makedirs(marca, exist_ok=True)
+            # banner das janelas de senha: a faixa da nebulosa (terco de cima)
+            im.crop((0, 420, 3840, 420 + 1102)).resize((920, 264), Image.LANCZOS).save(
+                os.path.join(marca, 'banner-senha.jpg'), quality=88)
+            im.resize((1920, 1080), Image.LANCZOS).filter(ImageFilter.GaussianBlur(28)).save(
+                os.path.join(marca, 'fundo-desfocado.jpg'), quality=85)
+        print('nebulosa', pasta, flush=True)
+
+
 def main():
     raiz, cache = sys.argv[1], sys.argv[2]
     lista = []
@@ -151,7 +215,7 @@ def main():
     eta = os.path.join(bg, 'eta-carinae.jpg')
     if not os.path.lexists(eta):
         os.symlink('/usr/share/wallpapers/CarinaeOS/contents/images/3840x2160.jpg', eta)
-    lista.insert(0, ('Eta Carinae (CarinaeOS)', '/usr/share/backgrounds/carinaeos/eta-carinae.jpg'))
+    nebulosas(raiz, lista)
     gbp = os.path.join(raiz, 'usr/share/gnome-background-properties')
     os.makedirs(gbp, exist_ok=True)
     with open(os.path.join(gbp, 'carinaeos.xml'), 'w', encoding='utf-8') as f:

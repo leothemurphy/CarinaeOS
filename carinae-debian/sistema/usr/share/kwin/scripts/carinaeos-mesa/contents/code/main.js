@@ -1,7 +1,6 @@
 // CarinaeOS — mesa
 // 1) Clicar no papel de parede afasta as janelas para os lados, como no macOS
 //    ("clicar no papel de parede para mostrar a mesa"). Clicar numa janela ou na Dock traz tudo de volta.
-// 2) A nuvem da Eta fica sempre no canto inferior direito, por cima de tudo, sem roubar o foco.
 
 function opcao(nome, padrao) {
     var v = readConfig(nome, padrao);
@@ -43,27 +42,26 @@ workspace.windowActivated.connect(function (w) {
     }
 });
 
-// ---- nuvem da Eta ----------------------------------------------------------------------
-function encaixarNuvem(w) {
-    var area = workspace.clientArea(KWin.MaximizeArea, w);
-    var g = w.frameGeometry;
-    var x = area.x + area.width - g.width - 12;
-    var y = area.y + area.height - g.height - 12;
-    if (Math.abs(g.x - x) > 1 || Math.abs(g.y - y) > 1)
-        w.frameGeometry = { x: x, y: y, width: g.width, height: g.height };
-}
-
-function talvezNuvem(w) {
-    if (!w || w.caption !== "Eta — atividade") return;
+// ---- Comando (Ctrl+Espaço): sempre por cima, ao centro, a um quarto da altura -----------------
+function talvezComando(w) {
+    if (!w || (w.resourceClass !== "carinaeos-comando" && w.caption !== "CarinaeOS — Comando")) return;
     w.keepAbove = true;
     w.skipTaskbar = true;
     w.skipSwitcher = true;
     w.skipPager = true;
     w.onAllDesktops = true;
-    encaixarNuvem(w);
-    w.frameGeometryChanged.connect(function () { encaixarNuvem(w); });
+    var centrar = function () {
+        var area = workspace.clientArea(KWin.MaximizeArea, workspace.activeScreen, workspace.currentDesktop);
+        var g = w.frameGeometry;
+        var x = Math.round(area.x + (area.width - g.width) / 2);
+        var y = Math.round(area.y + Math.max(20, area.height * 0.18));
+        if (Math.abs(g.x - x) > 1 || Math.abs(g.y - y) > 1)
+            w.frameGeometry = { x: x, y: y, width: g.width, height: g.height };
+    };
+    centrar();
+    w.frameGeometryChanged.connect(centrar);
+    workspace.activeWindow = w;   // recebe logo o teclado
 }
-
-workspace.windowAdded.connect(talvezNuvem);
-var todas = workspace.windowList();
-for (var i = 0; i < todas.length; i++) talvezNuvem(todas[i]);
+workspace.windowAdded.connect(talvezComando);
+var jaAbertas = workspace.windowList();
+for (var j = 0; j < jaAbertas.length; j++) talvezComando(jaAbertas[j]);

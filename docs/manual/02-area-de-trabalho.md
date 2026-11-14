@@ -4,7 +4,7 @@
 
 Da esquerda para a direita:
 
-- **★ Menu estrela:** Sobre este computador, Configurações do Sistema, Órbita (loja), Central,
+- **★ Menu estrela:** Sobre este computador, Comando, Configurações do Sistema, Órbita (loja), Central,
   Forçar saída, Suspender, Reiniciar, Desligar, Terminar sessão.
 - **Nome do aplicativo ativo** em negrito. Clicar nele abre o menu da janela: nova janela, minimizar,
   ecrã inteiro, manter por cima e fechar. Funciona com todos os aplicativos, também os que não têm
@@ -24,11 +24,55 @@ Da esquerda para a direita:
 - Roda do rato sobre a Dock muda o volume; clique do meio pode fechar (configurável no Supernova).
 - Estilos, tamanho, lupa, salto ao abrir e visibilidade: Central › Supernova.
 
-## Launchpad e pesquisa
+## Launchpad
 
-- **⊞** (sozinha) abre o **Launchpad**: todos os aplicativos em grelha, com pesquisa.
-- **Ctrl+Espaço** abre a **pesquisa** (como o Spotlight): aplicativos, arquivos, contas
-  (`2*3,5`), conversões (`10 usd em eur`), comandos (escreva um comando e Enter) e a Eta.
+**⊞** (sozinha) ou a estrela da Dock abrem o **Launchpad**, em vidro fosco sobre o papel de parede:
+
+- **À esquerda**, as vistas e as categorias:
+    - *Início* — um cartão colorido por categoria (Internet, Gráficos, Multimédia, Escritório, Jogos,
+      Sistema…), com os seus aplicativos; clicar num cartão mostra a categoria inteira.
+      Por cima, os aplicativos usados recentemente.
+    - *Todos os aplicativos*, *Favoritos* (os que estão na Dock) e *Mais usados*.
+    - *Deck* (ver abaixo).
+    - Em baixo: Bloquear, Suspender, Reiniciar e Desligar.
+- **Ao centro**, a pesquisa (basta começar a escrever) e os ícones. Setas para escolher, Enter para abrir.
+- **À direita**, o detalhe do aplicativo por baixo do rato: descrição, categoria, **Abrir**, as
+  **ações rápidas** do aplicativo (ex.: *Nova janela privada* no Firefox), *Fixar na Dock* e
+  *Adicionar ao Deck*. Em ecrãs estreitos este painel esconde-se.
+- Botão direito num ícone: Abrir, Adicionar/Remover da Dock, Adicionar ao Deck.
+- Esc ou um clique fora fecha.
+
+### O Deck
+
+Uma grelha de botões grandes e coloridos para o que faz muitas vezes, como um Stream Deck:
+captura de ecrã, terminal, transferências, monitor do sistema, todas as janelas, mostrar a mesa,
+Central, Supernova, Manual, configurações, bloquear e suspender.
+
+- **Pôr um aplicativo:** botão direito no aplicativo › *Adicionar ao Deck*.
+- **Pôr um comando ou um site:** botão **+ Adicionar** › nome e comando (ex.: `kcalc`) ou endereço
+  (ex.: `https://youtube.com`).
+- **Tirar:** botão direito no botão › *Tirar do Deck*. *Repor o Deck original* volta ao início.
+- Fica guardado em `~/.config/carinaeos-deck.json`.
+
+## Comando (Ctrl+Espaço)
+
+**Ctrl+Espaço** (ou ⊞+Espaço) abre o **Comando**, uma barra ao centro do ecrã inspirada no Raycast:
+
+- Em cima, o **estado do computador**: CPU, memória usada, disco livre, e os programas que mais
+  gastam CPU e memória.
+- Sem escrever nada, **sugestões** (o que mais usa). Escrevendo, aparecem:
+    - **Aplicativos** (também pelas iniciais: `gc` → Google Chrome);
+    - **Comandos** do sistema: bloquear, suspender, desligar, captura de ecrã ou de uma região, gravar
+      o ecrã, Wi-Fi, Bluetooth, som, ecrãs, impressoras, SSH, drivers, papel de parede seguinte…;
+    - **Arquivos** da pasta pessoal (pelo índice de arquivos do KDE);
+    - **Contas** (`2*3,5+1`, `(10+5)/3`, `2^10`) — Enter copia o resultado;
+    - **Sites** (`youtube.com`) e **pesquisa na web**.
+- **Histórico da área de transferência:** escolha-o na lista (ou escreva “histórico”) para ver e
+  procurar tudo o que copiou; Enter copia de novo. Esc volta.
+- Começar com **`>`** corre o resto num terminal (ex.: `> sudo apt update`).
+- **Ctrl+1…9** abre o resultado com esse número; **Ctrl+K** mostra as ações do resultado (mostrar na
+  pasta, copiar o caminho, ações do aplicativo, adicionar à Dock…). Esc fecha.
+- A pesquisa clássica do KDE (KRunner) continua em **Alt+F2**.
 
 ## Janelas
 
@@ -58,9 +102,8 @@ o que colar. No ícone da prancheta da bandeja pode fixar itens, editar e limpar
 | Atalho | O que faz |
 |---|---|
 | ⊞ | Launchpad |
-| Ctrl+Espaço | Pesquisa (Spotlight) |
-| ⊞+Espaço | Abrir a Eta |
-| ⊞+Shift+Espaço | Falar com a Eta |
+| Ctrl+Espaço / ⊞+Espaço | Comando (aplicativos, arquivos, contas, área de transferência) |
+| Alt+F2 | KRunner |
 | ⊞+V | Histórico do Ctrl+C |
 | ⊞+W | Todas as janelas e áreas de trabalho |
 | ⊞+T | Desenhar zonas de janelas |
@@ -97,8 +140,7 @@ os ícones e os botões das janelas do CarinaeOS vêm com eles.
 
 - **Papel de parede:** botão direito na área de trabalho › Configurar papel de parede, ou Central ›
   Papéis de parede (fotos 8K do céu do Atacama, Webb e Hubble, e o *Céu vivo*, que muda sozinho).
-  A Eta também troca: “muda o papel de parede”.
-- **Modo claro/escuro:** Configurações › Cores e temas, ou peça à Eta (“põe o modo claro”).
+- **Modo claro/escuro:** Configurações › Cores e temas.
 - **Luz noturna:** Configurações › Tela › Luz noturna (“liga a luz noturna”).
 - **Tamanho do texto:** Configurações › Texto e fontes. **Escala da tela:** Configurações › Tela.
 - **Personalização avançada** (efeitos, lâmpada mágica, gelatina, Alt+Tab, cantos, transparências):

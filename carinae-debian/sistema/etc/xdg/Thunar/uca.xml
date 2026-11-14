@@ -127,20 +127,6 @@
 	<video-files/>
 </action>
 <action>
-	<icon>carinaeos-eta</icon>
-	<name>Perguntar à Eta sobre isto</name>
-	<unique-id>carinaeos-2</unique-id>
-	<command>carinaeos-eta --arquivo %f</command>
-	<description>Perguntar à Eta sobre isto</description>
-	<patterns>*</patterns>
-	<directories/>
-	<audio-files/>
-	<image-files/>
-	<other-files/>
-	<text-files/>
-	<video-files/>
-</action>
-<action>
 	<icon>list-add</icon>
 	<name>Adicionar à Dock</name>
 	<unique-id>carinaeos-3</unique-id>

@@ -39,7 +39,7 @@ ApplicationWindow {
             }
         }
         ListView {
-            anchors.top: topo.bottom; anchors.topMargin: 12; anchors.bottom: perguntar.top; anchors.bottomMargin: 10
+            anchors.top: topo.bottom; anchors.topMargin: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 10
             x: 10; width: parent.width - 20; clip: true; spacing: 2
             model: procura.text.length >= 2 ? janela.achados : manual.capitulos
             delegate: Rectangle {
@@ -60,14 +60,6 @@ ApplicationWindow {
                             onClicked: manual.abrir(busca ? modelData.cap : index) }
             }
             ScrollBar.vertical: ScrollBar {}
-        }
-        Rectangle {
-            id: perguntar
-            anchors.bottom: parent.bottom; anchors.bottomMargin: 16; x: 14
-            width: parent.width - 28; height: 40; radius: 20
-            gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: "#ff6f91" } GradientStop { position: 1; color: janela.ambar } }
-            Text { anchors.centerIn: parent; text: "✦ Perguntar à Eta"; color: "#1a0f14"; font.weight: Font.Bold }
-            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: manual.perguntarEta(procura.text) }
         }
     }
 

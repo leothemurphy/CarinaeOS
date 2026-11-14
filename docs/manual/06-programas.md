@@ -1,8 +1,8 @@
-# 7. Programas
+# 6. Programas
 
 Há quatro formas de instalar programas. Por ordem de preferência:
 
-1. **Órbita** (ou pedir à Eta) — procura no Debian e no Flathub e instala com um clique.
+1. **Órbita** — procura no Debian e no Flathub e instala com um clique.
 2. **apt** (pacotes do Debian) — integrados no sistema, atualizados com ele.
 3. **Flatpak** (Flathub) — versões recentes, isoladas do sistema.
 4. **.deb** ou **AppImage** baixados do site do fabricante — quando não há nas outras.
@@ -66,7 +66,7 @@ Se não abrir:
 - **Erros sobre WebKit / libwebkit2gtk** (slicers baseados no OrcaSlicer/PrusaSlicer) →
   `sudo apt install libwebkit2gtk-4.1-0 gstreamer1.0-plugins-good gstreamer1.0-libav` (já vêm).
 - Correr com `--appimage-extract-and-run` evita o FUSE por completo.
-- Corra-o no terminal para ver a mensagem de erro e pergunte à Eta.
+- Corra-o no terminal para ver a mensagem de erro.
 - **Impressora 3D por USB:** junte o usuário ao grupo *dialout* para aceder à porta série:
   `sudo usermod -aG dialout $USER` e termine a sessão.
 
@@ -81,7 +81,7 @@ Se não abrir:
 
 ## Remover
 
-Órbita › Instalados › Remover; a Eta (“tira o X”); botão direito no Launchpad › Desinstalar;
+Órbita › Instalados › Remover; botão direito no Launchpad › Desinstalar;
 ou os comandos `apt remove` / `flatpak uninstall` acima. AppImage: apague o arquivo em `~/Aplicativos`
 e a entrada em `~/.local/share/applications`.
 

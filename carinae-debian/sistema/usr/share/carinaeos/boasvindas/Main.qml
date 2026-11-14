@@ -22,18 +22,10 @@ ApplicationWindow {
         { titulo: "Bem-vindo ao CarinaeOS", icone: "carinaeos", grande: true,
           texto: "Um sistema bonito, simples e só seu. Em poucos passos mostramos tudo o que tem à mão. Pode rever isto quando quiser no Launchpad › “Bem-vindo”.",
           itens: [] },
-        { titulo: "Eta, a sua assistente", icone: "carinaeos-eta",
-          texto: "Converse por escrito ou por voz. A IA corre no seu computador, sem enviar nada para fora, e aprende com o que lê e com o que instala.",
-          itens: [ "Meta+Espaço abre a Eta; Meta+Shift+Espaço fala com ela",
-                   "“Encontre o meu currículo”, “abre o HD externo”, “instala o GIMP”",
-                   "Arraste um PDF para ela: resume, responde e guarda o que aprendeu",
-                   "“Como uso o LibreOffice?”: passo a passo de qualquer aplicativo instalado",
-                   "Pergunta antes de instalar e mostra os comandos, se preferir fazer você" ],
-          botao: "Abrir a Eta", cmd: "carinaeos-eta" },
-        { titulo: "Dock, Launchpad e Busca", icone: "carinaeos-estrela",
+        { titulo: "Dock, Launchpad e Comando", icone: "carinaeos-estrela",
           texto: "Como no Mac: a Dock em baixo, sempre à vista, e a barra em cima com o menu do aplicativo aberto.",
-          itens: [ "Clique na estrela (ou na tecla ⊞/⌘) para ver todos os aplicativos",
-                   "Ctrl+Espaço: a busca rápida — aplicativos, arquivos, contas e “Perguntar à Eta”",
+          itens: [ "Clique na estrela (ou na tecla ⊞/⌘): aplicativos por categoria, favoritos, recentes e o Deck",
+                   "Ctrl+Espaço: o Comando — aplicativos, arquivos, contas, área de transferência e o estado do computador",
                    "Arraste aplicativos ou pastas para a Dock; ao lado da lixeira estão os Downloads",
                    "Clicar no papel de parede afasta as janelas; Alt+Tab em Flip 3D" ],
           botao: "Abrir o Launchpad", cmd: "qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.activateLauncherMenu" },
@@ -44,7 +36,7 @@ ApplicationWindow {
           texto: "Chrome, LibreOffice, Spotify, Discord, Steam, VS Code e muito mais, com um clique e sem senha.",
           itens: [], botao: "Abrir a Órbita", cmd: "carinaeos-orbita" },
         { titulo: "Casa, Calendário e Mapas", icone: "carinaeos-casa",
-          texto: "Ligue o seu Home Assistant e controle luzes e cenas (também pela Eta: “acende a luz da sala”). O Calendário liga à conta Google e os eventos aparecem ao clicar no relógio. E os Mapas mostram o mundo inteiro.",
+          texto: "Ligue o seu Home Assistant e controle luzes e cenas. O Calendário liga à conta Google e os eventos aparecem ao clicar no relógio. E os Mapas mostram o mundo inteiro.",
           itens: [], botao: "Abrir a Casa", cmd: "carinaeos-casa" },
         { titulo: "Segurança e privacidade", icone: "object-locked",
           texto: "Tranque pastas, arquivos e aplicativos com senha: botão direito › “Trancar com senha”. A pasta fica com um cadeado e só abre com a senha.",
@@ -53,8 +45,8 @@ ApplicationWindow {
           texto: "Mais de 14 papéis de parede em 8K (fotos do James Webb e do Hubble e desenhos do CarinaeOS). E pode usar o CarinaeOS com KDE Plasma, GNOME ou XFCE — sempre com a mesma Dock e os mesmos fundos.",
           itens: [], botao: "Trocar de ambiente", cmd: "carinaeos-ambientes" },
         { titulo: "Tudo pronto ✦", icone: "carinaeos", grande: true,
-          texto: "Bom proveito! Se tiver alguma dúvida, é só perguntar à Eta.",
-          itens: [], botao: "Perguntar à Eta", cmd: "carinaeos-eta" }
+          texto: "Bom proveito! Se tiver alguma dúvida, o Manual do CarinaeOS explica tudo, passo a passo.",
+          itens: [], botao: "Abrir o Manual", cmd: "carinaeos-manual" }
     ]
     readonly property var p: paginas[pagina]
 

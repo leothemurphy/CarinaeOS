@@ -1,0 +1,20 @@
+#!/bin/sh
+# CarinaeOS - acesso remoto por SSH (corre como root, via pkexec)
+#   ssh ligar     -> instala o servidor (se faltar), liga-o agora e em cada arranque
+#   ssh desligar  -> desliga-o agora e no arranque
+set -e
+case "$1" in
+  ligar)
+    if [ ! -x /usr/sbin/sshd ]; then
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update -q || true
+      apt-get install -y -q openssh-server
+    fi
+    ssh-keygen -A
+    systemctl enable --now ssh
+    ;;
+  desligar)
+    systemctl disable --now ssh 2>/dev/null || true
+    ;;
+  *) echo "uso: $0 ligar|desligar" >&2; exit 2 ;;
+esac

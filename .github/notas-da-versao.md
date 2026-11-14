@@ -17,17 +17,12 @@ Depois, use a ISO numa máquina virtual ou grave-a num pen drive (balenaEtcher o
 A sessão de teste entra sozinha, sem senha. Para instalar, abra **Instalar o CarinaeOS** na área de trabalho.
 
 ### Novidades desta versão
-- **Manual do CarinaeOS** completo (aplicativo *Manual*): rede e NAS, pastas partilhadas, discos, programas, Debian, kernel e terminal. A Eta conhece-o inteiro.
-- A Eta pesquisa na internet quando não sabe (cita as fontes; desliga-se no ⚙).
-- Eta: IA pode ser desligada (liberta a memória) ou usar o cérebro leve; sai da memória sozinha quando parada.
-- Casa sem travar, mesmo com centenas de aparelhos.
-- AppImage com duplo clique (ex.: Elegoo Slicer): instala no menu e na Dock.
-- Calendários por endereço iCal (Google, iCloud, Outlook) sincronizados a cada 30 minutos.
-- Botões do Mac à esquerda em todas as janelas, também GTK, Chrome e Firefox.
-- Barra de cima com o nome do aplicativo e o seu menu em todos os estilos, também no Windows 11.
-- Dock do GNOME com as animações do Mac; NumLock ligado ao entrar; foto e fundo da tela de entrada.
-- Slides do instalador corrigidos; atalho “Instalar o CarinaeOS” de volta na área de trabalho.
-- Estilo Windows 11 com barra de tarefas escura e a barra de cima; nome do aplicativo sempre certo.
+- **Launchpad novo**, em vidro fosco: categorias em cartões coloridos, Todos, Favoritos, Mais usados, e o detalhe de cada aplicativo (descrição, Abrir, ações rápidas, Fixar na Dock).
+- **Deck**: botões grandes para as ações do dia a dia (captura, terminal, transferências, bloquear…), com os seus aplicativos, comandos e sites.
+- **Comando** (Ctrl+Espaço), como o Raycast: CPU, memória, disco e o que mais gasta, aplicativos, comandos do sistema, arquivos, histórico da área de transferência, contas, sites e web.
+- **Acesso remoto (SSH)** com um interruptor na Central (desligado por omissão).
+- **Novo papel de parede**: nebulosa violeta sobre um lago espelhado (duas versões), também na tela de entrada e nas janelas de senha.
+- **A IA (Eta) saiu do sistema**: menos memória ocupada, ISO mais leve. O Manual continua, com pesquisa.
 
 Guia completo no [README](https://github.com/leothemurphy/carinaeos#readme).
 

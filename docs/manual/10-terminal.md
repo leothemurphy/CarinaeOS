@@ -1,8 +1,8 @@
-# 11. O terminal: guia e referência de comandos
+# 10. O terminal: guia e referência de comandos
 
 O terminal (**Konsole**, Ctrl+Alt+T) é a forma mais direta de falar com o sistema. Não é obrigatório
-no CarinaeOS — a Eta e as ferramentas gráficas fazem quase tudo — mas é rápido e poderoso.
-Peça à Eta “mostra-me os comandos para…” e ela explica cada um.
+no CarinaeOS — as ferramentas gráficas fazem quase tudo — mas é rápido e poderoso.
+Para saber o que faz um comando: `man comando`, `comando --help` ou `tldr comando`.
 
 ## O básico
 
@@ -57,7 +57,7 @@ rename 's/.jpeg$/.jpg/' *.jpeg   # renomear em massa (sudo apt install rename)
 ```
 
 > **Nunca** corra `rm -rf /`, `rm -rf ~`, `sudo chmod -R 777 /`, `dd` para o disco errado, ou comandos
-> copiados da internet que não percebe. A Eta pode explicar qualquer comando antes de o correr.
+> copiados da internet que não percebe.
 
 ## Procurar
 
@@ -334,10 +334,8 @@ fi
 
 | Comando | O que faz |
 |---|---|
-| `carinaeos-eta "pergunta"` | pergunta à Eta (abre a janela) |
-| `carinaeos-eta --ouvir` | Eta a ouvir (voz) |
-| `carinaeos-eta --arquivo doc.pdf` | enviar um arquivo à Eta |
-| `carinaeos-central [página]` | Central (calendarios, janelas, drivers, privacidade, entrada) |
+| `carinaeos-comando` | abre o Comando (Ctrl+Espaço) |
+| `carinaeos-central [página]` | Central (calendarios, janelas, drivers, ssh, privacidade, entrada) |
 | `carinaeos-supernova` | personalização |
 | `carinaeos-orbita` | loja de aplicativos |
 | `carinaeos-casa` | Home Assistant |

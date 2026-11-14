@@ -1,12 +1,12 @@
-# 4. As ferramentas do CarinaeOS
+# 3. As ferramentas do CarinaeOS
 
 Todas estão na **Central CarinaeOS** (ícone da estrela na Dock, ou menu estrela › Central).
 
 ## Central
 
 Página inicial com todas as ferramentas e páginas próprias para Calendários, Janelas em zonas,
-Cadeado, Histórico do Ctrl+C, Drivers e hardware, Privacidade e Tela de entrada.
-Pelo terminal: `carinaeos-central [calendarios|janelas|drivers|privacidade|entrada]`.
+Cadeado, Histórico do Ctrl+C, Drivers e hardware, Acesso remoto (SSH), Privacidade e Tela de entrada.
+Pelo terminal: `carinaeos-central [calendarios|janelas|drivers|ssh|privacidade|entrada]`.
 
 ## Supernova — personalização
 
@@ -40,7 +40,6 @@ instala e remove. Também atualiza tudo. Na sessão de teste avisa que o que ins
 4. **Este computador no Home Assistant:** com MQTT, o PC aparece como dispositivo (CPU, memória, bateria,
    botões para bloquear/desligar, volume e notificações).
 
-A Eta também comanda a casa: “acende a luz da sala”, “desliga o ar condicionado”, “qual a temperatura do quarto?”.
 
 ## Calendários
 
@@ -62,7 +61,7 @@ O Calendário (Merkuro) e o relógio da barra mostram os eventos de:
 
 - **Pastas e arquivos:** botão direito › **Trancar com senha**. A pasta continua no mesmo sítio, com um
   cadeado, e só abre com a senha (duplo clique). Por dentro fica cifrada com AES-256 (GnuPG): sem a senha,
-  ninguém lê nada — nem a Eta, nem o administrador. Ao abrir, aparece um aviso com *Trancar de novo*.
+  ninguém lê nada — nem o administrador. Ao abrir, aparece um aviso com *Trancar de novo*.
   Arquivos trancados ficam com o nome `nome.ext.trancado`. Funciona no Plasma, GNOME e XFCE, e em pastas de rede.
 - **Aplicativos:** Central › Cadeado › Aplicativos: marque os que devem pedir senha para abrir.
 - **Cofres (Plasma Vault):** pastas cifradas que se abrem e fecham pelo cadeado da bandeja.
@@ -81,7 +80,7 @@ Pelo terminal: `carinaeos-etiquetas pôr Azul <arquivo>`, `carinaeos-etiquetas l
 
 Central › Drivers e hardware deteta a placa de vídeo (NVIDIA, AMD, Intel), Wi-Fi, Bluetooth, impressoras e
 scanners, leitor de impressão digital, ratos Logitech e de jogos e comandos de consola, e instala o que falta
-com um clique (capítulo 8).
+com um clique (capítulo 7).
 
 ## Privacidade
 
@@ -99,7 +98,7 @@ A sua **foto** (aparece no login, no bloqueio de tela e no menu) e a **imagem de
 - **Boas-vindas:** o passeio por tudo o que o sistema tem (`carinaeos-boasvindas`).
 - **Papéis de parede:** fotos 8K reais do Atacama com a estrela do CarinaeOS, do James Webb e do Hubble,
   e desenhos originais. **Céu vivo** troca o fundo sozinho ao longo do dia (`carinaeos-ceu-vivo`).
-  “Muda o papel de parede” à Eta, ou `carinaeos-fundo --proximo`.
+  `carinaeos-fundo --proximo`.
 
 ## ArtCraft Launcher
 

@@ -1,7 +1,7 @@
-# 13. Resolver problemas
+# 12. Resolver problemas
 
-Primeiro passo, sempre: **pergunte à Eta** descrevendo o problema (ou cole a mensagem de erro). Ela consulta
-este manual, corre comandos que só leem para diagnosticar e, se não souber, pesquisa na internet.
+Primeiro passo, sempre: procure a mensagem de erro neste manual (pesquisa do aplicativo Manual) e,
+se não estiver cá, na internet, entre aspas.
 
 ## Um aplicativo congelou
 
@@ -13,7 +13,7 @@ Terminal: `pkill nome` ou `kill -9 PID`.
 1. Espere 30 s (pode ser falta de memória).
 2. **Ctrl+Alt+F3** → consola de texto. Entre e use `htop` para matar o culpado. **Ctrl+Alt+F2** (ou F1) volta ao gráfico.
 3. Reiniciar o ambiente gráfico (Plasma): `systemctl --user restart plasma-plasmashell`.
-4. Último recurso: **Alt+PrintScreen + R E I S U B** (capítulo 10).
+4. Último recurso: **Alt+PrintScreen + R E I S U B** (capítulo 9).
 
 ## A barra de cima ou a Dock desapareceram / estão estranhas
 
@@ -22,9 +22,9 @@ Terminal: `pkill nome` ou `kill -9 PID`.
 ## Não arranca / tela preta
 
 - No GRUB, escolha *Opções avançadas* › o kernel anterior.
-- Tela preta com NVIDIA: no GRUB carregue **e**, acrescente `nomodeset` à linha `linux`, Ctrl+X; depois instale o driver (capítulo 8).
+- Tela preta com NVIDIA: no GRUB carregue **e**, acrescente `nomodeset` à linha `linux`, Ctrl+X; depois instale o driver (capítulo 7).
 - Disco com erros: arranque com a pen drive do CarinaeOS e corra `sudo e2fsck -f /dev/sdXN`.
-- Recuperar o GRUB (Windows por cima): arranque a pen drive, monte o sistema e reinstale o grub, ou peça ajuda à Eta com a mensagem exata.
+- Recuperar o GRUB (Windows por cima): arranque a pen drive, monte o sistema e reinstale o grub.
 
 ## Sem internet
 
@@ -46,20 +46,16 @@ sudo apt update
 ```
 
 - “Could not get lock”: outra instalação está a correr (Órbita, Discover, atualizações automáticas); espere ou feche-as.
-- Erros de assinatura/repositório: veja os arquivos em `/etc/apt/sources.list.d/` de terceiros (capítulo 9).
+- Erros de assinatura/repositório: veja os arquivos em `/etc/apt/sources.list.d/` de terceiros (capítulo 8).
 - Falta espaço: `df -h`, `sudo apt clean`, esvazie a Lixeira.
 
 ## O HD da rede / NAS não liga
 
-Veja a tabela do capítulo 6 (SMB1, senha, IP, permissões).
+Veja a tabela do capítulo 5 (SMB1, senha, IP, permissões).
 
 ## O AppImage não abre
 
-Capítulo 7 (FUSE, WebKit, `--appimage-extract-and-run`, correr no terminal para ver o erro).
-
-## A Eta está lenta ou ocupa muita memória
-
-⚙ › Cérebro da Eta › **Leve**, ou **Desligado**, ou um cérebro **na nuvem**. Ela sai da memória sozinha ao fim de 5 minutos sem uso.
+Capítulo 6 (FUSE, WebKit, `--appimage-extract-and-run`, correr no terminal para ver o erro).
 
 ## A Casa não liga ao Home Assistant
 
@@ -86,4 +82,4 @@ journalctl -b -p err --no-pager | tail -50
 sudo dmesg -T | tail -50
 ```
 
-Cole o resultado na Eta, ou num pedido de ajuda (fórum/issue no GitHub do CarinaeOS).
+Cole o resultado num pedido de ajuda (fórum/issue no GitHub do CarinaeOS).

@@ -49,10 +49,9 @@ for n in 64 128 256; do
   cp $M/logo-text-$n.png $M/logo-text-version-$n.png
 done
 
-# manual do CarinaeOS (aplicativo Manual e memoria da Eta)
+# manual do CarinaeOS (aplicativo Manual)
 install -d $I/usr/share/doc/carinaeos/manual
 install -m644 ../docs/manual/*.md $I/usr/share/doc/carinaeos/manual/
-python3 $I/usr/share/carinaeos/eta/manual.py ../docs/manual $I/usr/share/carinaeos/eta/manual.json
 find $I/usr/share/carinaeos -name __pycache__ -prune -exec rm -rf {} +
 
 # visual "Vidro" (Kvantum + Aurorae + icones WhiteSur, com as cores do CarinaeOS)
@@ -84,45 +83,8 @@ install -m644 arte/grub.png                   $U/carinaeos/grub.png
 install -m644 arte/calamares-*.png arte/calamares-*.jpg $I/etc/calamares/branding/carinaeos/
 
 # Dock: lancadores das aplicacoes que existem nesta edicao
-sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:carinaeos-central.desktop,applications:carinaeos-orbita.desktop,applications:carinaeos-eta.desktop,applications:org.kde.merkuro.calendar.desktop,applications:systemsettings.desktop</default>#' \
+sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:carinaeos-central.desktop,applications:carinaeos-orbita.desktop,applications:org.kde.merkuro.calendar.desktop,applications:systemsettings.desktop</default>#' \
   $U/plasma/plasmoids/org.carinaeos.dock/contents/config/main.xml
-
-# ---- Eta: motor de IA local (llama.cpp, so o servidor, para CPU) -----------------
-# compilado aqui (Debian 13) uma vez e guardado em cache; o modelo e baixado pelo
-# usuario na primeira vez que ativa a IA (1,1 GB)
-LLAMA_VERSAO=b12233
-LC=cache/llama-$LLAMA_VERSAO
-if [ ! -x $LC/llama-server ]; then
-  rm -rf cache/llama-src && mkdir -p cache
-  git clone -q --depth 1 --branch $LLAMA_VERSAO https://github.com/ggml-org/llama.cpp cache/llama-src
-  cmake -S cache/llama-src -B cache/llama-src/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF \
-        -DLLAMA_CURL=OFF -DBUILD_SHARED_LIBS=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF \
-        -DLLAMA_BUILD_SERVER=ON >/dev/null
-  cmake --build cache/llama-src/build --target llama-server -j"$(nproc)"
-  mkdir -p $LC && install -m755 cache/llama-src/build/bin/llama-server $LC/
-  cp cache/llama-src/LICENSE $LC/LICENSE
-  rm -rf cache/llama-src
-fi
-install -d $I/opt/carinaeos/llama
-install -m755 $LC/llama-server $I/opt/carinaeos/llama/
-install -m644 $LC/LICENSE $I/opt/carinaeos/llama/LICENSE
-
-# ---- Eta: ouvido (whisper.cpp, reconhecimento de fala no proprio computador) --------
-WHISPER_VERSAO=v1.9.5
-WC=cache/whisper-$WHISPER_VERSAO
-if [ ! -x $WC/whisper-cli ]; then
-  rm -rf cache/whisper-src && mkdir -p cache
-  git clone -q --depth 1 --branch $WHISPER_VERSAO https://github.com/ggml-org/whisper.cpp cache/whisper-src
-  cmake -S cache/whisper-src -B cache/whisper-src/build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF \
-        -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_SDL2=OFF >/dev/null
-  cmake --build cache/whisper-src/build --target whisper-cli -j"$(nproc)"
-  mkdir -p $WC && install -m755 cache/whisper-src/build/bin/whisper-cli $WC/
-  cp cache/whisper-src/LICENSE $WC/LICENSE
-  rm -rf cache/whisper-src
-fi
-install -d $I/opt/carinaeos/whisper
-install -m755 $WC/whisper-cli $I/opt/carinaeos/whisper/
-install -m644 $WC/LICENSE $I/opt/carinaeos/whisper/LICENSE
 
 # ---- menus de arranque da ISO (BIOS: syslinux; UEFI: GRUB) ----------------------
 B=config/bootloaders
