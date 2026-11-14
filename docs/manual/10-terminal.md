@@ -334,12 +334,12 @@ fi
 
 | Comando | O que faz |
 |---|---|
-| `carinaeos-comando` | abre o Comando (Ctrl+Espaço) |
+| `carinaeos-comando` | abre a Pesquisa (Ctrl+Espaço) |
+| `carinaeos-configuracoes [página]` | Configurações (wifi, som, ecras, aparencia, sistema…) |
 | `carinaeos-central [página]` | Central (calendarios, janelas, drivers, ssh, privacidade, entrada) |
 | `carinaeos-supernova` | personalização |
 | `carinaeos-orbita` | loja de aplicativos |
 | `carinaeos-casa` | Home Assistant |
-| `carinaeos-ambientes` | estilos Mac/Windows, GNOME, XFCE |
 | `carinaeos-cadeado trancar\|abrir <pasta>` | trancar/abrir com senha |
 | `carinaeos-cadeado aplicativos` | aplicativos com senha |
 | `carinaeos-etiquetas pôr <cor> <arquivo>` / `tirar` / `listar` | etiquetas |
