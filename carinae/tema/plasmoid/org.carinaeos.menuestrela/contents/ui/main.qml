@@ -65,7 +65,7 @@ PlasmoidItem {
         PlasmaExtras.MenuItem { text: "Sobre este computador"; icon: "carinaeos"; onClicked: raiz.correr("kinfocenter") }
         PlasmaExtras.MenuItem { separator: true }
         PlasmaExtras.MenuItem { text: "Comando…  (Ctrl+Espaço)"; icon: "search"; onClicked: raiz.correr("carinaeos-comando") }
-        PlasmaExtras.MenuItem { text: "Configurações do Sistema…"; icon: "preferences-system"; onClicked: raiz.correr("systemsettings") }
+        PlasmaExtras.MenuItem { text: "Configurações…"; icon: "preferences-system"; onClicked: raiz.correr("carinaeos-configuracoes") }
         PlasmaExtras.MenuItem { text: "Supernova — personalizar…"; icon: "carinaeos-supernova"; onClicked: raiz.correr("carinaeos-supernova") }
         PlasmaExtras.MenuItem { text: "Órbita — loja de aplicativos…"; icon: "carinaeos-orbita"; onClicked: raiz.correr("carinaeos-orbita") }
         PlasmaExtras.MenuItem { separator: true }

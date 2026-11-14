@@ -1,6 +1,6 @@
 # 4. Arquivos e discos
 
-## O gerenciador de arquivos (Arquivos / Dolphin)
+## Os Arquivos
 
 - **Barra lateral:** Início, Área de trabalho, Documentos, Downloads, Música, Imagens, Vídeos, Lixeira,
   as etiquetas coloridas, **Rede** e os **Dispositivos** (discos, pen drives, telemóveis).
@@ -11,7 +11,7 @@
 - **Pré-visualização:** espaço ou F11 (painel de informações).
 - **Botão direito:** Comprimir/Extrair (Ark), Trancar com senha, Etiquetas, Adicionar à Dock,
   Abrir com…, Partilhar, Propriedades (permissões).
-- **Abrir como administrador:** não abra o Dolphin com sudo; use o endereço `admin:/` (ex.: `admin:/etc`).
+- **Abrir como administrador:** não abra os Arquivos com sudo; use o endereço `admin:/` (ex.: `admin:/etc`).
 
 ## Pen drives, HD externos e cartões
 
@@ -22,7 +22,7 @@ Antes de tirar, clique no ⏏ (ejetar) para gravar tudo com segurança.
 - **HD cifrado (LUKS/BitLocker):** ao abrir pede a senha. BitLocker funciona se tiver a chave de recuperação ou a senha.
 - **Formatos:** lê e escreve NTFS (Windows), exFAT e FAT32 (pen drives, câmaras), ext4 (Linux), Btrfs e XFS.
   HFS+ (Mac) só leitura. APFS precisa de ferramentas extra.
-- **Formatar:** abra o **Gerenciador de partições** (KDE Partition Manager), escolha o disco, botão direito ›
+- **Formatar:** abra o **Discos e partições**, escolha o disco, botão direito ›
   Formatar. Para usar em Windows e Mac: **exFAT**. Só em Linux: **ext4**.
 - **Pelo terminal:**
 
@@ -86,6 +86,6 @@ $ 7z x arquivo.7z                # extrair 7z (sudo apt install 7zip)
 ## Telemóveis
 
 - **Android:** ligue por cabo e escolha *Transferência de arquivos* no telemóvel; aparece nos Dispositivos.
-  Melhor ainda: **KDE Connect** (Órbita + app no telemóvel) para partilhar arquivos, notificações,
+  Melhor ainda: **Telemóvel** (o aplicativo, com o KDE Connect instalado no telemóvel) para partilhar arquivos, notificações,
   área de transferência e controlar o PC pela rede.
-- **iPhone:** fotos por cabo (aparece como câmara). Para arquivos, use a nuvem ou o KDE Connect.
+- **iPhone:** fotos por cabo (aparece como câmara). Para arquivos, use a nuvem ou o aplicativo Telemóvel.

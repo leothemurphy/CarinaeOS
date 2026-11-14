@@ -232,7 +232,7 @@ ApplicationWindow {
                     { id: "dock", nome: "Dock", icone: "carinaeos-estrela" },
                     { id: "janelas", nome: "Janelas", icone: "window" },
                     { id: "mesa", nome: "Área de trabalho", icone: "user-desktop" },
-                    { id: "ambiente", nome: "Ambiente de trabalho", icone: "preferences-desktop" }
+
                 ]
                 delegate: Rectangle {
                     required property var modelData

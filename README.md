@@ -5,7 +5,7 @@
 <p align="center">
   <a href="../../releases"><b>⬇ Baixar a ISO</b></a> ·
   <a href="#-experimentar-em-5-minutos">Experimentar</a> ·
-  <a href="#-launchpad-comando-e-deck">Launchpad, Comando e Deck</a> ·
+  <a href="#-launchpad-pesquisa-e-deck">Launchpad, Pesquisa e Deck</a> ·
   <a href="#-como-é-feito">Como é feito</a>
 </p>
 
@@ -14,8 +14,8 @@
 **CarinaeOS** é um sistema operacional para computadores, feito para quem quer um Linux
 **bonito e fácil desde o primeiro minuto**, sem precisar abrir o terminal.
 Ele junta a solidez do **Debian 13** com o **KDE Plasma 6** e dá-lhe uma cara nova: Dock com lupa,
-barra no topo, um Launchpad em vidro fosco com categorias e Deck, a barra **Comando**
-(<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>), uma loja de aplicativos própria e um painel de efeitos.
+barra no topo, um Launchpad em vidro fosco com categorias e Deck, a **Pesquisa** com ações
+(<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>), Configurações e instalador no estilo do Fedora, uma loja de aplicativos própria e um painel de efeitos.
 
 O nome vem de **Eta Carinae**, uma das estrelas mais brilhantes e instáveis da nossa galáxia.
 A estrela de quatro pontas é o símbolo do sistema; o papel de parede é uma nebulosa violeta
@@ -82,11 +82,13 @@ E ainda:
 - **Sessão sem rastro**: “Convidado” na tela de entrada; tudo vive na memória e desaparece ao sair.
 - **Modo escuro em todo o lado**, até no Chrome, no Firefox e nos aplicativos GTK e Flatpak.
 - **Janelas de senha com a marca CarinaeOS** sempre que o sistema pede permissão.
-- **Estilo Mac ou estilo Windows 11**: barra em cima e Dock em baixo, ou barra de tarefas ao centro com a estrela no menu Iniciar. E também **GNOME** e **XFCE**, instalados com um clique e sempre com a Dock visível, o tema e os papéis de parede do CarinaeOS.
+- **Um só estilo, o do CarinaeOS**: barra em cima, Dock em baixo, e nenhum nome técnico à vista — o Terminal é “Terminal”, o visualizador de fotos é “Fotos”, o de PDF é “Documentos”.
+- **Configurações próprias**, como as do Fedora: Wi-Fi, Bluetooth, ecrãs, som, energia, aparência, pesquisa, partilha, data e hora, utilizadores e “Sistema” (sobre o computador).
+- **Instalador e configuração inicial como no Fedora**: passos numerados à esquerda e, no primeiro arranque, Wi-Fi, privacidade, aparência e contas online.
 - **Casa**: painéis do Home Assistant que monta como quiser (leves, sem travar, mesmo com centenas de aparelhos), com 13 tipos de cartões (botão, luz, lista, sensor,
   gráfico de 24 h, clima, cenas, som e TV, câmara, estores, tempo, número, texto), e este PC como dispositivo no Home Assistant.
 - **Calendários**: conta Google, iCloud (CalDAV) ou qualquer endereço iCal (Google, iCloud, Outlook, feriados), e **Mapas**.
-- **Etiquetas** coloridas nos Arquivos, como no Finder, na barra lateral (GNOME e XFCE também), até em pastas de rede.
+- **Etiquetas** coloridas nos Arquivos, como no Finder, na barra lateral, até em pastas de rede.
 - **Papéis de parede em 8K**: o céu do Atacama com a estrela, fotografias do James Webb e do Hubble e desenhos originais.
 - **ArtCraft Launcher** já instalado, para baixar os aplicativos da Craft App Suite.
 - **AppImage com duplo clique** (por exemplo o Elegoo Slicer para impressoras 3D): o CarinaeOS instala-o no menu,
@@ -94,18 +96,18 @@ E ainda:
 - **Tela de entrada à sua maneira**: a sua foto e a imagem de fundo do login (Central › Tela de entrada).
 - **Todas as janelas com os botões do Mac à esquerda**, com as mesmas cores, também nos aplicativos GTK e nos
   navegadores (Chrome, Chromium, Firefox).
-- **Barra de cima em todos os estilos** (Mac, Windows 11, GNOME e XFCE), com o nome do aplicativo em negrito e o seu menu.
+- **Barra de cima** com o nome do aplicativo em negrito, o seu menu e a lupa da Pesquisa.
 - **NumLock ligado** ao entrar, para escrever a senha logo.
 - **Boas-vindas** depois de instalar, a mostrar tudo o que o sistema tem.
 
 - **Acesso remoto por SSH** com um interruptor (Central › Acesso remoto), com o comando certo para entrar a partir de outro computador.
 - **Cadeado em pastas, arquivos e aplicativos**: botão direito → *Trancar com senha*. A pasta fica no mesmo
-  sítio com um cadeado e só abre com a senha (cifrada com AES-256). Funciona no Plasma, no GNOME e no XFCE.
+  sítio com um cadeado e só abre com a senha (cifrada com AES-256).
 - **Céu vivo** (liga-se no Supernova): o fundo de tela muda de tom ao longo do dia — madrugada, manhã, tarde e noite.
 - **Alt+Tab em Flip 3D**, como no Windows Vista, ou em grade, como no Mac.
 - **Tudo em português**, do arranque ao instalador.
 
-## ✦ Launchpad, Comando e Deck
+## ✦ Launchpad, Pesquisa e Deck
 
 **Launchpad** (estrela da Dock ou tecla <kbd>⊞</kbd>): o ecrã inteiro em vidro fosco sobre o papel de parede.
 À esquerda, as vistas — *Início*, *Todos os aplicativos*, *Favoritos* (os da Dock), *Mais usados* e *Deck* — e as
@@ -118,12 +120,12 @@ Escreva para pesquisar; setas e Enter também funcionam.
 terminal, transferências, monitor do sistema, todas as janelas, bloquear… Junte aplicativos (botão direito ›
 *Adicionar ao Deck*), comandos ou sites; tire com o botão direito.
 
-**Comando** (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>), inspirado no Raycast: uma barra ao centro do ecrã que mostra
-logo a **CPU, a memória, o disco livre e os programas que mais gastam**, e encontra aplicativos, comandos do
-sistema (bloquear, Wi-Fi, som, ecrãs, SSH…), **arquivos**, o **histórico da área de transferência**, faz **contas**
-(`2*3,5`), abre sites e pesquisa na web. Comece com `>` para correr um comando no terminal.
-<kbd>Ctrl</kbd>+<kbd>1…9</kbd> abre o resultado, <kbd>Ctrl</kbd>+<kbd>K</kbd> mostra as ações (mostrar na pasta,
-copiar o caminho, adicionar à Dock…).
+**Pesquisa** (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd> ou a lupa da barra de cima), no modelo da nova pesquisa do Windows:
+a caixa em baixo e os resultados por cima. Encontra **aplicativos**, **arquivos** (pelo nome e pelo conteúdo — a
+indexação vem ligada) e **configurações**, e faz **ações** ali mesmo: “diminuir volume” mostra o volume com um
+controlo deslizante e o botão *Diminuir*; “ativar modo claro”, “desligar o wi-fi”, “brilho”, “lado a lado”,
+“bloquear”… Percebe erros de escrita e sugere a palavra certa. Também faz contas, mostra o tempo (“tempo em Lisboa”),
+o uso do computador, o histórico da área de transferência, abre sites e pesquisa na web.
 
 ## 📖 Manual
 
@@ -137,7 +139,7 @@ Vem dentro do sistema como o aplicativo *Manual*, com pesquisa.
 | Atalho | O que faz |
 |---|---|
 | <kbd>⊞</kbd> (tecla Windows / ⌘) | Abre o Launchpad |
-| <kbd>Ctrl</kbd>+<kbd>Espaço</kbd> (ou <kbd>⊞</kbd>+<kbd>Espaço</kbd>) | Comando: aplicativos, arquivos, contas, área de transferência |
+| <kbd>Ctrl</kbd>+<kbd>Espaço</kbd> (ou <kbd>⊞</kbd>+<kbd>Espaço</kbd>) | Pesquisa: aplicativos, arquivos, ações e configurações |
 | <kbd>Alt</kbd>+<kbd>F2</kbd> | KRunner (a pesquisa do KDE) |
 | <kbd>Alt</kbd>+<kbd>Tab</kbd> | Troca de janela em Flip 3D |
 | <kbd>⊞</kbd>+<kbd>V</kbd> | Histórico do Ctrl+C |
@@ -199,7 +201,9 @@ carinae-debian/              a receita da ISO
 └── sistema/                 arquivos copiados para dentro do sistema
     ├── usr/bin/             carinaeos-cadeado, carinaeos-comando, carinaeos-orbita, …
     └── usr/share/carinaeos/ os aplicativos próprios (Python + Qt Quick)
-        ├── comando/         a barra Comando (Ctrl+Espaço)
+        ├── comando/         a Pesquisa (Ctrl+Espaço)
+        ├── configuracoes/   as Configurações
+        ├── boasvindas/      a configuração inicial
         ├── orbita/          a loja
         └── supernova/       o painel de efeitos
 
@@ -229,7 +233,7 @@ carinae/lfs/                 a primeira versão, feita do zero com Linux From Sc
 
 O CarinaeOS foi idealizado e desenvolvido por **Leonardo Mendes**, em parceria com o
 **Claude**, a IA da [Anthropic](https://www.anthropic.com/), do primeiro rascunho em
-Linux From Scratch à versão atual: o visual, a Dock, o Launchpad, o Comando, a Órbita, o Supernova e a receita da ISO.
+Linux From Scratch à versão atual: o visual, a Dock, o Launchpad, a Pesquisa, as Configurações, a Órbita, o Supernova e a receita da ISO.
 
 ## 🙏 Créditos
 
@@ -241,7 +245,7 @@ as fotografias do [ESO](https://www.eso.org/public/images/) (Y. Beletsky, J. Col
 e do [ESA/Webb e ESA/Hubble](https://esawebb.org/images/) (CC BY 4.0),
 o [ArtCraft Launcher](https://github.com/storytold/craft-launcher)
 e a fonte [Inter](https://rsms.me/inter/) (SIL OFL).
-O código próprio do CarinaeOS (Dock, Launchpad, Comando, Órbita, Supernova, tema) é distribuído sob a
+O código próprio do CarinaeOS (Dock, Launchpad, Pesquisa, Configurações, Órbita, Supernova, tema) é distribuído sob a
 **GPL-2.0-or-later**, como o KDE em que se baseia.
 
 <p align="center"><sub>Desenvolvido com ✦ por <b>Leonardo Mendes</b> e <b>Claude</b> (Anthropic)</sub></p>

@@ -255,7 +255,7 @@ Kicker.DashboardWindow {
         { nome: "Central", icone: "carinaeos-central", cmd: "carinaeos-central" },
         { nome: "Supernova", icone: "carinaeos-supernova", cmd: "carinaeos-supernova" },
         { nome: "Manual", icone: "help-contents", cmd: "carinaeos-manual" },
-        { nome: "Configurações", icone: "preferences-system", cmd: "systemsettings" },
+        { nome: "Configurações", icone: "preferences-system", cmd: "carinaeos-configuracoes" },
         { nome: "Bloquear", icone: "system-lock-screen", cmd: "loginctl lock-session" },
         { nome: "Suspender", icone: "system-suspend", cmd: "systemctl suspend" }
     ]

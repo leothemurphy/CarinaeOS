@@ -3,12 +3,12 @@ componentName:   carinaeos
 welcomeStyleCalamares: true
 welcomeExpandingLogo: true
 windowExpanding: normal
-windowSize: 900px,620px
+windowSize: 1000px,680px
 windowPlacement: center
 strings:
     productName:         CarinaeOS
     shortProductName:    CarinaeOS
-    version:             1.0 "Eta"
+    version:             1.0
     shortVersion:        1.0
     versionedName:       CarinaeOS 1.0
     shortVersionedName:  CarinaeOS 1.0
@@ -18,8 +18,8 @@ strings:
     knownIssuesUrl:      https://github.com/leothemurphy/carinaeos/issues
     releaseNotesUrl:     https://github.com/leothemurphy/carinaeos
     donateUrl:           https://github.com/leothemurphy/carinaeos
-sidebar: widget
-navigation: widget
+sidebar: qml
+navigation: qml
 images:
     productLogo:         "calamares-logo.png"
     productIcon:         "calamares-logo.png"
@@ -32,7 +32,7 @@ slideshow:
     - "calamares-slide4.jpg"
     - "calamares-slide5.jpg"
 style:
-   SidebarBackground:        "#14101c"
-   SidebarText:              "#f2ece4"
+   SidebarBackground:        "#16141d"
+   SidebarText:              "#d2d2d2"
    SidebarTextCurrent:       "#ffffff"
-   SidebarBackgroundCurrent: "#3b2a4f"
+   SidebarBackgroundCurrent: "#24303f"

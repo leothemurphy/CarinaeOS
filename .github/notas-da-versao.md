@@ -19,7 +19,9 @@ A sessão de teste entra sozinha, sem senha. Para instalar, abra **Instalar o Ca
 ### Novidades desta versão
 - **Launchpad novo**, em vidro fosco: categorias em cartões coloridos, Todos, Favoritos, Mais usados, e o detalhe de cada aplicativo (descrição, Abrir, ações rápidas, Fixar na Dock).
 - **Deck**: botões grandes para as ações do dia a dia (captura, terminal, transferências, bloquear…), com os seus aplicativos, comandos e sites.
-- **Comando** (Ctrl+Espaço), como o Raycast: CPU, memória, disco e o que mais gasta, aplicativos, comandos do sistema, arquivos, histórico da área de transferência, contas, sites e web.
+- **Pesquisa** (Ctrl+Espaço ou a lupa), no modelo da nova pesquisa do Windows: aplicativos, arquivos indexados, configurações e ações ali mesmo (volume, brilho, tema, Wi-Fi, janelas), com correção de erros.
+- **Configurações** próprias, **instalador** e **configuração inicial** no estilo do Fedora.
+- **Só o estilo CarinaeOS** (saíram GNOME, XFCE e Windows 11) e aplicativos com nomes simples, sem “KDE” nem “Debian”.
 - **Acesso remoto (SSH)** com um interruptor na Central (desligado por omissão).
 - **Novo papel de parede**: nebulosa violeta sobre um lago espelhado (duas versões), também na tela de entrada e nas janelas de senha.
 - **A IA (Eta) saiu do sistema**: menos memória ocupada, ISO mais leve. O Manual continua, com pesquisa.

@@ -20,7 +20,6 @@ Como o Windhawk: dezenas de ajustes, cada um com vários modelos para escolher.
 - **Mesa:** clicar no papel de parede para mostrar a mesa, cantos ativos, cursor, luz noturna.
 - **Perfis prontos:** Mac, Vista, XP, Supernova, Rosé Pine, Leve. *Restaurar* volta ao original.
 
-Funciona no Plasma, no GNOME e no XFCE (cada ajuste usa o mecanismo de cada ambiente).
 
 ## Órbita — loja de aplicativos
 
@@ -62,7 +61,7 @@ O Calendário (Merkuro) e o relógio da barra mostram os eventos de:
 - **Pastas e arquivos:** botão direito › **Trancar com senha**. A pasta continua no mesmo sítio, com um
   cadeado, e só abre com a senha (duplo clique). Por dentro fica cifrada com AES-256 (GnuPG): sem a senha,
   ninguém lê nada — nem o administrador. Ao abrir, aparece um aviso com *Trancar de novo*.
-  Arquivos trancados ficam com o nome `nome.ext.trancado`. Funciona no Plasma, GNOME e XFCE, e em pastas de rede.
+  Arquivos trancados ficam com o nome `nome.ext.trancado`. Funciona também em pastas de rede.
 - **Aplicativos:** Central › Cadeado › Aplicativos: marque os que devem pedir senha para abrir.
 - **Cofres (Plasma Vault):** pastas cifradas que se abrem e fecham pelo cadeado da bandeja.
 - Pelo terminal: `carinaeos-cadeado trancar <pasta>`, `carinaeos-cadeado abrir <pasta>`.

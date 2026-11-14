@@ -90,18 +90,18 @@ COMANDOS = [
     ('Papel de parede seguinte', 'Fundos do CarinaeOS', 'preferences-desktop-wallpaper', 'carinaeos-fundo --proximo', 'wallpaper fundo'),
     ('Abrir a lixeira', 'Arquivos', 'user-trash', 'dolphin trash:/', 'lixo reciclagem'),
     ('Transferências', 'Pasta', 'folder-download', 'xdg-open "$(xdg-user-dir DOWNLOAD)"', 'downloads'),
-    ('Wi-Fi e rede', 'Configurações', 'network-wireless', 'systemsettings kcm_networkmanagement', 'internet rede wifi'),
-    ('Bluetooth', 'Configurações', 'preferences-system-bluetooth', 'systemsettings kcm_bluetooth', 'fones'),
-    ('Som', 'Configurações', 'audio-volume-high', 'systemsettings kcm_pulseaudio', 'audio volume altifalantes'),
-    ('Ecrãs e monitores', 'Configurações', 'video-display', 'systemsettings kcm_kscreen', 'monitor resolucao tela'),
-    ('Impressoras', 'Configurações', 'printer', 'systemsettings kcm_printer_manager', 'imprimir'),
+    ('Wi-Fi e rede', 'Configurações', 'network-wireless', 'kcmshell6 kcm_networkmanagement', 'internet rede wifi'),
+    ('Bluetooth', 'Configurações', 'preferences-system-bluetooth', 'kcmshell6 kcm_bluetooth', 'fones'),
+    ('Som', 'Configurações', 'audio-volume-high', 'kcmshell6 kcm_pulseaudio', 'audio volume altifalantes'),
+    ('Ecrãs e monitores', 'Configurações', 'video-display', 'kcmshell6 kcm_kscreen', 'monitor resolucao tela'),
+    ('Impressoras', 'Configurações', 'printer', 'kcmshell6 kcm_printer_manager', 'imprimir'),
     ('Acesso remoto (SSH)', 'Central', 'network-server', 'carinaeos-central ssh', 'ssh remoto servidor'),
     ('Drivers e hardware', 'Central', 'preferences-system', 'carinaeos-central drivers', 'driver nvidia placa'),
     ('Central do CarinaeOS', 'Todas as ferramentas', 'carinaeos-central', 'carinaeos-central', 'ferramentas'),
     ('Supernova', 'Personalizar o visual', 'carinaeos-supernova', 'carinaeos-supernova', 'tema visual dock'),
     ('Órbita', 'Loja de aplicativos', 'carinaeos-orbita', 'carinaeos-orbita', 'loja instalar store'),
     ('Manual do CarinaeOS', 'Ajuda e comandos', 'help-contents', 'carinaeos-manual', 'ajuda help guia'),
-    ('Configurações do sistema', 'Tudo', 'preferences-system', 'systemsettings', 'definicoes settings'),
+    ('Configurações', 'Wi-Fi, som, ecrãs, aparência…', 'preferences-system', 'carinaeos-configuracoes', 'definicoes settings'),
 ]
 
 SUGESTOES_PADRAO = ['@clip', 'plasma-systemmonitor', 'spectacle -r', 'carinaeos-central']
@@ -270,7 +270,7 @@ class Comando(QObject):
             if c in cmds and not any(x['alvo'] == c for x in r):
                 k = cmds[c]
                 r.append(self._item('Sugestões', 'cmd', k[0], k[1], k[2], k[3]))
-        outros = [self._item('Outros', 'cmd', 'Configurações do sistema', 'Tudo', 'preferences-system', 'systemsettings'),
+        outros = [self._item('Outros', 'cmd', 'Configurações', 'Wi-Fi, som, ecrãs, aparência…', 'preferences-system', 'carinaeos-configuracoes'),
                   self._item('Outros', 'cmd', 'Manual do CarinaeOS', 'Ajuda e comandos', 'help-contents', 'carinaeos-manual')]
         return r + outros
 
@@ -576,7 +576,7 @@ class Comando(QObject):
         if acao == 'abrir':
             return self.executar(i)
         if acao == 'definicoes':
-            correr('systemsettings')
+            correr('carinaeos-configuracoes')
         elif acao == 'pasta':
             correr(['dolphin', '--select', it['alvo']])
         elif acao == 'copiar':

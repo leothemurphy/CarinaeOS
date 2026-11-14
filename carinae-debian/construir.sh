@@ -28,7 +28,6 @@ cp -a $T/plasmoid/org.carinaeos.pesquisa     $U/plasma/plasmoids/
 install -d $U/plasma/desktoptheme
 cp -a $T/plasmastyle/carinaeos               $U/plasma/desktoptheme/
 cp -a $T/lookandfeel/org.carinaeos.desktop    $U/plasma/look-and-feel/
-cp -a $T/lookandfeel/org.carinaeos.windows    $U/plasma/look-and-feel/
 cp -a $T/wallpaper/CarinaeOS                  $U/wallpapers/
 # marca CarinaeOS em PNG, para substituir os logotipos do Debian (desktop-base, emblemas)
 M=$U/carinaeos/marca
@@ -84,7 +83,7 @@ install -m644 arte/grub.png                   $U/carinaeos/grub.png
 install -m644 arte/calamares-*.png arte/calamares-*.jpg $I/etc/calamares/branding/carinaeos/
 
 # Dock: lancadores das aplicacoes que existem nesta edicao
-sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:carinaeos-central.desktop,applications:carinaeos-orbita.desktop,applications:org.kde.merkuro.calendar.desktop,applications:systemsettings.desktop</default>#' \
+sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:carinaeos-central.desktop,applications:carinaeos-orbita.desktop,applications:org.kde.merkuro.calendar.desktop,applications:carinaeos-configuracoes.desktop</default>#' \
   $U/plasma/plasmoids/org.carinaeos.dock/contents/config/main.xml
 
 # ---- menus de arranque da ISO (BIOS: syslinux; UEFI: GRUB) ----------------------

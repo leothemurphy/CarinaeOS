@@ -4,12 +4,12 @@
 
 Da esquerda para a direita:
 
-- **★ Menu estrela:** Sobre este computador, Comando, Configurações do Sistema, Órbita (loja), Central,
+- **★ Menu estrela:** Sobre este computador, Pesquisa, Configurações, Órbita (loja), Central,
   Forçar saída, Suspender, Reiniciar, Desligar, Terminar sessão.
 - **Nome do aplicativo ativo** em negrito. Clicar nele abre o menu da janela: nova janela, minimizar,
   ecrã inteiro, manter por cima e fechar. Funciona com todos os aplicativos, também os que não têm
   menus na barra, como o Chrome.
-- **Menus do aplicativo** (Arquivo, Editar, Exibir…), como no Mac. Os aplicativos KDE e a maioria
+- **Menus do aplicativo** (Arquivo, Editar, Exibir…), como no Mac. A maioria
   dos Qt e GTK mostram-nos aqui. O Chrome, o Firefox e os aplicativos Electron têm os menus na própria janela.
 - À direita, a **bandeja**: rede, som, brilho, Bluetooth, bateria, área de transferência, notificações,
   teclado (PT), e o **relógio**. Clicar no relógio abre o calendário com os seus eventos.
@@ -54,30 +54,29 @@ Central, Supernova, Manual, configurações, bloquear e suspender.
 - **Tirar:** botão direito no botão › *Tirar do Deck*. *Repor o Deck original* volta ao início.
 - Fica guardado em `~/.config/carinaeos-deck.json`.
 
-## Comando (Ctrl+Espaço)
+## Pesquisa (Ctrl+Espaço)
 
-**Ctrl+Espaço** (ou ⊞+Espaço) abre o **Comando**, uma barra ao centro do ecrã inspirada no Raycast:
+**Ctrl+Espaço**, **⊞+Espaço** ou a **lupa** da barra de cima abrem a **Pesquisa**, no modelo da nova pesquisa
+do Windows: a caixa fica em baixo, encostada à Dock, e os resultados aparecem por cima.
 
-- Em cima, o **estado do computador**: CPU, memória usada, disco livre, e os programas que mais
-  gastam CPU e memória.
-- Sem escrever nada, **sugestões** (o que mais usa). Escrevendo, aparecem:
-    - **Aplicativos** (também pelas iniciais: `gc` → Google Chrome);
-    - **Comandos** do sistema: bloquear, suspender, desligar, captura de ecrã ou de uma região, gravar
-      o ecrã, Wi-Fi, Bluetooth, som, ecrãs, impressoras, SSH, drivers, papel de parede seguinte…;
-    - **Arquivos** da pasta pessoal (pelo índice de arquivos do KDE);
-    - **Contas** (`2*3,5+1`, `(10+5)/3`, `2^10`) — Enter copia o resultado;
-    - **Sites** (`youtube.com`) e **pesquisa na web**.
-- **Histórico da área de transferência:** escolha-o na lista (ou escreva “histórico”) para ver e
-  procurar tudo o que copiou; Enter copia de novo. Esc volta.
-- Começar com **`>`** corre o resto num terminal (ex.: `> sudo apt update`).
-- **Ctrl+1…9** abre o resultado com esse número; **Ctrl+K** mostra as ações do resultado (mostrar na
-  pasta, copiar o caminho, ações do aplicativo, adicionar à Dock…). Esc fecha.
-- A pesquisa clássica do KDE (KRunner) continua em **Alt+F2**.
+- **Aplicativos** (também pelas iniciais: `gc` → Google Chrome), **configurações** e **arquivos** — pelo nome
+  e pelo conteúdo, porque a indexação vem ligada (Configurações › Pesquisa).
+- **Ações feitas ali mesmo**, marcadas com *Ação*:
+    - “diminuir volume” / “aumentar volume” mostram o volume com um controlo deslizante;
+    - “brilho”, “ativar modo claro”, “modo escuro”, “desligar o wi-fi”, “ligar bluetooth”, “silenciar”;
+    - “lado a lado”, “maximizar”, “minimizar tudo”, “todas as janelas”;
+    - “bloquear”, “suspender”, “reiniciar”, “desligar”, “captura de ecrã”, “recortar ecrã”.
+- **Erros de escrita** não fazem mal (“diminiuir volume” funciona) e aparecem sugestões da palavra certa
+  por cima da caixa — Tab aceita a primeira.
+- **Contas** (`2*3,5+1`), **o tempo** (“tempo em Lisboa”), **uso do computador** (“memória”, “cpu”),
+  **sites** (`youtube.com`), **pesquisa na web** e o **histórico da área de transferência** (“histórico”).
+- O botão azul em baixo faz o principal (*Abrir*, *Diminuir*, *Aplicar*…); **···** ou **Ctrl+K** mostram mais
+  opções (mostrar na pasta, copiar o caminho, adicionar à Dock…). Começar com **`>`** corre um comando no terminal.
 
 ## Janelas
 
 - Botões à esquerda, como no Mac: **vermelho** fecha, **amarelo** minimiza, **verde** maximiza.
-  São iguais em todos os aplicativos (KDE, GTK, Chrome, Firefox).
+  São iguais em todos os aplicativos, também no Chrome e no Firefox.
 - **Encostar a meio ecrã:** arraste para a borda, ou ⊞+← / ⊞+→. ⊞+↑ maximiza, ⊞+↓ restaura/minimiza.
 - **Zonas (como o FancyZones):** Central › Janelas em zonas › escolha um esquema (duas ou três colunas,
   grade 2×2, principal + duas…). Depois arraste uma janela **com Shift carregado** e solte-a numa zona.
@@ -102,7 +101,7 @@ o que colar. No ícone da prancheta da bandeja pode fixar itens, editar e limpar
 | Atalho | O que faz |
 |---|---|
 | ⊞ | Launchpad |
-| Ctrl+Espaço / ⊞+Espaço | Comando (aplicativos, arquivos, contas, área de transferência) |
+| Ctrl+Espaço / ⊞+Espaço | Pesquisa (aplicativos, arquivos, ações, configurações) |
 | Alt+F2 | KRunner |
 | ⊞+V | Histórico do Ctrl+C |
 | ⊞+W | Todas as janelas e áreas de trabalho |
@@ -123,18 +122,29 @@ o que colar. No ícone da prancheta da bandeja pode fixar itens, editar e limpar
 
 Todos os atalhos podem ser mudados em Configurações › Teclado › Atalhos.
 
-## Estilos e ambientes
+## Configurações
 
-Central › **Ambiente e estilo** troca o visual inteiro:
+**Configurações** (menu estrela, Launchpad, Deck ou a Pesquisa: “configurações”) reúne tudo, como no Fedora:
+uma lista de secções à esquerda, com pesquisa, e páginas simples à direita.
 
-- **Estilo Mac** (padrão): barra de cima + Dock em baixo.
-- **Estilo Windows 11**: barra de cima + barra de tarefas em baixo com os ícones ao centro e o menu
-  Iniciar com a estrela.
-- **GNOME** (baixa cerca de 900 MB): barra de cima com o menu estrela e Dock com as animações do Mac.
-- **XFCE** (baixa cerca de 300 MB): leve, para computadores antigos, com barra em cima e Dock (Plank).
+- **Wi-Fi e Rede:** ligar e desligar, escolher a rede (pede a senha), ver o endereço IP.
+- **Bluetooth:** ligar e desligar, aparelhos emparelhados, *Adicionar um aparelho*.
+- **Ecrãs:** brilho, luz noturna; resolução, escala e posição em *Mais opções*.
+- **Som:** volume de saída e do microfone.
+- **Energia:** bateria e modo (Desempenho, Equilibrado, Poupança).
+- **Aparência:** escuro ou claro, e o papel de parede.
+- **Pesquisa:** ligar ou desligar a indexação dos arquivos.
+- **Privacidade e segurança, Partilha (SSH), Data e hora, Utilizadores.**
+- **Sistema:** sobre o computador — processador, memória, disco, placa gráfica — e atalhos para
+  atualizações, drivers e este manual.
 
-Os ambientes GNOME e XFCE aparecem na tela de entrada (botão da sessão, no canto). Os papéis de parede,
-os ícones e os botões das janelas do CarinaeOS vêm com eles.
+Cada página tem **Mais opções…** para os ajustes avançados.
+
+## A configuração inicial
+
+No primeiro arranque depois de instalar aparece a **Configuração inicial**: boas-vindas, Wi-Fi,
+privacidade (localização e relatórios de falhas), aparência e contas online (Google, iCloud, Nextcloud).
+Termina com *Começar a usar o CarinaeOS*.
 
 ## Aparência
 
