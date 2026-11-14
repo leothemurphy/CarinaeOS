@@ -1,5 +1,7 @@
 # 5. Rede, HD na rede e pastas partilhadas
 
+> **O mais fácil:** Configurações › **Rede** › *Ligar a um servidor* — escreva `192.168.1.20/fotos` (ou `\\nas\fotos`, como no Windows) e carregue em *Ligar*. Fica na barra lateral de **Meus documentos**. Para partilhar uma pasta deste computador: Configurações › **Partilha** › *Ativar* e *Partilhar uma pasta*.
+
 ## Internet: Wi-Fi e cabo
 
 - **Wi-Fi:** ícone de rede na barra de cima › escolha a rede › senha.

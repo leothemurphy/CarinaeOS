@@ -17,10 +17,14 @@ Depois, use a ISO numa máquina virtual ou grave-a num pen drive (balenaEtcher o
 A sessão de teste entra sozinha, sem senha. Para instalar, abra **Instalar o CarinaeOS** na área de trabalho.
 
 ### Novidades desta versão
-- **Barra de cima escura**, sempre legível sobre qualquer papel de parede; os painéis e menus do sistema ficam sempre escuros.
-- **Janelas maximizadas ocupam o ecrã todo**, também por baixo da Dock.
-- **Launchpad atualiza-se sozinho**: o que instalar (Chrome, Flatpak, .deb, AppImage) aparece logo, com a secção **Instalados recentemente** e o botão *Fixar na Dock*.
-- **Slides do instalador novos**, do tamanho certo, a mostrar o Launchpad, a Pesquisa, as Configurações e o Deck.
+- **Janelas maximizadas ocupam o ecrã todo**, por baixo da Dock (agora a sério), e a **barra de cima é escura** e legível.
+- **Dock reorganizável**: arraste os ícones para os lados; botão direito › *Adicionar separador à direita* para separar por tipos.
+- **Pesquisa instantânea** com Ctrl+Espaço (fica pronta em segundo plano desde que entra).
+- **Papel de parede animado** (padrão): a nebulosa com estrelas a cintilar, estrelas cadentes e reflexos no lago — duas cenas animadas e as duas fixas, em Configurações › Aparência.
+- **Meus documentos** (o gestor de arquivos) com a barra lateral como a do Explorador do Windows: *Acesso rápido*, *Este computador*, *Rede*.
+- **Rede como no Fedora**: Configurações › Rede › *Ligar a um servidor* (192.168.1.20/fotos, \\\\nas\\fotos, sftp://…) e *Procurar computadores e NAS*; Configurações › Partilha › *Partilhar uma pasta*.
+- **Janela de senha** com uma frase simples (ex.: “Instalar o aplicativo gridcraft”) e os detalhes técnicos escondidos.
+- Slides do instalador mais lentos (20 s cada) e janela do instalador mais pequena; nome do computador automático.
 
 Da rc12: sem IA, Launchpad em vidro com Deck, Pesquisa como a do Windows (Ctrl+Espaço), Configurações, instalador e configuração inicial ao estilo do Fedora, só o estilo CarinaeOS, e a nebulosa do arranque ao ambiente de trabalho.
 

@@ -20,6 +20,8 @@ Da esquerda para a direita:
 - **Fixar** um aplicativo ou pasta: arraste-o para a Dock, ou botão direito no aplicativo aberto › *Adicionar à Dock*,
   ou nos Arquivos: botão direito numa pasta › *Adicionar à Dock*.
 - **Tirar:** botão direito › *Remover da Dock*.
+- **Reorganizar:** arraste um ícone fixado para a esquerda ou para a direita.
+- **Separadores:** botão direito num ícone › *Adicionar separador à direita* (para separar por tipos); o mesmo menu tira-o.
 - No fim estão os **Downloads** (abre uma pilha com os arquivos mais recentes) e a **Lixeira**.
 - Roda do rato sobre a Dock muda o volume; clique do meio pode fechar (configurável no Supernova).
 - Estilos, tamanho, lupa, salto ao abrir e visibilidade: Central › Supernova.

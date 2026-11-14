@@ -96,6 +96,9 @@ E ainda:
 - **Tela de entrada à sua maneira**: a sua foto e a imagem de fundo do login (Central › Tela de entrada).
 - **Todas as janelas com os botões do Mac à esquerda**, com as mesmas cores, também nos aplicativos GTK e nos
   navegadores (Chrome, Chromium, Firefox).
+- **Papel de parede animado**: a nebulosa com estrelas a cintilar, estrelas cadentes e reflexos no lago (duas cenas, mais as versões fixas).
+- **Dock reorganizável**: arraste os ícones e ponha separadores onde quiser (botão direito).
+- **Meus documentos** com a barra lateral como a do Explorador do Windows, e **pastas de rede como no Fedora** (Configurações › Rede › Ligar a um servidor; Partilha › Partilhar uma pasta).
 - **Barra de cima** escura e legível, com o nome do aplicativo em negrito, o seu menu e a lupa da Pesquisa. As janelas maximizadas ocupam o ecrã todo, também por baixo da Dock.
 - **NumLock ligado** ao entrar, para escrever a senha logo.
 - **Boas-vindas** depois de instalar, a mostrar tudo o que o sistema tem.
