@@ -268,6 +268,8 @@ Window {
                                 id: desl
                                 visible: item.model.controlo === "deslizante"
                                 width: parent.width
+                                height: 30
+                                padding: 0
                                 from: 0; to: 1
                                 value: item.model.valor
                                 onMoved: comando.definirValor(item.index, value)

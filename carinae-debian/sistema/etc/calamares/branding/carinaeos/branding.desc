@@ -1,6 +1,6 @@
 ---
 componentName:   carinaeos
-welcomeStyleCalamares: true
+welcomeStyleCalamares: false
 welcomeExpandingLogo: true
 windowExpanding: normal
 windowSize: 1000px,680px

@@ -96,6 +96,8 @@ ApplicationWindow {
     component Deslizante: Slider {
         id: ds
         width: 220
+        height: 30
+        padding: 0
         from: 0; to: 1
         background: Rectangle {
             x: ds.leftPadding; y: ds.topPadding + ds.availableHeight / 2 - 2
