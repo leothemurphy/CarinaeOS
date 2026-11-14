@@ -306,3 +306,6 @@ update-initramfs -u -k all
 # ---- menu de arranque do sistema instalado ----------------------------------------
 # (o update-grub so corre depois da instalacao; aqui fica a configuracao pronta)
 true
+
+# marca do fim da construcao: o Launchpad mostra como "Instalados recentemente" o que for mais novo do que isto
+mkdir -p /usr/lib/carinaeos && touch /usr/lib/carinaeos/.base

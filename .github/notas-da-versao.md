@@ -17,14 +17,12 @@ Depois, use a ISO numa máquina virtual ou grave-a num pen drive (balenaEtcher o
 A sessão de teste entra sozinha, sem senha. Para instalar, abra **Instalar o CarinaeOS** na área de trabalho.
 
 ### Novidades desta versão
-- **Launchpad novo**, em vidro fosco: categorias em cartões coloridos, Todos, Favoritos, Mais usados, e o detalhe de cada aplicativo (descrição, Abrir, ações rápidas, Fixar na Dock).
-- **Deck**: botões grandes para as ações do dia a dia (captura, terminal, transferências, bloquear…), com os seus aplicativos, comandos e sites.
-- **Pesquisa** (Ctrl+Espaço ou a lupa), no modelo da nova pesquisa do Windows: aplicativos, arquivos indexados, configurações e ações ali mesmo (volume, brilho, tema, Wi-Fi, janelas), com correção de erros.
-- **Configurações** próprias, **instalador** e **configuração inicial** no estilo do Fedora.
-- **Só o estilo CarinaeOS** (saíram GNOME, XFCE e Windows 11) e aplicativos com nomes simples, sem “KDE” nem “Debian”.
-- **Acesso remoto (SSH)** com um interruptor na Central (desligado por omissão).
-- **Novo papel de parede**: nebulosa violeta sobre um lago espelhado (duas versões), também na tela de entrada e nas janelas de senha.
-- **A IA (Eta) saiu do sistema**: menos memória ocupada, ISO mais leve. O Manual continua, com pesquisa.
+- **Barra de cima escura**, sempre legível sobre qualquer papel de parede; os painéis e menus do sistema ficam sempre escuros.
+- **Janelas maximizadas ocupam o ecrã todo**, também por baixo da Dock.
+- **Launchpad atualiza-se sozinho**: o que instalar (Chrome, Flatpak, .deb, AppImage) aparece logo, com a secção **Instalados recentemente** e o botão *Fixar na Dock*.
+- **Slides do instalador novos**, do tamanho certo, a mostrar o Launchpad, a Pesquisa, as Configurações e o Deck.
+
+Da rc12: sem IA, Launchpad em vidro com Deck, Pesquisa como a do Windows (Ctrl+Espaço), Configurações, instalador e configuração inicial ao estilo do Fedora, só o estilo CarinaeOS, e a nebulosa do arranque ao ambiente de trabalho.
 
 Guia completo no [README](https://github.com/leothemurphy/carinaeos#readme).
 

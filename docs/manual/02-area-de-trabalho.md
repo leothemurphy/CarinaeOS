@@ -32,7 +32,8 @@ Da esquerda para a direita:
     - *Início* — um cartão colorido por categoria (Internet, Gráficos, Multimédia, Escritório, Jogos,
       Sistema…), com os seus aplicativos; clicar num cartão mostra a categoria inteira.
       Por cima, os aplicativos usados recentemente.
-    - *Todos os aplicativos*, *Favoritos* (os que estão na Dock) e *Mais usados*.
+    - *Todos os aplicativos*, *Instalados recentemente* (o que instalou nos últimos 30 dias, também do
+      Flathub e AppImage), *Favoritos* (os que estão na Dock) e *Mais usados*.
     - *Deck* (ver abaixo).
     - Em baixo: Bloquear, Suspender, Reiniciar e Desligar.
 - **Ao centro**, a pesquisa (basta começar a escrever) e os ícones. Setas para escolher, Enter para abrir.

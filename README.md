@@ -96,7 +96,7 @@ E ainda:
 - **Tela de entrada à sua maneira**: a sua foto e a imagem de fundo do login (Central › Tela de entrada).
 - **Todas as janelas com os botões do Mac à esquerda**, com as mesmas cores, também nos aplicativos GTK e nos
   navegadores (Chrome, Chromium, Firefox).
-- **Barra de cima** com o nome do aplicativo em negrito, o seu menu e a lupa da Pesquisa.
+- **Barra de cima** escura e legível, com o nome do aplicativo em negrito, o seu menu e a lupa da Pesquisa. As janelas maximizadas ocupam o ecrã todo, também por baixo da Dock.
 - **NumLock ligado** ao entrar, para escrever a senha logo.
 - **Boas-vindas** depois de instalar, a mostrar tudo o que o sistema tem.
 
@@ -110,7 +110,7 @@ E ainda:
 ## ✦ Launchpad, Pesquisa e Deck
 
 **Launchpad** (estrela da Dock ou tecla <kbd>⊞</kbd>): o ecrã inteiro em vidro fosco sobre o papel de parede.
-À esquerda, as vistas — *Início*, *Todos os aplicativos*, *Favoritos* (os da Dock), *Mais usados* e *Deck* — e as
+À esquerda, as vistas — *Início*, *Todos os aplicativos*, *Instalados recentemente*, *Favoritos* (os da Dock), *Mais usados* e *Deck* — e as
 categorias com o número de aplicativos. No *Início*, cada categoria é um cartão colorido com os seus aplicativos
 (Internet, Gráficos, Multimédia, Jogos, Sistema…). À direita, o detalhe do aplicativo por baixo do rato:
 descrição, **Abrir**, as **ações rápidas** (Nova janela, Nova janela privada…), *Fixar na Dock* e *Adicionar ao Deck*.

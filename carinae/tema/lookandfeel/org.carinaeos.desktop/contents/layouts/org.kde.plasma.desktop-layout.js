@@ -23,7 +23,7 @@ var barra = new Panel;
 barra.location = "top";
 barra.height = 2 * Math.ceil(gridUnit * 1.4 / 2);   // fina, como a barra do Mac
 barra.floating = false;
-barra.opacity = "translucent";
+barra.opacity = "opaque";      // fundo escuro sempre (lê-se sobre qualquer papel de parede)
 
 barra.addWidget("org.carinaeos.menuestrela");   // menu estrela (como o da maca)
 
@@ -52,5 +52,5 @@ dock.floating = true;
 dock.alignment = "center";
 dock.lengthMode = "fit";
 dock.opacity = "translucent";
-dock.hiding = "none";                           // sempre visivel (como a barra de cima)
+dock.hiding = "windowsbelow";                   // sempre visivel, e as janelas maximizadas ocupam o ecra todo por baixo dela
 dock.addWidget("org.carinaeos.dock");

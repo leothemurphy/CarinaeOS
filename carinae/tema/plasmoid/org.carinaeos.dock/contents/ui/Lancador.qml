@@ -43,6 +43,7 @@ Kicker.DashboardWindow {
     property var itens: []            // todos: [{ nome, icone, linha, id, chave, desc, acoes, cat }]
     property var categorias: []       // [{ nome, icone, apps: [item...], cor }]
     property var usados: []           // chaves dos mais usados
+    property var novos: []            // chaves dos instalados nos ultimos 14 dias (mais recentes primeiro)
     property var deck: []             // [{ nome, icone, cmd } | { app: chave }]
     property string vista: "inicio"   // inicio | todos | favoritos | usados | deck | cat
     property int catAtual: -1
@@ -121,6 +122,14 @@ Kicker.DashboardWindow {
             }
             return r;
         }
+        if (vista === "novos") {
+            const r = [];
+            for (const c of novos) {
+                const x = porChave(c);
+                if (x) r.push(x);
+            }
+            return r;
+        }
         if (vista === "usados") {
             const r = [];
             for (const c of usados) {
@@ -137,6 +146,7 @@ Kicker.DashboardWindow {
         : vista === "todos" ? "Todos os aplicativos"
         : vista === "favoritos" ? "Favoritos"
         : vista === "usados" ? "Mais usados"
+        : vista === "novos" ? "Instalados recentemente"
         : vista === "deck" ? "Deck"
         : (categorias[catAtual] || { nome: "" }).nome
     readonly property string subtitulo: filtro !== "" ? contagem(lista.length)
@@ -259,6 +269,18 @@ Kicker.DashboardWindow {
         { nome: "Bloquear", icone: "system-lock-screen", cmd: "loginctl lock-session" },
         { nome: "Suspender", icone: "system-suspend", cmd: "systemctl suspend" }
     ]
+    // aplicativos instalados recentemente (Debian, Flathub, AppImage): pela data do lancador
+    readonly property P5Support.DataSource lerNovos: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            const l = (dados["stdout"] || "").split("\n").map(x => x.trim()).filter(x => x.endsWith(".desktop"));
+            const r = [];
+            for (const c of l) if (r.indexOf(c) === -1) r.push(c);
+            lp.novos = r;
+        }
+    }
     readonly property P5Support.DataSource lerDeck: P5Support.DataSource {
         engine: "executable"
         connectedSources: []
@@ -317,6 +339,11 @@ Kicker.DashboardWindow {
             busca.forceActiveFocus();
             entrada.restart();
             juntarUsados.restart();
+            // apanha os aplicativos acabados de instalar (o menu do Plasma nem sempre se atualiza sozinho)
+            Qt.callLater(() => lp.raiz.refresh());
+            lp.lerNovos.connectSource("find /usr/share/applications /usr/local/share/applications \"$HOME/.local/share/applications\" "
+                + "/var/lib/flatpak/exports/share/applications \"$HOME/.local/share/flatpak/exports/share/applications\" "
+                + "-name '*.desktop' -mtime -30 -newer /usr/lib/carinaeos/.base -printf '%T@ %f\\n' 2>/dev/null | sort -rn | cut -d' ' -f2 | head -24 #" + Date.now());
         } else {
             selecionado = null;
         }
@@ -693,6 +720,7 @@ Kicker.DashboardWindow {
                         ItemLado { u: palco.u; texto: "Início"; icone: "go-home"; ativo: lp.filtro === "" && lp.vista === "inicio"; onEscolhido: lp.mudarVista("inicio") }
                         ItemLado { u: palco.u; texto: "Todos os aplicativos"; icone: "view-app-grid"; numero: String(lp.itens.length); ativo: lp.filtro === "" && lp.vista === "todos"; onEscolhido: lp.mudarVista("todos") }
                         ItemLado { u: palco.u; texto: "Favoritos"; icone: "starred-symbolic"; numero: String(lp.dock.modelo.launcherList.length); ativo: lp.filtro === "" && lp.vista === "favoritos"; onEscolhido: lp.mudarVista("favoritos") }
+                        ItemLado { u: palco.u; texto: "Instalados recentemente"; icone: "document-new"; numero: String(lp.lista && lp.novos ? lp.novos.filter(c => lp.porChave(c) !== null).length : 0); visible: lp.novos.length > 0; ativo: lp.filtro === "" && lp.vista === "novos"; onEscolhido: lp.mudarVista("novos") }
                         ItemLado { u: palco.u; texto: "Mais usados"; icone: "office-chart-line"; visible: lp.usadosModelo !== null; ativo: lp.filtro === "" && lp.vista === "usados"; onEscolhido: lp.mudarVista("usados") }
                         ItemLado { u: palco.u; texto: "Deck"; icone: "view-grid-symbolic"; numero: String(lp.deck.length); ativo: lp.filtro === "" && lp.vista === "deck"; onEscolhido: lp.mudarVista("deck") }
 
@@ -796,7 +824,7 @@ Kicker.DashboardWindow {
                         anchors.right: parent.right
                         anchors.rightMargin: Math.round(16 * palco.u)
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "Ctrl+Espaço: Comando"
+                        text: "Ctrl+Espaço: Pesquisa"
                         color: lp.suave
                         font.pixelSize: Math.round(12 * palco.u)
                         visible: centro.width > 700
@@ -931,14 +959,20 @@ Kicker.DashboardWindow {
                             width: inicio.width
                             spacing: Math.round(18 * palco.u)
 
-                            // usados recentemente
+                            // instalados recentemente (ou, se não houver, os usados recentemente)
+                            Text {
+                                visible: lp.novos.length > 0 || lp.usados.length > 0
+                                text: lp.novos.length > 0 ? "Instalados recentemente" : "Usados recentemente"
+                                color: lp.suave
+                                font.pixelSize: Math.round(13 * palco.u)
+                            }
                             Row {
-                                visible: lp.usados.length > 0
+                                visible: lp.novos.length > 0 || lp.usados.length > 0
                                 spacing: Math.round(8 * palco.u)
                                 Repeater {
                                     model: {
                                         const r = [];
-                                        for (const c of lp.usados) {
+                                        for (const c of (lp.novos.length > 0 ? lp.novos : lp.usados)) {
                                             const x = lp.porChave(c);
                                             if (x) r.push(x);
                                             if (r.length >= Math.floor(inicio.width / Math.round(96 * palco.u))) break;

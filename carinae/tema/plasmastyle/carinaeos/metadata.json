@@ -1,7 +1,7 @@
 {
     "KPlugin": {
         "Authors": [ { "Name": "CarinaeOS" } ],
-        "Description": "Estilo do Plasma do CarinaeOS: igual ao Breeze, com as barras transparentes (a Dock desenha o seu próprio vidro)",
+        "Description": "Estilo do Plasma do CarinaeOS: igual ao Breeze, com as barras transparentes (a Dock desenha o seu próprio vidro); a barra de cima é escura e as cores dos painéis são sempre as escuras, para se lerem bem",
         "Id": "carinaeos",
         "License": "GPL-2.0-or-later",
         "Name": "CarinaeOS",
