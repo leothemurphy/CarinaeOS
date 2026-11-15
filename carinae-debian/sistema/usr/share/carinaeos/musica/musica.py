@@ -142,6 +142,7 @@ class Musica(QObject):
     mudou = Signal()
     estadoMudou = Signal()
     filaMudou = Signal()
+    listaMudou = Signal()
     bibliotecaMudou = Signal()
     letraMudou = Signal()
     capaPronta = Signal(str)
@@ -173,6 +174,7 @@ class Musica(QObject):
         self._ultimo_id = None
         self._ultima_versao = None
         self._a_ler = False
+        self._lista_aberta = {}
         self._preparar()
 
     # ---- MPD --------------------------------------------------------------------------------------
@@ -264,7 +266,12 @@ class Musica(QObject):
             except Exception:
                 pass
             self._cli = None
-        subprocess.run(['systemctl', '--user', 'restart', 'mpd.service'], capture_output=True, timeout=30)
+        subprocess.run(['systemctl', '--user', 'stop', 'mpd.service'], capture_output=True, timeout=30)
+        subprocess.run(['pkill', '-u', str(os.getuid()), '-x', 'mpd'], capture_output=True)   # instância arrancada à mão
+        time.sleep(0.8)
+        r = subprocess.run(['systemctl', '--user', 'start', 'mpd.service'], capture_output=True, timeout=30)
+        if r.returncode != 0:
+            subprocess.Popen(['mpd', CONF], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         time.sleep(1.5)
 
     # ---- estado (a cada segundo) ---------------------------------------------------------------------
@@ -652,7 +659,127 @@ class Musica(QObject):
 
     @Slot(str)
     def apagarLista(self, nome):
+        if self._lista_aberta.get('nome') == nome:
+            self._lista_aberta = {}
+            self.listaMudou.emit()
         self._bg(lambda: self._mpd('rm', nome), lambda r: self.recarregar())
+
+    @staticmethod
+    def _nome_lista(nome):
+        return nome.strip().replace('/', '-').replace('\n', ' ')
+
+    @Slot(str, 'QVariantList')
+    def criarLista(self, nome, ficheiros):
+        """Lista nova (ou substitui a que tiver o mesmo nome) com as músicas escolhidas, pela ordem dada."""
+        nome = self._nome_lista(nome)
+        if not nome:
+            self._aviso('Dê um nome à lista')
+            return
+        fs = [str(f) for f in ficheiros]
+
+        def trabalho():
+            try:
+                self._mpd('rm', nome)
+            except Exception:
+                pass
+            if not fs:
+                self._mpd('save', nome)            # lista vazia: guarda a fila e limpa a seguir
+                self._mpd('playlistclear', nome)
+            for f in fs:
+                self._mpd('playlistadd', nome, f)
+            return len(fs)
+
+        def depois(r):
+            if isinstance(r, Exception):
+                self._aviso('Erro: %s' % r)
+            else:
+                self._aviso('Lista “%s” com %d músicas ✓ — aparece como fonte no Home Assistant' % (nome, r))
+                self.abrirLista(nome)
+            self.recarregar()
+        self._bg(trabalho, depois)
+
+    @Slot(str, 'QVariantList')
+    def adicionarVariasALista(self, nome, ficheiros):
+        fs = [str(f) for f in ficheiros]
+
+        def trabalho():
+            for f in fs:
+                self._mpd('playlistadd', nome, f)
+            return len(fs)
+        self._bg(trabalho, lambda r: (self._aviso(('%d músicas adicionadas a “%s” ✓' % (r, nome))
+                                                  if not isinstance(r, Exception) else 'Erro: %s' % r),
+                                      self.abrirLista(nome)))
+
+    @Slot(str)
+    def listaDaPasta(self, pasta):
+        """Uma lista com o nome da pasta e todas as músicas que estão dentro dela (e nas subpastas)."""
+        pasta = pasta.rstrip('/')
+        fs = [m['ficheiro'] for m in sorted(self._musicas, key=lambda m: m['ficheiro'].lower())
+              if m['ficheiro'].startswith(pasta + '/')]
+        self.criarLista(os.path.basename(pasta) or pasta, fs)
+
+    @Slot(str)
+    def abrirLista(self, nome):
+        def trabalho():
+            itens = []
+            for i, m in enumerate(self._mpd('listplaylistinfo', nome)):
+                tit = m.get('title') or m.get('name') or os.path.splitext(os.path.basename(m.get('file', '')))[0]
+                art = m.get('artist') or ''
+                itens.append(dict(pos=i, ficheiro=m.get('file', ''), titulo=tit if isinstance(tit, str) else tit[0],
+                                  artista=art if isinstance(art, str) else art[0],
+                                  duracao=float(m.get('duration') or m.get('time') or 0)))
+            return itens
+
+        def depois(r):
+            if isinstance(r, Exception):
+                self._aviso('Erro: %s' % r)
+                return
+            self._lista_aberta = dict(nome=nome, itens=r)
+            self.listaMudou.emit()
+        self._bg(trabalho, depois)
+
+    @Slot()
+    def fecharLista(self):
+        self._lista_aberta = {}
+        self.listaMudou.emit()
+
+    @Slot(str, int)
+    def tirarDaLista(self, nome, pos):
+        self._bg(lambda: self._mpd('playlistdelete', nome, pos), lambda r: self.abrirLista(nome))
+
+    @Slot(str, int, int)
+    def moverNaLista(self, nome, de, para):
+        self._bg(lambda: self._mpd('playlistmove', nome, de, para), lambda r: self.abrirLista(nome))
+
+    @Slot(str, str)
+    def renomearLista(self, nome, novo):
+        novo = self._nome_lista(novo)
+        if not novo or novo == nome:
+            return
+        self._bg(lambda: self._mpd('rename', nome, novo),
+                 lambda r: (self._aviso('Erro: %s' % r) if isinstance(r, Exception) else self.abrirLista(novo),
+                            self.recarregar()))
+
+    @Slot(str, int)
+    def tocarListaDesde(self, nome, pos):
+        def trabalho():
+            self._mpd('clear')
+            self._mpd('load', nome)
+            self._mpd('play', pos)
+        self._bg(trabalho, lambda r: self._tique())
+
+    listaAberta = Property('QVariantMap', lambda s: s._lista_aberta, notify=listaMudou)
+
+    @Property('QVariantList', notify=bibliotecaMudou)
+    def pastasMusica(self):
+        """Pastas da biblioteca que têm música (para «Lista de uma pasta»)."""
+        conta = {}
+        for m in self._musicas:
+            d = os.path.dirname(m['ficheiro'])
+            while d:
+                conta[d] = conta.get(d, 0) + 1
+                d = os.path.dirname(d)
+        return [dict(caminho=d, nome=os.path.basename(d), musicas=n) for d, n in sorted(conta.items(), key=lambda x: x[0].lower())]
 
     @Slot(str, str)
     def adicionarRadio(self, nome, url):

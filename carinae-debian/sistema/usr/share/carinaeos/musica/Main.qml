@@ -112,6 +112,142 @@ ApplicationWindow {
         }
     }
 
+    // ---- escolher músicas para uma lista (nova ou existente) ----------------------------------
+    Dialog {
+        id: escolherMusicas
+        property string modo: "nova"
+        property string lista: ""
+        property var escolhidas: []
+        property string procura: ""
+        function abrir(m, l) { modo = m; lista = l; escolhidas = []; procura = ""; nomeNova.text = ""; open() }
+        function alternar(f) {
+            const e = escolhidas.slice(); const i = e.indexOf(f)
+            if (i === -1) e.push(f); else e.splice(i, 1)
+            escolhidas = e
+        }
+        anchors.centerIn: parent; modal: true
+        width: Math.min(janela.width - 80, 640); height: Math.min(janela.height - 60, 620)
+        background: Rectangle { color: "#1b1726"; radius: 16; border.color: Qt.rgba(1, 1, 1, 0.1) }
+        header: Text { text: escolherMusicas.modo === "nova" ? "Nova lista" : "Adicionar a «" + escolherMusicas.lista + "»"
+                       color: janela.texto; font.pixelSize: 18; font.weight: Font.Bold; padding: 20; bottomPadding: 6; elide: Text.ElideRight }
+        contentItem: ColumnLayout {
+            spacing: 10
+            Campo { id: nomeNova; visible: escolherMusicas.modo === "nova"; Layout.fillWidth: true; placeholderText: "Nome da lista (é o nome da fonte no Home Assistant)" }
+            Campo { Layout.fillWidth: true; placeholderText: "Procurar música, artista ou álbum"; onTextChanged: escolherMusicas.procura = text.toLowerCase() }
+            RowLayout {
+                Layout.fillWidth: true
+                Text { Layout.fillWidth: true; text: escolherMusicas.escolhidas.length + " escolhidas"; color: janela.suave; font.pixelSize: 13 }
+                Text { text: "Escolher todas as que aparecem"; color: janela.ambar; font.pixelSize: 13
+                       MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                   onClicked: { const e = escolherMusicas.escolhidas.slice(); for (const m of listaEscolha.model) if (e.indexOf(m.ficheiro) === -1) e.push(m.ficheiro); escolherMusicas.escolhidas = e } } }
+            }
+            ListView {
+                id: listaEscolha
+                Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 2
+                model: musica.musicas.filter(m => !escolherMusicas.procura
+                    || (m.titulo + " " + m.artista + " " + m.album + " " + m.ficheiro).toLowerCase().indexOf(escolherMusicas.procura) >= 0)
+                ScrollBar.vertical: ScrollBar { }
+                delegate: Rectangle {
+                    required property var modelData
+                    readonly property bool marcada: escolherMusicas.escolhidas.indexOf(modelData.ficheiro) !== -1
+                    width: listaEscolha.width; height: 44; radius: 8
+                    color: marcada ? Qt.rgba(1, 0.7, 0.43, 0.14) : (mesc.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent")
+                    MouseArea { id: mesc; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: escolherMusicas.alternar(modelData.ficheiro) }
+                    Row {
+                        x: 10; anchors.verticalCenter: parent.verticalCenter; spacing: 12
+                        Rectangle {
+                            width: 20; height: 20; radius: 6; anchors.verticalCenter: parent.verticalCenter
+                            color: parent.parent.marcada ? janela.ambar : "transparent"; border.color: parent.parent.marcada ? janela.ambar : janela.suave
+                            Text { anchors.centerIn: parent; text: "✓"; visible: parent.parent.parent.marcada; color: "#1a1208"; font.pixelSize: 13; font.bold: true }
+                        }
+                        Column {
+                            Text { text: modelData.titulo; color: janela.texto; font.pixelSize: 14; width: listaEscolha.width - 60; elide: Text.ElideRight }
+                            Text { text: modelData.artista + " · " + modelData.album; color: janela.suave; font.pixelSize: 12; width: listaEscolha.width - 60; elide: Text.ElideRight }
+                        }
+                    }
+                }
+            }
+        }
+        footer: Row {
+            layoutDirection: Qt.RightToLeft; spacing: 10; padding: 16
+            Botao { texto: escolherMusicas.modo === "nova" ? "Criar lista" : "Adicionar"; destaque: true
+                onClicked: {
+                    if (escolherMusicas.modo === "nova") {
+                        if (!nomeNova.text.trim()) { nomeNova.forceActiveFocus(); return }
+                        musica.criarLista(nomeNova.text.trim(), escolherMusicas.escolhidas)
+                    } else {
+                        musica.adicionarVariasALista(escolherMusicas.lista, escolherMusicas.escolhidas)
+                    }
+                    escolherMusicas.close()
+                } }
+            Botao { texto: "Cancelar"; onClicked: escolherMusicas.close() }
+        }
+    }
+
+    // ---- lista a partir de uma pasta ---------------------------------------------------------------
+    Dialog {
+        id: deUmaPasta
+        anchors.centerIn: parent; modal: true
+        width: Math.min(janela.width - 80, 560); height: Math.min(janela.height - 60, 560)
+        background: Rectangle { color: "#1b1726"; radius: 16; border.color: Qt.rgba(1, 1, 1, 0.1) }
+        header: Column {
+            padding: 20; bottomPadding: 6; spacing: 4
+            Text { text: "Lista a partir de uma pasta"; color: janela.texto; font.pixelSize: 18; font.weight: Font.Bold }
+            Text { text: "A lista fica com o nome da pasta e todas as músicas dela."; color: janela.suave; font.pixelSize: 13 }
+        }
+        contentItem: ListView {
+            id: listaPastas
+            clip: true; spacing: 2
+            model: musica.pastasMusica
+            ScrollBar.vertical: ScrollBar { }
+            delegate: Rectangle {
+                required property var modelData
+                width: listaPastas.width; height: 46; radius: 8
+                color: mpas.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+                MouseArea { id: mpas; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: { musica.listaDaPasta(modelData.caminho); deUmaPasta.close() } }
+                Row {
+                    x: 10 + (modelData.caminho.split("/").length - 1) * 16; anchors.verticalCenter: parent.verticalCenter; spacing: 10
+                    Image { source: "image://icone/folder-music"; width: 22; height: 22; sourceSize: Qt.size(44, 44); anchors.verticalCenter: parent.verticalCenter }
+                    Column {
+                        Text { text: modelData.nome; color: janela.texto; font.pixelSize: 14 }
+                        Text { text: modelData.musicas + (modelData.musicas === 1 ? " música" : " músicas"); color: janela.suave; font.pixelSize: 12 }
+                    }
+                }
+            }
+        }
+        footer: Row { layoutDirection: Qt.RightToLeft; padding: 16; Botao { texto: "Fechar"; onClicked: deUmaPasta.close() } }
+    }
+
+    Dialog {
+        id: renomear
+        property alias campo: campoNome
+        anchors.centerIn: parent; modal: true; width: 420
+        background: Rectangle { color: "#1b1726"; radius: 16; border.color: Qt.rgba(1, 1, 1, 0.1) }
+        header: Text { text: "Mudar o nome da lista"; color: janela.texto; font.pixelSize: 18; font.weight: Font.Bold; padding: 20; bottomPadding: 6 }
+        contentItem: Campo { id: campoNome; placeholderText: "Novo nome" }
+        footer: Row {
+            layoutDirection: Qt.RightToLeft; spacing: 10; padding: 16
+            Botao { texto: "Guardar"; destaque: true; onClicked: { musica.renomearLista(musica.listaAberta.nome, campoNome.text); renomear.close() } }
+            Botao { texto: "Cancelar"; onClicked: renomear.close() }
+        }
+    }
+
+    Dialog {
+        id: apagar
+        property string nome: ""
+        anchors.centerIn: parent; modal: true; width: 420
+        background: Rectangle { color: "#1b1726"; radius: 16; border.color: Qt.rgba(1, 1, 1, 0.1) }
+        header: Text { text: "Apagar a lista «" + apagar.nome + "»?"; color: janela.texto; font.pixelSize: 17; font.weight: Font.Bold; padding: 20; bottomPadding: 6; width: 400; elide: Text.ElideRight }
+        contentItem: Text { text: "As músicas não são apagadas, só a lista (e a fonte no Home Assistant)."; color: janela.suave; wrapMode: Text.Wrap }
+        footer: Row {
+            layoutDirection: Qt.RightToLeft; spacing: 10; padding: 16
+            Botao { texto: "Apagar"; destaque: true; onClicked: { musica.apagarLista(apagar.nome); apagar.close() } }
+            Botao { texto: "Cancelar"; onClicked: apagar.close() }
+        }
+    }
+
     // ---- componentes ----------------------------------------------------------------------------------
     component Botao: Rectangle {
         id: b
@@ -460,19 +596,24 @@ ApplicationWindow {
 
         // -- Listas e rádios --
         Item {
-            visible: janela.pagina === "listas"
+            visible: janela.pagina === "listas" && !musica.listaAberta.nome
             anchors { fill: parent; margins: 24 }
-            RowLayout {
-                id: cabListas; width: parent.width; spacing: 10
-                Text { Layout.fillWidth: true; text: "Listas e rádios"; color: janela.texto; font.pixelSize: 26; font.weight: Font.Bold }
-                Botao { texto: "Guardar a fila"; icone: "document-save"; onClicked: { novaLista.ficheiro = ""; novaLista.open() } }
-                Botao { texto: "Rádio"; icone: "radio"; onClicked: novaRadio.open() }
+            Column {
+                id: cabListas; width: parent.width; spacing: 12
+                Text { text: "Listas e rádios"; color: janela.texto; font.pixelSize: 26; font.weight: Font.Bold }
+                Flow {
+                    width: parent.width; spacing: 10
+                    Botao { texto: "Nova lista"; icone: "list-add"; destaque: true; onClicked: escolherMusicas.abrir("nova", "") }
+                    Botao { texto: "De uma pasta"; icone: "folder-music"; onClicked: deUmaPasta.open() }
+                    Botao { texto: "Guardar a fila"; icone: "document-save"; onClicked: { novaLista.ficheiro = ""; novaLista.open() } }
+                    Botao { texto: "Rádio"; icone: "radio"; onClicked: novaRadio.open() }
+                }
             }
             Text {
                 id: notaListas
                 anchors.top: cabListas.bottom; anchors.topMargin: 8; width: parent.width; wrapMode: Text.Wrap
                 color: janela.suave; font.pixelSize: 13
-                text: "Estas são as «fontes» que o Home Assistant mostra no leitor «Música de " + musica.rede.nome + "». Crie uma lista a partir da fila, ou com o botão ⋮ de qualquer música."
+                text: "Cada lista é uma «fonte» no Home Assistant (leitor «Música de " + musica.rede.nome + "»). Crie uma lista escolhendo as músicas, a partir de uma pasta, da fila, ou com o botão ⋮ de qualquer música. Clique numa lista para a ver e mudar."
             }
             GridView {
                 id: gListas
@@ -488,6 +629,8 @@ ApplicationWindow {
                         anchors.fill: parent; anchors.margins: 6; radius: 14
                         color: mlis.containsMouse ? Qt.rgba(1, 1, 1, 0.09) : janela.cartao
                         border.color: Qt.rgba(1, 1, 1, 0.07)
+                        MouseArea { id: mlis; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: musica.abrirLista(modelData.nome) }
                         Row {
                             x: 14; anchors.verticalCenter: parent.verticalCenter; spacing: 12
                             Rectangle {
@@ -504,12 +647,66 @@ ApplicationWindow {
                         Row {
                             anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                             BotaoRedondo { icone: "media-playback-start"; onClicked: musica.tocarLista(modelData.nome) }
-                            BotaoRedondo { icone: "edit-delete"; onClicked: musica.apagarLista(modelData.nome) }
+                            BotaoRedondo { icone: "edit-delete"; onClicked: { apagar.nome = modelData.nome; apagar.open() } }
                         }
-                        MouseArea { id: mlis; anchors.fill: parent; hoverEnabled: true; z: -1; onDoubleClicked: musica.tocarLista(modelData.nome) }
                     }
                 }
-                Text { visible: gListas.count === 0; anchors.centerIn: parent; text: "Ainda não há listas."; color: janela.suave }
+                Text { visible: gListas.count === 0; anchors.centerIn: parent; text: "Ainda não há listas. Carregue em «Nova lista»."; color: janela.suave }
+            }
+        }
+
+        // -- Uma lista aberta --
+        Item {
+            visible: janela.pagina === "listas" && !!musica.listaAberta.nome
+            anchors { fill: parent; margins: 24 }
+            Column {
+                id: cabLista; width: parent.width; spacing: 12
+                RowLayout {
+                    width: parent.width; spacing: 10
+                    BotaoRedondo { icone: "go-previous"; onClicked: musica.fecharLista() }
+                    Column {
+                        Layout.fillWidth: true
+                        Text { text: "LISTA · FONTE NO HOME ASSISTANT"; color: janela.ambar; font.pixelSize: 11; font.letterSpacing: 2; font.weight: Font.Bold }
+                        Text { width: parent.width; text: musica.listaAberta.nome || ""; color: janela.texto; font.pixelSize: 26; font.weight: Font.Bold; elide: Text.ElideRight }
+                        Text { text: (musica.listaAberta.itens || []).length + " músicas"; color: janela.suave; font.pixelSize: 13 }
+                    }
+                }
+                Flow {
+                    width: parent.width; spacing: 10
+                    Botao { texto: "Tocar"; icone: "media-playback-start"; destaque: true; onClicked: musica.tocarLista(musica.listaAberta.nome) }
+                    Botao { texto: "Adicionar músicas"; icone: "list-add"; onClicked: escolherMusicas.abrir("adicionar", musica.listaAberta.nome) }
+                    Botao { texto: "Mudar o nome"; icone: "edit-rename"; onClicked: { renomear.campo.text = musica.listaAberta.nome; renomear.open() } }
+                    Botao { texto: "Apagar"; icone: "edit-delete"; onClicked: { apagar.nome = musica.listaAberta.nome; apagar.open() } }
+                }
+            }
+            ListView {
+                id: itensLista
+                anchors { left: parent.left; right: parent.right; top: cabLista.bottom; bottom: parent.bottom; topMargin: 18 }
+                clip: true; spacing: 2
+                model: musica.listaAberta.itens || []
+                ScrollBar.vertical: ScrollBar { }
+                delegate: Rectangle {
+                    required property var modelData
+                    required property int index
+                    width: itensLista.width; height: 48; radius: 8
+                    color: mit.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                    MouseArea { id: mit; anchors.fill: parent; hoverEnabled: true
+                                onDoubleClicked: musica.tocarListaDesde(musica.listaAberta.nome, modelData.pos) }
+                    RowLayout {
+                        anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 8; spacing: 12
+                        Text { Layout.preferredWidth: 26; text: index + 1; color: janela.suave; horizontalAlignment: Text.AlignRight }
+                        Column {
+                            Layout.fillWidth: true
+                            Text { width: parent.width; text: modelData.titulo; color: janela.texto; font.pixelSize: 14; elide: Text.ElideRight }
+                            Text { width: parent.width; text: modelData.artista; color: janela.suave; font.pixelSize: 12; elide: Text.ElideRight }
+                        }
+                        Text { text: modelData.duracao > 0 ? janela.hms(modelData.duracao) : ""; color: janela.suave; font.pixelSize: 12 }
+                        BotaoRedondo { lado: 32; icone: "go-up"; visible: index > 0; onClicked: musica.moverNaLista(musica.listaAberta.nome, modelData.pos, modelData.pos - 1) }
+                        BotaoRedondo { lado: 32; icone: "go-down"; visible: index < itensLista.count - 1; onClicked: musica.moverNaLista(musica.listaAberta.nome, modelData.pos, modelData.pos + 1) }
+                        BotaoRedondo { lado: 32; icone: "list-remove"; onClicked: musica.tirarDaLista(musica.listaAberta.nome, modelData.pos) }
+                    }
+                }
+                Text { visible: itensLista.count === 0; anchors.centerIn: parent; text: "A lista está vazia. Carregue em «Adicionar músicas»."; color: janela.suave }
             }
         }
 
