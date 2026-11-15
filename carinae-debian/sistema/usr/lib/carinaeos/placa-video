@@ -1,0 +1,32 @@
+#!/bin/bash
+# CarinaeOS - controladores de placas de vídeo que o Debian 13 não traz (corre como root, pela Central).
+#   placa-video kepler   NVIDIA Kepler (GeForce GT 710/730/740, GTX 600/700, Quadro K…): controlador 470
+#                        do Debian sid (preso com prioridade baixa: só este pacote vem de lá) e sessão X11.
+set -e
+export DEBIAN_FRONTEND=noninteractive
+case "$1" in
+kepler)
+    echo 'deb http://deb.debian.org/debian sid main contrib non-free non-free-firmware' > /etc/apt/sources.list.d/carinaeos-sid.list
+    printf 'Package: *\nPin: release a=unstable\nPin-Priority: 100\n' > /etc/apt/preferences.d/carinaeos-sid
+    apt-get update -q
+    # um controlador NVIDIA mais novo (que não suporta a Kepler) tem de sair primeiro
+    if dpkg -s nvidia-driver >/dev/null 2>&1 || dpkg -s nvidia-open-kernel-dkms >/dev/null 2>&1; then
+        apt-get purge -y '~nnvidia' glx-diversions glx-alternative-mesa update-glx || true
+    fi
+    apt-get install -y linux-headers-amd64 nvidia-tesla-470-driver/sid kwin-x11
+    # o 470 não tem Wayland: a sessão passa a ser a X11, com as afinações que tiram os solavancos
+    mkdir -p /etc/environment.d
+    printf 'KWIN_TRIPLE_BUFFER=1\n__GL_MaxFramesAllowed=1\n__GL_YIELD=USLEEP\n' > /etc/environment.d/90-carinaeos-nvidia.conf
+    mkdir -p /var/lib/sddm
+    if [ -f /var/lib/sddm/state.conf ] && grep -q '^Session=' /var/lib/sddm/state.conf; then
+        sed -i 's|^Session=.*|Session=/usr/share/xsessions/plasmax11.desktop|' /var/lib/sddm/state.conf
+    else
+        printf '[Last]\nSession=/usr/share/xsessions/plasmax11.desktop\n' >> /var/lib/sddm/state.conf
+    fi
+    chown sddm:sddm /var/lib/sddm/state.conf 2>/dev/null || true
+    ;;
+*)
+    echo "uso: placa-video kepler" >&2
+    exit 2
+    ;;
+esac

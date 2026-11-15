@@ -60,7 +60,37 @@ sobre um lago espelhado.
     <td><b>Central CarinaeOS</b>: todas as ferramentas do sistema num só lugar: Supernova, Órbita (loja), Casa, Calendários, Cadeado…</td>
     <td><b>Arranque com a estrela</b>: do menu de arranque ao instalador, tudo com a marca CarinaeOS.</td>
   </tr>
+  <tr>
+    <td colspan="2"><img src="docs/imagens/10-carinae3d.jpg" alt="Carinae 3D"></td>
+  </tr>
+  <tr>
+    <td colspan="2"><b>Carinae 3D</b> (novo, já instalado): a biblioteca dos seus modelos <b>STL, 3MF e SVG</b> em miniaturas 3D, com pastas, favoritos, duplicados, stock de filamentos e um clique para abrir no fatiador (ElegooSlicer, OrcaSlicer, Bambu Studio, PrusaSlicer, Cura…). Lê também pastas da rede.</td>
+  </tr>
 </table>
+
+### Novidades da rc17
+
+- **Ambientes no Launchpad**: os cartões passam a ser *ambientes* que monta como quiser — crie, mude o nome e a cor,
+  ponha uma **imagem como marca de água**, arraste para mudar a ordem (botão **Editar**) e **tranque com senha**.
+  O ambiente **CarinaeOS** vem sempre com tudo o que é do sistema (Central, Música, Órbita, Carinae Casa…), e há a vista
+  *Sem ambiente* para arrumar o resto. Cada aplicativo fica num só ambiente (botão direito › *Mover para*).
+- **Deck de ações**: luzes e cenas do Home Assistant, Não incomodar, Luz noturna, Wi-Fi, Bluetooth, modo de energia,
+  saída de som, rádios e playlists — cada tecla mostra o estado e acende quando está ligada.
+- **Cadeado em todo o lado**: botão direito em qualquer ícone (Launchpad, Dock, Deck, Arquivos) › *Trancar com senha* /
+  *Destrancar*, também para aplicativos e ambientes. A senha é pedida dentro do próprio Launchpad.
+- **Contas online com login próprio do CarinaeOS**: entre com a conta **Google** no navegador e veja os emails ligados;
+  o **Google Drive** fica numa pasta dos Arquivos e os **calendários** aparecem no Merkuro. Também Nextcloud e ownCloud.
+- **Carinae Casa** é agora um aplicativo próprio (ligado ao Home Assistant), que pode pôr na Dock ou em qualquer ambiente.
+- **Música**: o que está a tocar aparece na **barra de cima**, com controlos e volume; listas novas (de uma pasta, com
+  músicas escolhidas, editar e mudar a ordem); rádios; e as listas, pastas e rádios novas chegam **sozinhas ao Home Assistant**.
+- **Placas de vídeo**: a Central escolhe o controlador certo para cada placa NVIDIA — o atual (GTX 750 em diante, RTX),
+  o **470 para as Kepler** (GT 710/730, GTX 600/700, com a sessão X11 e as afinações que tiram os solavancos) ou o livre
+  (nouveau) nas muito antigas —, e os de AMD e Intel.
+- **Dock como no Mac**: só o vidro em repouso, cresce com o rato por cima das janelas, que param na borda dela;
+  pré-visualização das janelas ao passar o rato e os nomes numa janelinha.
+- **AppImages de impressão 3D** (OrcaSlicer, ElegooSlicer, Bambu Studio, Cura) funcionam logo, e os navegadores em
+  Flatpak já criam aplicativos (PWA) com ícone.
+- **Janelas menos transparentes** e com os botões do Mac também nos navegadores instalados como Flatpak.
 
 E ainda:
 
@@ -80,7 +110,7 @@ E ainda:
 - **Um só estilo, o do CarinaeOS**: barra em cima, Dock em baixo, e nenhum nome técnico à vista — o Terminal é “Terminal”, o visualizador de fotos é “Fotos”, o de PDF é “Documentos”.
 - **Configurações próprias**, como as do Fedora: Wi-Fi, Bluetooth, ecrãs, som, energia, aparência, pesquisa, partilha, data e hora, utilizadores e “Sistema” (sobre o computador).
 - **Instalador e configuração inicial como no Fedora**: passos numerados à esquerda e, no primeiro arranque, Wi-Fi, privacidade, aparência e contas online.
-- **Casa**: painéis do Home Assistant que monta como quiser (leves, sem travar, mesmo com centenas de aparelhos), com 13 tipos de cartões (botão, luz, lista, sensor,
+- **Carinae Casa**: painéis do Home Assistant que monta como quiser (leves, sem travar, mesmo com centenas de aparelhos), com 13 tipos de cartões (botão, luz, lista, sensor,
   gráfico de 24 h, clima, cenas, som e TV, câmara, estores, tempo, número, texto), e este PC como dispositivo no Home Assistant.
 - **Calendários**: conta Google, iCloud (CalDAV) ou qualquer endereço iCal (Google, iCloud, Outlook, feriados), e **Mapas**.
 - **Etiquetas** coloridas nos Arquivos, como no Finder, na barra lateral, até em pastas de rede.
@@ -113,12 +143,16 @@ E ainda:
 À esquerda, as vistas — *Início*, *Todos os aplicativos*, *Instalados recentemente*, *Favoritos* (os da Dock), *Mais usados* e *Deck* — e as
 categorias com o número de aplicativos. No *Início*, cada categoria é um cartão colorido com os seus aplicativos
 (Internet, Gráficos, Multimédia, Jogos, Sistema…). À direita, o detalhe do aplicativo por baixo do rato:
-descrição, **Abrir**, as **ações rápidas** (Nova janela, Nova janela privada…), *Fixar na Dock* e *Adicionar ao Deck*.
+descrição, **Abrir**, as **ações rápidas** (Nova janela, Nova janela privada…), *Fixar na Dock*, *Mover para* (ambiente)
+e *Trancar com senha*. No *Início*, os cartões são **ambientes** que organiza como quiser: o botão **Editar** deixa
+arrastá-los, mudar a cor e pôr uma imagem como marca de água; o botão direito cria, renomeia, fixa em primeiro, esconde
+ou tranca com senha.
 Escreva para pesquisar; setas e Enter também funcionam.
 
-**Deck**: uma grelha de botões grandes, como um Stream Deck, para o que faz todos os dias — captura de ecrã,
-terminal, transferências, monitor do sistema, todas as janelas, bloquear… Junte aplicativos (botão direito ›
-*Adicionar ao Deck*), comandos ou sites; tire com o botão direito.
+**Deck**: uma grelha de teclas grandes, como um Stream Deck, para **fazer coisas** (os aplicativos vivem na Dock e nos
+ambientes): as luzes, cenas e aparelhos do **Home Assistant**, *Não incomodar*, *Luz noturna*, Wi-Fi, Bluetooth, modo de
+energia, a **saída de som**, tocar uma **rádio ou playlist**, captura de ecrã, todas as janelas, bloquear… Cada tecla mostra
+o estado e acende quando está ligada. *Adicionar* abre a lista de ações; também aceita comandos e sites.
 
 **Pesquisa** (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd> ou a lupa da barra de cima), no modelo da nova pesquisa do Windows:
 a caixa em baixo e os resultados por cima. Encontra **aplicativos**, **arquivos** (pelo nome e pelo conteúdo — a
@@ -205,6 +239,8 @@ carinae-debian/              a receita da ISO
         ├── configuracoes/   as Configurações
         ├── boasvindas/      a configuração inicial
         ├── orbita/          a loja
+        ├── casa/            o Carinae Casa (Home Assistant)
+        ├── musica/          a Música (MPD)
         └── supernova/       o painel de efeitos
 
 carinae/tema/                o visual
@@ -215,6 +251,7 @@ carinae/tema/                o visual
 ├── icones/                  a estrela e os ícones dos aplicativos próprios
 └── wallpaper/               o papel de parede padrão
 
+carinae/apps/carinae-3d/     o Carinae 3D (Rust), compilado durante a construção da ISO
 carinae/lfs/                 a primeira versão, feita do zero com Linux From Scratch (arquivo histórico)
 ```
 

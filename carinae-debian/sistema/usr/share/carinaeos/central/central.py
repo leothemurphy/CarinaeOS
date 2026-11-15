@@ -171,6 +171,20 @@ def areas_de_trabalho(n):
 
 
 # ---- drivers e hardware ------------------------------------------------------------------------
+def geracao_nvidia(nome):
+    """'kepler' (GK…: precisa do 470), 'antiga' (Fermi e anteriores: sem controlador NVIDIA) ou 'atual'.
+    O lspci mostra o nome do chip: "NVIDIA Corporation GK208B [GeForce GT 710]"."""
+    m = re.search(r'\b(GK|GF|GT2|G8|G9|G7|G6|NV|MCP|GM|GP|GV|TU|GA|AD|GB|GH)\d', nome)
+    if not m:
+        return 'atual'
+    p = m.group(1)
+    if p == 'GK':
+        return 'kepler'
+    if p in ('GF', 'GT2', 'G8', 'G9', 'G7', 'G6', 'NV', 'MCP'):
+        return 'antiga'
+    return 'atual'
+
+
 def instalado(pac):
     r = subprocess.run(['dpkg-query', '-W', '-f=${Status}', pac], capture_output=True, text=True)
     return 'install ok installed' in r.stdout
@@ -189,8 +203,22 @@ def hardware():
     for g in gpus:
         g_curto = re.sub(r'\s*\[[0-9a-f]{4}:[0-9a-f]{4}\].*', '', g)
         if re.search(r'NVIDIA', g, re.I):
-            item('nvidia', 'Placa de vídeo NVIDIA', g_curto, ['nvidia-driver', 'firmware-misc-nonfree', 'nvidia-suspend-common'],
-                 'nvidia', 'Driver oficial da NVIDIA (melhor desempenho em jogos e no Wayland). Reinicie depois de instalar.')
+            ger = geracao_nvidia(g)
+            if ger == 'kepler':
+                # o Debian 13 já não traz controlador para a Kepler: o 470 vem do sid, com a sessão X11
+                item('nvidia470', 'Placa de vídeo NVIDIA (Kepler)', g_curto, ['nvidia-tesla-470-driver'], 'nvidia',
+                     'Controlador NVIDIA 470, o último que suporta esta placa. Só funciona na sessão X11 (fica escolhida '
+                     'na tela de entrada). Reinicie depois de instalar.')
+                itens[-1]['script'] = 'kepler'
+            elif ger == 'antiga':
+                item('nvidia-antiga', 'Placa de vídeo NVIDIA (antiga)', g_curto, [], 'nvidia',
+                     'A NVIDIA já não tem controlador para esta placa. Fica com o controlador livre (nouveau), '
+                     'que já vem com o sistema: dá para o dia a dia, mas não para jogos.')
+            else:
+                item('nvidia', 'Placa de vídeo NVIDIA', g_curto, ['nvidia-driver', 'firmware-misc-nonfree', 'nvidia-suspend-common'],
+                     'nvidia', 'Controlador oficial da NVIDIA (GTX 750 em diante, RTX…): melhor desempenho em jogos e no Wayland. '
+                     'Reinicie depois de instalar.' + (' Com gráficos Intel/AMD também (portátil), as janelas usam a placa '
+                                                        'integrada e os jogos a NVIDIA.' if len(gpus) > 1 else ''))
         elif re.search(r'AMD|ATI', g, re.I):
             item('amd', 'Placa de vídeo AMD', g_curto, ['firmware-amd-graphics', 'mesa-vulkan-drivers'], 'video-display')
         elif re.search(r'Intel', g, re.I):
@@ -434,9 +462,11 @@ class Central(QObject):
             return
         pacs = ' '.join(it['falta'])
         cmd = ('pkexec bash -c "apt-get update -q; DEBIAN_FRONTEND=noninteractive apt-get install -y %s"' % pacs)
+        if it.get('script'):
+            cmd = 'pkexec /usr/lib/carinaeos/placa-video %s' % it['script']
 
         def depois(r):
-            self._fim(lambda _: '%s: instalado ✓%s' % (it['nome'], ' Reinicie o computador.' if ident == 'nvidia' else ''))(r)
+            self._fim(lambda _: '%s: instalado ✓%s' % (it['nome'], ' Reinicie o computador.' if ident.startswith('nvidia') else ''))(r)
             self.lerHardware()
 
         def trabalho():

@@ -31,6 +31,7 @@ slideshow:
     - "calamares-slide3.jpg"
     - "calamares-slide4.jpg"
     - "calamares-slide5.jpg"
+    - "calamares-slide6.jpg"
 style:
    SidebarBackground:        "#16141d"
    SidebarText:              "#d2d2d2"

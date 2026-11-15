@@ -7,7 +7,7 @@ Item {
     width: 800; height: 440
     property int atual: 0
     readonly property var slides: ["calamares-slide1.jpg", "calamares-slide2.jpg", "calamares-slide3.jpg",
-                                    "calamares-slide4.jpg", "calamares-slide5.jpg"]
+                                    "calamares-slide4.jpg", "calamares-slide5.jpg", "calamares-slide6.jpg"]
     property bool ativo: false
 
     Rectangle { anchors.fill: parent; color: "#0c0a14" }
