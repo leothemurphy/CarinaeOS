@@ -26,7 +26,10 @@ Kicker.DashboardWindow {
     required property var dock
 
     backgroundColor: "transparent"
-    keyEventProxy: busca
+    // o teclado vai para onde se está a escrever: o formulário aberto, ou a pesquisa
+    keyEventProxy: formCartao.visible ? nomeCartao
+        : formDeck.visible ? (cmdDeck.activeFocus ? cmdDeck : nomeDeck)
+        : busca
 
     // ---- cores ----------------------------------------------------------------
     readonly property color texto: "#f6f2ff"
