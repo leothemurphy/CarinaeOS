@@ -74,8 +74,17 @@ Item {
     Rotulo {
         alvo: icone
         texto: tarefa.model.AppName || tarefa.model.display || ""
-        mostrar: rato.containsMouse
+        mostrar: rato.containsMouse && !previa.aberta && !previa.pedido
         dock: tarefa.dock
+    }
+    // pré-visualização das janelas abertas (como no Windows); as apps só fixadas mostram só o nome
+    Previa {
+        id: previa
+        alvo: icone
+        dock: tarefa.dock
+        tarefa: tarefa
+        pedido: rato.containsMouse && !rato.pressed && !tarefa.arrastando
+                && !tarefa.model.IsLauncher && !tarefa.model.IsStartup
     }
 
     // ponto das apps abertas
@@ -160,6 +169,7 @@ Item {
             onCanceled: tarefa.arrastando = false
 
             onClicked: mouse => {
+                previa.esconder();
                 if (moveu) { moveu = false; return; }
                 if (mouse.button === Qt.RightButton) {
                     menu.visualParent = tarefa;
