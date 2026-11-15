@@ -234,12 +234,11 @@ def hardware():
         if 'already enrolled' not in estado:
             pendente = bool(subprocess.run(['mokutil', '--list-new'], capture_output=True, text=True).stdout.strip())
             item('mok', 'Secure Boot: chave do controlador NVIDIA', 'Para a placa funcionar com o Secure Boot ligado',
-                 [] if pendente else ['chave'], 'security-high',
-                 'Já pedida: reinicie e confirme na tela azul.' if pendente else
+                 ['chave'], 'security-high',
+                 'Já pedida: reinicie e confirme na tela azul. Não sabe o código? Peça de novo.' if pendente else
                  'Registre a chave uma vez: na próxima reinicialização aparece uma tela azul onde escreve um código de 8 algarismos.')
             itens[-1]['script'] = 'mok'
-            if not pendente:
-                itens[-1]['falta'] = ['chave']
+            itens[-1]['falta'] = ['chave']
     if re.search(r'Network controller|Wireless', lspci) or re.search(r'Wireless|WLAN|802\.11', lsusb, re.I):
         item('wifi', 'Wi-Fi', 'Firmwares para Intel, Realtek, Atheros, Broadcom e MediaTek',
              ['firmware-iwlwifi', 'firmware-realtek', 'firmware-atheros', 'firmware-brcm80211', 'firmware-mediatek'], 'network-wireless')
