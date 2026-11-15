@@ -504,7 +504,7 @@ class Config(QObject):
         elif chave == 'esconder':
             js = ('var p = panels(); for (var i = 0; i < p.length; i++) { var w = p[i].widgets(); '
                   'for (var j = 0; j < w.length; j++) if (w[j].type == "org.carinaeos.dock") p[i].hiding = "%s"; }'
-                  % ('autohide' if valor else 'windowsbelow'))
+                  % ('autohide' if valor else 'none'))
         else:
             tipo = {'iconSize': int, 'zoom': float, 'separatorWidth': int, 'separatorColor': str}.get(chave, str)
             v = tipo(valor)
@@ -515,9 +515,6 @@ class Config(QObject):
                   'var b = Number(w[j].readConfig("iconSize", 48)); var z = Number(w[j].readConfig("zoom", 1.9)); '
                   'p[i].height = Math.ceil(b * (0.62 + z)) + 2; } }' % (chave, json.dumps(v)))
         bg(['qdbus6', 'org.kde.plasmashell', '/PlasmaShell', 'org.kde.PlasmaShell.evaluateScript', js])
-        if chave == 'esconder' and not valor:
-            # "as janelas passam por baixo" so fica guardado com o Plasma parado: o script de entrada trata disso
-            bg(['sh', '-c', 'sleep 1; XDG_CURRENT_DESKTOP=KDE carinaeos-ambiente-inicio'])
         self._aviso('Dock atualizada ✓')
 
     @Slot(bool)

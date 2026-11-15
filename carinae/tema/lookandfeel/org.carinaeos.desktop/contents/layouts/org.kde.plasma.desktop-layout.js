@@ -56,5 +56,5 @@ dock.floating = true;
 dock.alignment = "center";
 dock.lengthMode = "fit";
 dock.opacity = "translucent";
-dock.hiding = "windowsbelow";                   // sempre visivel, e as janelas maximizadas ocupam o ecra todo por baixo dela
+dock.hiding = "none";                           // sempre visivel: as janelas maximizadas param na borda de cima da Dock
 dock.addWidget("org.carinaeos.dock");

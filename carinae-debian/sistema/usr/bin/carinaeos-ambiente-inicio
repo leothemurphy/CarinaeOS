@@ -1,5 +1,5 @@
 #!/bin/sh
-# CarinaeOS - ao entrar: ajustes do visual do CarinaeOS (Dock por cima das janelas maximizadas,
+# CarinaeOS - ao entrar: ajustes do visual do CarinaeOS (Dock sempre visivel, janelas param nela,
 # etiquetas, navegadores com os botoes do Mac).
 FEITO="${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/inicio-$(echo "$XDG_CURRENT_DESKTOP" | tr 'A-Z:' 'a-z_')"
 FUNDO=/usr/share/backgrounds/carinaeos/eta-carinae.jpg
@@ -21,7 +21,9 @@ if [ -d /run/live ] && [ -d "$HOME/Desktop" ]; then
     cp -pn "$HOME"/Desktop/*.desktop "$AT"/ 2>/dev/null
   fi
 fi
-# Plasma: as janelas maximizadas ocupam o ecra todo, por baixo da Dock (modo "as janelas passam por baixo").
+# Plasma: a Dock fica sempre visivel e as janelas maximizadas param na borda de cima dela.
+# Quem vinha da rc16 tinha o modo "as janelas passam por baixo" (3): passa para "sempre visivel" (0).
+# Esconder automaticamente (1), escolhido em Configuracoes > Dock, fica como esta.
 # O modo so se guarda no plasmashellrc, com o numero do painel da Dock, e o Plasma tem de estar parado.
 case "$XDG_CURRENT_DESKTOP" in *KDE*)
   [ "$SEMPRE" = true ] && (
@@ -32,10 +34,10 @@ case "$XDG_CURRENT_DESKTOP" in *KDE*)
       [ -n "$ID" ] && break
       sleep 2
     done
-    if [ -n "$ID" ] && [ "$(kreadconfig6 --file plasmashellrc --group PlasmaViews --group "Panel $ID" --key panelVisibility)" != 3 ]; then
+    if [ -n "$ID" ] && [ "$(kreadconfig6 --file plasmashellrc --group PlasmaViews --group "Panel $ID" --key panelVisibility)" = 3 ]; then
       sleep 3
       systemctl --user stop plasma-plasmashell.service
-      kwriteconfig6 --file plasmashellrc --group PlasmaViews --group "Panel $ID" --key panelVisibility 3
+      kwriteconfig6 --file plasmashellrc --group PlasmaViews --group "Panel $ID" --key panelVisibility 0
       systemctl --user start plasma-plasmashell.service
     fi
   ) &

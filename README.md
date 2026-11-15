@@ -96,7 +96,7 @@ E ainda:
 - **Música**: leitor e biblioteca com capas e letras (sincronizadas quando existem), listas e rádios — a porta de entrada do **MPD**. As listas aparecem como **fontes** no Home Assistant (integração Music Player Daemon), e funciona com o `mpc` e qualquer cliente MPD.
 - **Partilha de pastas num clique** (Configurações › Partilha): liga o Samba, abre logo a escolha da pasta e mostra o endereço para Windows, Mac e telemóveis. O **SSH** mostra IP, utilizador e os comandos prontos a copiar.
 - **Meus documentos** com a barra lateral como a do Explorador do Windows, e **pastas de rede como no Fedora** (Configurações › Rede › Ligar a um servidor; Partilha › Partilhar uma pasta).
-- **Barra de cima** escura e legível, com o nome do aplicativo em negrito, o seu menu e a lupa da Pesquisa. As janelas maximizadas ocupam o ecrã todo, também por baixo da Dock.
+- **Barra de cima** escura e legível, com o nome do aplicativo em negrito, o seu menu e a lupa da Pesquisa. As janelas maximizadas ficam entre a barra de cima e a Dock, sem nada escondido por trás dela.
 - **NumLock ligado** ao entrar, para escrever a senha logo.
 - **Boas-vindas** depois de instalar, a mostrar tudo o que o sistema tem.
 
