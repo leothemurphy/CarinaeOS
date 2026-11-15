@@ -33,6 +33,7 @@ ApplicationWindow {
     property var contasModelo: null
     property string contasErro: ""
     property string contasAviso: ""
+    property bool gAvancado: false
     property string gId: ""
     property string gSegredo: ""
     readonly property string kaImport: "import org.kde.kaccounts 1.2 as KA\n"
@@ -695,12 +696,12 @@ ApplicationWindow {
                 Grupo {
                     visible: janela.pagina === "contas"
                     titulo: "Adicionar uma conta"
-                    Linha {
+                    Linha {     // só aparece com o cliente Google configurado (Avançado, mais abaixo)
+                        visible: !!(janela.e.google || {}).configurado
                         titulo: "Google"
-                        sub: (janela.e.google || {}).configurado ? "Abre o Google no navegador para entrar e autorizar o CarinaeOS"
-                                                                  : "Primeiro, configure o login do Google (uma vez) aqui embaixo"
+                        sub: "Abre o Google no navegador para entrar e autorizar o CarinaeOS"
                         icone: "im-google"
-                        clicavel: !!(janela.e.google || {}).configurado
+                        clicavel: true
                         onCarregado: ajustes.entrarGoogle()
                         Seta {}
                     }
@@ -712,8 +713,19 @@ ApplicationWindow {
                         icone: "dialog-information"
                     }
                 }
-                Grupo {
+                Grupo {     // avançado: quem quiser usar a própria app do Google Cloud
                     visible: janela.pagina === "contas" && janela.e.google !== undefined && !janela.e.google.configurado
+                    Linha {
+                        titulo: "Avançado: conta Google com a sua própria app"
+                        sub: janela.gAvancado ? "Para quem tem um projeto no Google Cloud" : "Drive e calendários do Google com uma app do Google Cloud criada por você"
+                        icone: "configure"
+                        clicavel: true
+                        onCarregado: janela.gAvancado = !janela.gAvancado
+                        Text { text: janela.gAvancado ? "⌄" : "›"; color: janela.suave; font.pixelSize: 20 }
+                    }
+                }
+                Grupo {
+                    visible: janela.pagina === "contas" && janela.gAvancado && janela.e.google !== undefined && !janela.e.google.configurado
                     titulo: "Configurar o login do Google (uma vez)"
                     Linha { titulo: "1. Crie o cliente no Google Cloud"; sub: "Tipo «App para computador», com o nome CarinaeOS"; icone: "internet-web-browser"; clicavel: true; onCarregado: ajustes.abrir("xdg-open https://console.cloud.google.com/auth/clients"); Seta {} }
                     Linha { titulo: "2. Escolha o arquivo JSON que baixou"; sub: "client_secret_….json, na pasta Downloads"; icone: "document-open"; clicavel: true; onCarregado: ajustes.ficheiroGoogle(); Seta {} }
@@ -748,7 +760,7 @@ ApplicationWindow {
                     visible: janela.pagina === "contas"
                     titulo: "Calendários pelo endereço (iCal)"
                     Linha { titulo: "Google, iCloud ou Outlook"; sub: "Mostrar um calendário no relógio pelo endereço secreto iCal"; icone: "view-calendar"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-central calendarios"); Seta {} }
-                    Linha { titulo: "Abrir o Google Drive"; sub: "A pasta Google Drive (ligue o Drive na conta, em cima)"; icone: "folder-gdrive"; clicavel: true; onCarregado: ajustes.abrir("dolphin --new-window \"$HOME/Google Drive\""); Seta {} }
+                    Linha { visible: ((janela.e.google || {}).contas || []).some(c => c.drive); titulo: "Abrir o Google Drive"; sub: "A pasta Google Drive (ligue o Drive na conta, em cima)"; icone: "folder-gdrive"; clicavel: true; onCarregado: ajustes.abrir("dolphin --new-window \"$HOME/Google Drive\""); Seta {} }
                 }
 
                 // ===== Dock =====
