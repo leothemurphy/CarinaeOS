@@ -372,6 +372,13 @@ Kicker.DashboardWindow {
         cartoesCfg = c;
         gravarCartoes();
     }
+    // lista fixa dos ambientes para um menu (tirada ao abrir: mudar os ambientes com o menu aberto
+    // recriava os itens debaixo do rato e prendia o Plasma)
+    function ambientesPara(app: var): var {
+        const atual = cartaoDe(app);
+        return categorias.map(c => ({ orig: c.orig, nome: c.nome,
+            marcado: app !== null && (atual === c.orig || (atual === "" && c.apps.indexOf(app) !== -1)) }));
+    }
     function cartaoDe(app: var): string {
         return app && app.chave ? ((cartoesCfg.colocar || {})[app.chave] || "") : "";
     }
@@ -662,6 +669,8 @@ Kicker.DashboardWindow {
         QQC2.Menu {
             id: menuApp
             property var app: null
+            property var amb: []
+            onAboutToShow: amb = lp.ambientesPara(app)
             QQC2.MenuItem { text: "Abrir"; onTriggered: lp.abrir(menuApp.app) }
             QQC2.MenuItem {
                 text: lp.naDock(menuApp.app) ? "Remover da Dock" : "Adicionar à Dock"
@@ -679,14 +688,13 @@ Kicker.DashboardWindow {
                 title: "Mover para"
                 enabled: menuApp.app !== null && menuApp.app.chave !== ""
                 Instantiator {
-                    model: lp.categorias
+                    model: menuApp.amb
                     delegate: QQC2.MenuItem {
                         required property var modelData
                         text: modelData.nome
                         checkable: true
-                        checked: menuApp.app !== null && (lp.cartaoDe(menuApp.app) === modelData.orig
-                                 || (lp.cartaoDe(menuApp.app) === "" && modelData.apps.indexOf(menuApp.app) !== -1))
-                        onTriggered: lp.colocarNoCartao(menuApp.app, modelData.orig)
+                        checked: modelData.marcado
+                        onTriggered: { const a = menuApp.app, o = modelData.orig; Qt.callLater(() => lp.colocarNoCartao(a, o)); }
                     }
                     onObjectAdded: (i, o) => subCartoes.insertItem(i, o)
                     onObjectRemoved: (i, o) => subCartoes.removeItem(o)
@@ -698,22 +706,23 @@ Kicker.DashboardWindow {
                 visible: lp.cartaoDe(menuApp.app) !== ""
                 height: visible ? implicitHeight : 0
                 text: "Voltar à categoria original"
-                onTriggered: lp.tirarDoCartao(menuApp.app)
+                onTriggered: { const a = menuApp.app; Qt.callLater(() => lp.tirarDoCartao(a)); }
             }
         }
         // "Mover para ›" no painel do detalhe
         QQC2.Menu {
             id: menuMover
             property var app: null
+            property var amb: []
+            onAboutToShow: amb = lp.ambientesPara(app)
             Instantiator {
-                model: lp.categorias
+                model: menuMover.amb
                 delegate: QQC2.MenuItem {
                     required property var modelData
                     text: modelData.nome
                     checkable: true
-                    checked: menuMover.app !== null && (lp.cartaoDe(menuMover.app) === modelData.orig
-                             || (lp.cartaoDe(menuMover.app) === "" && modelData.apps.indexOf(menuMover.app) !== -1))
-                    onTriggered: lp.colocarNoCartao(menuMover.app, modelData.orig)
+                    checked: modelData.marcado
+                    onTriggered: { const a = menuMover.app, o = modelData.orig; Qt.callLater(() => lp.colocarNoCartao(a, o)); }
                 }
                 onObjectAdded: (i, o) => menuMover.insertItem(i, o)
                 onObjectRemoved: (i, o) => menuMover.removeItem(o)
@@ -724,7 +733,7 @@ Kicker.DashboardWindow {
                 visible: lp.cartaoDe(menuMover.app) !== ""
                 height: visible ? implicitHeight : 0
                 text: "Voltar à categoria original"
-                onTriggered: lp.tirarDoCartao(menuMover.app)
+                onTriggered: { const a = menuMover.app; Qt.callLater(() => lp.tirarDoCartao(a)); }
             }
         }
         // menu do botão direito de um cartão
