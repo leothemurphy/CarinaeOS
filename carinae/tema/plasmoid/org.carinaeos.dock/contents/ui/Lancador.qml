@@ -667,7 +667,7 @@ Kicker.DashboardWindow {
             QQC2.MenuSeparator {}
             QQC2.Menu {
                 id: subCartoes
-                title: "Colocar no cartão"
+                title: "Mover para"
                 enabled: menuApp.app !== null && menuApp.app.chave !== ""
                 Instantiator {
                     model: lp.categorias
@@ -683,13 +683,39 @@ Kicker.DashboardWindow {
                     onObjectRemoved: (i, o) => subCartoes.removeItem(o)
                 }
                 QQC2.MenuSeparator {}
-                QQC2.MenuItem { text: "Novo cartão…"; onTriggered: formCartao.abrir("novo", "", false, menuApp.app) }
+                QQC2.MenuItem { text: "Novo ambiente…"; onTriggered: formCartao.abrir("novo", "", false, menuApp.app) }
             }
             QQC2.MenuItem {
                 visible: lp.cartaoDe(menuApp.app) !== ""
                 height: visible ? implicitHeight : 0
                 text: "Voltar à categoria original"
                 onTriggered: lp.tirarDoCartao(menuApp.app)
+            }
+        }
+        // "Mover para ›" no painel do detalhe
+        QQC2.Menu {
+            id: menuMover
+            property var app: null
+            Instantiator {
+                model: lp.categorias
+                delegate: QQC2.MenuItem {
+                    required property var modelData
+                    text: modelData.nome
+                    checkable: true
+                    checked: menuMover.app !== null && (lp.cartaoDe(menuMover.app) === modelData.orig
+                             || (lp.cartaoDe(menuMover.app) === "" && modelData.apps.indexOf(menuMover.app) !== -1))
+                    onTriggered: lp.colocarNoCartao(menuMover.app, modelData.orig)
+                }
+                onObjectAdded: (i, o) => menuMover.insertItem(i, o)
+                onObjectRemoved: (i, o) => menuMover.removeItem(o)
+            }
+            QQC2.MenuSeparator {}
+            QQC2.MenuItem { text: "Novo ambiente…"; onTriggered: formCartao.abrir("novo", "", false, menuMover.app) }
+            QQC2.MenuItem {
+                visible: lp.cartaoDe(menuMover.app) !== ""
+                height: visible ? implicitHeight : 0
+                text: "Voltar à categoria original"
+                onTriggered: lp.tirarDoCartao(menuMover.app)
             }
         }
         // menu do botão direito de um cartão
@@ -703,15 +729,15 @@ Kicker.DashboardWindow {
             QQC2.MenuItem { text: "Mudar o nome…"; onTriggered: formCartao.abrir("nome", menuCartao.c.orig, menuCartao.c.propria, null) }
             QQC2.MenuItem { text: "Mudar a cor"; onTriggered: lp.mudarCor(menuCartao.c.orig) }
             QQC2.MenuSeparator {}
-            QQC2.MenuItem { text: "Novo cartão…"; onTriggered: formCartao.abrir("novo", "", false, null) }
+            QQC2.MenuItem { text: "Novo ambiente…"; onTriggered: formCartao.abrir("novo", "", false, null) }
             QQC2.MenuItem {
-                text: menuCartao.c && menuCartao.c.propria ? "Apagar este cartão" : "Esconder este cartão"
+                text: menuCartao.c && menuCartao.c.propria ? "Apagar este ambiente" : "Esconder este ambiente"
                 onTriggered: lp.esconderCartao(menuCartao.c.orig, menuCartao.c.propria)
             }
             QQC2.MenuItem {
                 visible: (lp.cartoesCfg.ocultos || []).length > 0
                 height: visible ? implicitHeight : 0
-                text: "Mostrar os cartões escondidos"
+                text: "Mostrar os ambientes escondidos"
                 onTriggered: lp.mudarCartoes(c => { c.ocultos = []; })
             }
         }
@@ -902,7 +928,7 @@ Kicker.DashboardWindow {
                         ItemLado { u: palco.u; texto: "Deck"; icone: "view-grid-symbolic"; numero: String(lp.deck.length); ativo: lp.filtro === "" && lp.vista === "deck"; onEscolhido: lp.mudarVista("deck") }
 
                         Text {
-                            text: "CATEGORIAS"
+                            text: "AMBIENTES"
                             color: lp.suave
                             font.pixelSize: Math.round(11 * palco.u)
                             font.letterSpacing: 1.2
@@ -925,7 +951,7 @@ Kicker.DashboardWindow {
                         }
                         ItemLado {
                             u: palco.u
-                            texto: "Novo cartão…"
+                            texto: "Novo ambiente…"
                             icone: "list-add"
                             onEscolhido: formCartao.abrir("novo", "", false, null)
                         }
@@ -992,6 +1018,7 @@ Kicker.DashboardWindow {
                         font.pixelSize: Math.round(17 * palco.u)
                         background: Item {}
                         focus: true
+                        enabled: !formCartao.visible && !formDeck.visible   // com um formulário aberto, escreve-se lá
                         onTextChanged: lp.filtro = text
                         onAccepted: {
                             if (lp.emGrelha && lp.selecionado) lp.abrir(lp.selecionado);
@@ -1193,8 +1220,17 @@ Kicker.DashboardWindow {
                                             anchors.fill: parent
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
+                                            acceptedButtons: Qt.LeftButton | Qt.RightButton
                                             onContainsMouseChanged: if (containsMouse) lp.selecionado = rec.modelData
-                                            onClicked: lp.abrir(rec.modelData)
+                                            onClicked: (m) => {
+                                                if (m.button === Qt.RightButton) {
+                                                    menuApp.app = rec.modelData;
+                                                    menuApp.popup();
+                                                } else {
+                                                    lp.abrir(rec.modelData);
+                                                }
+                                            }
+                                            onPressAndHold: { menuApp.app = rec.modelData; menuApp.popup(); }
                                         }
                                     }
                                 }
@@ -1486,9 +1522,9 @@ Kicker.DashboardWindow {
                             modo = m; orig = o; propria = p; app = a;
                             nomeCartao.text = m === "nome" ? ((lp.cartoesCfg.nomes || {})[o] || o) : "";
                             visible = true;
-                            nomeCartao.forceActiveFocus();
-                            nomeCartao.selectAll();
+                            focoNome.restart();
                         }
+                        Timer { id: focoNome; interval: 80; onTriggered: { nomeCartao.forceActiveFocus(); nomeCartao.selectAll(); } }
                         function guardar(): void {
                             if (nomeCartao.text.trim() === "") return;
                             if (modo === "novo") lp.novoCartao(nomeCartao.text, app);
@@ -1504,15 +1540,15 @@ Kicker.DashboardWindow {
                             width: parent.width - Math.round(40 * palco.u)
                             spacing: Math.round(10 * palco.u)
                             Text {
-                                text: formCartao.modo === "novo" ? "Novo cartão" : "Mudar o nome do cartão"
+                                text: formCartao.modo === "novo" ? "Novo ambiente" : "Mudar o nome do ambiente"
                                 color: lp.texto; font.pixelSize: Math.round(18 * palco.u); font.weight: Font.DemiBold
                             }
                             Text {
                                 width: parent.width
                                 wrapMode: Text.Wrap
                                 visible: formCartao.modo === "novo"
-                                text: formCartao.app ? "«" + formCartao.app.nome + "» vai para este cartão. Depois, botão direito noutros aplicativos › Colocar no cartão."
-                                                     : "Depois, botão direito num aplicativo › Colocar no cartão. Botão direito no cartão › Pôr em primeiro."
+                                text: formCartao.app ? "«" + formCartao.app.nome + "» vai para este ambiente. Depois, botão direito noutros aplicativos › Mover para."
+                                                     : "Depois, botão direito num aplicativo › Mover para. Botão direito no ambiente › Pôr em primeiro."
                                 color: lp.suave
                                 font.pixelSize: Math.round(12 * palco.u)
                             }
@@ -1709,6 +1745,17 @@ Kicker.DashboardWindow {
                         icone: "view-grid-symbolic"
                         opacity: lp.noDeck(lp.selecionado) ? 0.5 : 1
                         onEscolhido: lp.adicionarAoDeck(lp.selecionado)
+                    }
+                    ItemLado {
+                        id: itemMover
+                        u: palco.u
+                        texto: "Mover para  ›"
+                        icone: "folder-favorites"
+                        numero: lp.cartaoDe(lp.selecionado) !== "" ? ((lp.cartoesCfg.nomes || {})[lp.cartaoDe(lp.selecionado)] || lp.cartaoDe(lp.selecionado)) : ""
+                        onEscolhido: {
+                            menuMover.app = lp.selecionado;
+                            menuMover.popup(itemMover, itemMover.width * 0.4, itemMover.height);
+                        }
                     }
                 }
 
