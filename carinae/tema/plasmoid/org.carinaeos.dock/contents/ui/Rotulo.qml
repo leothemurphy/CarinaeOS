@@ -1,37 +1,51 @@
 /*
     CarinaeOS — Dock: nome da app por cima do ícone (como no macOS)
+    É uma janelinha à parte (não ocupa espaço na Dock): assim o painel só tem a altura
+    dos ícones e a zona por cima deles deixa passar os cliques para as janelas.
     SPDX-License-Identifier: GPL-2.0-or-later
 */
 import QtQuick
+import org.kde.plasma.core as PlasmaCore
 
-Rectangle {
+Item {
     id: rotulo
     required property Item alvo
     required property string texto
     required property bool mostrar
     required property var dock
 
-    parent: alvo.parent
-    anchors.horizontalCenter: alvo.horizontalCenter
-    y: alvo.y - height - dock.base * 0.18
-    width: nome.implicitWidth + dock.base * 0.42
-    height: nome.implicitHeight + dock.base * 0.16
-    radius: height / 2
-    color: Qt.rgba(0.10, 0.09, 0.14, 0.86)
-    border.color: Qt.rgba(1, 1, 1, 0.14)
-    border.width: 1
-    opacity: mostrar && texto.length > 0 ? 1 : 0
-    visible: opacity > 0
-    Behavior on opacity { NumberAnimation { duration: 120 } }
-    z: 10
-    rotation: -dock.angulo
+    // atraso curto: não pisca ao passar o rato de um ícone para o outro
+    property bool pronto: false
+    Timer { id: espera; interval: 90; onTriggered: rotulo.pronto = rotulo.mostrar }
+    onMostrarChanged: { if (mostrar) espera.restart(); else pronto = false }
 
-    Text {
-        id: nome
-        anchors.centerIn: parent
-        text: rotulo.texto
-        color: "white"
-        font.pixelSize: Math.round(rotulo.dock.base * 0.27)
-        font.weight: Font.Medium
+    PlasmaCore.Dialog {
+        id: janela
+        visualParent: rotulo.alvo
+        location: rotulo.dock.localizacao
+        type: PlasmaCore.Dialog.Tooltip
+        flags: Qt.WindowDoesNotAcceptFocus | Qt.WindowStaysOnTopHint
+        backgroundHints: PlasmaCore.Dialog.NoBackground
+        hideOnWindowDeactivate: false
+        outputOnly: true
+        visible: rotulo.pronto && rotulo.texto.length > 0
+
+        mainItem: Rectangle {
+            width: nome.implicitWidth + rotulo.dock.base * 0.42
+            height: nome.implicitHeight + rotulo.dock.base * 0.16
+            radius: height / 2
+            color: Qt.rgba(0.10, 0.09, 0.14, 0.92)
+            border.color: Qt.rgba(1, 1, 1, 0.14)
+            border.width: 1
+
+            Text {
+                id: nome
+                anchors.centerIn: parent
+                text: rotulo.texto
+                color: "white"
+                font.pixelSize: Math.round(rotulo.dock.base * 0.27)
+                font.weight: Font.Medium
+            }
+        }
     }
 }

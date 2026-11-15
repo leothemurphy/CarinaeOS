@@ -51,7 +51,7 @@ relogio.writeConfig("selectedRegions", "br_pt,pt_pt");
 // ---- Dock de baixo -----------------------------------------------------------
 var dock = new Panel;
 dock.location = "bottom";
-dock.height = 2 * Math.ceil(gridUnit * 8 / 2);   // cabe o icone ampliado e o nome por cima
+dock.height = Math.ceil(48 * (0.62 + 1.9)) + 2;  // só o ícone ampliado (o nome é uma janelinha à parte): por cima, os cliques passam
 dock.floating = true;
 dock.alignment = "center";
 dock.lengthMode = "fit";

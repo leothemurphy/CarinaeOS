@@ -504,13 +504,16 @@ class Config(QObject):
         elif chave == 'esconder':
             js = ('var p = panels(); for (var i = 0; i < p.length; i++) { var w = p[i].widgets(); '
                   'for (var j = 0; j < w.length; j++) if (w[j].type == "org.carinaeos.dock") p[i].hiding = "%s"; }'
-                  % ('autohide' if valor else 'windowsgobelow'))
+                  % ('autohide' if valor else 'windowsbelow'))
         else:
             tipo = {'iconSize': int, 'zoom': float, 'separatorWidth': int, 'separatorColor': str}.get(chave, str)
             v = tipo(valor)
             js = ('var p = panels(); for (var i = 0; i < p.length; i++) { var w = p[i].widgets(); '
                   'for (var j = 0; j < w.length; j++) if (w[j].type == "org.carinaeos.dock") { '
-                  'w[j].currentConfigGroup = ["General"]; w[j].writeConfig("%s", %s); } }' % (chave, json.dumps(v)))
+                  'w[j].currentConfigGroup = ["General"]; w[j].writeConfig("%s", %s); '
+                  # o painel fica só com a altura dos ícones ampliados: por cima deles os cliques passam para as janelas
+                  'var b = Number(w[j].readConfig("iconSize", 48)); var z = Number(w[j].readConfig("zoom", 1.9)); '
+                  'p[i].height = Math.ceil(b * (0.62 + z)) + 2; } }' % (chave, json.dumps(v)))
         bg(['qdbus6', 'org.kde.plasmashell', '/PlasmaShell', 'org.kde.PlasmaShell.evaluateScript', js])
         if chave == 'esconder' and not valor:
             # "as janelas passam por baixo" so fica guardado com o Plasma parado: o script de entrada trata disso

@@ -77,6 +77,7 @@ PlasmoidItem {
         : Plasmoid.location === PlasmaCore.Types.TopEdge ? 180 : 0
     readonly property real comprimento: larguraRepouso + folga
     readonly property Item palcoItem: palco
+    readonly property int localizacao: Plasmoid.location
     // aparência do separador (Configurações › Dock)
     readonly property color corSeparador: Plasmoid.configuration.separatorColor
     readonly property int grossuraSeparador: Math.max(1, Plasmoid.configuration.separatorWidth)
