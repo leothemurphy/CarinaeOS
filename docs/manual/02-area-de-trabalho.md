@@ -24,7 +24,9 @@ Da esquerda para a direita:
 - **Separadores:** botão direito num ícone › *Adicionar separador à direita* (para separar por tipos); o mesmo menu tira-o.
 - No fim estão os **Downloads** (abre uma pilha com os arquivos mais recentes) e a **Lixeira**.
 - Roda do rato sobre a Dock muda o volume; clique do meio pode fechar (configurável no Supernova).
-- Estilos, tamanho, lupa, salto ao abrir e visibilidade: Central › Supernova.
+- **Configurações › Dock**: tamanho dos ícones, quanto crescem com o rato, **posição** (em baixo, à esquerda, à direita
+  ou em cima), **esconder automaticamente**, e a **espessura e a cor dos separadores**.
+- Estilos, salto ao abrir e efeitos: Central › Supernova.
 
 ## Launchpad
 

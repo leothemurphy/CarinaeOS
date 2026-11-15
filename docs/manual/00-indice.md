@@ -10,7 +10,7 @@ O CarinaeOS é um sistema operacional livre, feito sobre o **Debian 13 “trixie
 
 1. [Primeiros passos](01-primeiros-passos.md) — experimentar, instalar, primeiro arranque, contas
 2. [A área de trabalho](02-area-de-trabalho.md) — barra de cima, Dock, Launchpad, Deck, Pesquisa (Ctrl+Espaço), Configurações, janelas, atalhos
-3. [As ferramentas do CarinaeOS](03-ferramentas.md) — Central, Supernova, Órbita, Casa, Calendários, Cadeado, Etiquetas…
+3. [As ferramentas do CarinaeOS](03-ferramentas.md) — Central, Supernova, Órbita, Casa, Música (MPD), Calendários, Cadeado, Etiquetas…
 4. [Arquivos e discos](04-arquivos-e-discos.md) — Arquivos, pen drives, HD externo, cifrados, partições, cópias
 5. [Rede, HD na rede e pastas partilhadas](05-rede.md) — Wi-Fi, NAS, SMB/Windows, NFS, SSH, partilhar pastas
 6. [Programas](06-programas.md) — Órbita, apt, Flatpak, .deb, AppImage, programas do Windows

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Música
+GenericName=Leitor de música
+Comment=A sua biblioteca de música, com capas e letras — e o Home Assistant
+Exec=carinaeos-musica
+Icon=carinaeos-musica
+Categories=AudioVideo;Audio;Player;Music;
+Keywords=musica;música;mpd;mpc;albuns;letras;capas;radio;home assistant;playlist;lista;
+StartupWMClass=carinaeos-musica

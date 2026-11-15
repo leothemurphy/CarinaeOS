@@ -213,6 +213,8 @@ s = re.sub(r'passwordRequirements:.*?(?=\n\S|\Z)', """passwordRequirements:
     maxLength: -1
 allowWeakPasswords: true
 allowWeakPasswordsDefault: true""", s, flags=re.S)
+if '    - sambashare' not in s:
+    s = s.replace('    - bluetooth\n', '    - bluetooth\n    - sambashare\n', 1)
 if 'hostname:' not in s:
     s += '\nhostname:\n    location: EtcFile\n    writeHostsFile: true\n    template: "${first}-carinaeos"\n'
 open(p, 'w').write(s)
@@ -379,6 +381,19 @@ for lingua in ('pt_BR', 'pt'):
                 crus.setdefault(ctx + base, novo)
         escrever(mo, crus)
 EOT
+
+# ---- partilha de pastas (Samba): pronta, mas desligada ate a pessoa ativar em Configuracoes > Partilha
+getent group sambashare >/dev/null || groupadd -r sambashare
+mkdir -p /var/lib/samba/usershares
+chgrp sambashare /var/lib/samba/usershares && chmod 1770 /var/lib/samba/usershares
+if ! grep -q 'usershare allow guests' /etc/samba/smb.conf; then
+  sed -i 's/^\[global\]$/[global]\n   usershare path = \/var\/lib\/samba\/usershares\n   usershare max shares = 100\n   usershare allow guests = yes\n   usershare owner only = no\n   map to guest = bad user/' /etc/samba/smb.conf
+fi
+systemctl disable smbd.service nmbd.service samba-ad-dc.service 2>/dev/null || true
+
+# ---- musica: o MPD corre por utilizador (o aplicativo Musica configura-o); o servico do sistema fica desligado
+systemctl disable mpd.service mpd.socket 2>/dev/null || true
+systemctl --global disable mpd.service mpd.socket 2>/dev/null || true
 
 # marca do fim da construcao: o Launchpad mostra como "Instalados recentemente" o que for mais novo do que isto
 mkdir -p /usr/lib/carinaeos && touch /usr/lib/carinaeos/.base

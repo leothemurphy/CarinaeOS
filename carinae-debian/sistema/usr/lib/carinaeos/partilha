@@ -1,22 +1,44 @@
 #!/bin/sh
-# CarinaeOS - partilha de pastas com a rede (Samba), como no Fedora. Corre como root (pkexec).
-#   partilha ligar UTILIZADOR  -> instala o Samba (se faltar), deixa o utilizador partilhar pastas
+# CarinaeOS - partilha de pastas com a rede (Samba). Corre como root (pkexec).
+#   partilha ligar UTILIZADOR                      -> instala/liga o Samba e deixa o utilizador partilhar
+#   partilha desligar                              -> desliga o Samba
+#   partilha pasta NOME CAMINHO ro|rw UTILIZADOR   -> partilha uma pasta (quando o utilizador ainda nao pode)
 set -e
+preparar() {
+  if [ ! -x /usr/sbin/smbd ]; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -q || true
+    apt-get install -y -q samba
+  fi
+  getent group sambashare >/dev/null || groupadd -r sambashare
+  mkdir -p /var/lib/samba/usershares
+  chgrp sambashare /var/lib/samba/usershares && chmod 1770 /var/lib/samba/usershares
+  if ! grep -q 'usershare allow guests' /etc/samba/smb.conf; then
+    sed -i 's/^\[global\]$/[global]\n   usershare path = \/var\/lib\/samba\/usershares\n   usershare max shares = 100\n   usershare allow guests = yes\n   usershare owner only = no\n   map to guest = bad user/' /etc/samba/smb.conf
+  fi
+  # firewall, se estiver ligada
+  command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q "Status: active" && ufw allow Samba >/dev/null || true
+}
 case "$1" in
   ligar)
-    U="$2"; [ -n "$U" ] || exit 2
-    if [ ! -x /usr/sbin/smbd ]; then
-      export DEBIAN_FRONTEND=noninteractive
-      apt-get update -q || true
-      apt-get install -y -q samba
-    fi
-    mkdir -p /var/lib/samba/usershares
-    getent group sambashare >/dev/null || groupadd -r sambashare
-    chgrp sambashare /var/lib/samba/usershares && chmod 1770 /var/lib/samba/usershares
-    usermod -aG sambashare "$U"
-    grep -q '^[[:space:]]*usershare allow guests' /etc/samba/smb.conf || \
-      sed -i 's/^\[global\]$/[global]\n   usershare allow guests = yes\n   usershare max shares = 100/' /etc/samba/smb.conf
-    systemctl enable --now smbd nmbd 2>/dev/null || systemctl enable --now smbd
+    preparar
+    [ -n "$2" ] && usermod -aG sambashare "$2"
+    systemctl enable --now smbd
+    systemctl enable --now nmbd 2>/dev/null || true
+    # para aparecer na "Rede" do Windows
+    command -v wsdd2 >/dev/null && systemctl enable --now wsdd2 2>/dev/null || true
     ;;
-  *) echo "uso: $0 ligar UTILIZADOR" >&2; exit 2 ;;
+  desligar)
+    systemctl disable --now smbd nmbd 2>/dev/null || true
+    ;;
+  pasta)
+    preparar
+    NOME="$2"; CAM="$3"; MODO="$4"; U="$5"
+    ACL="Everyone:R"; [ "$MODO" = rw ] && ACL="Everyone:F"
+    net usershare add "$NOME" "$CAM" "Partilhada pelo CarinaeOS" "$ACL" guest_ok=y
+    [ -n "$U" ] && chown "$U" "/var/lib/samba/usershares/$(echo "$NOME" | tr 'A-Z' 'a-z')" 2>/dev/null || true
+    [ "$MODO" = rw ] && chmod o+rwx "$CAM" || true
+    systemctl enable --now smbd >/dev/null 2>&1 || true
+    ;;
+  *) echo "uso: $0 ligar UTILIZADOR | desligar | pasta NOME CAMINHO ro|rw UTILIZADOR" >&2; exit 2 ;;
 esac

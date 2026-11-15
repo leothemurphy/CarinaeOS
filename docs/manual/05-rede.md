@@ -109,22 +109,24 @@ No NFS as permissões vêm do servidor (o seu uid tem de existir lá ou estar ma
 
 ## Partilhar pastas deste computador
 
-### Para Windows, Mac, telemóveis e TVs (SMB / Samba)
+### Para Windows, Mac, telemóveis e TVs (Configurações › Partilha)
 
-```
-$ sudo apt install samba
-$ sudo smbpasswd -a $USER          # define a senha de rede do seu usuário
-$ sudo nano /etc/samba/smb.conf     # no fim do arquivo:
-[Partilha]
-   path = /home/SEU_USUARIO/Partilha
-   read only = no
-   valid users = SEU_USUARIO
-$ mkdir -p ~/Partilha
-$ sudo systemctl restart smbd
-```
+1. **Configurações › Partilha** › ligue **Partilhar pastas deste computador** (pede a senha de administrador uma vez).
+2. Abre-se logo a janela para **escolher a pasta**; escolha também se os outros podem só ver ou também mudar.
+3. A pasta aparece na lista, com o endereço para os outros aparelhos:
+   `\\NOME-DO-PC\Pasta` (Windows), `smb://IP/Pasta` (Mac: Finder › Ir › Ligar ao servidor; Android: um gestor de
+   arquivos com SMB). Também pode partilhar com o botão direito numa pasta em Meus documentos › *Partilhar*.
 
-Nos outros aparelhos: `\\IP-DESTE-PC\Partilha` (Windows), `smb://IP/Partilha` (Mac: Finder › Ir › Ligar ao servidor).
-Para o Windows encontrar este PC em *Rede*, o **wsdd2** já vem instalado (e o Avahi para Macs).
+O Windows encontra este PC em *Rede* (o **wsdd2** já vem instalado, e o Avahi para Macs). As pastas abrem sem senha,
+como “convidado”. O Windows 11 recente bloqueia convidados; nesse caso, no Windows: *Editar política de grupo* ›
+Configuração do computador › Modelos administrativos › Rede › Estação de trabalho Lanman › *Ativar inícios de sessão
+de convidado não seguros*. Para usar senha em vez disso: `sudo smbpasswd -a $USER`.
+
+### Acesso remoto por SSH
+
+Configurações › Partilha › **Permitir entrar neste computador por SSH**. Ao ligar, aparecem o **endereço IP**, o
+**utilizador**, a senha (a mesma com que entra no computador) e os comandos prontos a copiar:
+`ssh utilizador@IP` (terminal, PowerShell) e `sftp://utilizador@IP` (Meus documentos, FileZilla, WinSCP).
 
 ### Sem configurar nada
 

@@ -456,6 +456,26 @@ class Central(QObject):
         return ''
 
     @Slot(str)
+    def escolherImagem(self, para):
+        """Janela de escolha do proprio sistema (Meus documentos), em vez da do Qt."""
+        titulo = 'Escolha a sua foto' if para == 'foto' else 'Escolha a imagem da tela de entrada'
+        pasta = os.path.join(HOME, 'Imagens') if os.path.isdir(os.path.join(HOME, 'Imagens')) else HOME
+
+        def trabalho():
+            return subprocess.run(['kdialog', '--title', titulo, '--getopenfilename', pasta,
+                                   'image/jpeg image/png image/webp image/bmp'], capture_output=True, text=True)
+
+        def depois(r):
+            self._ocupado = False
+            self._msg = ''
+            self.mudou.emit()
+            if isinstance(r, Exception) or r.returncode != 0 or not r.stdout.strip():
+                return
+            url = 'file://' + r.stdout.strip()
+            (self.definirFoto if para == 'foto' else self.definirFundoEntrada)(url)
+        self._fundo(trabalho, depois)
+
+    @Slot(str)
     def definirFoto(self, url):
         caminho = url.replace('file://', '')
 

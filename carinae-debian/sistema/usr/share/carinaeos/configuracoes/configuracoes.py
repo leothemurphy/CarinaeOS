@@ -28,6 +28,7 @@ SECCOES = [
     ('som', 'Som', 'audio-volume-high', 'kcm_pulseaudio', 'volume altifalantes microfone audio'),
     ('energia', 'Energia', 'battery-good', 'kcm_powerdevilprofilesconfig', 'bateria suspender desempenho poupanca'),
     ('aparencia', 'Aparência', 'preferences-desktop-theme', 'kcm_colors', 'tema claro escuro fundo papel de parede cores'),
+    ('dock', 'Dock', 'preferences-desktop-icons', None, 'barra icones tamanho separador esconder posicao'),
     ('notificacoes', 'Notificações', 'preferences-desktop-notification', 'kcm_notifications', 'avisos nao incomodar'),
     ('pesquisa', 'Pesquisa', 'search', 'kcm_baloofile', 'indexacao arquivos procurar'),
     ('aplicativos', 'Aplicativos', 'preferences-desktop-default-applications', 'kcm_componentchooser', 'padrao navegador email abrir com'),
@@ -36,7 +37,7 @@ SECCOES = [
     ('teclado', 'Teclado', 'preferences-desktop-keyboard', 'kcm_keyboard', 'atalhos idioma layout numlock'),
     ('rato', 'Rato e touchpad', 'input-mouse', 'kcm_mouse', 'touchpad cursor velocidade'),
     ('impressoras', 'Impressoras', 'printer', 'kcm_printer_manager', 'imprimir scanner'),
-    ('contas', 'Contas online', 'preferences-online-accounts', 'kcm_kaccounts', 'google nextcloud calendario'),
+    ('contas', 'Contas online', 'preferences-online-accounts', 'kcm_kaccounts', 'google nextcloud calendario icloud outlook'),
     ('utilizadores', 'Utilizadores', 'system-users', 'kcm_users', 'conta senha foto'),
     ('regiao', 'Região e idioma', 'preferences-desktop-locale', 'kcm_regionandlang', 'lingua formato data moeda'),
     ('datahora', 'Data e hora', 'preferences-system-time', 'kcm_clock', 'relogio fuso horario'),
@@ -234,6 +235,10 @@ class Config(QObject):
                 e['ecras'] = [l.strip() for l in cmd(['sh', '-c', "kscreen-doctor -o 2>/dev/null | sed 's/\\x1b\\[[0-9;]*m//g' | grep -E '^Output:'"]).splitlines()]
             elif pagina == 'energia':
                 e['perfil'] = cmd(['powerprofilesctl', 'get']) or ''
+                lista = cmd(['powerprofilesctl', 'list'])
+                e['perfis'] = [p for p in ('performance', 'balanced', 'power-saver') if re.search(r'\b%s:' % p, lista)]
+                m = re.search(r'performance:.*?Degraded:\s*yes\s*\((.*?)\)', lista, re.S)
+                e['degradado'] = m.group(1) if m else ''
                 bat = cmd(['sh', '-c', 'cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -1'])
                 e['bateria'] = int(bat) if bat.isdigit() else -1
             elif pagina == 'aparencia':
@@ -255,11 +260,46 @@ class Config(QObject):
                     e['indexacao'] = True
                 e['indexados'] = cmd(['sh', '-c', "balooctl6 status 2>/dev/null | grep -iE 'total|arquivos|files' | head -2"])
             elif pagina == 'partilha':
-                e['samba'] = os.path.exists('/usr/sbin/smbd') and 'sambashare' in cmd(['id', '-nG']).split()
-                e['partilhas'] = partilhas() if e['samba'] else []
+                e['sambaInstalado'] = os.path.exists('/usr/sbin/smbd')
+                e['samba'] = e['sambaInstalado'] and cmd(['systemctl', 'is-active', 'smbd']) == 'active'
+                e['partilhas'] = partilhas() if e['sambaInstalado'] else []
+                e['nomePc'] = socket.gethostname()
                 e['ssh'] = -1 if not os.path.exists('/usr/sbin/sshd') else (1 if cmd(['systemctl', 'is-active', 'ssh']) == 'active' else 0)
                 e['ip'] = cmd(['hostname', '-I']).split()[:2]
                 e['usuario'] = os.environ.get('USER') or os.path.basename(HOME)
+            elif pagina == 'dock':
+                rc = os.path.join(HOME, '.config/plasma-org.kde.plasma.desktop-appletsrc')
+                d = dict(iconSize=56, zoom=1.6, separatorWidth=1, separatorColor='#ffffff', posicao='bottom', esconder=False)
+                try:
+                    txt = open(rc, encoding='utf-8').read()
+                    blocos = re.split(r'\n(?=\[)', txt)
+                    cont = None
+                    for i, b in enumerate(blocos):
+                        if 'plugin=org.carinaeos.dock' in b:
+                            m = re.match(r'\[Containments\]\[(\d+)\]\[Applets\]\[(\d+)\]', b)
+                            if m:
+                                cont, app = m.groups()
+                    for b in blocos:
+                        if cont and b.startswith('[Containments][%s][Applets][%s][Configuration][General]' % (cont, app)):
+                            for l in b.splitlines()[1:]:
+                                if '=' in l:
+                                    k, v = l.split('=', 1)
+                                    if k in ('iconSize', 'separatorWidth'):
+                                        d[k] = int(v)
+                                    elif k == 'zoom':
+                                        d[k] = float(v)
+                                    elif k == 'separatorColor':
+                                        d[k] = v
+                        if cont and b.startswith('[Containments][%s]\n' % cont):
+                            m = re.search(r'^location=(\d+)', b, re.M)
+                            if m:
+                                d['posicao'] = {'3': 'top', '4': 'bottom', '5': 'left', '6': 'right'}.get(m.group(1), 'bottom')
+                    pv = open(os.path.join(HOME, '.config/plasmashellrc'), encoding='utf-8').read()
+                    m = re.search(r'\[PlasmaViews\]\[Panel %s\][^\[]*?panelVisibility=(\d)' % cont, pv)
+                    d['esconder'] = bool(m and m.group(1) == '1')
+                except Exception:
+                    pass
+                e.update(d)
             elif pagina == 'datahora':
                 e['auto'] = 'NTP=yes' in cmd(['timedatectl', 'show', '-p', 'NTP'])
                 e['fuso'] = cmd(['timedatectl', 'show', '-p', 'Timezone', '--value'])
@@ -325,7 +365,18 @@ class Config(QObject):
 
     @Slot(str)
     def definirPerfil(self, p):
-        bg(['powerprofilesctl', 'set', p])
+        nomes = {'performance': 'Desempenho', 'balanced': 'Equilibrado', 'power-saver': 'Poupança'}
+
+        def depois(r):
+            ok = not isinstance(r, Exception) and r.returncode == 0
+            if ok:
+                self._aviso('Modo %s ✓' % nomes.get(p, p))
+            else:
+                erro = '' if isinstance(r, Exception) else (r.stderr or '').strip()
+                self._aviso('Este computador não tem o modo %s' % nomes.get(p, p) if 'not' in erro.lower() or 'available' in erro.lower()
+                            else 'Não foi possível mudar o modo de energia')
+            self.ler('energia')
+        self._fundo(lambda: subprocess.run(['powerprofilesctl', 'set', p], capture_output=True, text=True, timeout=20), depois)
 
     @Slot(bool)
     def definirClaro(self, claro):
@@ -384,17 +435,30 @@ class Config(QObject):
             json.dump(lista, f)
         self.ler('rede')
 
-    @Slot()
-    def ativarPartilha(self):
-        self._aviso('A preparar a partilha de pastas…')
+    escolherPastaPedida = Signal()
+
+    @Slot(bool)
+    def definirPartilha(self, ligar):
+        self._aviso('A pedir autorização…')
         u = os.environ.get('USER') or os.path.basename(HOME)
 
         def depois(r):
             ok = not isinstance(r, Exception) and r.returncode == 0
-            self._aviso('Pronto ✓ Termine a sessão e entre de novo para partilhar pastas.' if ok else 'Não foi possível ativar.')
+            if ok and ligar:
+                self._aviso('Partilha de pastas ligada ✓ Escolha a primeira pasta a partilhar.')
+                self.escolherPastaPedida.emit()
+            elif ok:
+                self._aviso('Partilha de pastas desligada ✓')
+            else:
+                erro = '' if isinstance(r, Exception) else (r.stderr or b'').decode(errors='ignore').strip()
+                self._aviso('Não foi possível: ' + (erro[-120:] or 'autorização recusada'))
             self.ler('partilha')
-        self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/partilha', 'ligar', u],
+        self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/partilha', 'ligar' if ligar else 'desligar', u],
                                            capture_output=True, timeout=900), depois)
+
+    @Slot()
+    def ativarPartilha(self):
+        self.definirPartilha(True)
 
     @Slot(str, bool)
     def partilharPasta(self, caminho, escrita):
@@ -405,6 +469,10 @@ class Config(QObject):
         acl = 'Everyone:F' if escrita else 'Everyone:R'
         r = subprocess.run(['net', 'usershare', 'add', nome, caminho, 'Partilhada pelo CarinaeOS', acl, 'guest_ok=y'],
                            capture_output=True, text=True)
+        if r.returncode != 0:
+            # ainda sem permissao na sessao atual (grupo novo): faz-se como administrador
+            r = subprocess.run(['pkexec', '/usr/lib/carinaeos/partilha', 'pasta', nome, caminho, 'rw' if escrita else 'ro',
+                                os.environ.get('USER') or ''], capture_output=True, text=True)
         if r.returncode == 0 and escrita:
             subprocess.run(['chmod', 'o+rwx', caminho])
         self._aviso(('“%s” está partilhada na rede ✓' % nome) if r.returncode == 0
@@ -415,6 +483,39 @@ class Config(QObject):
     def deixarDePartilhar(self, nome):
         subprocess.run(['net', 'usershare', 'delete', nome], capture_output=True)
         self.ler('partilha')
+
+    pastaEscolhida = Signal(str, bool)
+
+    @Slot(bool)
+    def escolherPastaPartilhar(self, escrita):
+        def t():
+            r = subprocess.run(['kdialog', '--title', 'Escolha a pasta a partilhar', '--getexistingdirectory', HOME],
+                               capture_output=True, text=True)
+            if r.returncode == 0 and r.stdout.strip():
+                self._chegou.emit(lambda c: self.partilharPasta(c, escrita), r.stdout.strip())
+        threading.Thread(target=t, daemon=True).start()
+
+    # ---- Dock -----------------------------------------------------------------------------------------
+    @Slot(str, 'QVariant')
+    def definirDock(self, chave, valor):
+        if chave == 'posicao':
+            js = ('var p = panels(); for (var i = 0; i < p.length; i++) { var w = p[i].widgets(); '
+                  'for (var j = 0; j < w.length; j++) if (w[j].type == "org.carinaeos.dock") p[i].location = "%s"; }' % valor)
+        elif chave == 'esconder':
+            js = ('var p = panels(); for (var i = 0; i < p.length; i++) { var w = p[i].widgets(); '
+                  'for (var j = 0; j < w.length; j++) if (w[j].type == "org.carinaeos.dock") p[i].hiding = "%s"; }'
+                  % ('autohide' if valor else 'windowsgobelow'))
+        else:
+            tipo = {'iconSize': int, 'zoom': float, 'separatorWidth': int, 'separatorColor': str}.get(chave, str)
+            v = tipo(valor)
+            js = ('var p = panels(); for (var i = 0; i < p.length; i++) { var w = p[i].widgets(); '
+                  'for (var j = 0; j < w.length; j++) if (w[j].type == "org.carinaeos.dock") { '
+                  'w[j].currentConfigGroup = ["General"]; w[j].writeConfig("%s", %s); } }' % (chave, json.dumps(v)))
+        bg(['qdbus6', 'org.kde.plasmashell', '/PlasmaShell', 'org.kde.PlasmaShell.evaluateScript', js])
+        if chave == 'esconder' and not valor:
+            # "as janelas passam por baixo" so fica guardado com o Plasma parado: o script de entrada trata disso
+            bg(['sh', '-c', 'sleep 1; XDG_CURRENT_DESKTOP=KDE carinaeos-ambiente-inicio'])
+        self._aviso('Dock atualizada ✓')
 
     @Slot(bool)
     def definirHoraAuto(self, ligar):

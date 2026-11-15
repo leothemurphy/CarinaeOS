@@ -51,6 +51,7 @@ Item {
 
     Kirigami.Icon {
         id: icone
+        rotation: -dock.angulo
         source: tarefa.model.decoration
         width: dock.base * tarefa.s
         height: width
@@ -65,9 +66,10 @@ Item {
         x: dock.base * tarefa.s + (dock.largSep + dock.espaco) / 2
         anchors.bottom: parent.bottom
         anchors.bottomMargin: dock.baixo + dock.margem * 1.3
-        width: 1
+        width: dock.grossuraSeparador
         height: dock.base * 0.8
-        color: Qt.rgba(1, 1, 1, 0.3)
+        radius: width / 2
+        color: dock.corSeparador
     }
     Rotulo {
         alvo: icone
@@ -129,12 +131,12 @@ Item {
             property real inicioX: 0
             property bool moveu: false
             onPressed: mouse => {
-                inicioX = mapToItem(null, mouse.x, 0).x;
+                inicioX = mapToItem(dock.palcoItem, mouse.x, 0).x;
                 moveu = false;
             }
             onPositionChanged: mouse => {
                 if (!pressed || !(pressedButtons & Qt.LeftButton) || tarefa.posLancador === -1) return;
-                const gx = mapToItem(null, mouse.x, 0).x;
+                const gx = mapToItem(dock.palcoItem, mouse.x, 0).x;
                 const dx = gx - inicioX;
                 if (!tarefa.arrastando && Math.abs(dx) > dock.base * 0.35) tarefa.arrastando = true;
                 if (!tarefa.arrastando) return;

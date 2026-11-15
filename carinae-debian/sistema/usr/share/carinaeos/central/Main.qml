@@ -1,7 +1,6 @@
 // CarinaeOS - Central: todas as ferramentas num só lugar
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Dialogs
 
 ApplicationWindow {
     id: janela
@@ -361,7 +360,7 @@ ApplicationWindow {
                         Rectangle {
                             width: 170; height: 38; radius: 19; color: janela.ambar
                             Text { anchors.centerIn: parent; text: "Escolher foto…"; color: "#1a0f14"; font.weight: Font.Bold }
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: escolherFoto.open() }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: central.escolherImagem("foto") }
                         }
                     }
                 }
@@ -374,7 +373,7 @@ ApplicationWindow {
                     Rectangle {
                         width: 190; height: 38; radius: 19; color: janela.ambar
                         Text { anchors.centerIn: parent; text: "Escolher imagem…"; color: "#1a0f14"; font.weight: Font.Bold }
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: escolherFundo.open() }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: central.escolherImagem("fundo") }
                     }
                     Rectangle {
                         width: 210; height: 38; radius: 19; color: Qt.rgba(1, 1, 1, 0.08)
@@ -467,17 +466,5 @@ ApplicationWindow {
                 }
             }
         }
-    }
-    FileDialog {
-        id: escolherFoto
-        title: "Escolha a sua foto"
-        nameFilters: ["Imagens (*.jpg *.jpeg *.png *.webp *.bmp)"]
-        onAccepted: central.definirFoto(selectedFile.toString())
-    }
-    FileDialog {
-        id: escolherFundo
-        title: "Escolha a imagem da tela de entrada"
-        nameFilters: ["Imagens (*.jpg *.jpeg *.png *.webp)"]
-        onAccepted: central.definirFundoEntrada(selectedFile.toString())
     }
 }

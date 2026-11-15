@@ -69,14 +69,30 @@ PlasmoidItem {
     // espaço reservado para a ampliação (o painel não muda de tamanho)
     readonly property real folga: base * (zoom - 1) * 2.6
 
-    Layout.minimumWidth: larguraRepouso + folga
-    Layout.preferredWidth: larguraRepouso + folga
-    Layout.maximumWidth: larguraRepouso + folga
-    Layout.fillHeight: true
+    // a Dock pode ficar em baixo, em cima, à esquerda ou à direita: desenha-se sempre "deitada"
+    // dentro de "palco", que roda para o lado certo (e os ícones rodam ao contrário)
+    readonly property bool vertical: Plasmoid.formFactor === PlasmaCore.Types.Vertical
+    readonly property real angulo: Plasmoid.location === PlasmaCore.Types.LeftEdge ? 90
+        : Plasmoid.location === PlasmaCore.Types.RightEdge ? -90
+        : Plasmoid.location === PlasmaCore.Types.TopEdge ? 180 : 0
+    readonly property real comprimento: larguraRepouso + folga
+    readonly property Item palcoItem: palco
+    // aparência do separador (Configurações › Dock)
+    readonly property color corSeparador: Plasmoid.configuration.separatorColor
+    readonly property int grossuraSeparador: Math.max(1, Plasmoid.configuration.separatorWidth)
+
+    Layout.minimumWidth: vertical ? -1 : comprimento
+    Layout.preferredWidth: vertical ? -1 : comprimento
+    Layout.maximumWidth: vertical ? -1 : comprimento
+    Layout.minimumHeight: vertical ? comprimento : -1
+    Layout.preferredHeight: vertical ? comprimento : -1
+    Layout.maximumHeight: vertical ? comprimento : -1
+    Layout.fillHeight: !vertical
+    Layout.fillWidth: vertical
 
     // ---- onda de ampliação -------------------------------------------------
     // calculada nas posições de repouso: o tamanho depende só do rato.
-    readonly property real inicioRepouso: (width - larguraRepouso) / 2
+    readonly property real inicioRepouso: (palco.width - larguraRepouso) / 2
     property real ratoAlvo: -10000
     property real ratoX: -10000
     // o rato é seguido com um pequeno atraso: a onda desliza em vez de saltar
@@ -103,23 +119,6 @@ PlasmoidItem {
             return 1;
         }
         return 1 + (zoom - 1) * forca * Math.exp(-d * d);
-    }
-
-    HoverHandler {
-        id: hover
-        onHoveredChanged: if (!hovered) dock.sobre = false
-        onPointChanged: {
-            if (hovered) {
-                const topo = dock.height - dock.baixo - dock.margem * 2 - dock.base * (1 + (dock.zoom - 1) * dock.forca) - dock.margem;
-                dock.sobre = point.position.y >= topo;
-                const x = point.position.x - dock.inicioRepouso;
-                if (dock.forca < 0.02) {
-                    dock.ratoX = x;     // entrada: começa logo no sítio certo
-                }
-                dock.ratoAlvo = x;
-                dock.ratoX = x;
-            }
-        }
     }
 
     // ---- modelo de tarefas (o mesmo do gestor de tarefas do Plasma) ---------
@@ -232,6 +231,30 @@ PlasmoidItem {
         target: Plasmoid
         function onActivated(): void {
             lancador.toggle();
+        }
+    }
+
+    Item {
+    id: palco
+    width: dock.vertical ? dock.height : dock.width
+    height: dock.vertical ? dock.width : dock.height
+    anchors.centerIn: parent
+    rotation: dock.angulo
+
+    HoverHandler {
+        id: hover
+        onHoveredChanged: if (!hovered) dock.sobre = false
+        onPointChanged: {
+            if (hovered) {
+                const topo = palco.height - dock.baixo - dock.margem * 2 - dock.base * (1 + (dock.zoom - 1) * dock.forca) - dock.margem;
+                dock.sobre = point.position.y >= topo;
+                const x = point.position.x - dock.inicioRepouso;
+                if (dock.forca < 0.02) {
+                    dock.ratoX = x;     // entrada: começa logo no sítio certo
+                }
+                dock.ratoAlvo = x;
+                dock.ratoX = x;
+            }
         }
     }
 
@@ -368,6 +391,7 @@ PlasmoidItem {
 
             Kirigami.Icon {
                 id: estrelaIcone
+                rotation: -dock.angulo
                 source: "carinaeos-estrela"
                 width: dock.base * estrela.s
                 height: width
@@ -410,9 +434,10 @@ PlasmoidItem {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: dock.baixo + dock.margem * 1.3
-                width: 1
+                width: dock.grossuraSeparador
                 height: dock.base * 0.8
-                color: Qt.rgba(1, 1, 1, 0.25)
+                radius: width / 2
+                color: dock.corSeparador
             }
         }
         Pilha {
@@ -428,6 +453,7 @@ PlasmoidItem {
             height: fila.height
             Kirigami.Icon {
                 id: lixoIcone
+                rotation: -dock.angulo
                 source: "user-trash"
                 width: dock.base * lixo.s
                 height: width
@@ -451,5 +477,6 @@ PlasmoidItem {
                 onClicked: Qt.openUrlExternally("trash:/")
             }
         }
+    }
     }
 }

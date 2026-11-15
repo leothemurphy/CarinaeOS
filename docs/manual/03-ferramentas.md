@@ -40,6 +40,27 @@ instala e remove. Também atualiza tudo. Na sessão de teste avisa que o que ins
    botões para bloquear/desligar, volume e notificações).
 
 
+## Música (e o MPD do Home Assistant)
+
+O aplicativo **Música** (Launchpad › Música) é a porta de entrada do **MPD** (Music Player Daemon): na primeira vez
+prepara e liga o servidor de música sozinho, e ele fica a correr sempre que entra no computador, mesmo com o
+aplicativo fechado.
+
+- **Biblioteca**: junte as pastas onde tem música (a pasta *Músicas*, um disco externo, uma pasta da rede). Nada é
+  copiado nem mudado de sítio. Álbuns, Artistas e Músicas com pesquisa; duplo clique para tocar.
+- **Capas**: primeiro a imagem dentro da própria música ou o `cover.jpg` da pasta; o que faltar vem do MusicBrainz /
+  Cover Art Archive (gratuitos, sem conta). Pode desligar a internet em Biblioteca › Capas e letras.
+- **Letras**: as guardadas na música ou do **LRCLIB**; quando a letra é sincronizada, a linha atual acompanha a
+  música (clique numa linha para saltar para ela).
+- **Listas e rádios**: *Fila › Guardar como lista*, ou ⋮ numa música › *Adicionar à lista*. Rádios da internet
+  com o botão *Rádio*. **Cada lista é uma “fonte” no Home Assistant.**
+- **Home Assistant**: separador *Home Assistant* › ligue *Deixar a rede de casa controlar a música* (pode pôr uma
+  senha). No Home Assistant: Definições › Dispositivos e serviços › Adicionar integração › **Music Player Daemon**,
+  com o IP e a porta **6600** que o aplicativo mostra. O cartão do leitor no HA passa a ter as suas listas em *Fonte*.
+  O som também pode sair pela rede em `http://IP:8000` (para outras colunas ou o Music Assistant).
+- **mpc** e outros clientes MPD (Cantata, MALP no Android, MPDroid…) usam o mesmo servidor:
+  `mpc -h IP status`, `mpc lsplaylists`, `mpc play`.
+
 ## Calendários
 
 O Calendário (Merkuro) e o relógio da barra mostram os eventos de:

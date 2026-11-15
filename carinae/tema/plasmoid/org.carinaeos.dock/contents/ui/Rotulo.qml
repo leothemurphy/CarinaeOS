@@ -24,6 +24,7 @@ Rectangle {
     visible: opacity > 0
     Behavior on opacity { NumberAnimation { duration: 120 } }
     z: 10
+    rotation: -dock.angulo
 
     Text {
         id: nome

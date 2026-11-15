@@ -17,15 +17,15 @@ Depois, use a ISO numa máquina virtual ou grave-a num pen drive (balenaEtcher o
 A sessão de teste entra sozinha, sem senha. Para instalar, abra **Instalar o CarinaeOS** na área de trabalho.
 
 ### Novidades desta versão
-- **Instalação em português de ponta a ponta**: começa em Lisboa e as datas e horas ficam em português (na rc14 o ecrã de entrada mostrava “Saturday… November”).
-- **Janelas maximizadas ocupam o ecrã todo**, por baixo da Dock (agora a sério), e a **barra de cima é escura** e legível.
-- **Dock reorganizável**: arraste os ícones para os lados; botão direito › *Adicionar separador à direita* para separar por tipos.
-- **Pesquisa instantânea** com Ctrl+Espaço (fica pronta em segundo plano desde que entra).
-- **Papel de parede animado** (padrão): a nebulosa com estrelas a cintilar, estrelas cadentes e reflexos no lago — duas cenas animadas e as duas fixas, em Configurações › Aparência.
-- **Meus documentos** (o gestor de arquivos) com a barra lateral como a do Explorador do Windows: *Acesso rápido*, *Este computador*, *Rede*.
-- **Rede como no Fedora**: Configurações › Rede › *Ligar a um servidor* (192.168.1.20/fotos, \\\\nas\\fotos, sftp://…) e *Procurar computadores e NAS*; Configurações › Partilha › *Partilhar uma pasta*.
-- **Janela de senha** com uma frase simples (ex.: “Instalar o aplicativo gridcraft”) e os detalhes técnicos escondidos.
-- Slides do instalador mais lentos (20 s cada) e janela do instalador mais pequena; nome do computador automático.
+- **Música** (novo): leitor e biblioteca ligados ao **MPD**. Junte as pastas de música, veja os álbuns com capa e as letras (a linha atual acompanha a música), crie listas e rádios. Cada lista aparece como **fonte** no Home Assistant (integração *Music Player Daemon*, porta 6600) e no `mpc`.
+- **Configurações › Dock** (novo): tamanho, ampliação, posição (em baixo, à esquerda, à direita, em cima), esconder automaticamente, e espessura e cor dos separadores.
+- **Partilha de pastas** a funcionar: o interruptor liga o Samba e abre logo a escolha da pasta; aparece o endereço para Windows/Mac. O **SSH** ligado mostra IP, utilizador, senha e os comandos `ssh`/`sftp`.
+- **Som**: o volume mudado pela Pesquisa (ou pelas teclas) já aparece na barra das Configurações.
+- **Energia**: os modos mudam de verdade; os que o computador não tem aparecem como “não disponível” (numa máquina virtual, normalmente não há *Desempenho*).
+- **Contas online** sem erro: Google e iCloud pelos Calendários, Nextcloud/ownCloud com entrada na conta, Google Drive em Meus documentos.
+- A janela para **escolher foto** da Tela de entrada é a do sistema, com o mesmo visual.
+
+Da rc15: instalação em português de ponta a ponta, janelas maximizadas por baixo da Dock, barra de cima escura, Dock reorganizável com separadores, Pesquisa instantânea, papel de parede animado, Meus documentos como o Explorador, rede como no Fedora.
 
 Da rc12: sem IA, Launchpad em vidro com Deck, Pesquisa como a do Windows (Ctrl+Espaço), Configurações, instalador e configuração inicial ao estilo do Fedora, só o estilo CarinaeOS, e a nebulosa do arranque ao ambiente de trabalho.
 

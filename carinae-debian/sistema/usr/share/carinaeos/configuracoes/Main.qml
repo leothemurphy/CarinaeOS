@@ -3,10 +3,10 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
-import QtQuick.Dialogs
 
 ApplicationWindow {
     id: janela
+    Connections { target: ajustes; function onEscolherPastaPedida() { ajustes.escolherPastaPartilhar(false) } }
     width: 1040
     height: 700
     minimumWidth: 760
@@ -28,6 +28,11 @@ ApplicationWindow {
         return ajustes.seccoes[0];
     }
     onPaginaChanged: ajustes.ler(pagina)
+    Timer {
+        interval: 2000; repeat: true
+        running: janela.active && ["som", "ecras", "energia", "wifi", "bluetooth", "partilha"].indexOf(janela.pagina) !== -1
+        onTriggered: ajustes.ler(janela.pagina)
+    }
     Component.onCompleted: ajustes.ler(pagina)
 
     function sem(t) { return (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
@@ -96,6 +101,10 @@ ApplicationWindow {
     }
     component Deslizante: Slider {
         id: ds
+        // o valor vem do sistema e é relido de 2 em 2 s; enquanto se arrasta, manda a pessoa
+        property real alvo: 0
+        onAlvoChanged: if (!pressed) value = alvo
+        Component.onCompleted: value = alvo
         width: 220
         height: 30
         padding: 0
@@ -311,7 +320,7 @@ ApplicationWindow {
                 Grupo {
                     visible: janela.pagina === "ecras"
                     Linha { visible: (janela.e.brilho || -1) >= 0; titulo: "Brilho"
-                            Deslizante { value: janela.e.brilho || 0; onMoved: ajustes.definirBrilho(value) } }
+                            Deslizante { alvo: janela.e.brilho || 0; onMoved: ajustes.definirBrilho(value) } }
                     Linha { titulo: "Luz noturna"; sub: "Cores mais quentes à noite, para descansar a vista"
                             Switch { onToggled: ajustes.luzNoturna(checked) } }
                 }
@@ -321,13 +330,13 @@ ApplicationWindow {
                     visible: janela.pagina === "som"
                     titulo: "Saída"
                     Linha { titulo: "Volume"; icone: "audio-volume-high"
-                            Deslizante { value: janela.e.volume || 0; onMoved: ajustes.definirVolume(value) } }
+                            Deslizante { alvo: janela.e.volume || 0; onMoved: ajustes.definirVolume(value) } }
                 }
                 Grupo {
                     visible: janela.pagina === "som"
                     titulo: "Entrada"
                     Linha { titulo: "Microfone"; icone: "audio-input-microphone"
-                            Deslizante { value: janela.e.microfone || 0; onMoved: ajustes.definirMicrofone(value) } }
+                            Deslizante { alvo: janela.e.microfone || 0; onMoved: ajustes.definirMicrofone(value) } }
                     Linha { titulo: "Aparelhos de som e sons do sistema…"; clicavel: true; onCarregado: ajustes.completo("som"); Seta {} }
                 }
 
@@ -345,9 +354,21 @@ ApplicationWindow {
                                 ["power-saver", "Poupança", "A bateria dura mais"]]
                         delegate: Linha {
                             required property var modelData
-                            titulo: modelData[1]; sub: modelData[2]; clicavel: true
-                            onCarregado: { ajustes.definirPerfil(modelData[0]); ajustes.ler("energia"); }
-                            RadioButton { checked: janela.e.perfil === modelData[0]; onClicked: { ajustes.definirPerfil(modelData[0]); ajustes.ler("energia"); } }
+                            readonly property bool existe: (janela.e.perfis || []).indexOf(modelData[0]) !== -1
+                            titulo: modelData[1]
+                            sub: existe ? (modelData[0] === "performance" && (janela.e.degradado || "") !== "" ? modelData[2] + " (limitado agora: computador quente ou em bateria)" : modelData[2])
+                                        : "Não disponível neste computador"
+                            opacity: existe ? 1 : 0.5
+                            clicavel: existe && janela.e.perfil !== modelData[0]
+                            onCarregado: ajustes.definirPerfil(modelData[0])
+                            // só um indicador (quem muda é o clique na linha)
+                            Rectangle {
+                                width: 20; height: 20; radius: 10
+                                color: "transparent"
+                                border.width: 2
+                                border.color: janela.e.perfil === modelData[0] ? janela.realce : Qt.rgba(1, 1, 1, 0.3)
+                                Rectangle { anchors.centerIn: parent; width: 10; height: 10; radius: 5; color: janela.realce; visible: janela.e.perfil === modelData[0] }
+                            }
                         }
                     }
                 }
@@ -447,10 +468,10 @@ ApplicationWindow {
                     visible: janela.pagina === "partilha"
                     titulo: "Partilha de pastas"
                     Linha {
-                        visible: !janela.e.samba
                         titulo: "Partilhar pastas deste computador"
-                        sub: "Outros computadores da casa (Windows, Mac, telemóveis) passam a ver as pastas que escolher."
-                        Botao { texto: "Ativar"; principal: true; onCarregado: ajustes.ativarPartilha() }
+                        sub: janela.e.samba ? ("Ligada · noutros computadores aparece como “" + (janela.e.nomePc || "") + "” na Rede (no Windows: \\\\" + ((janela.e.ip || [])[0] || "") + ")")
+                                            : "Outros computadores da casa (Windows, Mac, telemóveis) passam a ver as pastas que escolher."
+                        Switch { checked: !!janela.e.samba; onToggled: ajustes.definirPartilha(checked) }
                     }
                     Repeater {
                         model: janela.e.partilhas || []
@@ -468,13 +489,42 @@ ApplicationWindow {
                         sub: "Os outros entram sem senha. Escolha se também podem alterar."
                         icone: "list-add"
                         CheckBox { id: escritaPart; text: "Podem alterar" }
-                        Botao { texto: "Escolher pasta"; principal: true; onCarregado: escolherPasta.open() }
+                        Botao { texto: "Escolher pasta"; principal: true; onCarregado: ajustes.escolherPastaPartilhar(escritaPart.checked) }
                     }
                 }
                 Grupo {
                     visible: janela.pagina === "partilha"
-                    Linha { titulo: "Acesso remoto (SSH)"; sub: janela.e.ssh === 1 ? ("ssh " + (janela.e.usuario || "") + "@" + ((janela.e.ip || [])[0] || "")) : "Desligado"
-                            Switch { checked: janela.e.ssh === 1; onToggled: ajustes.definirSSH(checked) } }
+                    titulo: "Acesso remoto (SSH)"
+                    Linha {
+                        titulo: "Permitir entrar neste computador por SSH"
+                        sub: janela.e.ssh === 1 ? "Ligado" : janela.e.ssh === 0 ? "Desligado" : "Desligado (é instalado ao ligar)"
+                        Switch { checked: janela.e.ssh === 1; onToggled: ajustes.definirSSH(checked) }
+                    }
+                    Linha { visible: janela.e.ssh === 1; titulo: "Endereço deste computador"; sub: (janela.e.ip || []).join("  ·  ") || "—"; icone: "network-wired" }
+                    Linha { visible: janela.e.ssh === 1; titulo: "Utilizador"; sub: janela.e.usuario || ""; icone: "user-identity" }
+                    Linha { visible: janela.e.ssh === 1; titulo: "Senha"; sub: "A mesma com que entra neste computador (por segurança não é mostrada aqui)"; icone: "dialog-password" }
+                    Item {
+                        visible: janela.e.ssh === 1
+                        width: parent.width; height: colSsh.implicitHeight + 24
+                        Column {
+                            id: colSsh
+                            x: 16; y: 12; width: parent.width - 32; spacing: 6
+                            Text { text: "Para entrar a partir de outro computador"; color: janela.texto; font.pixelSize: 14; font.weight: Font.DemiBold }
+                            Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 12
+                                   text: "Windows (PowerShell), Mac ou Linux (Terminal): escreva o comando abaixo e, quando pedir, a sua senha. Para copiar arquivos, num gestor de arquivos use o endereço sftp://." }
+                            Repeater {
+                                model: janela.e.ip || []
+                                delegate: Column {
+                                    required property string modelData
+                                    spacing: 2
+                                    TextEdit { readOnly: true; selectByMouse: true; color: "#ffd6a8"; font.family: "monospace"; font.pixelSize: 15
+                                               text: "ssh " + (janela.e.usuario || "") + "@" + modelData }
+                                    TextEdit { readOnly: true; selectByMouse: true; color: janela.suave; font.family: "monospace"; font.pixelSize: 13
+                                               text: "sftp://" + (janela.e.usuario || "") + "@" + modelData }
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // ===== Data e hora =====
@@ -537,9 +587,81 @@ ApplicationWindow {
                     Linha { titulo: "Manual do CarinaeOS"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-manual"); Seta {} }
                 }
 
+                // ===== Contas online =====
+                Grupo {
+                    visible: janela.pagina === "contas"
+                    titulo: "Calendários e contactos"
+                    Linha { titulo: "Google"; sub: "Calendário do Google (pelo endereço secreto iCal)"; icone: "view-calendar"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-central calendarios"); Seta {} }
+                    Linha { titulo: "iCloud e Outlook"; sub: "Pelo endereço do calendário (iCal)"; icone: "view-calendar-day"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-central calendarios"); Seta {} }
+                }
+                Grupo {
+                    visible: janela.pagina === "contas"
+                    titulo: "Contas"
+                    Linha { titulo: "Nextcloud ou ownCloud"; sub: "Arquivos, calendário e contactos sincronizados — entra com a conta na janela que abre"; icone: "folder-cloud"; clicavel: true; onCarregado: ajustes.completo("contas"); Seta {} }
+                    Linha { titulo: "Google Drive"; sub: "Abrir o Google Drive em Meus documentos (entra com a conta Google)"; icone: "folder-gdrive"; clicavel: true; onCarregado: ajustes.abrir("dolphin --new-window gdrive:/"); Seta {} }
+                }
+
+                // ===== Dock =====
+                Grupo {
+                    visible: janela.pagina === "dock"
+                    titulo: "Tamanho"
+                    Linha { titulo: "Tamanho dos ícones"; sub: Math.round(janela.e.iconSize || 56) + " px"
+                            Deslizante { from: 32; to: 96; stepSize: 2; alvo: janela.e.iconSize || 56; onMoved: ajustes.definirDock("iconSize", Math.round(value)) } }
+                    Linha { titulo: "Ampliação ao passar o rato"; sub: (janela.e.zoom || 1.6) <= 1.01 ? "Desligada" : Math.round(((janela.e.zoom || 1.6) - 1) * 100) + "%"
+                            Deslizante { from: 1; to: 2.2; stepSize: 0.1; alvo: janela.e.zoom || 1.6; onMoved: ajustes.definirDock("zoom", value) } }
+                }
+                Grupo {
+                    visible: janela.pagina === "dock"
+                    titulo: "Posição"
+                    Item {
+                        width: parent.width; height: 70
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 10
+                            Repeater {
+                                model: [["bottom", "Em baixo"], ["left", "À esquerda"], ["right", "À direita"], ["top", "Em cima"]]
+                                delegate: Botao {
+                                    required property var modelData
+                                    texto: modelData[1]
+                                    principal: (janela.e.posicao || "bottom") === modelData[0]
+                                    onCarregado: { ajustes.definirDock("posicao", modelData[0]); ajustes.ler("dock"); }
+                                }
+                            }
+                        }
+                    }
+                    Linha { titulo: "Esconder automaticamente"; sub: "Aparece quando o rato chega à beira do ecrã"
+                            Switch { checked: !!janela.e.esconder; onToggled: ajustes.definirDock("esconder", checked) } }
+                }
+                Grupo {
+                    visible: janela.pagina === "dock"
+                    titulo: "Separadores"
+                    Linha { titulo: "Espessura"; sub: (janela.e.separatorWidth || 1) + " px"
+                            Deslizante { from: 1; to: 6; stepSize: 1; alvo: janela.e.separatorWidth || 1; onMoved: ajustes.definirDock("separatorWidth", Math.round(value)) } }
+                    Item {
+                        width: parent.width; height: 64
+                        Text { x: 16; anchors.verticalCenter: parent.verticalCenter; text: "Cor"; color: janela.texto; font.pixelSize: 14 }
+                        Row {
+                            anchors.right: parent.right; anchors.rightMargin: 16; anchors.verticalCenter: parent.verticalCenter
+                            spacing: 8
+                            Repeater {
+                                model: ["#59ffffff", "#ffffffff", "#ffb46e", "#7aa7ff", "#a35bff", "#3ee0b0", "#ff6f91", "#000000"]
+                                delegate: Rectangle {
+                                    required property string modelData
+                                    width: 26; height: 26; radius: 13
+                                    color: modelData
+                                    border.width: (janela.e.separatorColor || "#59ffffff") === modelData ? 3 : 1
+                                    border.color: (janela.e.separatorColor || "#59ffffff") === modelData ? janela.realce : Qt.rgba(1, 1, 1, 0.3)
+                                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: { ajustes.definirDock("separatorColor", parent.modelData); ajustes.ler("dock"); } }
+                                }
+                            }
+                        }
+                    }
+                    Linha { titulo: "Pôr um separador"; sub: "Na Dock: botão direito num ícone › Adicionar separador à direita. Arraste os ícones para os reorganizar." }
+                }
+
                 // ===== secções que abrem o módulo completo =====
                 Grupo {
-                    visible: ["notificacoes", "aplicativos", "teclado", "rato", "impressoras", "contas", "regiao", "acessibilidade"].indexOf(janela.pagina) !== -1
+                    visible: ["notificacoes", "aplicativos", "teclado", "rato", "impressoras", "regiao", "acessibilidade"].indexOf(janela.pagina) !== -1
                     Linha {
                         titulo: "Abrir " + janela.seccao.nome
                         sub: "As opções completas abrem numa janela própria."
@@ -552,7 +674,7 @@ ApplicationWindow {
 
                 // "mais opções" no fim das páginas que o têm
                 Botao {
-                    visible: janela.seccao.completo && ["notificacoes", "aplicativos", "teclado", "rato", "impressoras", "contas", "regiao", "acessibilidade"].indexOf(janela.pagina) === -1
+                    visible: janela.seccao.completo && ["notificacoes", "aplicativos", "teclado", "rato", "impressoras", "regiao", "acessibilidade"].indexOf(janela.pagina) === -1
                     Layout.alignment: Qt.AlignHCenter
                     texto: "Mais opções…"
                     onCarregado: ajustes.completo(janela.pagina)
@@ -560,12 +682,6 @@ ApplicationWindow {
                 Item { Layout.preferredHeight: 40 }
             }
         }
-    }
-
-    FolderDialog {
-        id: escolherPasta
-        title: "Escolha a pasta a partilhar"
-        onAccepted: ajustes.partilharPasta(selectedFolder.toString(), escritaPart.checked)
     }
 
     // senha do Wi-Fi

@@ -150,3 +150,13 @@ numlockx
 python3-markdown
 openssh-server
 brightnessctl
+# partilha de pastas, contas online, musica (MPD)
+samba
+kaccounts-integration
+kaccounts-providers
+kio-gdrive
+mpd
+mpc
+python3-mpd
+python3-mutagen
+power-profiles-daemon

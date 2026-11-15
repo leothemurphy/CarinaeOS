@@ -19,6 +19,12 @@
     <entry name="separators" type="StringList">
       <default></default>
     </entry>
+    <entry name="separatorColor" type="String">
+      <default>#59ffffff</default>
+    </entry>
+    <entry name="separatorWidth" type="Int">
+      <default>1</default>
+    </entry>
     <entry name="showTrash" type="Bool">
       <default>true</default>
     </entry>

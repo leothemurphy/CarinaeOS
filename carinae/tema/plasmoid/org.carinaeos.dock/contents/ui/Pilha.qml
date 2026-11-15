@@ -59,6 +59,7 @@ Item {
 
     Kirigami.Icon {
         id: icone
+        rotation: -dock.angulo
         source: "folder-downloads"
         width: dock.base * pilha.s
         height: width
