@@ -55,10 +55,16 @@ Kicker.DashboardWindow {
         const ocultos = cfg.ocultos || [], fx = cfg.fixos || [];
         const lista = [], porOrig = {};
         const cor = (orig, padrao) => cores[orig] !== undefined ? paleta[cores[orig] % paleta.length] : padrao;
+        const visto = {};      // cada aplicativo só num ambiente (o primeiro onde aparece, ou para onde foi movido)
         for (const c of catSistema) {
+            const apps = c.apps.filter(a => {
+                if (col[a.chave] || visto[a.chave]) return false;
+                visto[a.chave] = true;
+                return true;
+            });
             if (ocultos.indexOf(c.nome) !== -1) continue;
             const x = { orig: c.nome, nome: nomes[c.nome] || c.nome, icone: c.icone, cor: cor(c.nome, c.cor),
-                        propria: false, apps: c.apps.filter(a => !col[a.chave]) };
+                        propria: false, apps: apps };
             lista.push(x);
             porOrig[x.orig] = x;
         }
