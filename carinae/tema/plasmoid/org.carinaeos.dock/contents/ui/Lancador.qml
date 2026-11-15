@@ -160,6 +160,7 @@ Kicker.DashboardWindow {
             return a.concat(b);
         }
         if (vista === "todos") return itens;
+        if (vista === "semamb") return semAmbiente;
         if (vista === "cat") return (categorias[catAtual] || { apps: [] }).apps;
         if (vista === "favoritos") {
             const l = lp.dock.modelo.launcherList, r = [];
@@ -187,6 +188,11 @@ Kicker.DashboardWindow {
         }
         return [];
     }
+    // os aplicativos que a pessoa ainda não pôs em nenhum ambiente (somem daqui ao serem movidos)
+    readonly property var semAmbiente: {
+        const col = cartoesCfg.colocar || {};
+        return itens.filter(a => a.chave && !col[a.chave]).sort((a, b) => a.nome.localeCompare(b.nome));
+    }
     readonly property bool emGrelha: filtro !== "" || (vista !== "inicio" && vista !== "deck")
     readonly property string titulo: filtro !== "" ? "Resultados"
         : vista === "inicio" ? saudacao()
@@ -195,11 +201,13 @@ Kicker.DashboardWindow {
         : vista === "usados" ? "Mais usados"
         : vista === "novos" ? "Instalados recentemente"
         : vista === "deck" ? "Deck"
+        : vista === "semamb" ? "Sem ambiente"
         : (categorias[catAtual] || { nome: "" }).nome
     readonly property string subtitulo: filtro !== "" ? contagem(lista.length)
         : vista === "inicio" ? "As suas categorias, de um relance"
         : vista === "favoritos" ? "Os aplicativos que estão na Dock"
         : vista === "deck" ? "Ações rápidas num toque · botão direito para tirar"
+        : vista === "semamb" ? contagem(lista.length) + " por arrumar · botão direito › Mover para"
         : contagem(lista.length)
 
     function contagem(n: int): string {
@@ -959,6 +967,15 @@ Kicker.DashboardWindow {
                             topPadding: Math.round(16 * palco.u)
                             bottomPadding: Math.round(6 * palco.u)
                             leftPadding: Math.round(12 * palco.u)
+                        }
+                        ItemLado {
+                            u: palco.u
+                            texto: "Sem ambiente"
+                            icone: "folder-open"
+                            numero: String(lp.semAmbiente.length)
+                            visible: lp.semAmbiente.length > 0
+                            ativo: lp.filtro === "" && lp.vista === "semamb"
+                            onEscolhido: lp.mudarVista("semamb")
                         }
                         Repeater {
                             model: lp.categorias
