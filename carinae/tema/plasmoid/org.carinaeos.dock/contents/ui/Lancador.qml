@@ -1018,7 +1018,9 @@ Kicker.DashboardWindow {
                         font.pixelSize: Math.round(17 * palco.u)
                         background: Item {}
                         focus: true
-                        enabled: !formCartao.visible && !formDeck.visible   // com um formulário aberto, escreve-se lá
+                        // com um formulário aberto, a pesquisa não aceita letras (desligá-la de todo faz o
+                        // Plasma tentar dar-lhe o teclado sem fim e fechar-se: nunca usar "enabled" aqui)
+                        readOnly: formCartao.visible || formDeck.visible
                         onTextChanged: lp.filtro = text
                         onAccepted: {
                             if (lp.emGrelha && lp.selecionado) lp.abrir(lp.selecionado);
