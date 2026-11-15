@@ -397,3 +397,13 @@ systemctl --global disable mpd.service mpd.socket 2>/dev/null || true
 
 # marca do fim da construcao: o Launchpad mostra como "Instalados recentemente" o que for mais novo do que isto
 mkdir -p /usr/lib/carinaeos && touch /usr/lib/carinaeos/.base
+
+# navegadores do Flathub: podem criar "apps" de páginas (PWA) com ícone no Launchpad
+# (sem isto o Chrome diz que "This Flatpak does not have write access to ~/.local/share/applications")
+if command -v flatpak >/dev/null; then
+  for app in com.google.Chrome com.google.ChromeDev org.chromium.Chromium com.brave.Browser com.microsoft.Edge \
+             io.github.ungoogled_software.ungoogled_chromium com.vivaldi.Vivaldi com.opera.Opera; do
+    flatpak override --system "$app" --filesystem=xdg-data/applications --filesystem=xdg-data/icons \
+      --filesystem=xdg-desktop || true
+  done
+fi
