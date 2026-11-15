@@ -17,9 +17,12 @@ chave_mok() {
         return 0
     fi
     codigo=$(shuf -i 10000000-99999999 -n 1)
-    if printf '%s\n%s\n' "$codigo" "$codigo" | mokutil --import /var/lib/dkms/mok.pub >/dev/null 2>&1; then
+    # o mokutil só pede a senha num terminal: aqui vai como "hash" (o código é de uso único e é mostrado à pessoa)
+    h=$(mktemp)
+    if mokutil --generate-hash="$codigo" > "$h" 2>/dev/null && mokutil --import /var/lib/dkms/mok.pub --hash-file "$h" >/dev/null 2>&1; then
         echo "MOK:$codigo"
     fi
+    rm -f "$h"
 }
 
 case "$1" in
