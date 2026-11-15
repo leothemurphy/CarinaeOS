@@ -1,0 +1,12 @@
+[Unit]
+Description=CarinaeOS - vigia da música (listas de pastas e Home Assistant)
+After=mpd.service
+Wants=mpd.service
+
+[Service]
+ExecStart=/usr/lib/carinaeos/musica-vigia
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

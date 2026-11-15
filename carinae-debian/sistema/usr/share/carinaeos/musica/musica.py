@@ -234,6 +234,8 @@ class Musica(QObject):
                     pass
             subprocess.run(['systemctl', '--user', 'enable', '--now', 'mpd.service'], capture_output=True, timeout=30)
             self._ponte_mpris()
+            subprocess.run(['systemctl', '--user', 'enable', '--now', 'carinaeos-musica-vigia.service'],
+                           capture_output=True, timeout=20)
             for _ in range(20):
                 try:
                     self._mpd('ping')
@@ -588,6 +590,7 @@ class Musica(QObject):
     @Property('QVariantMap', notify=mudou)
     def rede(self):
         return dict(ligada=bool(self._prefs.get('rede')), ip=ip_local(), porta=PORTA, temSenha=bool(self._prefs.get('senha')),
+                    haUrl=self._prefs.get('ha_url', ''), haToken=bool(self._prefs.get('ha_token')),
                     internet=self._prefs.get('internet', True), nome=socket.gethostname())
 
     # ---- comandos de reprodução -------------------------------------------------------------------------
@@ -693,8 +696,17 @@ class Musica(QObject):
         self._bg(lambda: self._mpd('playlistadd', nome, ficheiro),
                  lambda r: self._aviso(('Adicionada a “%s” ✓' % nome) if not isinstance(r, Exception) else 'Erro: %s' % r))
 
+    def _esquecer_pasta(self, nome, novo=None):
+        lp = self._prefs.get('listas_pasta') or {}
+        if nome in lp:
+            pasta = lp.pop(nome)
+            if novo:
+                lp[novo] = pasta
+            gravar_prefs(self._prefs)
+
     @Slot(str)
     def apagarLista(self, nome):
+        self._esquecer_pasta(nome)
         if self._lista_aberta.get('nome') == nome:
             self._lista_aberta = {}
             self.listaMudou.emit()
@@ -750,6 +762,9 @@ class Musica(QObject):
     def listaDaPasta(self, pasta):
         """Uma lista com o nome da pasta e todas as músicas que estão dentro dela (e nas subpastas)."""
         pasta = pasta.rstrip('/')
+        lp = self._prefs.setdefault('listas_pasta', {})
+        lp[os.path.basename(pasta) or pasta] = pasta     # o vigia mantém-na igual à pasta
+        gravar_prefs(self._prefs)
         fs = [m['ficheiro'] for m in sorted(self._musicas, key=lambda m: m['ficheiro'].lower())
               if m['ficheiro'].startswith(pasta + '/')]
         self.criarLista(os.path.basename(pasta) or pasta, fs)
@@ -792,6 +807,7 @@ class Musica(QObject):
         novo = self._nome_lista(novo)
         if not novo or novo == nome:
             return
+        self._esquecer_pasta(nome, novo)
         self._bg(lambda: self._mpd('rename', nome, novo),
                  lambda r: (self._aviso('Erro: %s' % r) if isinstance(r, Exception) else self.abrirLista(novo),
                             self.recarregar()))
@@ -912,6 +928,25 @@ class Musica(QObject):
                            shell=True, capture_output=True)
             return True
         self._bg(trabalho, lambda r: (self._aviso('Pronto ✓' if r is True else 'Erro: %s' % r), self.mudou.emit()))
+
+    @Slot(str, str)
+    def definirHomeAssistant(self, url, token):
+        url = url.strip().rstrip('/')
+        if url and not url.startswith('http'):
+            url = 'http://' + url
+        self._prefs['ha_url'] = url
+        if token.strip():
+            self._prefs['ha_token'] = token.strip()
+        gravar_prefs(self._prefs)
+        os.chmod(PREFS, 0o600)          # o token fica só para esta pessoa
+        self.mudou.emit()
+
+        def trabalho():
+            subprocess.run(['systemctl', '--user', 'restart', 'carinaeos-musica-vigia.service'], capture_output=True, timeout=20)
+            return subprocess.run(['/usr/lib/carinaeos/musica-vigia', '--agora'], capture_output=True, text=True, timeout=40).stdout
+        self._bg(trabalho, lambda r: self._aviso('Home Assistant ligado ✓ — as fontes atualizam-se sozinhas'
+                                                 if isinstance(r, str) and 'recarregada' in r
+                                                 else 'Não consegui falar com o Home Assistant: veja o endereço e o token'))
 
     @Slot(bool)
     def definirInternet(self, sim):

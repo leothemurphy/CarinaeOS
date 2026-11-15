@@ -782,6 +782,20 @@ ApplicationWindow {
                     Campo { id: senhaMpd; width: 300; echoMode: TextInput.Password; placeholderText: musica.rede.temSenha ? "Senha definida (escreva para mudar)" : "Senha opcional para o MPD" }
                     Botao { texto: "Aplicar"; anchors.verticalCenter: parent.verticalCenter; onClicked: { musica.definirRede(swRede.checked, senhaMpd.text); senhaMpd.text = "" } }
                 }
+                // atualização automática das fontes no Home Assistant
+                Rectangle {
+                    width: parent.width; height: colAuto.height + 32; radius: 14; color: janela.cartao
+                    Column {
+                        id: colAuto; x: 18; y: 16; width: parent.width - 36; spacing: 10
+                        Text { text: "Fontes sempre atualizadas"; color: janela.texto; font.pixelSize: 15; font.weight: Font.Bold }
+                        Text { width: parent.width; wrapMode: Text.Wrap; color: janela.suave; font.pixelSize: 13
+                               text: "Com isto, uma lista, rádio ou música nova aparece logo nas fontes do Home Assistant (sem esperar 2 minutos), mesmo com este aplicativo fechado. As listas feitas «De uma pasta» acompanham a pasta sozinhas. O token cria-se no Home Assistant: o seu perfil › Segurança › Tokens de acesso de longa duração › Criar token." }
+                        Campo { id: haUrl; width: parent.width; placeholderText: "Endereço do Home Assistant (ex.: http://192.168.1.193:8123)"; text: musica.rede.haUrl }
+                        Campo { id: haToken; width: parent.width; echoMode: TextInput.Password
+                                placeholderText: musica.rede.haToken ? "Token guardado (cole outro para mudar)" : "Token de acesso de longa duração" }
+                        Botao { texto: "Guardar e testar"; destaque: true; onClicked: { musica.definirHomeAssistant(haUrl.text, haToken.text); haToken.text = "" } }
+                    }
+                }
                 Rectangle {
                     width: parent.width; height: dadosHa.height + 32; radius: 14
                     color: Qt.rgba(1, 0.7, 0.43, 0.08); border.color: Qt.rgba(1, 0.7, 0.43, 0.3)
