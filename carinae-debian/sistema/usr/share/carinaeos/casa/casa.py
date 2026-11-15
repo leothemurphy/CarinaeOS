@@ -363,4 +363,4 @@ class Casa(QObject):
 
 
 if __name__ == '__main__':
-    sys.exit(iniciar('carinaeos-casa', 'Casa', 'carinaeos-casa', os.path.join(AQUI, 'Main.qml'), {'casa': Casa}))
+    sys.exit(iniciar('carinaeos-casa', 'Carinae Casa', 'carinaeos-casa', os.path.join(AQUI, 'Main.qml'), {'casa': Casa}))

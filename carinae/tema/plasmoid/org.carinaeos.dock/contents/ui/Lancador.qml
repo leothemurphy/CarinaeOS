@@ -233,7 +233,7 @@ Kicker.DashboardWindow {
     readonly property string subtitulo: filtro !== "" ? contagem(lista.length)
         : vista === "inicio" ? (editando ? "Arraste os ambientes para os mudar de lugar · cor e imagem em cada um" : "Os seus ambientes, de um relance")
         : vista === "favoritos" ? "Os aplicativos que estão na Dock"
-        : vista === "deck" ? "Ações rápidas num toque · botão direito para tirar"
+        : vista === "deck" ? "A casa, o sistema e a música num toque · botão direito para tirar"
         : vista === "semamb" ? contagem(lista.length) + " por arrumar · botão direito › Mover para"
         : contagem(lista.length)
 
@@ -295,6 +295,7 @@ Kicker.DashboardWindow {
     onKeyEscapePressed: {
         if (busca.text !== "") busca.text = "";
         else if (formDeck.visible) formDeck.visible = false;
+        else if (formAcoes.visible) formAcoes.visible = false;
         else if (formSenha.visible) formSenha.fechar();
         else if (formCartao.visible) formCartao.visible = false;
         else lp.toggle();
@@ -346,20 +347,23 @@ Kicker.DashboardWindow {
     }
 
     // ---- Deck: ler e gravar ~/.config/carinaeos-deck.json -------------------------
+    // as teclas do Deck são ações (carinaeos-deck): { id, nome, icone }; continuam a valer
+    // as antigas { nome, icone, cmd } (comando ou site) e { app } (de versões anteriores)
     readonly property var deckPadrao: [
-        { nome: "Captura de ecrã", icone: "spectacle", cmd: "spectacle" },
-        { nome: "Terminal", icone: "utilities-terminal", cmd: "konsole" },
-        { nome: "Transferências", icone: "folder-download", cmd: "sh -c 'xdg-open \"$(xdg-user-dir DOWNLOAD)\"'" },
-        { nome: "Monitor do sistema", icone: "utilities-system-monitor", cmd: "plasma-systemmonitor" },
-        { nome: "Todas as janelas", icone: "view-grid", cmd: "qdbus6 org.kde.kglobalaccel /component/kwin org.kde.kglobalaccel.Component.invokeShortcut Overview" },
-        { nome: "Mostrar a mesa", icone: "user-desktop", cmd: "qdbus6 org.kde.kglobalaccel /component/kwin org.kde.kglobalaccel.Component.invokeShortcut 'Show Desktop'" },
-        { nome: "Central", icone: "carinaeos-central", cmd: "carinaeos-central" },
-        { nome: "Supernova", icone: "carinaeos-supernova", cmd: "carinaeos-supernova" },
-        { nome: "Manual", icone: "help-contents", cmd: "carinaeos-manual" },
-        { nome: "Configurações", icone: "preferences-system", cmd: "carinaeos-configuracoes" },
-        { nome: "Bloquear", icone: "system-lock-screen", cmd: "loginctl lock-session" },
-        { nome: "Suspender", icone: "system-suspend", cmd: "systemctl suspend" }
+        { id: "sis:dnd", nome: "Não incomodar", icone: "notifications-disabled" },
+        { id: "sis:luz", nome: "Luz noturna", icone: "redshift-status-on" },
+        { id: "mus:tocar", nome: "Tocar / pausar", icone: "media-playback-start" },
+        { id: "sis:captura", nome: "Captura de ecrã", icone: "spectacle" },
+        { id: "sis:janelas", nome: "Todas as janelas", icone: "view-grid" },
+        { id: "sis:mesa", nome: "Mostrar a mesa", icone: "user-desktop" },
+        { id: "sis:bloquear", nome: "Bloquear", icone: "system-lock-screen" },
+        { id: "sis:suspender", nome: "Suspender", icone: "system-suspend" }
     ]
+    // os comandos do Deck antigo: um Deck só com estes é o de origem e passa ao novo
+    readonly property var deckAntigo: ["spectacle", "konsole", "plasma-systemmonitor", "carinaeos-central", "carinaeos-supernova",
+        "carinaeos-manual", "carinaeos-configuracoes", "loginctl lock-session", "systemctl suspend"]
+    // ações que acontecem fora do Launchpad: ele fecha-se depois
+    readonly property var deckFecha: ["sis:captura", "sis:janelas", "sis:mesa", "sis:bloquear", "sis:suspender"]
     // aplicativos instalados recentemente (Debian, Flathub, AppImage): pela data do lancador
     readonly property P5Support.DataSource lerNovos: P5Support.DataSource {
         engine: "executable"
@@ -380,7 +384,10 @@ Kicker.DashboardWindow {
             const t = (dados["stdout"] || "").trim();
             let d = null;
             try { d = JSON.parse(t); } catch (e) { d = null; }
+            if (Array.isArray(d) && d.length > 0 && d.every(t => t.cmd && (lp.deckAntigo.indexOf(t.cmd) !== -1 || /qdbus6|xdg-user-dir/.test(t.cmd))))
+                d = null;       // ainda era o Deck de origem: passa às ações novas
             lp.deck = Array.isArray(d) ? d : lp.deckPadrao;
+            lp.lerEstadosDeck();
         }
     }
     function gravarDeck(): void {
@@ -651,6 +658,15 @@ Kicker.DashboardWindow {
         for (const t of deck) if (t.app === app.chave) return true;
         return false;
     }
+    function noDeckId(id: string): bool {
+        return deck.some(t => t.id === id);
+    }
+    function adicionarAcao(a: var): void {
+        if (noDeckId(a.id)) return;
+        deck = deck.concat([{ id: a.id, nome: a.nome, icone: a.icone }]);
+        gravarDeck();
+        lerEstadosDeck();
+    }
     function adicionarAoDeck(app: var): void {
         if (!app || noDeck(app)) return;
         deck = deck.concat([{ app: app.chave }]);
@@ -662,7 +678,57 @@ Kicker.DashboardWindow {
         deck = d;
         gravarDeck();
     }
+    property var deckEstado: ({})
+    readonly property P5Support.DataSource estadoDeck: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            try {
+                const r = JSON.parse((dados["stdout"] || "").trim());
+                lp.deckEstado = Object.assign({}, lp.deckEstado, r);
+            } catch (e) {}
+        }
+    }
+    function lerEstadosDeck(): void {
+        const ids = deck.filter(t => t.id).map(t => aspas(t.id));
+        if (ids.length > 0) estadoDeck.connectSource("carinaeos-deck estado " + ids.join(" ") + " #" + Date.now());
+    }
+    readonly property Timer relogioDeck: Timer {
+        interval: 3000
+        repeat: true
+        running: lp.visible && lp.vista === "deck" && lp.filtro === ""
+        onTriggered: lp.lerEstadosDeck()
+    }
+    readonly property P5Support.DataSource acaoDeck: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            const m = fonte.match(/^carinaeos-deck tocar '(.*)' #/);
+            try {
+                const r = JSON.parse((dados["stdout"] || "").trim());
+                if (m) {
+                    const e = Object.assign({}, lp.deckEstado);
+                    e[m[1].replace(/'\\''/g, "'")] = r;
+                    lp.deckEstado = e;
+                }
+            } catch (e) {}
+        }
+    }
     function tocarDeck(t: var): void {
+        if (t.id) {
+            // mostra já o estado contrário (a resposta confirma), e não fecha o Launchpad nos interruptores
+            const e = deckEstado[t.id];
+            if (e && e.ligado !== null && e.ligado !== undefined) {
+                const n = Object.assign({}, deckEstado);
+                n[t.id] = { ligado: !e.ligado, texto: "…" };
+                deckEstado = n;
+            }
+            acaoDeck.connectSource("carinaeos-deck tocar " + aspas(t.id) + " #" + Date.now());
+            if (deckFecha.indexOf(t.id) !== -1) lp.toggle();
+            return;
+        }
         if (t.app) {
             abrir(porChave(t.app));
             return;
@@ -686,6 +752,7 @@ Kicker.DashboardWindow {
             formSenha.visible = false;
             busca.text = "";
             formDeck.visible = false;
+            formAcoes.visible = false;
             lp.editando = false;
             lp.lerEstadoCadeado();
             vista = "inicio";
@@ -887,11 +954,6 @@ Kicker.DashboardWindow {
                 text: lp.naDock(menuApp.app) ? "Remover da Dock" : "Adicionar à Dock"
                 enabled: menuApp.app !== null && menuApp.app.chave !== ""
                 onTriggered: lp.alternarDock(menuApp.app)
-            }
-            QQC2.MenuItem {
-                text: "Adicionar ao Deck"
-                enabled: menuApp.app !== null && !lp.noDeck(menuApp.app)
-                onTriggered: lp.adicionarAoDeck(menuApp.app)
             }
             QQC2.MenuItem {
                 text: lp.trancado(menuApp.app) ? "Destrancar" : "Trancar com senha"
@@ -1332,7 +1394,7 @@ Kicker.DashboardWindow {
                         focus: true
                         // com um formulário aberto, a pesquisa não aceita letras (desligá-la de todo faz o
                         // Plasma tentar dar-lhe o teclado sem fim e fechar-se: nunca usar "enabled" aqui)
-                        readOnly: formSenha.visible || formCartao.visible || formDeck.visible
+                        readOnly: formSenha.visible || formCartao.visible || formDeck.visible || formAcoes.visible
                         onTextChanged: lp.filtro = text
                         onAccepted: {
                             if (lp.emGrelha && lp.selecionado) lp.abrir(lp.selecionado);
@@ -1876,6 +1938,8 @@ Kicker.DashboardWindow {
                             readonly property var dado: mais ? null : lp.deck[index]
                             readonly property var app: dado && dado.app ? lp.porChave(dado.app) : null
                             readonly property var cor: lp.paleta[(index * 3) % lp.paleta.length]
+                            readonly property var est: dado && dado.id ? lp.deckEstado[dado.id] : undefined
+                            readonly property bool apagada: est !== undefined && est.ligado === false
                             width: grelhaDeck.cellWidth
                             height: grelhaDeck.cellHeight
 
@@ -1887,8 +1951,8 @@ Kicker.DashboardWindow {
                                 scale: mt.pressed ? 0.94 : (mt.containsMouse ? 1.04 : 1)
                                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
                                 gradient: Gradient {
-                                    GradientStop { position: 0; color: tecla.mais ? Qt.rgba(1, 1, 1, 0.06) : lp.alfa(tecla.cor[1], 0.85) }
-                                    GradientStop { position: 1; color: tecla.mais ? Qt.rgba(1, 1, 1, 0.03) : lp.alfa(tecla.cor[0], 0.85) }
+                                    GradientStop { position: 0; color: tecla.mais ? Qt.rgba(1, 1, 1, 0.06) : lp.alfa(tecla.cor[1], tecla.apagada ? 0.22 : 0.85) }
+                                    GradientStop { position: 1; color: tecla.mais ? Qt.rgba(1, 1, 1, 0.03) : lp.alfa(tecla.cor[0], tecla.apagada ? 0.18 : 0.85) }
                                 }
                                 border.width: 1
                                 border.color: tecla.mais ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(1, 1, 1, 0.30)
@@ -1914,6 +1978,17 @@ Kicker.DashboardWindow {
                                     source: tecla.mais ? "list-add" : (tecla.app ? tecla.app.icone : (tecla.dado ? tecla.dado.icone : ""))
                                     color: "white"
                                     isMask: tecla.mais
+                                    opacity: tecla.apagada ? 0.55 : 1
+                                }
+                                Rectangle {     // luz de "ligado"
+                                    visible: tecla.est !== undefined && tecla.est.ligado === true
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.margins: Math.round(14 * palco.u)
+                                    width: Math.round(10 * palco.u); height: width; radius: width / 2
+                                    color: "#7dffb0"
+                                    border.width: 2
+                                    border.color: Qt.rgba(1, 1, 1, 0.6)
                                 }
                                 Text {
                                     anchors.bottom: parent.bottom
@@ -1924,10 +1999,23 @@ Kicker.DashboardWindow {
                                     elide: Text.ElideRight
                                     text: tecla.mais ? "Adicionar" : (tecla.app ? tecla.app.nome : (tecla.dado ? tecla.dado.nome : ""))
                                     color: "white"
+                                    opacity: tecla.apagada ? 0.75 : 1
                                     font.pixelSize: Math.round(14 * palco.u)
                                     font.weight: Font.DemiBold
                                     style: Text.Raised
                                     styleColor: Qt.rgba(0, 0, 0, 0.25)
+                                }
+                                Text {      // estado (Ligada · 80%, A tocar, …)
+                                    visible: text !== ""
+                                    anchors.bottom: parent.bottom
+                                    anchors.bottomMargin: Math.round(5 * palco.u)
+                                    width: parent.width - 16
+                                    x: 8
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                    text: tecla.est && tecla.est.texto ? tecla.est.texto : ""
+                                    color: Qt.rgba(1, 1, 1, 0.7)
+                                    font.pixelSize: Math.round(11 * palco.u)
                                 }
                             }
                             MouseArea {
@@ -1938,7 +2026,7 @@ Kicker.DashboardWindow {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: ev => {
                                     if (tecla.mais) {
-                                        formDeck.abrir();
+                                        formAcoes.abrir();
                                     } else if (ev.button === Qt.RightButton) {
                                         menuDeck.i = tecla.index;
                                         menuDeck.popup();
@@ -1948,6 +2036,120 @@ Kicker.DashboardWindow {
                                 }
                                 onPressAndHold: if (!tecla.mais) { menuDeck.i = tecla.index; menuDeck.popup(); }
                             }
+                        }
+                    }
+
+                    // escolher uma ação para o Deck (catálogo do carinaeos-deck)
+                    Rectangle {
+                        id: formAcoes
+                        visible: false
+                        z: 55
+                        anchors.centerIn: parent
+                        width: Math.min(parent.width - 40, Math.round(760 * palco.u))
+                        height: Math.min(parent.height - 40, Math.round(640 * palco.u))
+                        radius: Math.round(24 * palco.u)
+                        color: Qt.rgba(0.09, 0.07, 0.2, 0.97)
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.2)
+                        property var grupos: []
+                        property bool aCarregar: false
+                        function abrir(): void {
+                            aCarregar = true;
+                            visible = true;
+                            lerCatalogo.connectSource("carinaeos-deck catalogo #" + Date.now());
+                        }
+                        P5Support.DataSource {
+                            id: lerCatalogo
+                            engine: "executable"
+                            connectedSources: []
+                            onNewData: (fonte, dados) => {
+                                disconnectSource(fonte);
+                                try { formAcoes.grupos = JSON.parse((dados["stdout"] || "").trim()); } catch (e) { formAcoes.grupos = []; }
+                                formAcoes.aCarregar = false;
+                            }
+                        }
+                        MouseArea { anchors.fill: parent }
+                        Column {
+                            id: cabAcoes
+                            x: Math.round(24 * palco.u); y: Math.round(20 * palco.u)
+                            width: parent.width - Math.round(48 * palco.u)
+                            spacing: 4
+                            Text { text: "Adicionar ao Deck"; color: lp.texto; font.pixelSize: Math.round(20 * palco.u); font.weight: Font.DemiBold }
+                            Text {
+                                width: parent.width; wrapMode: Text.Wrap
+                                text: formAcoes.aCarregar ? "A procurar o que se pode pôr no Deck…" : "Toque numa ação para a pôr no Deck. As que mostram o estado acendem quando estão ligadas."
+                                color: lp.suave; font.pixelSize: Math.round(12 * palco.u)
+                            }
+                        }
+                        Flickable {
+                            id: rolarAcoes
+                            anchors.top: cabAcoes.bottom; anchors.topMargin: Math.round(14 * palco.u)
+                            anchors.bottom: rodapeAcoes.top; anchors.bottomMargin: Math.round(10 * palco.u)
+                            x: cabAcoes.x; width: cabAcoes.width
+                            clip: true
+                            contentHeight: colAcoes.height
+                            boundsBehavior: Flickable.StopAtBounds
+                            Column {
+                                id: colAcoes
+                                width: parent.width
+                                spacing: Math.round(14 * palco.u)
+                                Repeater {
+                                    model: formAcoes.grupos
+                                    delegate: Column {
+                                        id: grupoA
+                                        required property var modelData
+                                        width: colAcoes.width
+                                        spacing: Math.round(8 * palco.u)
+                                        Text { text: grupoA.modelData.grupo; color: lp.texto; font.pixelSize: Math.round(14 * palco.u); font.weight: Font.DemiBold }
+                                        Text {
+                                            visible: !!grupoA.modelData.aviso
+                                            width: parent.width; wrapMode: Text.Wrap
+                                            text: grupoA.modelData.aviso || ""
+                                            color: lp.suave; font.pixelSize: Math.round(12 * palco.u)
+                                        }
+                                        Flow {
+                                            width: parent.width
+                                            spacing: Math.round(8 * palco.u)
+                                            Repeater {
+                                                model: grupoA.modelData.itens
+                                                delegate: Rectangle {
+                                                    id: chipA
+                                                    required property var modelData
+                                                    readonly property bool ja: lp.noDeckId(modelData.id)
+                                                    width: linhaA.implicitWidth + Math.round(26 * palco.u)
+                                                    height: Math.round(38 * palco.u)
+                                                    radius: height / 2
+                                                    color: ja ? Qt.rgba(1, 0.71, 0.43, 0.25) : (mA.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08))
+                                                    border.width: 1
+                                                    border.color: ja ? "#ffb46e" : Qt.rgba(1, 1, 1, 0.16)
+                                                    Row {
+                                                        id: linhaA
+                                                        anchors.centerIn: parent
+                                                        spacing: Math.round(8 * palco.u)
+                                                        Kirigami.Icon { source: chipA.ja ? "checkmark" : chipA.modelData.icone; width: Math.round(18 * palco.u); height: width; anchors.verticalCenter: parent.verticalCenter }
+                                                        Text { text: chipA.modelData.nome; color: lp.texto; font.pixelSize: Math.round(13 * palco.u); anchors.verticalCenter: parent.verticalCenter }
+                                                    }
+                                                    MouseArea {
+                                                        id: mA
+                                                        anchors.fill: parent
+                                                        hoverEnabled: true
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: if (!chipA.ja) lp.adicionarAcao(chipA.modelData)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Row {
+                            id: rodapeAcoes
+                            anchors.right: parent.right; anchors.rightMargin: Math.round(20 * palco.u)
+                            anchors.bottom: parent.bottom; anchors.bottomMargin: Math.round(18 * palco.u)
+                            spacing: 10
+                            QQC2.Button { text: "Comando ou site…"; onClicked: { formAcoes.visible = false; formDeck.abrir(); } }
+                            QQC2.Button { text: "Pronto"; highlighted: true; onClicked: { formAcoes.visible = false; busca.forceActiveFocus(); } }
                         }
                     }
 
@@ -2292,13 +2494,6 @@ Kicker.DashboardWindow {
                         texto: lp.naDock(lp.selecionado) ? "Remover da Dock" : "Fixar na Dock"
                         icone: lp.naDock(lp.selecionado) ? "window-unpin" : "window-pin"
                         onEscolhido: lp.alternarDock(lp.selecionado)
-                    }
-                    ItemLado {
-                        u: palco.u
-                        texto: lp.noDeck(lp.selecionado) ? "Já está no Deck" : "Adicionar ao Deck"
-                        icone: "view-grid-symbolic"
-                        opacity: lp.noDeck(lp.selecionado) ? 0.5 : 1
-                        onEscolhido: lp.adicionarAoDeck(lp.selecionado)
                     }
                     ItemLado {
                         u: palco.u

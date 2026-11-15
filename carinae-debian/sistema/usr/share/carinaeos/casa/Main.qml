@@ -7,7 +7,7 @@ ApplicationWindow {
     width: 1180; height: 780
     minimumWidth: 820; minimumHeight: 560
     visible: true
-    title: "Casa"
+    title: "Carinae Casa"
     color: "#0c0a14"
     font.family: "Inter"; font.pixelSize: 14
 
