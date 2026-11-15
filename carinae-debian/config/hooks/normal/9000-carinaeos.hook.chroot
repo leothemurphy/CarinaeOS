@@ -271,6 +271,7 @@ systemctl disable ssh.service ssh.socket 2>/dev/null || true
 # sem chaves de servidor na imagem: cada computador gera as suas ao ligar o SSH
 rm -f /etc/ssh/ssh_host_*
 systemctl --global enable carinaeos-calendarios.timer 2>/dev/null || true
+systemctl --global enable carinaeos-atualizacoes.timer 2>/dev/null || true
 # a pasta pessoal do convidado vive na memoria (montada ao entrar, apagada ao sair) e entra sem senha
 for P in /etc/pam.d/sddm /etc/pam.d/gdm-password /etc/pam.d/lightdm; do
   [ -f "$P" ] || continue

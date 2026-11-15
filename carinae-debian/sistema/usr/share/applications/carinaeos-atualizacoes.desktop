@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Atualizações
+GenericName=Atualizar o sistema
+Comment=Atualizar o sistema e os aplicativos, com um ponto de restauro antes para poder voltar atrás
+Exec=carinaeos-atualizacoes
+Icon=system-software-update
+Categories=System;Settings;
+Keywords=atualizar;atualizações;update;upgrade;restauro;timeshift;voltar atrás;backup;
+StartupWMClass=carinaeos-atualizacoes

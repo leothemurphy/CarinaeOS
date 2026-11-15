@@ -22,6 +22,7 @@ CFG = os.path.join(HOME, '.config')
 FERRAMENTAS = [
     dict(id='supernova', nome='Supernova', desc='Personalizar: Dock, janelas, efeitos, perfis', icone='carinaeos-supernova', cmd='carinaeos-supernova'),
     dict(id='orbita', nome='Órbita', desc='Loja de aplicativos', icone='carinaeos-orbita', cmd='carinaeos-orbita'),
+    dict(id='atualizacoes', nome='Atualizações', desc='Atualizar com ponto de restauro e voltar atrás', icone='system-software-update', cmd='carinaeos-atualizacoes'),
     dict(id='casa', nome='Carinae Casa', desc='Ligado ao Home Assistant', icone='carinaeos-casa', cmd='carinaeos-casa'),
     dict(id='calendarios', nome='Calendários', desc='Google, iCloud e endereços iCal', icone='view-calendar', pagina='calendarios'),
     dict(id='janelas', nome='Janelas em zonas', desc='Encaixar janelas lado a lado e áreas de trabalho', icone='view-grid', pagina='janelas'),

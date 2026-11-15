@@ -156,6 +156,7 @@ kaccounts-integration
 kaccounts-providers
 kio-gdrive
 rclone
+timeshift
 fuse3
 signon-ui-qt
 signon-ui-service
