@@ -49,7 +49,7 @@ ponto() {
     command -v timeshift >/dev/null || { echo "@erro Falta o Timeshift (sudo apt install timeshift)."; return 1; }
     configurar
     passo "Criando o ponto de restauro…"
-    timeshift --create --scripted --tags O --comments "$PREFIXO $1" 2>&1 | grep -vE '^\s*$' | tail -3
+    timeshift --create --scripted --comments "$PREFIXO $1" 2>&1 | grep -vE '^\s*$' | tail -3
     local r=${PIPESTATUS[0]}
     [ "$r" -eq 0 ] || { echo "@erro Não foi possível criar o ponto de restauro."; return 1; }
     # guarda só os $MANTER mais recentes do CarinaeOS
