@@ -12,9 +12,11 @@ case "$1" in
     fi
     ssh-keygen -A
     systemctl enable --now ssh
+    /usr/lib/carinaeos/firewall abrir ssh 2>/dev/null || true
     ;;
   desligar)
     systemctl disable --now ssh 2>/dev/null || true
+    /usr/lib/carinaeos/firewall fechar ssh 2>/dev/null || true
     ;;
   *) echo "uso: $0 ligar|desligar" >&2; exit 2 ;;
 esac

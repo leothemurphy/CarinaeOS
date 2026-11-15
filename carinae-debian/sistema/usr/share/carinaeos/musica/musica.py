@@ -924,8 +924,14 @@ class Musica(QObject):
         def trabalho():
             escrever_conf(ligar, self._prefs.get('senha', ''))
             self._reiniciar_mpd()
-            subprocess.run('command -v ufw >/dev/null && ufw status | grep -q active && ufw allow %d/tcp' % PORTA,
-                           shell=True, capture_output=True)
+            # firewall: abre (ou fecha) o MPD e a transmissão só para a rede de casa
+            try:
+                abertos = open('/var/lib/carinaeos/firewall-abertos').read().split()
+            except OSError:
+                abertos = []
+            if os.path.exists('/usr/lib/carinaeos/firewall') and (ligar != ('musica' in abertos)):
+                subprocess.run(['pkexec', '/usr/lib/carinaeos/firewall', 'abrir' if ligar else 'fechar', 'musica'],
+                               capture_output=True, timeout=120)
             return True
         self._bg(trabalho, lambda r: (self._aviso('Pronto ✓' if r is True else 'Erro: %s' % r), self.mudou.emit()))
 

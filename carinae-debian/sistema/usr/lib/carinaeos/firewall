@@ -1,0 +1,73 @@
+#!/bin/sh
+# CarinaeOS - firewall (ufw). Corre como root (pkexec, ou chamado pelos outros ajudantes).
+#   firewall ligar           -> liga: bloqueia o que chega de fora, deixa sair tudo
+#                               (abre só o que o CarinaeOS precisa na rede local: descoberta, KDE Connect)
+#   firewall desligar        -> desliga (não recomendado)
+#   firewall abrir SERVIÇO   -> abre um serviço, só para a rede local (ssh, partilha, musica)
+#   firewall fechar SERVIÇO  -> fecha-o de novo
+#   firewall estado          -> "ligado" ou "desligado", e os serviços abertos
+# Os serviços só ficam abertos para a rede de casa (endereços privados), nunca para a internet.
+set -e
+command -v ufw >/dev/null || { echo "ufw não está instalado" >&2; exit 1; }
+
+REDES="10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 fe80::/10 fd00::/8"
+
+portas() {
+  case "$1" in
+    ssh) echo "22/tcp" ;;
+    partilha) echo "139/tcp 445/tcp 137/udp 138/udp 5357/tcp 3702/udp" ;;
+    musica) echo "6600/tcp 8000/tcp" ;;
+    kdeconnect) echo "1714:1764/tcp 1714:1764/udp" ;;
+    descoberta) echo "5353/udp" ;;
+    *) echo "serviço desconhecido: $1 (ssh, partilha, musica)" >&2; exit 2 ;;
+  esac
+}
+
+regra() {   # regra allow|delete SERVIÇO
+  for p in $(portas "$2"); do
+    porta=${p%/*}; proto=${p#*/}
+    for r in $REDES; do
+      if [ "$1" = allow ]; then
+        ufw allow proto "$proto" from "$r" to any port "$porta" comment "CarinaeOS $2" >/dev/null 2>&1 || true
+      else
+        ufw delete allow proto "$proto" from "$r" to any port "$porta" >/dev/null 2>&1 || true
+      fi
+    done
+  done
+}
+
+# o que está aberto, para os apps lerem sem precisar de senha
+anotar() {
+  mkdir -p /var/lib/carinaeos
+  ufw status 2>/dev/null | sed -n 's/.*# CarinaeOS \(.*\)$/\1/p' | sort -u > /var/lib/carinaeos/firewall-abertos || true
+  chmod 644 /var/lib/carinaeos/firewall-abertos 2>/dev/null || true
+}
+
+case "$1" in
+  ligar)
+    ufw default deny incoming >/dev/null
+    ufw default allow outgoing >/dev/null
+    regra allow descoberta
+    command -v kdeconnectd >/dev/null 2>&1 || [ -x /usr/libexec/kdeconnectd ] || [ -x /usr/lib/x86_64-linux-gnu/libexec/kdeconnectd ] && regra allow kdeconnect
+    # o que já estava ligado continua a funcionar
+    systemctl is-active -q ssh 2>/dev/null && regra allow ssh
+    systemctl is-active -q smbd 2>/dev/null && regra allow partilha
+    ss -ltnH 2>/dev/null | grep -Eq '(0\.0\.0\.0|\*|\[::\]):6600 ' && regra allow musica
+    ufw --force enable >/dev/null
+    systemctl enable ufw >/dev/null 2>&1 || true
+    mkdir -p /var/lib/carinaeos && touch /var/lib/carinaeos/firewall-feito
+    anotar
+    echo ligado
+    ;;
+  desligar)
+    ufw --force disable >/dev/null
+    echo desligado
+    ;;
+  abrir) regra allow "$2"; anotar ;;
+  fechar) regra delete "$2"; anotar ;;
+  estado)
+    if ufw status | grep -q "Status: active"; then echo ligado; else echo desligado; fi
+    ufw status | sed -n 's/.*# CarinaeOS \(.*\)$/\1/p' | sort -u
+    ;;
+  *) echo "uso: $0 ligar | desligar | abrir SERVIÇO | fechar SERVIÇO | estado" >&2; exit 2 ;;
+esac

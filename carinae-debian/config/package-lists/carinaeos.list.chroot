@@ -149,6 +149,9 @@ gstreamer1.0-libav
 numlockx
 python3-markdown
 openssh-server
+# firewall ligado de origem (Central › Firewall; regras avançadas nas Configurações do Sistema)
+ufw
+plasma-firewall
 brightnessctl
 # partilha de pastas, contas online, musica (MPD)
 samba

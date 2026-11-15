@@ -31,6 +31,7 @@ FERRAMENTAS = [
     dict(id='clipboard', nome='Histórico do Ctrl+C', desc='Tudo o que copiou (Meta+V)', icone='edit-paste', pagina='clipboard'),
     dict(id='drivers', nome='Drivers e hardware', desc='Placa de vídeo, Wi-Fi, impressoras, impressão digital', icone='preferences-devices-pci', pagina='drivers'),
     dict(id='entrada', nome='Tela de entrada', desc='A sua foto e a imagem de fundo do login', icone='preferences-desktop-user', pagina='entrada'),
+    dict(id='firewall', nome='Firewall', desc='Ninguém da internet entra neste computador', icone='security-high', pagina='firewall'),
     dict(id='ssh', nome='Acesso remoto (SSH)', desc='Entrar neste computador a partir de outro', icone='network-server', pagina='ssh'),
     dict(id='privacidade', nome='Privacidade', desc='Sessão sem rastro e modo escuro em todo o lado', icone='preferences-system-privacy', pagina='privacidade'),
     dict(id='fundos', nome='Papéis de parede', desc='Fotos do céu em 8K e o Céu vivo', icone='preferences-desktop-wallpaper', cmd='carinaeos-ceu-vivo galeria'),
@@ -270,6 +271,30 @@ def hardware():
     return itens
 
 
+# ---- firewall (ufw) ------------------------------------------------------------------------------------
+NOMES_FIREWALL = {'descoberta': 'Encontrar impressoras e computadores da rede', 'kdeconnect': 'KDE Connect (celular)',
+                  'ssh': 'Acesso remoto (SSH)', 'partilha': 'Pastas compartilhadas', 'musica': 'Música para a rede (Home Assistant)'}
+
+
+def firewall_estado():
+    if not os.path.exists('/usr/sbin/ufw'):
+        return -1
+    try:
+        for linha in open('/etc/ufw/ufw.conf'):
+            if linha.strip().replace(' ', '').lower() == 'enabled=yes':
+                return 1
+    except OSError:
+        pass
+    return 0
+
+
+def firewall_abertos():
+    try:
+        return [NOMES_FIREWALL.get(n, n) for n in open('/var/lib/carinaeos/firewall-abertos').read().split()]
+    except OSError:
+        return []
+
+
 # ---- acesso remoto (SSH) ----------------------------------------------------------------------------
 def ssh_estado():
     if not os.path.exists('/usr/sbin/sshd'):
@@ -387,6 +412,8 @@ class Central(QObject):
     zonas = Property('QVariantList', lambda s: [dict(id=k, nome=v['nome'], tiles=json.dumps(v['tiles'])) for k, v in ZONAS.items()], constant=True)
     escuroForcado = Property(bool, lambda s: escuro_forcado(), notify=mudou)
     convidado = Property(int, lambda s: {None: -1, False: 0, True: 1}[convidado_ativo()], notify=mudou)
+    firewall = Property(int, lambda s: firewall_estado(), notify=mudou)
+    firewallAbertos = Property('QVariantList', lambda s: firewall_abertos(), notify=mudou)
     ssh = Property(int, lambda s: ssh_estado(), notify=mudou)
     sshEnderecos = Property('QVariantList', lambda s: enderecos(), notify=mudou)
     usuario = Property(str, lambda s: os.environ.get('USER') or os.path.basename(HOME), constant=True)
@@ -590,6 +617,12 @@ class Central(QObject):
         self._fundo(lambda: subprocess.run(cmd, check=True), self._fim(
             'Acesso remoto %s ✓' % ('ligado' if ligar else 'desligado')),
             'Instalando e ligando o servidor SSH…' if ligar and ssh_estado() < 0 else '')
+
+    @Slot(bool)
+    def definirFirewall(self, ligar):
+        cmd = ['pkexec', '/usr/lib/carinaeos/firewall', 'ligar' if ligar else 'desligar']
+        self._fundo(lambda: subprocess.run(cmd, check=True, capture_output=True), self._fim(
+            'Firewall %s ✓' % ('ligado' if ligar else 'desligado')))
 
     @Slot()
     def lerSSH(self):

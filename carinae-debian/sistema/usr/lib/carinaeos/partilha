@@ -17,7 +17,7 @@ preparar() {
     sed -i 's/^\[global\]$/[global]\n   usershare path = \/var\/lib\/samba\/usershares\n   usershare max shares = 100\n   usershare allow guests = yes\n   usershare owner only = no\n   map to guest = bad user/' /etc/samba/smb.conf
   fi
   # firewall, se estiver ligada
-  command -v ufw >/dev/null && ufw status 2>/dev/null | grep -q "Status: active" && ufw allow Samba >/dev/null || true
+  /usr/lib/carinaeos/firewall abrir partilha 2>/dev/null || true
 }
 case "$1" in
   ligar)
@@ -30,6 +30,7 @@ case "$1" in
     ;;
   desligar)
     systemctl disable --now smbd nmbd 2>/dev/null || true
+    /usr/lib/carinaeos/firewall fechar partilha 2>/dev/null || true
     ;;
   pasta)
     preparar

@@ -19,7 +19,7 @@ ApplicationWindow {
     function carregar() {
         if (pagina === "calendarios") central.lerCalendarios()
         if (pagina === "drivers") central.lerHardware()
-        if (pagina === "ssh") central.lerSSH()
+        if (pagina === "ssh" || pagina === "firewall") central.lerSSH()
     }
     onPaginaChanged: carregar()
     Component.onCompleted: carregar()
@@ -430,6 +430,50 @@ ApplicationWindow {
                         width: 210; height: 38; radius: 19; color: Qt.rgba(1, 1, 1, 0.08)
                         Text { anchors.centerIn: parent; text: "Voltar ao céu do CarinaeOS"; color: janela.texto }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: central.reporFundoEntrada() }
+                    }
+                }
+            }
+
+            // ===== firewall =====
+            Column {
+                visible: janela.pagina === "firewall"
+                width: conteudo.largura; spacing: 16
+                Text { text: "Firewall"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
+                Rectangle {
+                    width: parent.width; height: fCol1.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: fCol1
+                        x: 18; y: 16; width: parent.width - 160; spacing: 6
+                        Text { text: central.firewall === 1 ? "Firewall ligado" : "Firewall desligado"; color: central.firewall === 1 ? janela.texto : janela.rosa; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: central.firewall < 0 ? "O firewall (ufw) não está instalado."
+                                   : central.firewall === 1 ? "Ninguém de fora consegue se conectar a este computador. Navegar, jogos, atualizações e tudo o que sai daqui funciona normalmente. Quando liga o compartilhamento de pastas, o SSH ou a música na rede, o CarinaeOS abre só o necessário, e só para a rede de casa (nunca para a internet)."
+                                   : "Recomendamos deixá-lo ligado: sem firewall, qualquer serviço que fique à escuta pode ser alcançado por outros na mesma rede (num café, hotel ou aeroporto, por exemplo)." }
+                    }
+                    Switch {
+                        anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter
+                        enabled: !central.ocupado && central.firewall >= 0
+                        checked: central.firewall === 1
+                        onToggled: central.definirFirewall(checked)
+                    }
+                }
+                Rectangle {
+                    visible: central.firewall === 1
+                    width: parent.width; height: fCol2.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: fCol2
+                        x: 18; y: 16; width: parent.width - 36; spacing: 8
+                        Text { text: "Abertos só para a rede de casa"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Repeater {
+                            model: central.firewallAbertos
+                            delegate: Text { required property string modelData; text: "•  " + modelData; color: janela.suave; font.pixelSize: 14 }
+                        }
+                        Text { visible: central.firewallAbertos.length === 0; text: "Nada: tudo fechado."; color: janela.suave; font.pixelSize: 14 }
+                        Rectangle {
+                            width: 230; height: 38; radius: 19; color: Qt.rgba(1, 1, 1, 0.08)
+                            Text { anchors.centerIn: parent; text: "Regras avançadas…"; color: janela.texto }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: central.abrir("systemsettings kcm_firewall") }
+                        }
                     }
                 }
             }

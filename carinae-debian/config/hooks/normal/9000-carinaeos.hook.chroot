@@ -273,6 +273,8 @@ systemctl --global enable carinaeos-calendarios.timer 2>/dev/null || true
 systemctl --global enable carinaeos-atualizacoes.timer 2>/dev/null || true
 # apps do CarinaeOS rápidos a abrir: Python já compilado na imagem e a interface aquecida depois de entrar
 systemctl --global enable carinaeos-aquecer.timer 2>/dev/null || true
+# firewall ligado de origem (ufw): liga-se na primeira inicialização (no chroot não há rede para configurar)
+systemctl enable ufw.service carinaeos-firewall.service 2>/dev/null || true
 python3 -m compileall -q -j 0 /usr/share/carinaeos /usr/lib/carinaeos 2>/dev/null || true
 # arranque mais rápido: o ambiente de trabalho não espera pela rede (as pastas da rede montam-se quando são abertas)
 systemctl disable NetworkManager-wait-online.service 2>/dev/null || true

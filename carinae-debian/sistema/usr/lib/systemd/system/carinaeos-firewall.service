@@ -1,0 +1,12 @@
+[Unit]
+Description=CarinaeOS - ligar o firewall na primeira inicialização
+ConditionPathExists=!/var/lib/carinaeos/firewall-feito
+After=ufw.service
+Wants=ufw.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/carinaeos/firewall ligar
+
+[Install]
+WantedBy=multi-user.target
