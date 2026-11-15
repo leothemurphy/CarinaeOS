@@ -1,0 +1,7 @@
+[Unit]
+Description=Atualizar os calendários das contas Google — CarinaeOS
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/carinaeos-contas sincronizar

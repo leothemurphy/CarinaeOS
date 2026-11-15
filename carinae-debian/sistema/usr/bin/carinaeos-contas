@@ -5,6 +5,8 @@
   carinaeos-contas entrar-google              abre o Google no navegador; no fim a conta fica ligada
   carinaeos-contas remover <email>            desliga a conta (revoga o acesso e apaga os dados locais)
   carinaeos-contas drive <email> on|off       monta / desmonta o Google Drive em ~/Google Drive
+  carinaeos-contas calendario <email> on|off  mostra os calendarios da conta no Merkuro (so leitura)
+  carinaeos-contas sincronizar                atualiza os calendarios (o temporizador corre isto de 10 em 10 min)
   carinaeos-contas configurar-google          le {"client_id","client_secret"} da entrada padrao
   carinaeos-contas servico-drive <remoto>     (usado pelo systemd: corre o rclone mount)
 
@@ -28,6 +30,7 @@ import sys
 import threading
 import time
 import urllib.parse
+import urllib.error
 import urllib.request
 
 CONF = os.path.join(os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config')), 'carinaeos')
@@ -36,7 +39,9 @@ CLIENTE = [os.path.join(CONF, 'google-cliente.json'), '/etc/carinaeos/google-cli
 AUTH = 'https://accounts.google.com/o/oauth2/v2/auth'
 TOKEN = 'https://oauth2.googleapis.com/token'
 REVOGAR = 'https://oauth2.googleapis.com/revoke'
-ESCOPOS = 'openid email profile https://www.googleapis.com/auth/drive'
+ESCOPOS = ('openid email profile https://www.googleapis.com/auth/drive '
+           'https://www.googleapis.com/auth/calendar.readonly')
+CALS = os.path.join(os.path.dirname(DADOS), 'calendarios')
 
 
 def aviso(titulo, texto='', icone='carinaeos'):
@@ -183,6 +188,209 @@ def entrar_google():
     return 0
 
 
+# ---- token sempre valido ---------------------------------------------------------------------
+def token(conta):
+    if conta.get('access_token') and conta.get('expira', 0) > time.time() + 60:
+        return conta['access_token']
+    c = cliente() or {}
+    d = {'grant_type': 'refresh_token', 'refresh_token': conta.get('refresh_token', ''), 'client_id': c.get('client_id', '')}
+    if c.get('client_secret'):
+        d['client_secret'] = c['client_secret']
+    t = post(TOKEN, d)
+    conta['access_token'] = t['access_token']
+    conta['expira'] = int(time.time()) + int(t.get('expires_in', 3600))
+    gravar(ficheiro(conta['email']), conta)
+    return conta['access_token']
+
+
+def api(conta, url, params=None):
+    if params:
+        url += '?' + urllib.parse.urlencode(params)
+    req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + token(conta)})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read().decode())
+
+
+# ---- calendarios: Google -> ficheiro .ics -> recurso "iCal" do Akonadi (aparece no Merkuro) ----
+def esc(t):
+    return str(t).replace('\\', '\\\\').replace(';', '\\;').replace(',', '\\,').replace('\r', '').replace('\n', '\\n')
+
+
+def dobrar(linha):
+    b = linha.encode('utf-8')
+    if len(b) <= 74:
+        return linha
+    partes, atual = [], ''
+    for ch in linha:
+        if len((atual + ch).encode('utf-8')) > (74 if not partes else 73):
+            partes.append(atual)
+            atual = ''
+        atual += ch
+    partes.append(atual)
+    return '\r\n '.join(partes)
+
+
+def quando(d, nome):
+    from datetime import datetime, timezone
+    if 'date' in d:
+        return '%s;VALUE=DATE:%s' % (nome, d['date'].replace('-', ''))
+    t = datetime.fromisoformat(d['dateTime'].replace('Z', '+00:00')).astimezone(timezone.utc)
+    return '%s:%s' % (nome, t.strftime('%Y%m%dT%H%M%SZ'))
+
+
+def ics(nome, eventos):
+    agora = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
+    L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CarinaeOS//Contas//PT', 'CALSCALE:GREGORIAN',
+         'X-WR-CALNAME:' + esc(nome)]
+    for e in eventos:
+        if e.get('status') == 'cancelled' or 'start' not in e:
+            continue
+        L += ['BEGIN:VEVENT', 'UID:%s@google.com' % e['id'], 'DTSTAMP:' + agora,
+              quando(e['start'], 'DTSTART'), quando(e.get('end', e['start']), 'DTEND'),
+              'SUMMARY:' + esc(e.get('summary', '(sem título)'))]
+        if e.get('location'):
+            L.append('LOCATION:' + esc(e['location']))
+        if e.get('description'):
+            L.append('DESCRIPTION:' + esc(e['description']))
+        if e.get('htmlLink'):
+            L.append('URL:' + e['htmlLink'])
+        L.append('END:VEVENT')
+    L.append('END:VCALENDAR')
+    return '\r\n'.join(dobrar(x) for x in L) + '\r\n'
+
+
+def qdbus(*a):
+    r = subprocess.run(['qdbus6', *a], capture_output=True, text=True, timeout=30)
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+AGM = ('org.freedesktop.Akonadi.Control', '/AgentManager')
+
+
+def agentes():
+    return (qdbus(*AGM, 'org.freedesktop.Akonadi.AgentManager.agentInstances') or '').split()
+
+
+def recurso_ical(caminho, nome):
+    if qdbus(*AGM, 'org.freedesktop.Akonadi.AgentManager.agentInstances') is None:
+        subprocess.run(['akonadictl', 'start'], capture_output=True)
+        for _ in range(30):
+            time.sleep(1)
+            if qdbus(*AGM, 'org.freedesktop.Akonadi.AgentManager.agentInstances') is not None:
+                break
+    ident = qdbus(*AGM, 'org.freedesktop.Akonadi.AgentManager.createAgentInstance', 'akonadi_ical_resource')
+    if not ident:
+        return None
+    srv = 'org.freedesktop.Akonadi.Resource.' + ident
+    for _ in range(30):
+        if qdbus(srv, '/Settings', 'org.kde.Akonadi.ICal.Settings.path') is not None:
+            break
+        time.sleep(0.5)
+    qdbus(srv, '/Settings', 'org.kde.Akonadi.ICal.Settings.setPath', caminho)
+    qdbus(srv, '/Settings', 'org.kde.Akonadi.ICal.Settings.setDisplayName', nome)
+    qdbus(srv, '/Settings', 'org.kde.Akonadi.ICal.Settings.setReadOnly', 'true')
+    qdbus(srv, '/Settings', 'org.kde.Akonadi.ICal.Settings.setMonitorFile', 'true')
+    qdbus(srv, '/Settings', 'org.kde.Akonadi.ICal.Settings.save')
+    qdbus(*AGM, 'org.freedesktop.Akonadi.AgentManager.setAgentInstanceName', ident, nome)
+    qdbus(*AGM, 'org.freedesktop.Akonadi.AgentManager.agentInstanceReconfigure', ident)
+    qdbus(srv, '/', 'org.freedesktop.Akonadi.Agent.Control.reconfigure')
+    qdbus(*AGM, 'org.freedesktop.Akonadi.AgentManager.agentInstanceSynchronize', ident)
+    return ident
+
+
+def tirar_recurso(ident):
+    if ident:
+        qdbus(*AGM, 'org.freedesktop.Akonadi.AgentManager.removeAgentInstance', ident)
+
+
+def sincronizar_conta(conta):
+    from datetime import datetime, timedelta, timezone
+    pasta = os.path.join(CALS, re.sub(r'[^A-Za-z0-9@._-]', '_', conta['email']))
+    os.makedirs(pasta, mode=0o700, exist_ok=True)
+    lista = api(conta, 'https://www.googleapis.com/calendar/v3/users/me/calendarList').get('items', [])
+    rec = conta.setdefault('recursos', {})
+    existentes = set(agentes())
+    agora = datetime.now(timezone.utc)
+    vistos = set()
+    for cal in lista:
+        if cal.get('selected') is False:
+            continue
+        cid = cal['id']
+        vistos.add(cid)
+        eventos, pagina = [], None
+        while True:
+            p = {'singleEvents': 'true', 'orderBy': 'startTime', 'maxResults': 2500,
+                 'timeMin': (agora - timedelta(days=180)).strftime('%Y-%m-%dT%H:%M:%SZ'),
+                 'timeMax': (agora + timedelta(days=400)).strftime('%Y-%m-%dT%H:%M:%SZ')}
+            if pagina:
+                p['pageToken'] = pagina
+            r = api(conta, 'https://www.googleapis.com/calendar/v3/calendars/%s/events' % urllib.parse.quote(cid), p)
+            eventos += r.get('items', [])
+            pagina = r.get('nextPageToken')
+            if not pagina:
+                break
+        nome = cal.get('summaryOverride') or cal.get('summary') or cid
+        if cal.get('primary'):
+            nome = conta['email']
+        f = os.path.join(pasta, hashlib.sha1(cid.encode()).hexdigest()[:16] + '.ics')
+        tmp = f + '.tmp'
+        with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w', encoding='utf-8', newline='') as x:
+            x.write(ics(nome, eventos))
+        os.replace(tmp, f)
+        if rec.get(cid) not in existentes:
+            ident = recurso_ical(f, 'Google · ' + nome)
+            if ident:
+                rec[cid] = ident
+    for cid in list(rec):
+        if cid not in vistos:
+            tirar_recurso(rec.pop(cid))
+    conta['sincronizado'] = time.strftime('%d/%m %H:%M')
+    gravar(ficheiro(conta['email']), conta)
+
+
+def calendario(email, ligar):
+    try:
+        with open(ficheiro(email)) as x:
+            conta = json.load(x)
+    except Exception:
+        return 1
+    if ligar:
+        if 'calendar' not in conta.get('escopos', 'calendar'):
+            print('Entre de novo na conta Google para dar acesso ao calendário.', file=sys.stderr)
+            return 1
+        conta['calendario'] = True
+        gravar(ficheiro(email), conta)
+        try:
+            sincronizar_conta(conta)
+        except urllib.error.HTTPError as e:
+            print('O Google recusou o calendário (%s). Entre de novo na conta.' % e.code, file=sys.stderr)
+            return 1
+        subprocess.run(['systemctl', '--user', 'enable', '--now', 'carinaeos-calendario.timer'], capture_output=True)
+        aviso('Calendário ligado', 'Os calendários de %s já aparecem no Merkuro.' % email)
+    else:
+        for ident in conta.get('recursos', {}).values():
+            tirar_recurso(ident)
+        conta['recursos'] = {}
+        conta['calendario'] = False
+        gravar(ficheiro(email), conta)
+        shutil.rmtree(os.path.join(CALS, re.sub(r'[^A-Za-z0-9@._-]', '_', email)), ignore_errors=True)
+        if not any(c.get('calendario') for c in contas()):
+            subprocess.run(['systemctl', '--user', 'disable', '--now', 'carinaeos-calendario.timer'], capture_output=True)
+    return 0
+
+
+def sincronizar():
+    erro = 0
+    for c in contas():
+        if c.get('calendario'):
+            try:
+                sincronizar_conta(c)
+            except Exception as e:
+                print('%s: %s' % (c.get('email'), e), file=sys.stderr)
+                erro = 1
+    return erro
+
+
 # ---- Google Drive (rclone) ------------------------------------------------------------------
 def remoto(email):
     return 'gdrive-' + re.sub(r'[^a-z0-9]', '', email.split('@')[0].lower())[:20]
@@ -249,6 +457,8 @@ def remover(email):
         return 1
     if conta.get('drive'):
         drive(email, False)
+    if conta.get('calendario'):
+        calendario(email, False)
     if conta.get('remoto') and shutil.which('rclone'):
         subprocess.run(['rclone', 'config', 'delete', conta['remoto']], capture_output=True)
     tok = conta.get('refresh_token') or conta.get('access_token')
@@ -268,7 +478,8 @@ def main():
         print(__doc__)
         return 1
     if a[0] == 'listar':
-        r = [{k: c.get(k) for k in ('provedor', 'email', 'nome', 'foto', 'drive', 'pasta', 'ligada_em')} for c in contas()]
+        r = [{k: c.get(k) for k in ('provedor', 'email', 'nome', 'foto', 'drive', 'pasta', 'ligada_em', 'calendario', 'sincronizado')}
+             for c in contas()]
         print(json.dumps({'configurado': cliente() is not None, 'contas': r,
                           'rclone': shutil.which('rclone') is not None}))
         return 0
@@ -278,6 +489,10 @@ def main():
         return remover(a[1])
     if a[0] == 'drive' and len(a) > 2:
         return drive(a[1], a[2] == 'on')
+    if a[0] == 'calendario' and len(a) > 2:
+        return calendario(a[1], a[2] == 'on')
+    if a[0] == 'sincronizar':
+        return sincronizar()
     if a[0] == 'servico-drive' and len(a) > 1:
         return servico_drive(a[1])
     if a[0] == 'configurar-google':

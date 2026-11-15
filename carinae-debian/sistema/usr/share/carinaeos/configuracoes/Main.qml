@@ -646,10 +646,12 @@ ApplicationWindow {
                             required property var modelData
                             property bool confirmar: false
                             titulo: modelData.email
-                            sub: "Google" + (modelData.nome ? " · " + modelData.nome : "") + (modelData.drive ? " · Drive em " + String(modelData.pasta || "").replace(/^.*\//, "") : "")
+                            sub: "Google" + (modelData.nome ? " · " + modelData.nome : "") + (modelData.calendario ? " · calendário atualizado " + (modelData.sincronizado || "") : "")
                             icone: "im-google"
                             Row {
                                 spacing: 8
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: "Calendário"; color: janela.suave; font.pixelSize: 12 }
+                                Switch { anchors.verticalCenter: parent.verticalCenter; checked: !!lGoogle.modelData.calendario; onToggled: ajustes.calendarioGoogle(lGoogle.modelData.email, checked) }
                                 Text { anchors.verticalCenter: parent.verticalCenter; text: "Drive"; color: janela.suave; font.pixelSize: 12 }
                                 Switch { anchors.verticalCenter: parent.verticalCenter; checked: !!lGoogle.modelData.drive; onToggled: ajustes.driveGoogle(lGoogle.modelData.email, checked) }
                                 Botao {
@@ -670,7 +672,9 @@ ApplicationWindow {
                             required property var model
                             property bool confirmar: false
                             titulo: model.displayName || "(sem nome)"
-                            sub: (model.providerDisplayName || model.providerName || "") + (model.enabled === false ? " · desligada" : "")
+                            // a conta Google pelo KDE nunca chega a acabar o login: avisa para a remover
+                            sub: model.providerName === "google" ? "Login antigo pelo KDE, que não terminou — pode remover"
+                               : (model.providerDisplayName || model.providerName || "") + (model.enabled === false ? " · desligada" : "")
                             icone: model.iconName || "user-identity"
                             Botao {
                                 texto: lConta.confirmar ? "Remover mesmo?" : "Remover"

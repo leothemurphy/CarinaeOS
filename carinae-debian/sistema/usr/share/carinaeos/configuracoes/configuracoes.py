@@ -350,6 +350,13 @@ class Config(QObject):
         self._contas(['remover', email], 'Conta desligada.', 60)
 
     @Slot(str, bool)
+    def calendarioGoogle(self, email, ligar):
+        if ligar:
+            self._aviso('A trazer os calendários do Google…')
+        self._contas(['calendario', email, 'on' if ligar else 'off'],
+                     'Calendários ligados: abra o Merkuro (Calendário).' if ligar else 'Calendários desligados.', 300)
+
+    @Slot(str, bool)
     def driveGoogle(self, email, ligar):
         self._contas(['drive', email, 'on' if ligar else 'off'], 'Google Drive ligado em Arquivos.' if ligar else '', 120)
 

@@ -1,0 +1,9 @@
+[Unit]
+Description=Atualizar os calendários das contas Google de 10 em 10 minutos
+
+[Timer]
+OnStartupSec=2min
+OnUnitActiveSec=10min
+
+[Install]
+WantedBy=timers.target
