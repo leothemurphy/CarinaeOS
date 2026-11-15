@@ -103,9 +103,7 @@ PlasmoidItem {
     }
     // só amplia com o rato sobre a faixa da Dock (não no espaço vazio por cima)
     property bool sobre: false
-    // a onda só começa quando o painel já cresceu (senão os ícones crescem e o painel muda de tamanho ao mesmo tempo: salto)
-    readonly property bool painelPronto: palco.height >= alturaAmpliada - 2
-    property real forca: sobre && painelPronto ? 1 : 0
+    property real forca: sobre ? 1 : 0
     Behavior on forca { NumberAnimation { duration: dock.sobre ? 200 : 340; easing.type: Easing.OutCubic } }
 
     // ---- como no Mac: em repouso o painel tem só a altura do vidro (nada invisível por cima a
@@ -122,7 +120,7 @@ PlasmoidItem {
     onAmpliadoChanged: ajustarPainel()
     Timer {
         id: encolher
-        interval: 1500      // sair e voltar logo à Dock não muda o tamanho do painel
+        interval: 450
         onTriggered: {
             if (hover.hovered || dock.forca > 0.03) {
                 restart();
