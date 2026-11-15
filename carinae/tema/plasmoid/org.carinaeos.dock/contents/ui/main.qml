@@ -397,6 +397,27 @@ PlasmoidItem {
         border.color: "#ffb46e"; border.width: 2
     }
 
+    // cadeado: aplicativos trancados com senha (carinaeos-cadeado)
+    property var trancados: []
+    P5Support.DataSource {
+        id: lerTrancados
+        engine: "executable"
+        connectedSources: []
+        onNewData: (f, d) => {
+            disconnectSource(f);
+            try { dock.trancados = JSON.parse((d["stdout"] || "").trim()).apps || []; } catch (e) {}
+        }
+    }
+    P5Support.DataSource { id: cadeadoDock; engine: "executable"; connectedSources: []; onNewData: (f) => { disconnectSource(f); dock.lerCadeado(); } }
+    function lerCadeado(): void {
+        lerTrancados.connectSource("carinaeos-cadeado estado #" + Date.now());
+    }
+    function alternarTranca(appId: string): void {
+        if (appId === "") return;
+        const acao = trancados.indexOf(appId) !== -1 ? "destrancar-app" : "trancar-app";
+        cadeadoDock.connectSource("carinaeos-cadeado " + acao + " '" + appId.replace(/'/g, "") + "' #" + Date.now());
+    }
+
     // roda do rato sobre a Dock: volume (como o mod "Taskbar Volume Control" do Windhawk)
     P5Support.DataSource { id: som; engine: "executable"; connectedSources: []; onNewData: (f) => disconnectSource(f) }
     WheelHandler {

@@ -243,6 +243,13 @@ Kicker.DashboardWindow {
         return h < 6 ? "Boa noite" : h < 13 ? "Bom dia" : h < 20 ? "Boa tarde" : "Boa noite";
     }
     function mudarVista(v: string, c: int): void {
+        if (v === "cat" && c >= 0 && c < categorias.length) {
+            const k = categorias[c];
+            if (ambTrancado(k.orig) && liberado !== k.orig) {
+                abrirAmbienteTrancado(k);
+                return;
+            }
+        }
         busca.text = "";
         vista = v;
         catAtual = c === undefined ? -1 : c;
@@ -481,13 +488,91 @@ Kicker.DashboardWindow {
             reabrir.restart();      // deixa a gravação acabar antes de voltar a ler o ficheiro
         }
     }
+    // quando uma janela (ficheiros, senha) tem de aparecer, o Launchpad fecha-se e volta depois a abrir aqui
     property bool voltarAEditar: false
+    property string irPara: ""
     readonly property Timer reabrir: Timer {
         interval: 450
-        onTriggered: { lp.voltarAEditar = true; if (!lp.visible) lp.toggle(); else { lp.editando = true; lp.voltarAEditar = false; } }
+        onTriggered: { if (!lp.visible) lp.toggle(); else lp.aplicarVolta(); }
+    }
+    function aplicarVolta(): void {
+        editando = voltarAEditar;
+        voltarAEditar = false;
+        if (irPara !== "") {
+            const o = irPara;
+            irPara = "";
+            const i = categorias.findIndex(c => c.orig === o);
+            if (i >= 0) mudarVista("cat", i);
+        }
+    }
+
+    // ---- cadeado: aplicativos e ambientes trancados com senha (carinaeos-cadeado) ----
+    property var cadeado: ({ apps: [], ambientes: [], senha: false })
+    property string liberado: ""      // o ambiente trancado aberto agora com a senha (até o Launchpad fechar)
+    readonly property P5Support.DataSource lerCadeado: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            try {
+                const c = JSON.parse((dados["stdout"] || "").trim());
+                lp.cadeado = { apps: c.apps || [], ambientes: c.ambientes || [], senha: !!c.senha };
+            } catch (e) {}
+        }
+    }
+    function lerEstadoCadeado(): void {
+        lerCadeado.connectSource("carinaeos-cadeado estado #" + Date.now());
+    }
+    function trancado(app: var): bool {
+        return !!app && !!app.chave && cadeado.apps.indexOf(app.chave) !== -1;
+    }
+    function ambTrancado(orig: string): bool {
+        return cadeado.ambientes.indexOf(orig) !== -1;
+    }
+    function aspas(t: string): string {
+        return "'" + String(t).replace(/'/g, "'\\''") + "'";
+    }
+    property var depoisCadeado: null
+    readonly property P5Support.DataSource acaoCadeado: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            const ok = dados["exit code"] === 0;
+            const f = lp.depoisCadeado;
+            lp.depoisCadeado = null;
+            if (ok && f) f();
+            lp.lerEstadoCadeado();
+            if (fonte.indexOf("#esconder") !== -1) reabrir.restart();
+        }
+    }
+    // corre o carinaeos-cadeado; se vai aparecer uma janela de senha, o Launchpad sai da frente e volta depois
+    function cadeadoCmd(args: string, comJanela: bool, depois: var): void {
+        depoisCadeado = depois || null;
+        if (comJanela) {
+            voltarAEditar = editando;
+            if (visible) toggle();
+        }
+        acaoCadeado.connectSource("carinaeos-cadeado " + args + " " + (comJanela ? "#esconder" : "#") + Date.now());
+    }
+    function alternarTrancaApp(app: var): void {
+        if (!app || !app.chave) return;
+        if (trancado(app)) cadeadoCmd("destrancar-app " + aspas(app.chave), true, null);
+        else cadeadoCmd("trancar-app " + aspas(app.chave), !cadeado.senha, null);
+    }
+    function alternarTrancaAmbiente(c: var): void {
+        if (!c) return;
+        if (ambTrancado(c.orig)) cadeadoCmd("destrancar-ambiente " + aspas(c.orig), true, null);
+        else cadeadoCmd("trancar-ambiente " + aspas(c.orig), !cadeado.senha, null);
+    }
+    function abrirAmbienteTrancado(c: var): void {
+        const o = c.orig;
+        cadeadoCmd("verificar " + aspas("Abrir o ambiente “" + c.nome + "”") + " " + aspas("Este ambiente está trancado. Digite a senha dos aplicativos."),
+                   true, () => { lp.liberado = o; lp.irPara = o; });
     }
     function pedirImagem(orig: string): void {
         imagemPara = orig;
+        voltarAEditar = true;
         if (visible) toggle();      // a janela de ficheiros não aparece por cima do Launchpad
         escolherImagem.connectSource("kdialog --title 'Imagem do ambiente' --getopenfilename \"$(xdg-user-dir PICTURES)\" "
             + "'image/png image/jpeg image/webp image/svg+xml' 2>/dev/null #" + Date.now());
@@ -551,6 +636,7 @@ Kicker.DashboardWindow {
     }
 
     onVisibleChanged: {
+        if (!visible) liberado = "";
         if (visible) {
             lp.lerFundo.connectSource("f=$(grep -A4 '\\[Wallpaper\\]\\[org.kde.image\\]\\[General\\]' \"$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc\" | sed -n 's/^Image=//p' | head -1); "
                 + "f=${f#file://}; if [ -d \"$f\" ]; then ls -S \"$f\"/contents/images/* 2>/dev/null | tail -1; else echo \"$f\"; fi #" + Date.now());
@@ -559,9 +645,10 @@ Kicker.DashboardWindow {
             formCartao.visible = false;
             busca.text = "";
             formDeck.visible = false;
-            lp.editando = lp.voltarAEditar;
-            lp.voltarAEditar = false;
+            lp.editando = false;
+            lp.lerEstadoCadeado();
             vista = "inicio";
+            Qt.callLater(lp.aplicarVolta);
             busca.forceActiveFocus();
             entrada.restart();
             juntarUsados.restart();
@@ -765,6 +852,12 @@ Kicker.DashboardWindow {
                 enabled: menuApp.app !== null && !lp.noDeck(menuApp.app)
                 onTriggered: lp.adicionarAoDeck(menuApp.app)
             }
+            QQC2.MenuItem {
+                text: lp.trancado(menuApp.app) ? "Destrancar" : "Trancar com senha"
+                icon.name: lp.trancado(menuApp.app) ? "object-unlocked" : "object-locked"
+                enabled: menuApp.app !== null && menuApp.app.chave !== ""
+                onTriggered: { const a = menuApp.app; Qt.callLater(() => lp.alternarTrancaApp(a)); }
+            }
             QQC2.MenuSeparator {}
             QQC2.Menu {
                 id: subCartoes
@@ -883,6 +976,11 @@ Kicker.DashboardWindow {
                 onTriggered: lp.alternarFixo(menuCartao.c.orig)
             }
             QQC2.MenuItem { text: "Mudar o nome…"; onTriggered: formCartao.abrir("nome", menuCartao.c.orig, menuCartao.c.propria, null) }
+            QQC2.MenuItem {
+                text: menuCartao.c && lp.ambTrancado(menuCartao.c.orig) ? "Destrancar este ambiente" : "Trancar com senha"
+                icon.name: menuCartao.c && lp.ambTrancado(menuCartao.c.orig) ? "object-unlocked" : "object-locked"
+                onTriggered: { const c = menuCartao.c; Qt.callLater(() => lp.alternarTrancaAmbiente(c)); }
+            }
             QQC2.MenuItem { text: "Mudar a cor…"; onTriggered: { const o = menuCartao.c.orig; Qt.callLater(() => lp.abrirCores(o, null)); } }
             QQC2.MenuSeparator {}
             QQC2.MenuItem { text: "Novo ambiente…"; onTriggered: formCartao.abrir("novo", "", false, null) }
@@ -901,6 +999,14 @@ Kicker.DashboardWindow {
             id: menuDeck
             property int i: -1
             QQC2.MenuItem { text: "Tirar do Deck"; onTriggered: lp.tirarDoDeck(menuDeck.i) }
+            QQC2.MenuItem {
+                readonly property var app: menuDeck.i >= 0 && lp.deck[menuDeck.i] && lp.deck[menuDeck.i].app ? lp.porChave(lp.deck[menuDeck.i].app) : null
+                visible: app !== null
+                height: visible ? implicitHeight : 0
+                text: lp.trancado(app) ? "Destrancar" : "Trancar com senha"
+                icon.name: lp.trancado(app) ? "object-unlocked" : "object-locked"
+                onTriggered: { const a = app; Qt.callLater(() => lp.alternarTrancaApp(a)); }
+            }
             QQC2.MenuItem { text: "Repor o Deck original"; onTriggered: { lp.deck = lp.deckPadrao; lp.gravarDeck(); } }
         }
 
@@ -1541,6 +1647,8 @@ Kicker.DashboardWindow {
                                                 model: [
                                                     { ic: "color-management", dica: "Mudar a cor", f: "cor" },
                                                     { ic: "insert-image", dica: "Pôr uma imagem (marca de água)", f: "img" },
+                                                    { ic: lp.ambTrancado(cartao.modelData.orig) ? "object-unlocked" : "object-locked",
+                                                      dica: lp.ambTrancado(cartao.modelData.orig) ? "Destrancar" : "Trancar com senha", f: "tranca" },
                                                     { ic: "edit-clear", dica: "Tirar a imagem", f: "semimg" }
                                                 ].filter(b => b.f !== "semimg" || cartao.modelData.imagem !== "")
                                                 delegate: Rectangle {
@@ -1565,6 +1673,7 @@ Kicker.DashboardWindow {
                                                             Qt.callLater(() => {
                                                                 if (f === "cor") lp.abrirCores(o, bEd);
                                                                 else if (f === "img") lp.pedirImagem(o);
+                                                                else if (f === "tranca") lp.alternarTrancaAmbiente(cartao.modelData);
                                                                 else lp.tirarImagem(o);
                                                             });
                                                         }
@@ -1583,6 +1692,16 @@ Kicker.DashboardWindow {
                                             anchors.right: parent.right
                                             anchors.rightMargin: Math.round(18 * palco.u)
                                             y: Math.round(10 * palco.u)
+                                        }
+                                        Rectangle {     // ambiente trancado
+                                            visible: lp.ambTrancado(cartao.modelData.orig) && !cartao.aArrastar
+                                            anchors.centerIn: parent
+                                            anchors.verticalCenterOffset: Math.round(28 * palco.u)
+                                            width: Math.round(52 * palco.u); height: width; radius: width / 2
+                                            color: Qt.rgba(0, 0, 0, 0.30)
+                                            border.width: 1
+                                            border.color: Qt.rgba(1, 1, 1, 0.25)
+                                            Kirigami.Icon { anchors.centerIn: parent; source: "object-locked"; width: parent.width * 0.5; height: width; color: "white"; isMask: true }
                                         }
                                         Kirigami.Icon {     // fixado em primeiro
                                             visible: cartao.modelData.fixo === true
@@ -1628,7 +1747,7 @@ Kicker.DashboardWindow {
                                             Text {
                                                 width: parent.width
                                                 elide: Text.ElideRight
-                                                text: lp.lema(cartao.modelData.nome, cartao.modelData.apps.length)
+                                                text: lp.ambTrancado(cartao.modelData.orig) ? "Trancado com senha" : lp.lema(cartao.modelData.nome, cartao.modelData.apps.length)
                                                 color: Qt.rgba(1, 1, 1, 0.75)
                                                 font.pixelSize: Math.round(12 * palco.u)
                                             }
@@ -1647,6 +1766,7 @@ Kicker.DashboardWindow {
                                         }
                                         // até 4 aplicativos da categoria
                                         Row {
+                                            visible: !lp.ambTrancado(cartao.modelData.orig)
                                             anchors.left: parent.left
                                             anchors.leftMargin: Math.round(14 * palco.u)
                                             anchors.bottom: parent.bottom
@@ -2036,6 +2156,12 @@ Kicker.DashboardWindow {
                         icone: "view-grid-symbolic"
                         opacity: lp.noDeck(lp.selecionado) ? 0.5 : 1
                         onEscolhido: lp.adicionarAoDeck(lp.selecionado)
+                    }
+                    ItemLado {
+                        u: palco.u
+                        texto: lp.trancado(lp.selecionado) ? "Destrancar" : "Trancar com senha"
+                        icone: lp.trancado(lp.selecionado) ? "object-unlocked" : "object-locked"
+                        onEscolhido: lp.alternarTrancaApp(lp.selecionado)
                     }
                     ItemLado {
                         id: itemMover

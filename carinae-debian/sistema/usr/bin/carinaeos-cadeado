@@ -5,6 +5,10 @@
   carinaeos-cadeado abrir <trancado...>          (duplo clique)
   carinaeos-cadeado aplicativos                  (escolher apps que pedem senha)
   carinaeos-cadeado abrir-app <id.desktop> [args]
+  carinaeos-cadeado trancar-app|destrancar-app|alternar-app <id.desktop ou caminho>
+  carinaeos-cadeado trancar-ambiente|destrancar-ambiente <nome>   (Launchpad)
+  carinaeos-cadeado verificar [titulo] [mensagem]   (codigo 0 = senha certa)
+  carinaeos-cadeado estado                          (JSON: apps, ambientes, senha)
 
 Uma pasta trancada fica no mesmo sitio e com o mesmo nome, com o icone de pasta com
 cadeado; so abre com a senha (duplo clique). Por dentro e um arquivo cifrado com GnuPG
@@ -392,6 +396,101 @@ def gerir_apps():
     aviso('Pronto. %d aplicativo(s) bloqueado(s).' % len(c['apps']))
 
 
+def garantir_senha(c):
+    """Cria a senha dos aplicativos e ambientes se ainda não existe. Devolve False se cancelou."""
+    if 'sal' in c:
+        return True
+    s = nova_senha('Senha dos aplicativos trancados',
+                   'Esta senha vai ser pedida para abrir aplicativos e ambientes trancados.')
+    if s is None:
+        return False
+    c['sal'] = os.urandom(16).hex()
+    c['hash'] = hash_senha(s, c['sal'])
+    gravar_conf(c)
+    return True
+
+
+def confirmar(c, titulo, mensagem, botao='Continuar'):
+    if 'sal' not in c:
+        return True
+    e = ''
+    while True:
+        s = pedir_senha(titulo, mensagem, erro=e, botao=botao)
+        if s is None:
+            return False
+        if senha_certa(c, s):
+            return True
+        e = 'Senha incorreta.'
+
+
+def id_app(x):
+    """aceita 'firefox.desktop', 'applications:firefox.desktop' ou um caminho para um .desktop"""
+    x = x.replace('applications:', '').replace('file://', '')
+    return os.path.basename(x)
+
+
+def nome_app(app_id):
+    f = desktop_sistema(app_id)
+    if not f:
+        return app_id
+    e = ler_desktop(f)['Desktop Entry']
+    return e.get('Name[pt_BR]') or e.get('Name') or app_id
+
+
+def trancar_app(x, trancar=True):
+    app_id = id_app(x)
+    if not desktop_sistema(app_id):
+        erro('Só se podem trancar aplicativos instalados (%s).' % app_id)
+        return 1
+    c = ler_conf()
+    c.setdefault('apps', [])
+    nome = nome_app(app_id)
+    if trancar:
+        if app_id in c['apps']:
+            return 0
+        if not garantir_senha(c):
+            return 1
+        c['apps'].append(app_id)
+        gravar_conf(c)
+        aplicar_bloqueios(c)
+        aviso('“%s” está trancado: vai pedir a senha para abrir.' % nome)
+    else:
+        if app_id not in c['apps']:
+            return 0
+        if not confirmar(c, 'Destrancar “%s”' % nome, 'Digite a senha dos aplicativos.', 'Destrancar'):
+            return 1
+        c['apps'].remove(app_id)
+        gravar_conf(c)
+        aplicar_bloqueios(c)
+        aviso('“%s” foi destrancado.' % nome)
+    return 0
+
+
+def trancar_ambiente(nome, trancar=True):
+    c = ler_conf()
+    amb = c.setdefault('ambientes', [])
+    if trancar:
+        if nome in amb:
+            return 0
+        if not garantir_senha(c):
+            return 1
+        amb.append(nome)
+    else:
+        if nome not in amb:
+            return 0
+        if not confirmar(c, 'Destrancar o ambiente “%s”' % nome, 'Digite a senha dos aplicativos.', 'Destrancar'):
+            return 1
+        amb.remove(nome)
+    gravar_conf(c)
+    return 0
+
+
+def estado():
+    c = ler_conf()
+    print(json.dumps({'apps': c.get('apps', []), 'ambientes': c.get('ambientes', []), 'senha': 'sal' in c}))
+    return 0
+
+
 def abrir_app(app_id, args):
     c = ler_conf()
     orig = desktop_sistema(app_id)
@@ -401,14 +500,8 @@ def abrir_app(app_id, args):
     e = ler_desktop(orig)['Desktop Entry']
     nome = e.get('Name[pt_BR]') or e.get('Name') or app_id
     if app_id in c.get('apps', []):
-        e = ''
-        while True:
-            s = pedir_senha('Abrir “%s”' % nome, 'Este aplicativo está trancado. Digite a senha dos aplicativos.', erro=e, botao='Abrir')
-            if s is None:
-                return 1
-            if senha_certa(c, s):
-                break
-            e = 'Senha incorreta.'
+        if not confirmar(c, 'Abrir “%s”' % nome, 'Este aplicativo está trancado. Digite a senha dos aplicativos.', 'Abrir'):
+            return 1
     cmd = []
     for p in shlex.split(e.get('Exec', '')):
         if p in ('%U', '%F'):
@@ -437,6 +530,22 @@ def main():
         gerir_apps()
     elif acao == 'abrir-app' and resto:
         return abrir_app(resto[0], resto[1:])
+    elif acao == 'trancar-app' and resto:
+        return trancar_app(resto[0], True)
+    elif acao == 'destrancar-app' and resto:
+        return trancar_app(resto[0], False)
+    elif acao == 'alternar-app' and resto:
+        return trancar_app(resto[0], id_app(resto[0]) not in ler_conf().get('apps', []))
+    elif acao == 'trancar-ambiente' and resto:
+        return trancar_ambiente(resto[0], True)
+    elif acao == 'destrancar-ambiente' and resto:
+        return trancar_ambiente(resto[0], False)
+    elif acao == 'verificar':
+        t = resto[0] if resto else 'Digite a senha'
+        m = resto[1] if len(resto) > 1 else 'Digite a senha dos aplicativos.'
+        return 0 if confirmar(ler_conf(), t, m, 'Abrir') else 1
+    elif acao == 'estado':
+        return estado()
     else:
         return 1
     return 0

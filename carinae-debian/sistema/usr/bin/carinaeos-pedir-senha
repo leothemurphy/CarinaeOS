@@ -45,5 +45,13 @@ m.rootContext().setContextProperty('pedido', p)
 m.load(QML)
 if not m.rootObjects():
     sys.exit(2)
+# sempre por cima (o Launchpad e as janelas em ecrã inteiro não a escondem)
+from PySide6.QtCore import Qt  # noqa: E402
+for w in m.rootObjects():
+    try:
+        w.setFlags(w.flags() | Qt.WindowStaysOnTopHint)
+        w.requestActivate()
+    except Exception:
+        pass
 app.exec()
 sys.exit(codigo[0])

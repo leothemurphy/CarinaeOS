@@ -181,6 +181,7 @@ Item {
                 previa.esconder();
                 if (moveu) { moveu = false; return; }
                 if (mouse.button === Qt.RightButton) {
+                    dock.lerCadeado();
                     menu.visualParent = tarefa;
                     menu.openRelative();
                     return;
@@ -236,6 +237,17 @@ Item {
             text: tarefa.separadorDepois ? "Tirar o separador" : "Adicionar separador à direita"
             icon: "distribute-horizontal-x"
             onClicked: dock.alternarSeparador(tarefa.lancador)
+        }
+        PlasmaExtras.MenuItem {
+            readonly property string appId: {
+                const m = String(tarefa.url()).match(/([^\/:]+\.desktop)$/);
+                return m ? m[1] : "";
+            }
+            readonly property bool trancada: dock.trancados.indexOf(appId) !== -1
+            visible: appId !== ""
+            text: trancada ? "Destrancar" : "Trancar com senha"
+            icon: trancada ? "object-unlocked" : "object-locked"
+            onClicked: dock.alternarTranca(appId)
         }
         PlasmaExtras.MenuItem {
             text: i18nc("@action:inmenu", "Fechar")
