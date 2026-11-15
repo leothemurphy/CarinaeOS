@@ -245,7 +245,7 @@ Kicker.DashboardWindow {
     function mudarVista(v: string, c: int): void {
         if (v === "cat" && c >= 0 && c < categorias.length) {
             const k = categorias[c];
-            if (ambTrancado(k.orig) && liberado !== k.orig) {
+            if (ambFechado(k.orig)) {
                 abrirAmbienteTrancado(k);
                 return;
             }
@@ -485,7 +485,6 @@ Kicker.DashboardWindow {
             const f = (dados["stdout"] || "").trim();
             const o = lp.imagemPara;
             if (f !== "" && o !== "") lp.mudarCartoes(c => { c.imagens[o] = "file://" + f; });
-            reabrir.restart();      // deixa a gravação acabar antes de voltar a ler o ficheiro
         }
     }
     // quando uma janela (ficheiros, senha) tem de aparecer, o Launchpad fecha-se e volta depois a abrir aqui
@@ -508,7 +507,7 @@ Kicker.DashboardWindow {
 
     // ---- cadeado: aplicativos e ambientes trancados com senha (carinaeos-cadeado) ----
     property var cadeado: ({ apps: [], ambientes: [], senha: false })
-    property string liberado: ""      // o ambiente trancado aberto agora com a senha (até o Launchpad fechar)
+    property var liberados: []        // ambientes trancados já abertos com a senha (até o Launchpad fechar)
     readonly property P5Support.DataSource lerCadeado: P5Support.DataSource {
         engine: "executable"
         connectedSources: []
@@ -529,6 +528,10 @@ Kicker.DashboardWindow {
     function ambTrancado(orig: string): bool {
         return cadeado.ambientes.indexOf(orig) !== -1;
     }
+    // trancado e ainda fechado agora (depois da senha, aparece normal)
+    function ambFechado(orig: string): bool {
+        return ambTrancado(orig) && liberados.indexOf(orig) === -1;
+    }
     function aspas(t: string): string {
         return "'" + String(t).replace(/'/g, "'\\''") + "'";
     }
@@ -543,17 +546,13 @@ Kicker.DashboardWindow {
             lp.depoisCadeado = null;
             if (ok && f) f();
             lp.lerEstadoCadeado();
-            if (fonte.indexOf("#esconder") !== -1) reabrir.restart();
         }
     }
     // corre o carinaeos-cadeado; se vai aparecer uma janela de senha, o Launchpad sai da frente e volta depois
     function cadeadoCmd(args: string, comJanela: bool, depois: var): void {
+        // a janela da senha abre por cima do Launchpad (fica "filha" dele), não é preciso fechá-lo
         depoisCadeado = depois || null;
-        if (comJanela) {
-            voltarAEditar = editando;
-            if (visible) toggle();
-        }
-        acaoCadeado.connectSource("carinaeos-cadeado " + args + " " + (comJanela ? "#esconder" : "#") + Date.now());
+        acaoCadeado.connectSource("carinaeos-cadeado " + args + " #" + Date.now());
     }
     function alternarTrancaApp(app: var): void {
         if (!app || !app.chave) return;
@@ -568,13 +567,18 @@ Kicker.DashboardWindow {
     function abrirAmbienteTrancado(c: var): void {
         const o = c.orig;
         cadeadoCmd("verificar " + aspas("Abrir o ambiente “" + c.nome + "”") + " " + aspas("Este ambiente está trancado. Digite a senha dos aplicativos."),
-                   true, () => { lp.liberado = o; lp.irPara = o; });
+                   true, () => {
+                       lp.liberados = lp.liberados.concat([o]);
+                       const i = lp.categorias.findIndex(c => c.orig === o);
+                       if (i >= 0) lp.mudarVista("cat", i);
+                   });
     }
     function pedirImagem(orig: string): void {
         imagemPara = orig;
-        voltarAEditar = true;
-        if (visible) toggle();      // a janela de ficheiros não aparece por cima do Launchpad
-        escolherImagem.connectSource("kdialog --title 'Imagem do ambiente' --getopenfilename \"$(xdg-user-dir PICTURES)\" "
+
+        // --attach: a janela de ficheiros fica "filha" do Launchpad, e por isso aparece por cima dele
+        escolherImagem.connectSource("w=$(xprop -root _NET_ACTIVE_WINDOW 2>/dev/null | sed -n 's/.*# \\(0x[0-9a-fA-F]*\\).*/\\1/p'); "
+            + "kdialog ${w:+--attach $((w))} --title 'Imagem do ambiente' --getopenfilename \"$(xdg-user-dir PICTURES)\" "
             + "'image/png image/jpeg image/webp image/svg+xml' 2>/dev/null #" + Date.now());
     }
     function tirarImagem(orig: string): void {
@@ -636,7 +640,7 @@ Kicker.DashboardWindow {
     }
 
     onVisibleChanged: {
-        if (!visible) liberado = "";
+        if (!visible) liberados = [];
         if (visible) {
             lp.lerFundo.connectSource("f=$(grep -A4 '\\[Wallpaper\\]\\[org.kde.image\\]\\[General\\]' \"$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc\" | sed -n 's/^Image=//p' | head -1); "
                 + "f=${f#file://}; if [ -d \"$f\" ]; then ls -S \"$f\"/contents/images/* 2>/dev/null | tail -1; else echo \"$f\"; fi #" + Date.now());
@@ -1694,7 +1698,7 @@ Kicker.DashboardWindow {
                                             y: Math.round(10 * palco.u)
                                         }
                                         Rectangle {     // ambiente trancado
-                                            visible: lp.ambTrancado(cartao.modelData.orig) && !cartao.aArrastar
+                                            visible: lp.ambFechado(cartao.modelData.orig) && !cartao.aArrastar
                                             anchors.centerIn: parent
                                             anchors.verticalCenterOffset: Math.round(28 * palco.u)
                                             width: Math.round(52 * palco.u); height: width; radius: width / 2
@@ -1747,7 +1751,7 @@ Kicker.DashboardWindow {
                                             Text {
                                                 width: parent.width
                                                 elide: Text.ElideRight
-                                                text: lp.ambTrancado(cartao.modelData.orig) ? "Trancado com senha" : lp.lema(cartao.modelData.nome, cartao.modelData.apps.length)
+                                                text: lp.ambFechado(cartao.modelData.orig) ? "Trancado com senha" : lp.lema(cartao.modelData.nome, cartao.modelData.apps.length)
                                                 color: Qt.rgba(1, 1, 1, 0.75)
                                                 font.pixelSize: Math.round(12 * palco.u)
                                             }
@@ -1766,7 +1770,7 @@ Kicker.DashboardWindow {
                                         }
                                         // até 4 aplicativos da categoria
                                         Row {
-                                            visible: !lp.ambTrancado(cartao.modelData.orig)
+                                            visible: !lp.ambFechado(cartao.modelData.orig)
                                             anchors.left: parent.left
                                             anchors.leftMargin: Math.round(14 * palco.u)
                                             anchors.bottom: parent.bottom

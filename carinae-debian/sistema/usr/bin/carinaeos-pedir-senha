@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0, '/usr/share/carinaeos/comum')
 from senha import Pedido, QML  # noqa: E402
 
-from PySide6.QtGui import QGuiApplication, QIcon  # noqa: E402
+from PySide6.QtGui import QGuiApplication, QIcon, QWindow  # noqa: E402
 from PySide6.QtQml import QQmlApplicationEngine  # noqa: E402
 from PySide6.QtQuickControls2 import QQuickStyle  # noqa: E402
 
@@ -24,6 +24,20 @@ QQuickStyle.setStyle('Basic')
 app = QGuiApplication(sys.argv[:1])
 app.setDesktopFileName('carinaeos-central')
 app.setWindowIcon(QIcon.fromTheme('object-locked'))
+def janela_ativa():
+    if QGuiApplication.platformName() != 'xcb':
+        return 0
+    try:
+        import re
+        import subprocess
+        out = subprocess.run(['xprop', '-root', '_NET_ACTIVE_WINDOW'], capture_output=True, text=True, timeout=2).stdout
+        r = re.search(r'#\s*(0x[0-9a-fA-F]+)', out)
+        return int(r.group(1), 16) if r else 0
+    except Exception:
+        return 0
+
+
+wid = janela_ativa()     # antes de a nossa janela aparecer (senão seria ela própria)
 p = Pedido(o.titulo, o.mensagem, o.subtitulo, botao=o.botao, nova=o.nova,
            rotulo='Nova senha' if o.nova else 'Senha')
 if o.erro:
@@ -45,11 +59,20 @@ m.rootContext().setContextProperty('pedido', p)
 m.load(QML)
 if not m.rootObjects():
     sys.exit(2)
-# sempre por cima (o Launchpad e as janelas em ecrã inteiro não a escondem)
+# sempre por cima de quem a pediu (Launchpad em ecrã inteiro, Dolphin…): no X11 fica "filha" da
+# janela ativa, e o KWin mantém-na à frente dela, mesmo em ecrã inteiro
 from PySide6.QtCore import Qt  # noqa: E402
+
+
+pai = None
 for w in m.rootObjects():
     try:
+        if wid:
+            pai = QWindow.fromWinId(wid)
+            w.setTransientParent(pai)
         w.setFlags(w.flags() | Qt.WindowStaysOnTopHint)
+        w.show()
+        w.raise_()
         w.requestActivate()
     except Exception:
         pass
