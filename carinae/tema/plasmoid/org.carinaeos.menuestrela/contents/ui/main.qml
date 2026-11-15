@@ -89,6 +89,7 @@ PlasmoidItem {
         PlasmaExtras.MenuItem { text: "Configurações…"; icon: "preferences-system"; onClicked: raiz.correr("carinaeos-configuracoes") }
         PlasmaExtras.MenuItem { text: "Supernova — personalizar…"; icon: "carinaeos-supernova"; onClicked: raiz.correr("carinaeos-supernova") }
         PlasmaExtras.MenuItem { text: "Órbita — loja de aplicativos…"; icon: "carinaeos-orbita"; onClicked: raiz.correr("carinaeos-orbita") }
+        PlasmaExtras.MenuItem { text: "Editar barras e widgets…"; icon: "document-edit"; onClicked: raiz.correr("qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.setEditMode true") }
         PlasmaExtras.MenuItem { separator: true }
         PlasmaExtras.MenuItem { text: "Forçar encerramento…"; icon: "process-stop"; onClicked: raiz.correr("qdbus6 org.kde.KWin /KWin killWindow") }
         PlasmaExtras.MenuItem { separator: true }

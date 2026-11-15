@@ -35,6 +35,10 @@ if (dock) {
         s.length = 1;
         s.hiding = "none";
         s.height = h;
+        s.opacity = "transparent";
+        // uma barra vazia mostra um símbolo para a configurar: com um espaçador (que não desenha nada) fica invisível
+        // (o modo de edição está no menu da estrela, na barra de cima: «Editar barras e widgets…»)
+        if (s.widgets().length == 0) s.addWidget("org.kde.plasma.panelspacer");
         print("espacador " + s.id + " altura " + h);
     }
     dock.p.floating = false;
