@@ -117,12 +117,27 @@ PlasmoidItem {
     // cresce logo que o rato entra; só encolhe quando o rato saiu de vez e a onda já desceu.
     // (sem isto o painel mudava de tamanho debaixo do rato, perdia-o e voltava a crescer: tremia)
     property bool ampliado: false
-    onAmpliadoChanged: ajustarPainel()
+    onAmpliadoChanged: {
+        ajustarPainel();
+        enviarForma();
+    }
+    // no modo fixo a área por cima dos ícones é transparente: assim que o rato sai da zona dos
+    // ícones (mesmo sem sair da janela) a Dock volta a aceitar cliques só no vidro.
+    onSobreChanged: {
+        if (!modoFixo) {
+            return;
+        }
+        if (sobre) {
+            ratoEntrou();
+        } else {
+            encolher.restart();
+        }
+    }
     Timer {
         id: encolher
         interval: 450
         onTriggered: {
-            if (hover.hovered || dock.forca > 0.03) {
+            if ((dock.modoFixo ? dock.sobre : hover.hovered) || dock.forca > 0.03) {
                 restart();
             } else {
                 dock.ampliado = false;
@@ -134,16 +149,80 @@ PlasmoidItem {
         ampliado = true;
     }
     onAlturaRepousoChanged: ajustarPainel()
+    onAlturaAmpliadaChanged: ajustarPainel()
     onPainelChanged: ajustarPainel()
     function ajustarPainel(): void {
         if (!painel || painel.thickness === undefined) {
             return;
         }
-        const t = ampliado ? alturaAmpliada : alturaRepouso;
+        // modo fixo (X11): o painel fica sempre com a altura da lupa e não muda de tamanho
+        // (era isso que engasgava ao entrar e sair); só o vidro aceita cliques em repouso.
+        const t = (modoFixo || ampliado) ? alturaAmpliada : alturaRepouso;
         if (painel.thickness !== t) {
             painel.thickness = t;
         }
+        if (modoFixo) {
+            formaCliques.restart();
+        }
     }
+
+    // ---- cliques só no vidro (X11) -------------------------------------------
+    // carinaeos-dock-cliques põe a "forma de entrada" da janela da Dock: em repouso só o vidro
+    // apanha o rato; a parte transparente por cima deixa os cliques passar para as janelas de trás.
+    // Se não houver X11 (Wayland) ou o programa falhar, a Dock volta a encolher como antes.
+    property bool modoFixo: false
+    P5Support.DataSource {
+        id: cliques
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            const ok = (dados["exit code"] || 0) === 0;
+            if (fonte.indexOf("--teste") !== -1) {
+                dock.modoFixo = ok && (dados["stdout"] || "").trim() === "ok";
+                dock.ajustarPainel();
+            } else if (!ok && dock.modoFixo) {
+                dock.modoFixo = false;      // falhou: volta ao modo antigo
+                dock.ajustarPainel();
+            }
+        }
+    }
+    Timer {
+        interval: 3000
+        running: true
+        onTriggered: cliques.connectSource("carinaeos-dock-cliques --teste")
+    }
+    function pontoNaDock(): point {
+        return vidro.mapToGlobal(vidro.width / 2, vidro.height / 2);
+    }
+    function enviarForma(): void {
+        if (!modoFixo || !painel) {
+            return;
+        }
+        const c = pontoNaDock();
+        let cmd;
+        if (ampliado) {
+            cmd = "carinaeos-dock-cliques tudo " + Math.round(c.x) + " " + Math.round(c.y);
+        } else {
+            const a = vidro.mapToGlobal(0, 0);
+            const b = vidro.mapToGlobal(vidro.width, vidro.height);
+            const x0 = Math.floor(Math.min(a.x, b.x)), y0 = Math.floor(Math.min(a.y, b.y));
+            const x1 = Math.ceil(Math.max(a.x, b.x)), y1 = Math.ceil(Math.max(a.y, b.y));
+            cmd = "carinaeos-dock-cliques " + x0 + " " + y0 + " " + (x1 - x0) + " " + (y1 - y0)
+                + " " + Math.round(c.x) + " " + Math.round(c.y);
+        }
+        // o mesmo comando duas vezes seguidas seria ignorado pelo DataSource
+        cliques.connectSource(cmd + " #" + Date.now());
+    }
+    Timer {
+        // junta várias mudanças (apps a abrir, tamanho, ecrã) num único pedido
+        id: formaCliques
+        interval: 120
+        onTriggered: dock.enviarForma()
+    }
+    onLarguraRepousoChanged: if (modoFixo) formaCliques.restart()
+    onWidthChanged: if (modoFixo) formaCliques.restart()
+    onHeightChanged: if (modoFixo) formaCliques.restart()
 
     function centroRepouso(slot: int): real {
         let x = espaco + slot * (base + espaco) + base / 2 + sepAntes(slot) * largSep;
