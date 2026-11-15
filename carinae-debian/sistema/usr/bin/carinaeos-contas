@@ -348,6 +348,13 @@ def sincronizar_conta(conta):
     gravar(ficheiro(conta['email']), conta)
 
 
+def lembretes_calendario():
+    """Os lembretes do calendário (e o Akonadi por trás deles) só arrancam com a sessão depois de haver calendários."""
+    subprocess.run(['kwriteconfig6', '--file', 'kalendaracrc', '--group', 'General', '--key', 'Autostart', 'true'], capture_output=True)
+    if subprocess.run(['pgrep', '-x', 'kalendarac'], capture_output=True).returncode != 0:
+        subprocess.Popen(['kalendarac'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+
 def calendario(email, ligar):
     try:
         with open(ficheiro(email)) as x:
@@ -366,6 +373,7 @@ def calendario(email, ligar):
             print('O Google recusou o calendário (%s). Entre de novo na conta.' % e.code, file=sys.stderr)
             return 1
         subprocess.run(['systemctl', '--user', 'enable', '--now', 'carinaeos-calendario.timer'], capture_output=True)
+        lembretes_calendario()
         aviso('Calendário ligado', 'Os calendários de %s já aparecem no Merkuro.' % email)
     else:
         for ident in conta.get('recursos', {}).values():

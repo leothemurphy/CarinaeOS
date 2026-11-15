@@ -74,8 +74,16 @@ def criar_recurso(tipo):
                  'org.freedesktop.Akonadi.AgentManager.createAgentInstance', tipo)
 
 
+def lembretes_calendario():
+    """Os lembretes do calendário (e o Akonadi por trás deles) só arrancam com a sessão depois de haver calendários."""
+    subprocess.run(['kwriteconfig6', '--file', 'kalendaracrc', '--group', 'General', '--key', 'Autostart', 'true'], capture_output=True)
+    if subprocess.run(['pgrep', '-x', 'kalendarac'], capture_output=True).returncode != 0:
+        subprocess.Popen(['kalendarac'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+
 def adicionar_ical(url, nome):
     """Baixa o calendario (carinaeos-calendarios) e liga o arquivo local ao Akonadi."""
+    lembretes_calendario()
     r = subprocess.run(['carinaeos-calendarios', 'adicionar', url, nome], capture_output=True, text=True, timeout=90)
     if r.returncode != 0:
         raise RuntimeError((r.stderr.strip().splitlines() or ['não consegui baixar o calendário'])[-1].replace('ValueError: ', ''))
@@ -119,6 +127,7 @@ def adicionar_ical(url, nome):
 
 def configurar_conta(tipo):
     """Google ou CalDAV (iCloud): cria a conta e abre a janela de configuracao/autorizacao."""
+    lembretes_calendario()
     ident = criar_recurso(tipo)
     subprocess.Popen(['qdbus6', 'org.freedesktop.Akonadi.Agent.' + ident, '/',
                       'org.freedesktop.Akonadi.Agent.Control.configure', '0'],

@@ -319,7 +319,13 @@ Kicker.DashboardWindow {
             recolha.model = lp.todosModelo;
             recolhaCat.model = lp.raiz;
         }
-        Component.onCompleted: refresh()
+    }
+    // a lista de aplicativos lê-se uns segundos depois de a sessão abrir (não atrasa a entrada);
+    // se o Launchpad abrir antes disso, lê-se nesse momento
+    readonly property Timer leituraInicial: Timer {
+        interval: 20000
+        running: true
+        onTriggered: if (!lp.todosModelo) lp.raiz.refresh()
     }
     // os mais usados (criado à parte: se a versão do Plasma não o tiver, o resto funciona)
     property var usadosModelo: null

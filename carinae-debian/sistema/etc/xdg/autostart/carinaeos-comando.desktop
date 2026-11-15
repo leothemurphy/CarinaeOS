@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=CarinaeOS — Pesquisa (pronta em segundo plano)
-Exec=carinaeos-comando --fundo
+Exec=sh -c 'sleep 40; exec carinaeos-comando --fundo'
 NoDisplay=true
 OnlyShowIn=KDE;
 X-KDE-autostart-after=panel
