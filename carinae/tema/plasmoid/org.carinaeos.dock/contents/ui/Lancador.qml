@@ -19,6 +19,7 @@ import QtQuick.Controls as QQC2
 import org.kde.kirigami as Kirigami
 import org.kde.plasma.private.kicker as Kicker
 import org.kde.plasma.plasma5support as P5Support
+import QtCore
 
 Kicker.DashboardWindow {
     id: lp
@@ -27,7 +28,8 @@ Kicker.DashboardWindow {
 
     backgroundColor: "transparent"
     // o teclado vai para onde se está a escrever: o formulário aberto, ou a pesquisa
-    keyEventProxy: formCartao.visible ? nomeCartao
+    keyEventProxy: formSenha.visible ? (confSenha.activeFocus ? confSenha : campoSenha)
+        : formCartao.visible ? nomeCartao
         : formDeck.visible ? (cmdDeck.activeFocus ? cmdDeck : nomeDeck)
         : busca
 
@@ -293,6 +295,7 @@ Kicker.DashboardWindow {
     onKeyEscapePressed: {
         if (busca.text !== "") busca.text = "";
         else if (formDeck.visible) formDeck.visible = false;
+        else if (formSenha.visible) formSenha.fechar();
         else if (formCartao.visible) formCartao.visible = false;
         else lp.toggle();
     }
@@ -485,6 +488,7 @@ Kicker.DashboardWindow {
             const f = (dados["stdout"] || "").trim();
             const o = lp.imagemPara;
             if (f !== "" && o !== "") lp.mudarCartoes(c => { c.imagens[o] = "file://" + f; });
+            reabrir.restart();      // deixa a gravação acabar antes de voltar a ler o ficheiro
         }
     }
     // quando uma janela (ficheiros, senha) tem de aparecer, o Launchpad fecha-se e volta depois a abrir aqui
@@ -535,50 +539,82 @@ Kicker.DashboardWindow {
     function aspas(t: string): string {
         return "'" + String(t).replace(/'/g, "'\\''") + "'";
     }
+    // A senha é pedida aqui dentro do Launchpad (uma janela à parte ficava atrás dele). Para não ir na
+    // linha de comandos (visível no "ps"), passa por um ficheiro em /run/user/<uid> (só do utilizador),
+    // que o carinaeos-cadeado lê e apaga logo.
+    readonly property string cofreCaminho: String(StandardPaths.writableLocation(StandardPaths.RuntimeLocation)).replace("file://", "")
+                                           + "/carinaeos-cadeado-pedido.ini"
+    readonly property Settings cofre: Settings { location: "file://" + lp.cofreCaminho }
+    function hexUtf8(t: string): string {
+        let h = "";
+        const b = x => h += (x + 256).toString(16).slice(1);
+        for (const ch of t) {
+            const c = ch.codePointAt(0);
+            if (c < 0x80) b(c);
+            else if (c < 0x800) { b(0xc0 | c >> 6); b(0x80 | c & 63); }
+            else if (c < 0x10000) { b(0xe0 | c >> 12); b(0x80 | c >> 6 & 63); b(0x80 | c & 63); }
+            else { b(0xf0 | c >> 18); b(0x80 | c >> 12 & 63); b(0x80 | c >> 6 & 63); b(0x80 | c & 63); }
+        }
+        return h;
+    }
     property var depoisCadeado: null
+    property var falhaCadeado: null
     readonly property P5Support.DataSource acaoCadeado: P5Support.DataSource {
         engine: "executable"
         connectedSources: []
         onNewData: (fonte, dados) => {
             disconnectSource(fonte);
             const ok = dados["exit code"] === 0;
-            const f = lp.depoisCadeado;
+            const f = ok ? lp.depoisCadeado : lp.falhaCadeado;
             lp.depoisCadeado = null;
-            if (ok && f) f();
+            lp.falhaCadeado = null;
+            if (f) f();
             lp.lerEstadoCadeado();
         }
     }
-    // corre o carinaeos-cadeado; se vai aparecer uma janela de senha, o Launchpad sai da frente e volta depois
-    function cadeadoCmd(args: string, comJanela: bool, depois: var): void {
-        // a janela da senha abre por cima do Launchpad (fica "filha" dele), não é preciso fechá-lo
+    function cadeadoCmd(args: string, depois: var, falha: var): void {
         depoisCadeado = depois || null;
+        falhaCadeado = falha || null;
         acaoCadeado.connectSource("carinaeos-cadeado " + args + " #" + Date.now());
+    }
+    // corre a ação com a senha escrita no formulário
+    function comSenha(senha: string, acao: string, depois: var, falha: var): void {
+        cofre.setValue("s", "n" + Date.now() + "x" + hexUtf8(senha));
+        cofre.sync();
+        cadeadoCmd("--senha-ficheiro " + aspas(cofreCaminho) + " " + acao, depois, falha);
+    }
+    function trancarOuCriarSenha(acao: string, oQue: string): void {
+        if (cadeado.senha) cadeadoCmd(acao, null, null);
+        else formSenha.abrir("Criar a senha do cadeado",
+                             "É a senha que vai abrir " + oQue + " e tudo o que trancar a seguir.", true, acao, null);
     }
     function alternarTrancaApp(app: var): void {
         if (!app || !app.chave) return;
-        if (trancado(app)) cadeadoCmd("destrancar-app " + aspas(app.chave), true, null);
-        else cadeadoCmd("trancar-app " + aspas(app.chave), !cadeado.senha, null);
+        if (trancado(app)) formSenha.abrir("Destrancar “" + app.nome + "”", "Digite a senha dos aplicativos.", false,
+                                           "destrancar-app " + aspas(app.chave), null);
+        else trancarOuCriarSenha("trancar-app " + aspas(app.chave), "«" + app.nome + "»");
     }
     function alternarTrancaAmbiente(c: var): void {
         if (!c) return;
-        if (ambTrancado(c.orig)) cadeadoCmd("destrancar-ambiente " + aspas(c.orig), true, null);
-        else cadeadoCmd("trancar-ambiente " + aspas(c.orig), !cadeado.senha, null);
+        if (ambTrancado(c.orig)) formSenha.abrir("Destrancar o ambiente “" + c.nome + "”", "Digite a senha dos aplicativos.", false,
+                                                 "destrancar-ambiente " + aspas(c.orig), null);
+        else trancarOuCriarSenha("trancar-ambiente " + aspas(c.orig), "o ambiente «" + c.nome + "»");
     }
     function abrirAmbienteTrancado(c: var): void {
         const o = c.orig;
-        cadeadoCmd("verificar " + aspas("Abrir o ambiente “" + c.nome + "”") + " " + aspas("Este ambiente está trancado. Digite a senha dos aplicativos."),
-                   true, () => {
-                       lp.liberados = lp.liberados.concat([o]);
-                       const i = lp.categorias.findIndex(c => c.orig === o);
-                       if (i >= 0) lp.mudarVista("cat", i);
-                   });
+        formSenha.abrir("Abrir o ambiente “" + c.nome + "”", "Este ambiente está trancado. Digite a senha dos aplicativos.", false,
+                        "verificar", () => {
+                            lp.liberados = lp.liberados.concat([o]);
+                            const i = lp.categorias.findIndex(k => k.orig === o);
+                            if (i >= 0) lp.mudarVista("cat", i);
+                        });
     }
     function pedirImagem(orig: string): void {
         imagemPara = orig;
-
-        // --attach: a janela de ficheiros fica "filha" do Launchpad, e por isso aparece por cima dele
-        escolherImagem.connectSource("w=$(xprop -root _NET_ACTIVE_WINDOW 2>/dev/null | sed -n 's/.*# \\(0x[0-9a-fA-F]*\\).*/\\1/p'); "
-            + "kdialog ${w:+--attach $((w))} --title 'Imagem do ambiente' --getopenfilename \"$(xdg-user-dir PICTURES)\" "
+        // a janela de ficheiros não fica por cima do Launchpad: fecha-se e volta a abrir no modo Editar
+        voltarAEditar = true;
+        if (visible) toggle();
+        escolherImagem.connectSource("kdialog --title 'Imagem do ambiente' --getopenfilename \"$(xdg-user-dir PICTURES)\" "
             + "'image/png image/jpeg image/webp image/svg+xml' 2>/dev/null #" + Date.now());
     }
     function tirarImagem(orig: string): void {
@@ -647,6 +683,7 @@ Kicker.DashboardWindow {
             lp.lerDeck.connectSource("cat \"$HOME/.config/carinaeos-deck.json\" 2>/dev/null #" + Date.now());
             lp.lerCartoes.connectSource("cat \"$HOME/.config/carinaeos-cartoes.json\" 2>/dev/null #" + Date.now());
             formCartao.visible = false;
+            formSenha.visible = false;
             busca.text = "";
             formDeck.visible = false;
             lp.editando = false;
@@ -1295,7 +1332,7 @@ Kicker.DashboardWindow {
                         focus: true
                         // com um formulário aberto, a pesquisa não aceita letras (desligá-la de todo faz o
                         // Plasma tentar dar-lhe o teclado sem fim e fechar-se: nunca usar "enabled" aqui)
-                        readOnly: formCartao.visible || formDeck.visible
+                        readOnly: formSenha.visible || formCartao.visible || formDeck.visible
                         onTextChanged: lp.filtro = text
                         onAccepted: {
                             if (lp.emGrelha && lp.selecionado) lp.abrir(lp.selecionado);
@@ -1651,8 +1688,6 @@ Kicker.DashboardWindow {
                                                 model: [
                                                     { ic: "color-management", dica: "Mudar a cor", f: "cor" },
                                                     { ic: "insert-image", dica: "Pôr uma imagem (marca de água)", f: "img" },
-                                                    { ic: lp.ambTrancado(cartao.modelData.orig) ? "object-unlocked" : "object-locked",
-                                                      dica: lp.ambTrancado(cartao.modelData.orig) ? "Destrancar" : "Trancar com senha", f: "tranca" },
                                                     { ic: "edit-clear", dica: "Tirar a imagem", f: "semimg" }
                                                 ].filter(b => b.f !== "semimg" || cartao.modelData.imagem !== "")
                                                 delegate: Rectangle {
@@ -1677,7 +1712,6 @@ Kicker.DashboardWindow {
                                                             Qt.callLater(() => {
                                                                 if (f === "cor") lp.abrirCores(o, bEd);
                                                                 else if (f === "img") lp.pedirImagem(o);
-                                                                else if (f === "tranca") lp.alternarTrancaAmbiente(cartao.modelData);
                                                                 else lp.tirarImagem(o);
                                                             });
                                                         }
@@ -1918,6 +1952,111 @@ Kicker.DashboardWindow {
                     }
 
                     // formulário: novo botão do Deck
+                    Rectangle {
+                        id: formSenha
+                        visible: false
+                        z: 60
+                        anchors.centerIn: parent
+                        width: Math.min(parent.width - 40, Math.round(440 * palco.u))
+                        height: colSenha.height + Math.round(44 * palco.u)
+                        radius: Math.round(24 * palco.u)
+                        color: Qt.rgba(0.09, 0.07, 0.2, 0.97)
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.2)
+                        property string titulo: ""
+                        property string mensagem: ""
+                        property bool nova: false
+                        property string acao: ""
+                        property var depois: null
+                        property string erro: ""
+                        property bool aVerificar: false
+                        function abrir(t: string, m: string, n: bool, a: string, d: var): void {
+                            titulo = t; mensagem = m; nova = n; acao = a; depois = d;
+                            erro = ""; aVerificar = false;
+                            campoSenha.text = ""; confSenha.text = "";
+                            visible = true;
+                            focoSenha.restart();
+                        }
+                        function fechar(): void {
+                            visible = false;
+                            campoSenha.text = ""; confSenha.text = "";
+                            busca.forceActiveFocus();
+                        }
+                        Timer { id: focoSenha; interval: 80; onTriggered: campoSenha.forceActiveFocus() }
+                        function enviar(): void {
+                            if (aVerificar) return;
+                            if (campoSenha.text === "") { erro = "Digite a senha."; return; }
+                            if (nova && campoSenha.text.length < 4) { erro = "Use pelo menos 4 caracteres."; return; }
+                            if (nova && campoSenha.text !== confSenha.text) { erro = "As duas senhas não são iguais."; confSenha.text = ""; confSenha.forceActiveFocus(); return; }
+                            aVerificar = true;
+                            erro = "";
+                            const d = depois;
+                            lp.comSenha(campoSenha.text, acao,
+                                        () => { formSenha.fechar(); if (d) d(); },
+                                        () => { formSenha.aVerificar = false; formSenha.erro = "Senha incorreta.";
+                                                campoSenha.text = ""; campoSenha.forceActiveFocus(); });
+                        }
+                        MouseArea { anchors.fill: parent }
+                        Column {
+                            id: colSenha
+                            x: Math.round(22 * palco.u)
+                            y: Math.round(22 * palco.u)
+                            width: parent.width - Math.round(44 * palco.u)
+                            spacing: Math.round(10 * palco.u)
+                            Row {
+                                spacing: Math.round(12 * palco.u)
+                                Rectangle {
+                                    width: Math.round(42 * palco.u); height: width; radius: width * 0.3
+                                    gradient: Gradient {
+                                        GradientStop { position: 0; color: "#ff8a65" }
+                                        GradientStop { position: 1; color: "#7b5cff" }
+                                    }
+                                    Kirigami.Icon { anchors.centerIn: parent; source: "object-locked"; width: parent.width * 0.55; height: width; color: "white"; isMask: true }
+                                }
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: colSenha.width - Math.round(54 * palco.u)
+                                    Text { width: parent.width; wrapMode: Text.Wrap; text: formSenha.titulo; color: lp.texto; font.pixelSize: Math.round(18 * palco.u); font.weight: Font.DemiBold }
+                                    Text { text: "Cadeado do CarinaeOS"; color: lp.suave; font.pixelSize: Math.round(11 * palco.u) }
+                                }
+                            }
+                            Text { width: parent.width; wrapMode: Text.Wrap; text: formSenha.mensagem; color: lp.suave; font.pixelSize: Math.round(13 * palco.u) }
+                            QQC2.TextField {
+                                id: campoSenha
+                                width: parent.width
+                                echoMode: TextInput.Password
+                                placeholderText: formSenha.nova ? "Nova senha" : "Senha"
+                                enabled: !formSenha.aVerificar
+                                onAccepted: formSenha.nova && confSenha.text === "" ? confSenha.forceActiveFocus() : formSenha.enviar()
+                            }
+                            QQC2.TextField {
+                                id: confSenha
+                                visible: formSenha.nova
+                                width: parent.width
+                                echoMode: TextInput.Password
+                                placeholderText: "Repita a senha"
+                                enabled: !formSenha.aVerificar
+                                onAccepted: formSenha.enviar()
+                            }
+                            Text {
+                                visible: formSenha.erro !== "" || formSenha.aVerificar
+                                text: formSenha.aVerificar ? "A verificar…" : formSenha.erro
+                                color: formSenha.aVerificar ? lp.suave : "#ff8a8a"
+                                font.pixelSize: Math.round(12 * palco.u)
+                            }
+                            Row {
+                                spacing: 10
+                                anchors.right: parent.right
+                                QQC2.Button { text: "Cancelar"; onClicked: formSenha.fechar() }
+                                QQC2.Button {
+                                    text: formSenha.nova ? "Criar e trancar" : (formSenha.acao.indexOf("destrancar") === 0 ? "Destrancar" : "Abrir")
+                                    highlighted: true
+                                    enabled: !formSenha.aVerificar
+                                    onClicked: formSenha.enviar()
+                                }
+                            }
+                        }
+                    }
                     Rectangle {
                         id: formCartao
                         visible: false

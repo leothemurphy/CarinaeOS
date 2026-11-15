@@ -396,9 +396,37 @@ def gerir_apps():
     aviso('Pronto. %d aplicativo(s) bloqueado(s).' % len(c['apps']))
 
 
+# senha já dada (o Launchpad pede-a dentro dele e passa-a num ficheiro em /run/user/<uid>, que se apaga logo)
+SENHA_DADA = None
+
+
+def ler_senha_ficheiro(f):
+    try:
+        with open(f, encoding='utf-8') as x:
+            txt = x.read()
+    finally:
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+    import re
+    r = re.search(r'^s=n\d+x([0-9a-f]*)\s*$', txt, re.M)
+    if not r:
+        return None
+    try:
+        return bytes.fromhex(r.group(1)).decode('utf-8')
+    except ValueError:
+        return None
+
+
 def garantir_senha(c):
     """Cria a senha dos aplicativos e ambientes se ainda não existe. Devolve False se cancelou."""
     if 'sal' in c:
+        return True
+    if SENHA_DADA is not None:
+        c['sal'] = os.urandom(16).hex()
+        c['hash'] = hash_senha(SENHA_DADA, c['sal'])
+        gravar_conf(c)
         return True
     s = nova_senha('Senha dos aplicativos trancados',
                    'Esta senha vai ser pedida para abrir aplicativos e ambientes trancados.')
@@ -413,6 +441,8 @@ def garantir_senha(c):
 def confirmar(c, titulo, mensagem, botao='Continuar'):
     if 'sal' not in c:
         return True
+    if SENHA_DADA is not None:
+        return senha_certa(c, SENHA_DADA)
     e = ''
     while True:
         s = pedir_senha(titulo, mensagem, erro=e, botao=botao)
@@ -521,7 +551,16 @@ def main():
     if len(sys.argv) < 2:
         print(__doc__)
         return 1
-    acao, resto = sys.argv[1], sys.argv[2:]
+    global SENHA_DADA
+    args = sys.argv[1:]
+    if len(args) >= 2 and args[0] == '--senha-ficheiro':
+        SENHA_DADA = ler_senha_ficheiro(args[1])
+        if SENHA_DADA is None:
+            return 1
+        args = args[2:]
+    if not args:
+        return 1
+    acao, resto = args[0], args[1:]
     if acao in ('trancar', 'bloquear'):
         trancar(resto)
     elif acao in ('abrir', 'desbloquear', 'destrancar'):
