@@ -114,8 +114,25 @@ PlasmoidItem {
     readonly property int alturaRepouso: alturaVidro
     readonly property int alturaAmpliada: Math.ceil(base * (0.62 + zoom)) + 2
     readonly property var painel: palco.Window.window
-    readonly property bool ampliado: sobre || forca > 0.01
+    // cresce logo que o rato entra; só encolhe quando o rato saiu de vez e a onda já desceu.
+    // (sem isto o painel mudava de tamanho debaixo do rato, perdia-o e voltava a crescer: tremia)
+    property bool ampliado: false
     onAmpliadoChanged: ajustarPainel()
+    Timer {
+        id: encolher
+        interval: 450
+        onTriggered: {
+            if (hover.hovered || dock.forca > 0.03) {
+                restart();
+            } else {
+                dock.ampliado = false;
+            }
+        }
+    }
+    function ratoEntrou(): void {
+        encolher.stop();
+        ampliado = true;
+    }
     onAlturaRepousoChanged: ajustarPainel()
     onPainelChanged: ajustarPainel()
     function ajustarPainel(): void {
@@ -266,7 +283,14 @@ PlasmoidItem {
 
     HoverHandler {
         id: hover
-        onHoveredChanged: if (!hovered) dock.sobre = false
+        onHoveredChanged: {
+            if (hovered) {
+                dock.ratoEntrou();
+            } else {
+                dock.sobre = false;
+                encolher.restart();
+            }
+        }
         onPointChanged: {
             if (hovered) {
                 const topo = palco.height - dock.baixo - dock.margem * 2 - dock.base * (1 + (dock.zoom - 1) * dock.forca) - dock.margem;
