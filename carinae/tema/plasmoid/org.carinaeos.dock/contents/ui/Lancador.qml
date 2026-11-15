@@ -41,7 +41,45 @@ Kicker.DashboardWindow {
 
     // ---- estado -----------------------------------------------------------------
     property var itens: []            // todos: [{ nome, icone, linha, id, chave, desc, acoes, cat }]
-    property var categorias: []       // [{ nome, icone, apps: [item...], cor }]
+    property var catSistema: []       // as categorias do sistema: [{ nome, icone, apps: [item...], cor }]
+    // os cartões como a pessoa os organizou (~/.config/carinaeos-cartoes.json):
+    //   novos: [{nome, icone, cor}]  colocar: {chave: cartão}  fixos: [cartão...] (em primeiro)
+    //   nomes: {original: novo}  cores: {cartão: n}  ocultos: [cartão...]
+    property var cartoesCfg: ({ novos: [], colocar: {}, fixos: [], nomes: {}, cores: {}, ocultos: [] })
+    // [{ orig, nome, icone, apps, cor, propria, fixo }]
+    readonly property var categorias: {
+        const cfg = cartoesCfg, col = cfg.colocar || {}, nomes = cfg.nomes || {}, cores = cfg.cores || {};
+        const ocultos = cfg.ocultos || [], fx = cfg.fixos || [];
+        const lista = [], porOrig = {};
+        const cor = (orig, padrao) => cores[orig] !== undefined ? paleta[cores[orig] % paleta.length] : padrao;
+        for (const c of catSistema) {
+            if (ocultos.indexOf(c.nome) !== -1) continue;
+            const x = { orig: c.nome, nome: nomes[c.nome] || c.nome, icone: c.icone, cor: cor(c.nome, c.cor),
+                        propria: false, apps: c.apps.filter(a => !col[a.chave]) };
+            lista.push(x);
+            porOrig[x.orig] = x;
+        }
+        let k = 0;
+        for (const n of (cfg.novos || [])) {
+            if (porOrig[n.nome]) continue;
+            const x = { orig: n.nome, nome: n.nome, icone: n.icone || "folder-favorites",
+                        cor: cor(n.nome, paleta[(catSistema.length + k++) % paleta.length]), propria: true, apps: [] };
+            lista.push(x);
+            porOrig[x.orig] = x;
+        }
+        for (const ch in col) {
+            const c = porOrig[col[ch]], a = porChave(ch);
+            if (c && a) c.apps.push(a);
+        }
+        const r = lista.filter(c => c.propria || c.apps.length > 0);
+        r.forEach((c, i) => { c.fixo = fx.indexOf(c.orig) !== -1; c.ordem = i; });
+        r.sort((a, b) => {
+            const ia = fx.indexOf(a.orig), ib = fx.indexOf(b.orig);
+            if (ia !== -1 || ib !== -1) return (ia === -1 ? 1e6 : ia) - (ib === -1 ? 1e6 : ib);
+            return a.ordem - b.ordem;
+        });
+        return r;
+    }
     property var usados: []           // chaves dos mais usados
     property var novos: []            // chaves dos instalados nos ultimos 14 dias (mais recentes primeiro)
     property var deck: []             // [{ nome, icone, cmd } | { app: chave }]
@@ -206,6 +244,7 @@ Kicker.DashboardWindow {
     onKeyEscapePressed: {
         if (busca.text !== "") busca.text = "";
         else if (formDeck.visible) formDeck.visible = false;
+        else if (formCartao.visible) formCartao.visible = false;
         else lp.toggle();
     }
 
@@ -299,6 +338,92 @@ Kicker.DashboardWindow {
         correr("sh -c 'mkdir -p \"$HOME/.config\" && echo " + Qt.btoa(j)
                + " | base64 -d > \"$HOME/.config/carinaeos-deck.json\"'");
     }
+    // ---- cartões: ler e gravar ~/.config/carinaeos-cartoes.json ----------------------
+    readonly property P5Support.DataSource lerCartoes: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            let d = null;
+            try { d = JSON.parse((dados["stdout"] || "").trim()); } catch (e) { d = null; }
+            if (d && typeof d === "object") {
+                lp.cartoesCfg = Object.assign({ novos: [], colocar: {}, fixos: [], nomes: {}, cores: {}, ocultos: [] }, d);
+            }
+        }
+    }
+    function gravarCartoes(): void {
+        const j = JSON.stringify(cartoesCfg).replace(/[\u0080-\uffff]/g,
+            c => "\\u" + ("0000" + c.charCodeAt(0).toString(16)).slice(-4));
+        correr("sh -c 'mkdir -p \"$HOME/.config\" && echo " + Qt.btoa(j)
+               + " | base64 -d > \"$HOME/.config/carinaeos-cartoes.json\"'");
+    }
+    function mudarCartoes(f: var): void {
+        const c = JSON.parse(JSON.stringify(cartoesCfg));
+        f(c);
+        cartoesCfg = c;
+        gravarCartoes();
+    }
+    function cartaoDe(app: var): string {
+        return app && app.chave ? ((cartoesCfg.colocar || {})[app.chave] || "") : "";
+    }
+    function novoCartao(nome: string, app: var): void {
+        nome = nome.trim();
+        if (nome === "") return;
+        mudarCartoes(c => {
+            const existe = c.novos.some(n => n.nome === nome) || catSistema.some(x => x.nome === nome);
+            if (!existe) c.novos.push({ nome: nome, icone: "folder-favorites" });
+            const i = c.ocultos.indexOf(nome);
+            if (i !== -1) c.ocultos.splice(i, 1);
+            if (app && app.chave) c.colocar[app.chave] = nome;
+        });
+    }
+    function colocarNoCartao(app: var, orig: string): void {
+        if (!app || !app.chave) return;
+        mudarCartoes(c => { c.colocar[app.chave] = orig; });
+    }
+    function tirarDoCartao(app: var): void {
+        if (!app || !app.chave) return;
+        mudarCartoes(c => { delete c.colocar[app.chave]; });
+    }
+    function alternarFixo(orig: string): void {
+        mudarCartoes(c => {
+            const i = c.fixos.indexOf(orig);
+            if (i === -1) c.fixos.push(orig); else c.fixos.splice(i, 1);
+        });
+    }
+    function renomearCartao(orig: string, nome: string, propria: bool): void {
+        nome = nome.trim();
+        if (nome === "" || nome === orig) return;
+        mudarCartoes(c => {
+            if (!propria) {
+                c.nomes[orig] = nome;
+                return;
+            }
+            // um cartão criado pela pessoa muda mesmo de nome (e leva os aplicativos, a cor e o lugar)
+            for (const n of c.novos) if (n.nome === orig) n.nome = nome;
+            for (const k in c.colocar) if (c.colocar[k] === orig) c.colocar[k] = nome;
+            c.fixos = c.fixos.map(x => x === orig ? nome : x);
+            if (c.cores[orig] !== undefined) { c.cores[nome] = c.cores[orig]; delete c.cores[orig]; }
+        });
+    }
+    function mudarCor(orig: string): void {
+        mudarCartoes(c => {
+            const atual = c.cores[orig] !== undefined ? c.cores[orig] : Math.floor(Math.random() * paleta.length);
+            c.cores[orig] = (atual + 1) % paleta.length;
+        });
+    }
+    function esconderCartao(orig: string, propria: bool): void {
+        mudarCartoes(c => {
+            if (propria) {
+                c.novos = c.novos.filter(n => n.nome !== orig);
+                for (const k in c.colocar) if (c.colocar[k] === orig) delete c.colocar[k];
+            } else if (c.ocultos.indexOf(orig) === -1) {
+                c.ocultos.push(orig);
+            }
+            c.fixos = c.fixos.filter(x => x !== orig);
+        });
+        if (vista === "cat") mudarVista("inicio");
+    }
     function noDeck(app: var): bool {
         if (!app) return false;
         for (const t of deck) if (t.app === app.chave) return true;
@@ -333,6 +458,8 @@ Kicker.DashboardWindow {
             lp.lerFundo.connectSource("f=$(grep -A4 '\\[Wallpaper\\]\\[org.kde.image\\]\\[General\\]' \"$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc\" | sed -n 's/^Image=//p' | head -1); "
                 + "f=${f#file://}; if [ -d \"$f\" ]; then ls -S \"$f\"/contents/images/* 2>/dev/null | tail -1; else echo \"$f\"; fi #" + Date.now());
             lp.lerDeck.connectSource("cat \"$HOME/.config/carinaeos-deck.json\" 2>/dev/null #" + Date.now());
+            lp.lerCartoes.connectSource("cat \"$HOME/.config/carinaeos-cartoes.json\" 2>/dev/null #" + Date.now());
+            formCartao.visible = false;
             busca.text = "";
             formDeck.visible = false;
             vista = "inicio";
@@ -468,7 +595,7 @@ Kicker.DashboardWindow {
                         }
                     }
                     lp.itens = l;
-                    lp.categorias = cs;
+                    lp.catSistema = cs;
                     if (!lp.selecionado && l.length > 0) lp.selecionado = l[0];
                 }
             }
@@ -536,6 +663,56 @@ Kicker.DashboardWindow {
                 text: "Adicionar ao Deck"
                 enabled: menuApp.app !== null && !lp.noDeck(menuApp.app)
                 onTriggered: lp.adicionarAoDeck(menuApp.app)
+            }
+            QQC2.MenuSeparator {}
+            QQC2.Menu {
+                id: subCartoes
+                title: "Colocar no cartão"
+                enabled: menuApp.app !== null && menuApp.app.chave !== ""
+                Instantiator {
+                    model: lp.categorias
+                    delegate: QQC2.MenuItem {
+                        required property var modelData
+                        text: modelData.nome
+                        checkable: true
+                        checked: menuApp.app !== null && (lp.cartaoDe(menuApp.app) === modelData.orig
+                                 || (lp.cartaoDe(menuApp.app) === "" && modelData.apps.indexOf(menuApp.app) !== -1))
+                        onTriggered: lp.colocarNoCartao(menuApp.app, modelData.orig)
+                    }
+                    onObjectAdded: (i, o) => subCartoes.insertItem(i, o)
+                    onObjectRemoved: (i, o) => subCartoes.removeItem(o)
+                }
+                QQC2.MenuSeparator {}
+                QQC2.MenuItem { text: "Novo cartão…"; onTriggered: formCartao.abrir("novo", "", false, menuApp.app) }
+            }
+            QQC2.MenuItem {
+                visible: lp.cartaoDe(menuApp.app) !== ""
+                height: visible ? implicitHeight : 0
+                text: "Voltar à categoria original"
+                onTriggered: lp.tirarDoCartao(menuApp.app)
+            }
+        }
+        // menu do botão direito de um cartão
+        QQC2.Menu {
+            id: menuCartao
+            property var c: null
+            QQC2.MenuItem {
+                text: menuCartao.c && menuCartao.c.fixo ? "Tirar dos primeiros" : "Pôr em primeiro"
+                onTriggered: lp.alternarFixo(menuCartao.c.orig)
+            }
+            QQC2.MenuItem { text: "Mudar o nome…"; onTriggered: formCartao.abrir("nome", menuCartao.c.orig, menuCartao.c.propria, null) }
+            QQC2.MenuItem { text: "Mudar a cor"; onTriggered: lp.mudarCor(menuCartao.c.orig) }
+            QQC2.MenuSeparator {}
+            QQC2.MenuItem { text: "Novo cartão…"; onTriggered: formCartao.abrir("novo", "", false, null) }
+            QQC2.MenuItem {
+                text: menuCartao.c && menuCartao.c.propria ? "Apagar este cartão" : "Esconder este cartão"
+                onTriggered: lp.esconderCartao(menuCartao.c.orig, menuCartao.c.propria)
+            }
+            QQC2.MenuItem {
+                visible: (lp.cartoesCfg.ocultos || []).length > 0
+                height: visible ? implicitHeight : 0
+                text: "Mostrar os cartões escondidos"
+                onTriggered: lp.mudarCartoes(c => { c.ocultos = []; })
             }
         }
         QQC2.Menu {
@@ -745,6 +922,12 @@ Kicker.DashboardWindow {
                                 ativo: lp.filtro === "" && lp.vista === "cat" && lp.catAtual === index
                                 onEscolhido: lp.mudarVista("cat", index)
                             }
+                        }
+                        ItemLado {
+                            u: palco.u
+                            texto: "Novo cartão…"
+                            icone: "list-add"
+                            onEscolhido: formCartao.abrir("novo", "", false, null)
                         }
                     }
                 }
@@ -1064,7 +1247,24 @@ Kicker.DashboardWindow {
                                             anchors.fill: parent
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: lp.mudarVista("cat", cartao.index)
+                                            acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                            onClicked: (m) => {
+                                                if (m.button === Qt.RightButton) {
+                                                    menuCartao.c = cartao.modelData;
+                                                    menuCartao.popup();
+                                                } else {
+                                                    lp.mudarVista("cat", cartao.index);
+                                                }
+                                            }
+                                            onPressAndHold: { menuCartao.c = cartao.modelData; menuCartao.popup(); }
+                                        }
+                                        Kirigami.Icon {     // fixado em primeiro
+                                            visible: cartao.modelData.fixo === true
+                                            source: "starred-symbolic"
+                                            color: "#ffd479"
+                                            isMask: true
+                                            width: Math.round(16 * palco.u); height: width
+                                            x: Math.round(48 * palco.u); y: Math.round(10 * palco.u)
                                         }
                                         Rectangle {
                                             id: selo
@@ -1267,6 +1467,64 @@ Kicker.DashboardWindow {
                     }
 
                     // formulário: novo botão do Deck
+                    Rectangle {
+                        id: formCartao
+                        visible: false
+                        z: 50
+                        anchors.centerIn: parent
+                        width: Math.min(parent.width - 40, Math.round(420 * palco.u))
+                        height: colCartao.height + Math.round(40 * palco.u)
+                        radius: Math.round(22 * palco.u)
+                        color: Qt.rgba(0.09, 0.07, 0.2, 0.96)
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.2)
+                        property string modo: "novo"
+                        property string orig: ""
+                        property bool propria: false
+                        property var app: null
+                        function abrir(m: string, o: string, p: bool, a: var): void {
+                            modo = m; orig = o; propria = p; app = a;
+                            nomeCartao.text = m === "nome" ? ((lp.cartoesCfg.nomes || {})[o] || o) : "";
+                            visible = true;
+                            nomeCartao.forceActiveFocus();
+                            nomeCartao.selectAll();
+                        }
+                        function guardar(): void {
+                            if (nomeCartao.text.trim() === "") return;
+                            if (modo === "novo") lp.novoCartao(nomeCartao.text, app);
+                            else lp.renomearCartao(orig, nomeCartao.text, propria);
+                            visible = false;
+                            busca.forceActiveFocus();
+                        }
+                        MouseArea { anchors.fill: parent }
+                        Column {
+                            id: colCartao
+                            x: Math.round(20 * palco.u)
+                            y: Math.round(20 * palco.u)
+                            width: parent.width - Math.round(40 * palco.u)
+                            spacing: Math.round(10 * palco.u)
+                            Text {
+                                text: formCartao.modo === "novo" ? "Novo cartão" : "Mudar o nome do cartão"
+                                color: lp.texto; font.pixelSize: Math.round(18 * palco.u); font.weight: Font.DemiBold
+                            }
+                            Text {
+                                width: parent.width
+                                wrapMode: Text.Wrap
+                                visible: formCartao.modo === "novo"
+                                text: formCartao.app ? "«" + formCartao.app.nome + "» vai para este cartão. Depois, botão direito noutros aplicativos › Colocar no cartão."
+                                                     : "Depois, botão direito num aplicativo › Colocar no cartão. Botão direito no cartão › Pôr em primeiro."
+                                color: lp.suave
+                                font.pixelSize: Math.round(12 * palco.u)
+                            }
+                            QQC2.TextField { id: nomeCartao; width: parent.width; placeholderText: "Nome (ex.: Escritório)"; onAccepted: formCartao.guardar() }
+                            Row {
+                                spacing: 10
+                                anchors.right: parent.right
+                                QQC2.Button { text: "Cancelar"; onClicked: { formCartao.visible = false; busca.forceActiveFocus(); } }
+                                QQC2.Button { text: formCartao.modo === "novo" ? "Criar" : "Guardar"; highlighted: true; onClicked: formCartao.guardar() }
+                            }
+                        }
+                    }
                     Rectangle {
                         id: formDeck
                         visible: false
