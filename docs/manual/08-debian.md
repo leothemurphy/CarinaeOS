@@ -78,11 +78,11 @@ $ less /var/log/apt/history.log     # histórico do que foi instalado/removido
 
 | Arquivo | Para quê |
 |---|---|
-| `/etc/fstab` | discos montados no arranque |
+| `/etc/fstab` | discos montados na inicialização |
 | `/etc/hostname`, `/etc/hosts` | nome do computador e nomes locais |
-| `/etc/default/grub` | opções de arranque (depois `sudo update-grub`) |
+| `/etc/default/grub` | opções de inicialização (depois `sudo update-grub`) |
 | `/etc/apt/` | repositórios e preferências do apt |
-| `/etc/samba/smb.conf` | partilhas SMB |
+| `/etc/samba/smb.conf` | compartilhamentos SMB |
 | `/etc/sudoers` | quem pode usar sudo (edite só com `sudo visudo`) |
 | `/etc/systemd/` | serviços e configurações do systemd |
 | `/etc/sddm.conf.d/` | tela de entrada |
@@ -91,7 +91,7 @@ $ less /var/log/apt/history.log     # histórico do que foi instalado/removido
 | `~/.local/share/` | dados dos seus aplicativos |
 | `~/.bashrc` | o seu terminal (aliases, PATH) |
 
-## systemd: serviços, arranque e registos
+## systemd: serviços, inicialização e registros
 
 ```
 $ systemctl status ssh                 # estado de um serviço
@@ -101,9 +101,9 @@ $ sudo systemctl disable --now ssh
 $ systemctl list-units --type=service --state=running
 $ systemctl --failed                   # o que falhou
 $ systemctl --user status pipewire     # serviços do seu usuário
-$ systemd-analyze blame                # o que atrasa o arranque
-$ journalctl -b                        # registos deste arranque
-$ journalctl -b -1 -p err              # erros do arranque anterior
+$ systemd-analyze blame                # o que atrasa a inicialização
+$ journalctl -b                        # registros desta inicialização
+$ journalctl -b -1 -p err              # erros da inicialização anterior
 $ journalctl -u NetworkManager -f      # seguir os registos de um serviço
 $ journalctl --vacuum-time=2weeks      # limpar registos antigos (sudo)
 $ hostnamectl set-hostname novo-nome   # mudar o nome do computador

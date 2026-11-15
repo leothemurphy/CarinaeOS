@@ -435,7 +435,7 @@ def drive(email, ligar):
     os.makedirs(conta['pasta'], exist_ok=True)
     subprocess.run(['systemctl', '--user', 'daemon-reload'], capture_output=True)
     subprocess.run(['systemctl', '--user', 'enable', '--now', unidade], capture_output=True)
-    aviso('Google Drive ligado', 'Os seus ficheiros estão em ' + conta['pasta'])
+    aviso('Google Drive ligado', 'Os seus arquivos estão em ' + conta['pasta'])
     return 0
 
 

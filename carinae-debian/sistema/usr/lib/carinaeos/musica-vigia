@@ -119,7 +119,7 @@ def principal():
                 if avisar:
                     avisar_ha()
         except Exception as e:
-            log('ligação ao MPD perdida (%s); a tentar outra vez' % e)
+            log('conexão ao MPD perdida (%s); a tentar outra vez' % e)
             time.sleep(5)
 
 

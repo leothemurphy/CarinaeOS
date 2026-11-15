@@ -41,7 +41,7 @@ $ lspci -k                       # que driver usa cada placa
 - **Impedir um módulo** (ex.: o nouveau com a NVIDIA oficial): criar `/etc/modprobe.d/blacklist-nome.conf`
   com `blacklist nome` e depois `sudo update-initramfs -u`.
 - **Opções de um módulo:** `/etc/modprobe.d/opcoes.conf` com `options snd_hda_intel power_save=0`.
-- **Carregar sempre no arranque:** uma linha com o nome em `/etc/modules-load.d/meus.conf`.
+- **Carregar sempre na inicialização:** uma linha com o nome em `/etc/modules-load.d/meus.conf`.
 - **Firmware** (código que alguns aparelhos precisam): em `/lib/firmware`, dos pacotes `firmware-*`.
   `sudo dmesg | grep -i firmware` mostra se falta algum.
 
@@ -73,27 +73,27 @@ $ sudo sysctl --system                   # aplicar os arquivos
 Exemplos úteis: `fs.inotify.max_user_watches = 524288` (programas que vigiam muitos arquivos, como o VS Code),
 `net.ipv4.ip_forward = 1` (encaminhar tráfego, routers/VPN), `kernel.sysrq = 1` (teclas mágicas).
 
-## Parâmetros de arranque (GRUB)
+## Parâmetros de inicialização (GRUB)
 
 Editar `/etc/default/grub`, linha `GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"`, e depois `sudo update-grub`.
 Exemplos:
 
 | Parâmetro | Para quê |
 |---|---|
-| `quiet splash` | arranque silencioso com o logotipo (padrão) |
-| `nomodeset` | arrancar com vídeo básico quando a placa dá tela preta |
+| `quiet splash` | inicialização silencioso com o logotipo (padrão) |
+| `nomodeset` | iniciar com vídeo básico quando a placa dá tela preta |
 | `nvidia-drm.modeset=1` | NVIDIA no Wayland (o driver Debian já liga) |
-| `mem_sleep_default=deep` | suspensão mais profunda em portáteis que gastam bateria suspensos |
+| `mem_sleep_default=deep` | suspensão mais profunda em notebooks que gastam bateria suspensos |
 | `amd_pstate=active` | gestão de energia moderna nos AMD Ryzen |
-| `i915.enable_psr=0` | corrigir cintilação em ecrãs Intel |
+| `i915.enable_psr=0` | corrigir cintilação em telas Intel |
 | `pcie_aspm=off` | resolver alguns problemas de Wi-Fi/NVMe a desligar |
 
-Também se pode editar só para um arranque: no menu do GRUB carregue **e**, mude a linha `linux` e **Ctrl+X**.
+Também se pode editar só para um inicialização: no menu do GRUB pressione **e**, mude a linha `linux` e **Ctrl+X**.
 `GRUB_TIMEOUT=5` no mesmo arquivo define quanto tempo o menu fica visível.
 
 ## initramfs
 
-Pequeno sistema que o kernel usa no arranque para encontrar o disco (também o cifrado). Atualiza-se sozinho;
+Pequeno sistema que o kernel usa na inicialização para encontrar o disco (também o cifrado). Atualiza-se sozinho;
 à mão: `sudo update-initramfs -u` (o kernel atual) ou `-u -k all`.
 
 ## Kernels instalados, mais novos e remover antigos
@@ -114,7 +114,7 @@ Pequeno sistema que o kernel usa no arranque para encontrar o disco (também o c
 
 Com `kernel.sysrq=1`: segure **Alt+PrintScreen** e escreva devagar **R E I S U B** — devolve o teclado,
 termina os programas, grava os discos, desmonta e reinicia, sem estragar arquivos.
-Antes disso, tente **Ctrl+Alt+F3** (consola de texto) e `htop` para matar o programa culpado.
+Antes disso, tente **Ctrl+Alt+F3** (console de texto) e `htop` para matar o programa culpado.
 
 ## Informação sobre o kernel
 

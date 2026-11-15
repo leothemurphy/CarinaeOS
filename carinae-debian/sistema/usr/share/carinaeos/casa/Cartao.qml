@@ -24,10 +24,10 @@ Rectangle {
         if (e.dominio === "sensor") return e.estado + (e.unidade ? " " + e.unidade : "")
         if (e.dominio === "light" && e.estado === "on" && e.brilho >= 0) return "acesa · " + e.brilho + "%"
         if (e.dominio === "climate") return (e.temperatura !== "" ? e.temperatura + "° · " : "") + (e.alvo !== "" ? "alvo " + e.alvo + "°" : e.estado)
-        return ({ on: "ligado", off: "desligado", open: "aberto", closed: "fechado", opening: "a abrir", closing: "a fechar",
-                  playing: "a tocar", paused: "em pausa", idle: "parado", standby: "em espera", locked: "trancado",
+        return ({ on: "ligado", off: "desligado", open: "aberto", closed: "fechado", opening: "abrindo", closing: "fechando",
+                  playing: "tocando", paused: "em pausa", idle: "parado", standby: "em espera", locked: "trancado",
                   unlocked: "destrancado", unavailable: "indisponível", unknown: "desconhecido", home: "em casa",
-                  not_home: "fora", heat: "a aquecer", cool: "a arrefecer", auto: "automático" })[e.estado] || e.estado
+                  not_home: "fora", heat: "aquecendo", cool: "arrefecendo", auto: "automático" })[e.estado] || e.estado
     }
     function simbolo(e) {
         if (!e) return "•"
@@ -168,7 +168,7 @@ Rectangle {
                 onWidthChanged: requestPaint()
                 onPaint: {
                     const g = getContext("2d"); g.reset()
-                    if (pts.length < 2) { g.fillStyle = "#7d7590"; g.font = "12px Inter"; g.fillText("A juntar o histórico…", 0, 50); return }
+                    if (pts.length < 2) { g.fillStyle = "#7d7590"; g.font = "12px Inter"; g.fillText("Juntando o histórico…", 0, 50); return }
                     let mx = pts[pts.length - 1].x || 1, lo = Infinity, hi = -Infinity
                     for (const p of pts) { lo = Math.min(lo, p.y); hi = Math.max(hi, p.y) }
                     if (hi - lo < 0.001) { hi += 1; lo -= 1 }
@@ -199,7 +199,7 @@ Rectangle {
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
                     Text { text: c.e0 && c.e0.temperatura !== "" ? "agora " + c.e0.temperatura + "°" : ""; color: c.suave; font.pixelSize: 13 }
-                    Text { text: c.e0 ? (({ off: "desligado", heat: "a aquecer", cool: "a arrefecer", heat_cool: "automático", auto: "automático", dry: "desumidificar", fan_only: "só ventilação" })[c.e0.estado] || c.e0.estado) : ""; color: c.ambar; font.pixelSize: 13 }
+                    Text { text: c.e0 ? (({ off: "desligado", heat: "aquecendo", cool: "arrefecendo", heat_cool: "automático", auto: "automático", dry: "desumidificar", fan_only: "só ventilação" })[c.e0.estado] || c.e0.estado) : ""; color: c.ambar; font.pixelSize: 13 }
                 }
             }
             Row {
@@ -275,7 +275,7 @@ Rectangle {
                 width: parent.width; height: width * 9 / 16; radius: 14; color: "#000"; clip: true
                 Image { anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true; cache: false
                         source: janela.extras.cams[c.dados.ents[0]] || "" }
-                Text { anchors.centerIn: parent; visible: !janela.extras.cams[c.dados.ents[0]]; text: "A carregar a imagem…"; color: c.suave }
+                Text { anchors.centerIn: parent; visible: !janela.extras.cams[c.dados.ents[0]]; text: "Carregando a imagem…"; color: c.suave }
             }
         }
     }

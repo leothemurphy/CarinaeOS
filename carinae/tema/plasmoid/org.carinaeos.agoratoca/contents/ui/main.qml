@@ -1,5 +1,5 @@
 /*
-    CarinaeOS — "A tocar": a música do MPD na barra de cima.
+    CarinaeOS — "Tocando": a música do MPD na barra de cima.
     Aparece só enquanto o MPD toca (ou está em pausa). Ao passar o rato abre os controlos:
     capa, música, tempo, anterior / tocar / seguinte, aleatório, repetir, volume, abrir o Música e parar.
     Lê o MPD pelo MPRIS (ponte mpDris2): sem processos a correr de segundo a segundo.

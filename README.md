@@ -50,15 +50,15 @@ sobre um lago espelhado.
   </tr>
   <tr>
     <td><b>Música</b>: biblioteca com capas e letras, listas e rádios, por cima do MPD. As listas aparecem como fontes no Home Assistant.</td>
-    <td><b>Configurações</b> no estilo do Fedora. Na Dock: tamanho, ampliação, posição (em baixo, ao lado, em cima), esconder, e a cor e a espessura dos separadores.</td>
+    <td><b>Configurações</b> no estilo do Fedora. Na Dock: tamanho, ampliação, posição (embaixo, ao lado, em cima), esconder, e a cor e a espessura dos separadores.</td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/imagens/08-central.jpg" alt="Central CarinaeOS"></td>
-    <td width="50%"><img src="docs/imagens/01-arranque.jpg" alt="Arranque com a estrela"></td>
+    <td width="50%"><img src="docs/imagens/01-arranque.jpg" alt="Inicialização com a estrela"></td>
   </tr>
   <tr>
     <td><b>Central CarinaeOS</b>: todas as ferramentas do sistema num só lugar: Supernova, Órbita (loja), Casa, Calendários, Cadeado…</td>
-    <td><b>Arranque com a estrela</b>: do menu de arranque ao instalador, tudo com a marca CarinaeOS.</td>
+    <td><b>Inicialização com a estrela</b>: do menu de inicialização ao instalador, tudo com a marca CarinaeOS.</td>
   </tr>
   <tr>
     <td colspan="2"><img src="docs/imagens/10-carinae3d.jpg" alt="Carinae 3D"></td>
@@ -71,7 +71,7 @@ sobre um lago espelhado.
 ### Novidades da rc17
 
 - **Ambientes no Launchpad**: os cartões passam a ser *ambientes* que monta como quiser — crie, mude o nome e a cor,
-  ponha uma **imagem como marca de água**, arraste para mudar a ordem (botão **Editar**) e **tranque com senha**.
+  coloque uma **imagem como marca de água**, arraste para mudar a ordem (botão **Editar**) e **tranque com senha**.
   O ambiente **CarinaeOS** vem sempre com tudo o que é do sistema (Central, Música, Órbita, Carinae Casa…), e há a vista
   *Sem ambiente* para arrumar o resto. Cada aplicativo fica num só ambiente (botão direito › *Mover para*).
 - **Deck de ações**: luzes e cenas do Home Assistant, Não incomodar, Luz noturna, Wi-Fi, Bluetooth, modo de energia,
@@ -80,14 +80,14 @@ sobre um lago espelhado.
   *Destrancar*, também para aplicativos e ambientes. A senha é pedida dentro do próprio Launchpad.
 - **Contas online com login próprio do CarinaeOS**: entre com a conta **Google** no navegador e veja os emails ligados;
   o **Google Drive** fica numa pasta dos Arquivos e os **calendários** aparecem no Merkuro. Também Nextcloud e ownCloud.
-- **Carinae Casa** é agora um aplicativo próprio (ligado ao Home Assistant), que pode pôr na Dock ou em qualquer ambiente.
-- **Música**: o que está a tocar aparece na **barra de cima**, com controlos e volume; listas novas (de uma pasta, com
+- **Carinae Casa** é agora um aplicativo próprio (ligado ao Home Assistant), que pode colocar na Dock ou em qualquer ambiente.
+- **Música**: o que está tocando aparece na **barra de cima**, com controles e volume; listas novas (de uma pasta, com
   músicas escolhidas, editar e mudar a ordem); rádios; e as listas, pastas e rádios novas chegam **sozinhas ao Home Assistant**.
 - **Placas de vídeo**: a Central escolhe o controlador certo para cada placa NVIDIA — o atual (GTX 750 em diante, RTX),
   o **470 para as Kepler** (GT 710/730, GTX 600/700, com a sessão X11 e as afinações que tiram os solavancos) ou o livre
   (nouveau) nas muito antigas —, e os de AMD e Intel.
-- **Dock como no Mac**: só o vidro em repouso, cresce com o rato por cima das janelas, que param na borda dela;
-  pré-visualização das janelas ao passar o rato e os nomes numa janelinha.
+- **Dock como no Mac**: só o vidro em repouso, cresce com o mouse por cima das janelas, que param na borda dela;
+  pré-visualização das janelas ao passar o mouse e os nomes numa janelinha.
 - **AppImages de impressão 3D** (OrcaSlicer, ElegooSlicer, Bambu Studio, Cura) funcionam logo, e os navegadores em
   Flatpak já criam aplicativos (PWA) com ícone.
 - **Janelas menos transparentes** e com os botões do Mac também nos navegadores instalados como Flatpak.
@@ -96,22 +96,22 @@ E ainda:
 
 - **Visual Vidro**: janelas translúcidas com desfoque, botões redondos, ícones coloridos e
   papéis de parede com **fotografias reais do céu do Atacama** (ESO) com a estrela do CarinaeOS a brilhar,
-  do arranque animado e da tela de entrada até à área de trabalho.
+  da inicialização animada e da tela de entrada até à área de trabalho.
 - **Central CarinaeOS**: todas as ferramentas num só lugar — Supernova, Órbita, Casa, Ambiente,
   Calendários, Janelas em zonas, Cadeado, Etiquetas, Histórico do Ctrl+C, Drivers, Acesso remoto (SSH) e Privacidade.
 - **Janelas em zonas**: esquemas prontos (2 ou 3 colunas, grade, principal + duas); arraste com Shift para encaixar.
   E **áreas de trabalho** como os Spaces do Mac (<kbd>Ctrl</kbd>+<kbd>⊞</kbd>+<kbd>←/→</kbd>, <kbd>⊞</kbd>+<kbd>W</kbd>).
 - **Histórico do Ctrl+C** com <kbd>⊞</kbd>+<kbd>V</kbd>.
 - **Drivers e hardware**: deteta placa NVIDIA, Wi-Fi, Bluetooth, impressoras e scanners, leitor de impressão digital,
-  ratos Logitech e de jogos, e instala o que falta com um clique.
+  mouses Logitech e de jogos, e instala o que falta com um clique.
 - **Sessão sem rastro**: “Convidado” na tela de entrada; tudo vive na memória e desaparece ao sair.
 - **Modo escuro em todo o lado**, até no Chrome, no Firefox e nos aplicativos GTK e Flatpak.
 - **Janelas de senha com a marca CarinaeOS** sempre que o sistema pede permissão.
-- **Um só estilo, o do CarinaeOS**: barra em cima, Dock em baixo, e nenhum nome técnico à vista — o Terminal é “Terminal”, o visualizador de fotos é “Fotos”, o de PDF é “Documentos”.
-- **Configurações próprias**, como as do Fedora: Wi-Fi, Bluetooth, ecrãs, som, energia, aparência, pesquisa, partilha, data e hora, utilizadores e “Sistema” (sobre o computador).
-- **Instalador e configuração inicial como no Fedora**: passos numerados à esquerda e, no primeiro arranque, Wi-Fi, privacidade, aparência e contas online.
+- **Um só estilo, o do CarinaeOS**: barra em cima, Dock embaixo, e nenhum nome técnico à vista — o Terminal é “Terminal”, o visualizador de fotos é “Fotos”, o de PDF é “Documentos”.
+- **Configurações próprias**, como as do Fedora: Wi-Fi, Bluetooth, telas, som, energia, aparência, pesquisa, compartilhamento, data e hora, usuários e “Sistema” (sobre o computador).
+- **Instalador e configuração inicial como no Fedora**: passos numerados à esquerda e, no primeira inicialização, Wi-Fi, privacidade, aparência e contas online.
 - **Carinae Casa**: painéis do Home Assistant que monta como quiser (leves, sem travar, mesmo com centenas de aparelhos), com 13 tipos de cartões (botão, luz, lista, sensor,
-  gráfico de 24 h, clima, cenas, som e TV, câmara, estores, tempo, número, texto), e este PC como dispositivo no Home Assistant.
+  gráfico de 24 h, clima, cenas, som e TV, câmera, persianas, tempo, número, texto), e este PC como dispositivo no Home Assistant.
 - **Calendários**: conta Google, iCloud (CalDAV) ou qualquer endereço iCal (Google, iCloud, Outlook, feriados), e **Mapas**.
 - **Etiquetas** coloridas nos Arquivos, como no Finder, na barra lateral, até em pastas de rede.
 - **Papéis de parede em 8K**: o céu do Atacama com a estrela, fotografias do James Webb e do Hubble e desenhos originais.
@@ -122,49 +122,49 @@ E ainda:
 - **Todas as janelas com os botões do Mac à esquerda**, com as mesmas cores, também nos aplicativos GTK e nos
   navegadores (Chrome, Chromium, Firefox).
 - **Papel de parede animado**: a nebulosa com estrelas a cintilar, estrelas cadentes e reflexos no lago (duas cenas, mais as versões fixas).
-- **Dock reorganizável**: arraste os ícones e ponha separadores onde quiser (botão direito). Em **Configurações › Dock**: tamanho, ampliação, posição (em baixo, à esquerda, à direita, em cima), esconder automaticamente e espessura e cor dos separadores.
+- **Dock reorganizável**: arraste os ícones e coloque separadores onde quiser (botão direito). Em **Configurações › Dock**: tamanho, ampliação, posição (embaixo, à esquerda, à direita, em cima), esconder automaticamente e espessura e cor dos separadores.
 - **Música**: leitor e biblioteca com capas e letras (sincronizadas quando existem), listas e rádios — a porta de entrada do **MPD**. As listas aparecem como **fontes** no Home Assistant (integração Music Player Daemon), e funciona com o `mpc` e qualquer cliente MPD.
-- **Partilha de pastas num clique** (Configurações › Partilha): liga o Samba, abre logo a escolha da pasta e mostra o endereço para Windows, Mac e telemóveis. O **SSH** mostra IP, utilizador e os comandos prontos a copiar.
-- **Meus documentos** com a barra lateral como a do Explorador do Windows, e **pastas de rede como no Fedora** (Configurações › Rede › Ligar a um servidor; Partilha › Partilhar uma pasta).
+- **Compartilhamento de pastas num clique** (Configurações › Compartilhamento): liga o Samba, abre logo a escolha da pasta e mostra o endereço para Windows, Mac e celulares. O **SSH** mostra IP, usuário e os comandos prontos a copiar.
+- **Meus documentos** com a barra lateral como a do Explorador do Windows, e **pastas de rede como no Fedora** (Configurações › Rede › Ligar a um servidor; Compartilhamento › Compartilhar uma pasta).
 - **Barra de cima** escura e legível, com o nome do aplicativo em negrito, o seu menu e a lupa da Pesquisa. As janelas maximizadas ficam entre a barra de cima e a Dock, sem nada escondido por trás dela.
 - **NumLock ligado** ao entrar, para escrever a senha logo.
 - **Boas-vindas** depois de instalar, a mostrar tudo o que o sistema tem.
 
 - **Acesso remoto por SSH** com um interruptor (Central › Acesso remoto), com o comando certo para entrar a partir de outro computador.
 - **Cadeado em pastas, arquivos e aplicativos**: botão direito → *Trancar com senha*. A pasta fica no mesmo
-  sítio com um cadeado e só abre com a senha (cifrada com AES-256).
+  lugar com um cadeado e só abre com a senha (cifrada com AES-256).
 - **Céu vivo** (liga-se no Supernova): o fundo de tela muda de tom ao longo do dia — madrugada, manhã, tarde e noite.
 - **Alt+Tab em Flip 3D**, como no Windows Vista, ou em grade, como no Mac.
-- **Tudo em português**, do arranque ao instalador.
+- **Tudo em português**, da inicialização ao instalador.
 
 ## ✦ Launchpad, Pesquisa e Deck
 
-**Launchpad** (estrela da Dock ou tecla <kbd>⊞</kbd>): o ecrã inteiro em vidro fosco sobre o papel de parede.
+**Launchpad** (estrela da Dock ou tecla <kbd>⊞</kbd>): a tela cheia em vidro fosco sobre o papel de parede.
 À esquerda, as vistas — *Início*, *Todos os aplicativos*, *Instalados recentemente*, *Favoritos* (os da Dock), *Mais usados* e *Deck* — e as
 categorias com o número de aplicativos. No *Início*, cada categoria é um cartão colorido com os seus aplicativos
-(Internet, Gráficos, Multimédia, Jogos, Sistema…). À direita, o detalhe do aplicativo por baixo do rato:
+(Internet, Gráficos, Multimídia, Jogos, Sistema…). À direita, o detalhe do aplicativo por baixo do mouse:
 descrição, **Abrir**, as **ações rápidas** (Nova janela, Nova janela privada…), *Fixar na Dock*, *Mover para* (ambiente)
 e *Trancar com senha*. No *Início*, os cartões são **ambientes** que organiza como quiser: o botão **Editar** deixa
-arrastá-los, mudar a cor e pôr uma imagem como marca de água; o botão direito cria, renomeia, fixa em primeiro, esconde
+arrastá-los, mudar a cor e colocar uma imagem como marca de água; o botão direito cria, renomeia, fixa em primeiro, esconde
 ou tranca com senha.
 Escreva para pesquisar; setas e Enter também funcionam.
 
 **Deck**: uma grelha de teclas grandes, como um Stream Deck, para **fazer coisas** (os aplicativos vivem na Dock e nos
 ambientes): as luzes, cenas e aparelhos do **Home Assistant**, *Não incomodar*, *Luz noturna*, Wi-Fi, Bluetooth, modo de
-energia, a **saída de som**, tocar uma **rádio ou playlist**, captura de ecrã, todas as janelas, bloquear… Cada tecla mostra
+energia, a **saída de som**, tocar uma **rádio ou playlist**, captura de tela, todas as janelas, bloquear… Cada tecla mostra
 o estado e acende quando está ligada. *Adicionar* abre a lista de ações; também aceita comandos e sites.
 
 **Pesquisa** (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd> ou a lupa da barra de cima), no modelo da nova pesquisa do Windows:
-a caixa em baixo e os resultados por cima. Encontra **aplicativos**, **arquivos** (pelo nome e pelo conteúdo — a
+a caixa embaixo e os resultados por cima. Encontra **aplicativos**, **arquivos** (pelo nome e pelo conteúdo — a
 indexação vem ligada) e **configurações**, e faz **ações** ali mesmo: “diminuir volume” mostra o volume com um
-controlo deslizante e o botão *Diminuir*; “ativar modo claro”, “desligar o wi-fi”, “brilho”, “lado a lado”,
+controle deslizante e o botão *Diminuir*; “ativar modo claro”, “desligar o wi-fi”, “brilho”, “lado a lado”,
 “bloquear”… Percebe erros de escrita e sugere a palavra certa. Também faz contas, mostra o tempo (“tempo em Lisboa”),
 o uso do computador, o histórico da área de transferência, abre sites e pesquisa na web.
 
 ## 📖 Manual
 
 O **[Manual do CarinaeOS](docs/manual/00-indice.md)** explica tudo: a área de trabalho, as ferramentas,
-arquivos e discos, **HD na rede e pastas partilhadas** (SMB/NAS, NFS, SSH), programas (apt, Flatpak, AppImage),
+arquivos e discos, **HD na rede e pastas compartilhadas** (SMB/NAS, NFS, SSH), programas (apt, Flatpak, AppImage),
 hardware e drivers, o Debian, o kernel Linux e uma referência grande de **comandos do terminal**.
 Vem dentro do sistema como o aplicativo *Manual*, com pesquisa.
 
@@ -192,7 +192,7 @@ Vem dentro do sistema como o aplicativo *Manual*, com pesquisa.
      ```
      copy /b CarinaeOS-1.0-amd64.iso.parte00 + CarinaeOS-1.0-amd64.iso.parte01 CarinaeOS-1.0.iso
      ```
-     No **PowerShell**, ponha `cmd /c` antes do mesmo comando.
+     No **PowerShell**, coloque `cmd /c` antes do mesmo comando.
    - **macOS / Linux**:
      ```
      cat CarinaeOS-1.0-amd64.iso.parte* > CarinaeOS-1.0.iso
@@ -203,18 +203,18 @@ Vem dentro do sistema como o aplicativo *Manual*, com pesquisa.
 
 3. **Numa máquina virtual** (VirtualBox, VMware, GNOME Boxes…): crie uma máquina
    *Linux → Debian 64-bit* com **4 GB de memória**, **2 processadores**, **30 GB de disco**, vídeo
-   **VMSVGA com 128 MB** e aceleração 3D. Use a ISO como disco de arranque.
+   **VMSVGA com 128 MB** e aceleração 3D. Use a ISO como disco de inicialização.
    No VirtualBox, marque *“Pular instalação desassistida”*.
 
    **Num computador de verdade**: grave a ISO num pen drive de 4 GB ou mais com o
-   [balenaEtcher](https://etcher.balena.io/) ou o [Rufus](https://rufus.ie/) (modo *DD*) e arranque por ele.
+   [balenaEtcher](https://etcher.balena.io/) ou o [Rufus](https://rufus.ie/) (modo *DD*) e inicie por ele.
 
 4. Na tela de entrada: usuário **CarinaeOS**, senha **`live`**.
 5. Gostou? Clique duas vezes em **Instalar o CarinaeOS**, na área de trabalho.
    O instalador é guiado e aceita senhas simples.
 
 > **Dica:** na sessão de teste (sem instalar), tudo o que instala ou muda fica na memória e
-> desaparece quando desliga. Para guardar, instale o CarinaeOS no disco.
+> desaparece quando desliga. Para salvar, instale o CarinaeOS no disco.
 
 **Requisitos:** processador de 64 bits (x86-64), 4 GB de memória e 30 GB de disco. Funciona com e sem UEFI.
 
@@ -228,7 +228,7 @@ Debian. A ISO é gerada automaticamente pelo **GitHub Actions** sempre que o arq
 carinae-debian/              a receita da ISO
 ├── construir.sh             monta tudo e chama o live-build
 ├── VERSAO                   mudar este arquivo gera uma nova ISO
-├── auto/config              opções do live-build (Debian 13, arranque, idioma)
+├── auto/config              opções do live-build (Debian 13, inicialização, idioma)
 ├── config/
 │   ├── package-lists/       os pacotes que vão no sistema
 │   └── hooks/               ajustes feitos dentro do sistema (marca, senhas, atalhos…)
@@ -247,7 +247,7 @@ carinae/tema/                o visual
 ├── plasmoid/                a Dock (com o Launchpad e o Deck) e o menu da estrela
 ├── lookandfeel/             a disposição da área de trabalho
 ├── plasmastyle/  cores/     o estilo do Plasma e o esquema de cores
-├── sddm/  plymouth/  grub/  tela de entrada, carregamento e menu de arranque
+├── sddm/  plymouth/  grub/  tela de entrada, carregamento e menu de inicialização
 ├── icones/                  a estrela e os ícones dos aplicativos próprios
 └── wallpaper/               o papel de parede padrão
 

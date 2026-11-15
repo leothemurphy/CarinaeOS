@@ -139,7 +139,7 @@ ZONAS = {
     'grade': dict(nome='Grade 2×2', tiles={'layoutDirection': 'horizontal', 'tiles': [
         {'width': 0.5, 'layoutDirection': 'vertical', 'tiles': [{'height': 0.5}, {'height': 0.5}]},
         {'width': 0.5, 'layoutDirection': 'vertical', 'tiles': [{'height': 0.5}, {'height': 0.5}]}]}),
-    'larga': dict(nome='Ecrã largo (1/4 · 1/2 · 1/4)', tiles={'layoutDirection': 'horizontal', 'tiles': [{'width': 0.25}, {'width': 0.5}, {'width': 0.25}]}),
+    'larga': dict(nome='Tela larga (1/4 · 1/2 · 1/4)', tiles={'layoutDirection': 'horizontal', 'tiles': [{'width': 0.25}, {'width': 0.5}, {'width': 0.25}]}),
 }
 
 
@@ -217,7 +217,7 @@ def hardware():
             else:
                 item('nvidia', 'Placa de vídeo NVIDIA', g_curto, ['nvidia-driver', 'firmware-misc-nonfree', 'nvidia-suspend-common'],
                      'nvidia', 'Controlador oficial da NVIDIA (GTX 750 em diante, RTX…): melhor desempenho em jogos e no Wayland. '
-                     'Reinicie depois de instalar.' + (' Com gráficos Intel/AMD também (portátil), as janelas usam a placa '
+                     'Reinicie depois de instalar.' + (' Com gráficos Intel/AMD também (notebook), as janelas usam a placa '
                                                         'integrada e os jogos a NVIDIA.' if len(gpus) > 1 else ''))
         elif re.search(r'AMD|ATI', g, re.I):
             item('amd', 'Placa de vídeo AMD', g_curto, ['firmware-amd-graphics', 'mesa-vulkan-drivers'], 'video-display')
@@ -234,13 +234,13 @@ def hardware():
          ['cups', 'print-manager', 'printer-driver-all', 'hplip', 'sane-airscan', 'ipp-usb', 'skanlite'], 'printer')
     if re.search(r'fingerprint|Synaptics.*(FS|Prometheus)|Goodix|Elan.*Fingerprint|Validity', lsusb, re.I):
         item('digital', 'Leitor de impressão digital', 'Entrar e autorizar com o dedo', ['fprintd', 'libpam-fprintd'], 'fingerprint-gui',
-             'Depois, registe o dedo em Configurações › Usuários.')
+             'Depois, registre o dedo em Configurações › Usuários.')
     if re.search(r'Logitech', lsusb, re.I):
-        item('logitech', 'Rato/teclado Logitech', 'Botões, bateria e receptor Unifying/Bolt', ['solaar'], 'input-mouse')
+        item('logitech', 'Mouse/teclado Logitech', 'Botões, bateria e receptor Unifying/Bolt', ['solaar'], 'input-mouse')
     if re.search(r'Razer|SteelSeries|Roccat|Corsair|Glorious', lsusb, re.I):
-        item('ratos', 'Rato de jogos', 'Botões, DPI e luzes (libratbag/Piper)', ['ratbagd', 'piper'], 'input-mouse')
+        item('ratos', 'Mouse de jogos', 'Botões, DPI e luzes (libratbag/Piper)', ['ratbagd', 'piper'], 'input-mouse')
     if re.search(r'Xbox|Sony.*(Controller|DualSense|DualShock)|8BitDo', lsusb, re.I):
-        item('comandos', 'Comando de jogos', 'Xbox, PlayStation, 8BitDo', ['steam-devices'], 'input-gaming')
+        item('comandos', 'Controle de jogos', 'Xbox, PlayStation, 8BitDo', ['steam-devices'], 'input-gaming')
     return itens
 
 
@@ -405,7 +405,7 @@ class Central(QObject):
         def depois(r):
             self._fim(lambda n: 'Calendário “%s” adicionado ✓ %d eventos. Aparece no Calendário e no relógio da barra; atualiza a cada 30 min.' % (nome or 'novo', n))(r)
             self.lerCalendarios()
-        self._fundo(lambda: adicionar_ical(url, nome.strip() or 'Calendário'), depois, 'A adicionar o calendário…')
+        self._fundo(lambda: adicionar_ical(url, nome.strip() or 'Calendário'), depois, 'Adicionando o calendário…')
 
     @Slot(str)
     def conta(self, tipo):
@@ -414,7 +414,7 @@ class Central(QObject):
         def depois(r):
             self._fim('Abri a janela da conta: siga os passos para entrar e autorizar.')(r)
             self.lerCalendarios()
-        self._fundo(lambda: configurar_conta(recurso), depois, 'A preparar a conta…')
+        self._fundo(lambda: configurar_conta(recurso), depois, 'Preparando a conta…')
 
     @Slot(str)
     def removerCalendario(self, ident):
@@ -453,7 +453,7 @@ class Central(QObject):
             self._msg = '' if isinstance(r, list) else 'Não consegui ver o hardware (%s).' % r
             self._hw = r if isinstance(r, list) else []
             self.mudou.emit()
-        self._fundo(hardware, depois, 'A ver o que este computador tem…')
+        self._fundo(hardware, depois, 'Vendo o que este computador tem…')
 
     @Slot(str)
     def instalarDriver(self, ident):
@@ -473,7 +473,7 @@ class Central(QObject):
             p = subprocess.run(['bash', '-c', cmd], capture_output=True, text=True)
             if p.returncode != 0:
                 raise RuntimeError((p.stdout + p.stderr).strip().splitlines()[-1] if (p.stdout + p.stderr).strip() else 'cancelado')
-        self._fundo(trabalho, depois, 'A instalar %s… (o sistema pede a sua senha)' % it['nome'])
+        self._fundo(trabalho, depois, 'Instalando %s… (o sistema pede a sua senha)' % it['nome'])
 
     # tela de entrada
     fotoUsuario = Property(str, lambda s: s._foto(), notify=mudou)
@@ -533,7 +533,7 @@ class Central(QObject):
     def definirFundoEntrada(self, url):
         caminho = url.replace('file://', '')
         self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/fundo-entrada', caminho], check=True),
-                    self._fim('Fundo da tela de entrada mudado ✓ Vê-o na próxima vez que entrar.'), 'A guardar…')
+                    self._fim('Fundo da tela de entrada mudado ✓ Vê-o na próxima vez que entrar.'), 'Salvando…')
 
     @Slot()
     def reporFundoEntrada(self):
@@ -551,7 +551,7 @@ class Central(QObject):
         cmd = ['pkexec', '/usr/lib/carinaeos/ssh', 'ligar' if ligar else 'desligar']
         self._fundo(lambda: subprocess.run(cmd, check=True), self._fim(
             'Acesso remoto %s ✓' % ('ligado' if ligar else 'desligado')),
-            'A instalar e ligar o servidor SSH…' if ligar and ssh_estado() < 0 else '')
+            'Instalando e ligando o servidor SSH…' if ligar and ssh_estado() < 0 else '')
 
     @Slot()
     def lerSSH(self):

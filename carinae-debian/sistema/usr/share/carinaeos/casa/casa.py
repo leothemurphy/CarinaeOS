@@ -30,11 +30,11 @@ TIPOS = [
     dict(id='grafico', nome='Gráfico', desc='Histórico das últimas 24 horas', dominios=['sensor'], max=1),
     dict(id='clima', nome='Clima', desc='Ar condicionado ou aquecimento', dominios=['climate', 'water_heater', 'humidifier'], max=1),
     dict(id='cenas', nome='Cenas', desc='Fila de botões para cenas e rotinas', dominios=['scene', 'script', 'button', 'input_button', 'automation'], max=8),
-    dict(id='media', nome='Som e TV', desc='Música ou TV com controlos', dominios=['media_player'], max=1),
-    dict(id='camera', nome='Câmara', desc='Imagem ao vivo (a cada 10 s)', dominios=['camera'], max=1),
-    dict(id='estores', nome='Estores e portões', desc='Abrir, parar e fechar', dominios=['cover'], max=1),
+    dict(id='media', nome='Som e TV', desc='Música ou TV com controles', dominios=['media_player'], max=1),
+    dict(id='camera', nome='Câmera', desc='Imagem ao vivo (a cada 10 s)', dominios=['camera'], max=1),
+    dict(id='estores', nome='Persianas e portões', desc='Abrir, parar e fechar', dominios=['cover'], max=1),
     dict(id='tempo', nome='Tempo', desc='Previsão do tempo', dominios=['weather'], max=1),
-    dict(id='numero', nome='Número', desc='Controlo deslizante ou escolha', dominios=['input_number', 'number', 'select', 'input_select'], max=1),
+    dict(id='numero', nome='Número', desc='Controle deslizante ou escolha', dominios=['input_number', 'number', 'select', 'input_select'], max=1),
     dict(id='texto', nome='Texto', desc='Uma nota ou título', dominios=[], max=0),
 ]
 

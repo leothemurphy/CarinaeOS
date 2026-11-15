@@ -2,7 +2,7 @@
 Type=Application
 Name=Configurações
 GenericName=Configurações do computador
-Comment=Wi-Fi, Bluetooth, ecrãs, som, energia, aparência, partilha e o sistema
+Comment=Wi-Fi, Bluetooth, telas, som, energia, aparência, compartilhamento e o sistema
 Exec=carinaeos-configuracoes %u
 Icon=preferences-system
 Categories=Settings;System;

@@ -34,9 +34,9 @@ $ sudo reboot
 $ nvidia-smi                                          # confirmar
 ```
 
-  Com *Secure Boot* ligado é preciso inscrever a chave (o instalador pede uma senha e, no arranque
+  Com *Secure Boot* ligado é preciso inscrever a chave (o instalador pede uma senha e, na inicialização
   seguinte, escolhe-se *Enroll MOK*). Placas muito antigas (antes da série 900) usam drivers legados ou o nouveau.
-- **Portátil com duas placas (híbrido):** botão direito num aplicativo › *Executar com a placa dedicada*,
+- **Notebook com duas placas (híbrido):** botão direito num aplicativo › *Executar com a placa dedicada*,
   ou `prime-run programa`.
 
 ## Monitores
@@ -46,7 +46,7 @@ luz noturna. Teclas de função de projetar costumam funcionar. Terminal: `kscre
 
 ## Som
 
-Ícone do som na barra: volume por aplicativo e escolha de saída (colunas, auscultadores, HDMI, Bluetooth).
+Ícone do som na barra: volume por aplicativo e escolha de saída (caixas de som, fones de ouvido, HDMI, Bluetooth).
 Configurações › Som para perfis (ex.: HDMI/estéreo/5.1). O sistema de som é o **PipeWire**.
 
 ```
@@ -58,7 +58,7 @@ $ systemctl --user restart pipewire wireplumber   # reiniciar o som se ficar mud
 
 ## Bluetooth
 
-Ícone do Bluetooth › Adicionar dispositivo; ponha o aparelho em modo de emparelhamento.
+Ícone do Bluetooth › Adicionar dispositivo; coloque o aparelho em modo de emparelhamento.
 Terminal: `bluetoothctl` → `scan on`, `pair XX:XX…`, `connect XX:XX…`, `trust XX:XX…`.
 
 ## Impressoras e scanners
@@ -76,19 +76,19 @@ Terminal: `bluetoothctl` → `scan on`, `pair XX:XX…`, `connect XX:XX…`, `tr
 Central › Drivers instala `fprintd`; depois Configurações › Usuários › Configurar autenticação por impressão digital.
 Serve para entrar, desbloquear e autorizar (sudo/polkit).
 
-## Teclado, rato e touchpad
+## Teclado, mouse e touchpad
 
 - Configurações › Teclado (disposição pt / br-abnt2, NumLock ao iniciar, atalhos).
-- Configurações › Rato e touchpad (velocidade, rolagem natural, toque para clicar, gestos).
+- Configurações › Mouse e touchpad (velocidade, rolagem natural, toque para clicar, gestos).
 - Gestos do touchpad (Plasma): 3 dedos para cima = Visão geral; 4 dedos para os lados = áreas de trabalho.
 - **Logitech:** *Solaar* (Central › Drivers) — bateria, receptor Unifying/Bolt, botões.
-- **Ratos de jogo:** *Piper* (libratbag) — DPI, botões, luzes.
+- **Mouses de jogo:** *Piper* (libratbag) — DPI, botões, luzes.
 
-## Comandos de jogos
+## Controles de jogos
 
 Xbox, PlayStation e 8BitDo funcionam por USB e Bluetooth. Pacote `steam-devices` para o Steam reconhecer tudo.
 
 ## Energia
 
 Configurações › Gestão de energia: suspender, brilho, perfis (*Desempenho*, *Equilibrado*, *Poupança*,
-também no ícone da bateria). Limite de carga da bateria em portáteis compatíveis (protege a bateria).
+também no ícone da bateria). Limite de carga da bateria em notebooks compatíveis (protege a bateria).

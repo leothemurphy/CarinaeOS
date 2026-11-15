@@ -110,12 +110,12 @@ def acao(**k):
 acao(id='vol-menos', titulo='Reduzir volume', icone='audio-volume-low', botao='Diminuir',
      frases=['diminuir volume', 'baixar volume', 'reduzir volume', 'menos volume', 'baixar o som', 'diminuir som', 'volume mais baixo'],
      controlo='deslizante', rotulo='Volume de saída',
-     descricao='Ajustar o volume dos altifalantes, auscultadores e outros dispositivos de saída',
+     descricao='Ajustar o volume dos alto-falantes, fones de ouvido e outros dispositivos de saída',
      ler=volume, definir=definir_volume, fazer=lambda: definir_volume(volume() - 0.10))
 acao(id='vol-mais', titulo='Aumentar volume', icone='audio-volume-high', botao='Aumentar',
      frases=['aumentar volume', 'subir volume', 'mais volume', 'aumentar som', 'subir o som', 'volume mais alto'],
      controlo='deslizante', rotulo='Volume de saída',
-     descricao='Ajustar o volume dos altifalantes, auscultadores e outros dispositivos de saída',
+     descricao='Ajustar o volume dos alto-falantes, fones de ouvido e outros dispositivos de saída',
      ler=volume, definir=definir_volume, fazer=lambda: definir_volume(volume() + 0.10))
 acao(id='vol-mudo', titulo='Silenciar o som', icone='audio-volume-muted', botao='Silenciar',
      frases=['silenciar', 'mudo', 'tirar o som', 'sem som', 'mute', 'silenciar som'],
@@ -125,11 +125,11 @@ acao(id='vol-mudo', titulo='Silenciar o som', icone='audio-volume-muted', botao=
 # brilho
 acao(id='brilho-menos', titulo='Reduzir o brilho', icone='brightness-low', botao='Diminuir',
      frases=['diminuir brilho', 'baixar brilho', 'menos brilho', 'reduzir brilho', 'escurecer ecra', 'escurecer tela'],
-     controlo='deslizante', rotulo='Brilho do ecrã', descricao='Ajustar o brilho do ecrã integrado',
+     controlo='deslizante', rotulo='Brilho da tela', descricao='Ajustar o brilho do tela integrada',
      ler=brilho, definir=definir_brilho, fazer=lambda: definir_brilho(brilho() - 0.15))
 acao(id='brilho-mais', titulo='Aumentar o brilho', icone='brightness-high', botao='Aumentar',
      frases=['aumentar brilho', 'subir brilho', 'mais brilho', 'clarear ecra', 'clarear tela'],
-     controlo='deslizante', rotulo='Brilho do ecrã', descricao='Ajustar o brilho do ecrã integrado',
+     controlo='deslizante', rotulo='Brilho da tela', descricao='Ajustar o brilho do tela integrada',
      ler=brilho, definir=definir_brilho, fazer=lambda: definir_brilho(brilho() + 0.15))
 # tema
 acao(id='tema-claro', titulo='Alterar o tema atual para Claro', icone='color-management', botao='Aplicar',
@@ -168,16 +168,16 @@ acao(id='janela-dir', titulo='Encostar a janela à direita', icone='view-split-l
      frases=['janela a direita', 'encostar a direita', 'metade direita', 'snap direita'],
      fazer=lambda: _kwin('Window Quick Tile Right'))
 acao(id='janela-max', titulo='Maximizar a janela', icone='window-maximize', botao='Maximizar',
-     frases=['maximizar janela', 'ecra inteiro', 'janela grande', 'maximizar'],
+     frases=['maximizar janela', 'tela cheia', 'janela grande', 'maximizar'],
      fazer=lambda: _kwin('Window Maximize'))
 acao(id='janela-min', titulo='Minimizar todas as janelas', icone='user-desktop', botao='Minimizar',
-     frases=['minimizar tudo', 'minimizar janelas', 'mostrar a mesa', 'mostrar area de trabalho', 'ver o ambiente de trabalho'],
+     frases=['minimizar tudo', 'minimizar janelas', 'mostrar a área de trabalho', 'mostrar area de trabalho', 'ver o ambiente de trabalho'],
      fazer=lambda: _kwin('Show Desktop'))
 acao(id='janelas-todas', titulo='Ver todas as janelas', icone='view-grid', botao='Ver',
      frases=['todas as janelas', 'ver janelas', 'visao geral', 'alternar janelas'],
      fazer=lambda: _kwin('Overview'))
 # sistema
-acao(id='bloquear', titulo='Bloquear o ecrã', icone='system-lock-screen', botao='Bloquear',
+acao(id='bloquear', titulo='Bloquear a tela', icone='system-lock-screen', botao='Bloquear',
      frases=['bloquear', 'bloquear ecra', 'bloquear tela', 'trancar computador'],
      fazer=lambda: _bg(['loginctl', 'lock-session'], 0.3))
 acao(id='suspender', titulo='Suspender o computador', icone='system-suspend', botao='Suspender',
@@ -189,10 +189,10 @@ acao(id='reiniciar', titulo='Reiniciar o computador', icone='system-reboot', bot
 acao(id='desligar', titulo='Desligar o computador', icone='system-shutdown', botao='Desligar',
      frases=['desligar', 'desligar computador', 'encerrar', 'shutdown'],
      fazer=lambda: _bg(['qdbus6', 'org.kde.LogoutPrompt', '/LogoutPrompt', 'promptShutDown']))
-acao(id='captura', titulo='Fazer uma captura de ecrã', icone='spectacle', botao='Capturar',
-     frases=['captura de ecra', 'print', 'screenshot', 'tirar foto do ecra', 'capturar tela', 'print screen'],
+acao(id='captura', titulo='Fazer uma captura de tela', icone='spectacle', botao='Capturar',
+     frases=['captura de ecra', 'print', 'screenshot', 'tirar foto da tela', 'capturar tela', 'print screen'],
      fazer=lambda: _bg(['spectacle'], 0.4))
-acao(id='captura-regiao', titulo='Capturar uma região do ecrã', icone='spectacle', botao='Capturar',
+acao(id='captura-regiao', titulo='Capturar uma região da tela', icone='spectacle', botao='Capturar',
      frases=['recortar ecra', 'captura de regiao', 'recorte', 'capturar parte da tela'],
      fazer=lambda: _bg(['spectacle', '-r'], 0.4))
 acao(id='lixo', titulo='Abrir a lixeira', icone='user-trash', botao='Abrir',

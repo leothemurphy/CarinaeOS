@@ -79,7 +79,7 @@ def explicar(comando, mensagem):
     if 'carinaeos/ssh' in c:
         return 'Ligar ou desligar o acesso remoto (SSH).'
     if 'carinaeos/partilha' in c:
-        return 'Deixar partilhar pastas deste computador com a rede.'
+        return 'Deixar compartilhar pastas deste computador com a rede.'
     if 'carinaeos/convidado' in c:
         return 'Ligar ou desligar a sessão sem rastro.'
     if 'carinaeos/fundo-entrada' in c:
@@ -167,7 +167,7 @@ class Agente(dbus.service.Object):
         self._ajudante(p)
 
     def _ajudante(self, p):
-        """Arranca o polkit-agent-helper-1: ele pergunta a senha (PAM) e confirma ao polkitd."""
+        """Inicia o polkit-agent-helper-1: ele pergunta a senha (PAM) e confirma ao polkitd."""
         p['pronto'] = False
         p['senha'] = None
         try:
@@ -271,7 +271,7 @@ def principal():
         sujeito = ('unix-session', {'session-id': dbus.String(sessao.get_session_id())})
         autoridade.RegisterAuthenticationAgent(sujeito, os.environ.get('LANG', 'pt_BR.UTF-8'), CAMINHO)
     except Exception as e:  # noqa: BLE001
-        reserva('não consegui registar (%s)' % e)
+        reserva('não consegui registrar (%s)' % e)
     app.agente, app.ponte = agente, ponte
     sys.exit(app.exec())
 

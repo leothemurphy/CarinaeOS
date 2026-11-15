@@ -163,7 +163,7 @@ ApplicationWindow {
                         x: 18; y: 16; width: parent.width - 36; spacing: 10
                         Text { text: "Pelo endereço do calendário (Google, iCloud, Outlook, escola, feriados…)"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
                         Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 12
-                               text: "Google Calendar: Definições › o seu calendário › “Endereço secreto em formato iCal”. iCloud: na app Calendário, partilhe o calendário como “Calendário público” e copie o link webcal://. Outlook: Definições › Calendários partilhados › Publicar › ICS." }
+                               text: "Google Calendar: Configurações › o seu calendário › “Endereço secreto em formato iCal”. iCloud: na app Calendário, compartilhe o calendário como “Calendário público” e copie o link webcal://. Outlook: Configurações › Calendários compartilhados › Publicar › ICS." }
                         Row {
                             spacing: 10; width: parent.width
                             TextField { id: icalUrl; width: parent.width - icalNome.width - 140; placeholderText: "https://… ou webcal://…" }
@@ -202,7 +202,7 @@ ApplicationWindow {
                 width: conteudo.largura; spacing: 16
                 Text { text: "Janelas em zonas"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
                 Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave
-                       text: "Escolha um esquema. Depois, arraste uma janela com a tecla Shift carregada e solte-a numa zona: encaixa sozinha. Meta+← / → encostam a janela a meio ecrã; Meta+↑ maximiza (maximizar de verdade)." }
+                       text: "Escolha um esquema. Depois, arraste uma janela com a tecla Shift pressionada e solte-a numa zona: encaixa sozinha. Meta+← / → encostam a janela na metade da tela; Meta+↑ maximiza (maximizar de verdade)." }
                 Flow {
                     width: parent.width; spacing: 14
                     Repeater {
@@ -269,7 +269,7 @@ ApplicationWindow {
                 Text { text: "Cadeado"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
                 Repeater {
                     model: [
-                        { t: "Pastas e arquivos", d: "Nos Arquivos, botão direito › “Trancar com senha”. A pasta fica no mesmo sítio, com um cadeado, e só abre com a senha (duplo clique). Por dentro fica cifrada (AES-256): sem a senha ninguém lê nada. Funciona também em pastas de rede.", b: "" },
+                        { t: "Pastas e arquivos", d: "Nos Arquivos, botão direito › “Trancar com senha”. A pasta fica no mesmo lugar, com um cadeado, e só abre com a senha (duplo clique). Por dentro fica cifrada (AES-256): sem a senha ninguém lê nada. Funciona também em pastas de rede.", b: "" },
                         { t: "Aplicativos", d: "Escolha aplicativos que pedem uma senha para abrir (por exemplo, o WhatsApp ou o navegador).", b: "carinaeos-cadeado aplicativos" },
                         { t: "Cofres", d: "Pastas cifradas que abre e fecha pelo ícone de cadeado na barra de cima (Plasma Vault).", b: "kcmshell6 kcm_plasmavault 2>/dev/null || plasma-vault" }
                     ]
@@ -299,7 +299,7 @@ ApplicationWindow {
                 width: conteudo.largura; spacing: 16
                 Text { text: "Histórico do Ctrl+C"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
                 Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave
-                       text: "O CarinaeOS guarda o que copia (textos e imagens). Carregue em Meta+V em qualquer lado para ver a lista e escolher o que colar. Também está no ícone da prancheta na barra de cima, onde pode fixar itens ou limpar o histórico." }
+                       text: "O CarinaeOS guarda o que copia (textos e imagens). Pressione Meta+V em qualquer lado para ver a lista e escolher o que colar. Também está no ícone da prancheta na barra de cima, onde pode fixar itens ou limpar o histórico." }
                 Rectangle {
                     width: 240; height: 40; radius: 20
                     gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: janela.rosa } GradientStop { position: 1; color: janela.ambar } }
@@ -356,7 +356,7 @@ ApplicationWindow {
                     Column {
                         anchors.verticalCenter: parent.verticalCenter; spacing: 8
                         Text { text: "A sua foto"; color: janela.texto; font.pixelSize: 18; font.weight: Font.DemiBold }
-                        Text { text: "Aparece na tela de entrada, no ecrã de bloqueio e no menu."; color: janela.suave }
+                        Text { text: "Aparece na tela de entrada, na tela de bloqueio e no menu."; color: janela.suave }
                         Rectangle {
                             width: 170; height: 38; radius: 19; color: janela.ambar
                             Text { anchors.centerIn: parent; text: "Escolher foto…"; color: "#1a0f14"; font.weight: Font.Bold }
@@ -395,7 +395,7 @@ ApplicationWindow {
                         x: 18; y: 16; width: parent.width - 160; spacing: 6
                         Text { text: "Permitir entrar neste computador por SSH"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
                         Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
-                               text: central.ssh < 0 ? "O servidor SSH ainda não está instalado: ao ligar, é instalado (precisa de internet) e fica a funcionar já e em cada arranque."
+                               text: central.ssh < 0 ? "O servidor SSH ainda não está instalado: ao ligar, é instalado (precisa de internet) e fica funcionando já e em cada inicialização."
                                                      : "Outro computador da rede pode abrir um terminal aqui, ou copiar arquivos (SFTP), com o seu usuário e a sua senha. Desligue quando não precisar." }
                     }
                     Switch {
@@ -439,7 +439,7 @@ ApplicationWindow {
                         x: 18; y: 16; width: parent.width - 160; spacing: 6
                         Text { text: "Sessão sem rastro"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
                         Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
-                               text: "Na tela de entrada aparece “Convidado (sem rastro)”, sem senha. Tudo o que se fizer nessa sessão (arquivos, histórico, senhas guardadas, downloads) vive só na memória e desaparece ao sair. Ideal para emprestar o computador ou para usar num sítio público." }
+                               text: "Na tela de entrada aparece “Convidado (sem rastro)”, sem senha. Tudo o que se fizer nessa sessão (arquivos, histórico, senhas guardadas, downloads) vive só na memória e desaparece ao sair. Ideal para emprestar o computador ou para usar num lugar público." }
                     }
                     Switch {
                         anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter

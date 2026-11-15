@@ -23,22 +23,22 @@ HOME = os.path.expanduser('~')
 SECCOES = [
     ('wifi', 'Wi-Fi', 'network-wireless', 'kcm_networkmanagement', 'internet rede sem fios'),
     ('rede', 'Rede', 'network-wired', 'kcm_networkmanagement', 'cabo ethernet vpn proxy'),
-    ('bluetooth', 'Bluetooth', 'preferences-system-bluetooth', 'kcm_bluetooth', 'fones auscultadores rato'),
-    ('ecras', 'Ecrãs', 'video-display', 'kcm_kscreen', 'monitor resolucao escala brilho luz noturna tela'),
-    ('som', 'Som', 'audio-volume-high', 'kcm_pulseaudio', 'volume altifalantes microfone audio'),
+    ('bluetooth', 'Bluetooth', 'preferences-system-bluetooth', 'kcm_bluetooth', 'fones fones de ouvido mouse'),
+    ('ecras', 'Telas', 'video-display', 'kcm_kscreen', 'monitor resolucao escala brilho luz noturna tela'),
+    ('som', 'Som', 'audio-volume-high', 'kcm_pulseaudio', 'volume alto-falantes microfone audio'),
     ('energia', 'Energia', 'battery-good', 'kcm_powerdevilprofilesconfig', 'bateria suspender desempenho poupanca'),
     ('aparencia', 'Aparência', 'preferences-desktop-theme', 'kcm_colors', 'tema claro escuro fundo papel de parede cores'),
     ('dock', 'Dock', 'preferences-desktop-icons', None, 'barra icones tamanho separador esconder posicao'),
     ('notificacoes', 'Notificações', 'preferences-desktop-notification', 'kcm_notifications', 'avisos nao incomodar'),
     ('pesquisa', 'Pesquisa', 'search', 'kcm_baloofile', 'indexacao arquivos procurar'),
     ('aplicativos', 'Aplicativos', 'preferences-desktop-default-applications', 'kcm_componentchooser', 'padrao navegador email abrir com'),
-    ('privacidade', 'Privacidade e segurança', 'preferences-system-privacy', None, 'convidado bloqueio ecra senha'),
-    ('partilha', 'Partilha', 'network-server', None, 'ssh acesso remoto pastas'),
+    ('privacidade', 'Privacidade e segurança', 'preferences-system-privacy', None, 'convidado bloqueio tela senha'),
+    ('partilha', 'Compartilhamento', 'network-server', None, 'ssh acesso remoto pastas'),
     ('teclado', 'Teclado', 'preferences-desktop-keyboard', 'kcm_keyboard', 'atalhos idioma layout numlock'),
-    ('rato', 'Rato e touchpad', 'input-mouse', 'kcm_mouse', 'touchpad cursor velocidade'),
+    ('rato', 'Mouse e touchpad', 'input-mouse', 'kcm_mouse', 'touchpad cursor velocidade'),
     ('impressoras', 'Impressoras', 'printer', 'kcm_printer_manager', 'imprimir scanner'),
     ('contas', 'Contas online', 'preferences-online-accounts', 'kcm_kaccounts', 'google nextcloud calendario icloud outlook'),
-    ('utilizadores', 'Utilizadores', 'system-users', 'kcm_users', 'conta senha foto'),
+    ('utilizadores', 'Usuários', 'system-users', 'kcm_users', 'conta senha foto'),
     ('regiao', 'Região e idioma', 'preferences-desktop-locale', 'kcm_regionandlang', 'lingua formato data moeda'),
     ('datahora', 'Data e hora', 'preferences-system-time', 'kcm_clock', 'relogio fuso horario'),
     ('acessibilidade', 'Acessibilidade', 'preferences-desktop-accessibility', 'kcm_access', 'lupa leitor contraste'),
@@ -91,7 +91,7 @@ def normalizar_endereco(t):
 
 
 def adicionar_local(url, nome):
-    """Põe o endereço na barra lateral de "Meus documentos" (user-places.xbel)."""
+    """Coloca o endereço na barra lateral de "Meus documentos" (user-places.xbel)."""
     import xml.etree.ElementTree as ET
     f = os.path.join(HOME, '.local/share/user-places.xbel')
     try:
@@ -352,7 +352,7 @@ class Config(QObject):
     @Slot(str, bool)
     def calendarioGoogle(self, email, ligar):
         if ligar:
-            self._aviso('A trazer os calendários do Google…')
+            self._aviso('Trazendo os calendários do Google…')
         self._contas(['calendario', email, 'on' if ligar else 'off'],
                      'Calendários ligados: abra o Merkuro (Calendário).' if ligar else 'Calendários desligados.', 300)
 
@@ -365,9 +365,9 @@ class Config(QObject):
             r = subprocess.run(['carinaeos-contas', 'configurar-google'], input=json.dumps(dados),
                                capture_output=True, text=True, timeout=20)
             self._aviso('Login do Google configurado. Já pode ligar a conta.' if r.returncode == 0
-                        else 'Não foi possível guardar: ' + (r.stderr or '').strip())
+                        else 'Não foi possível salvar: ' + (r.stderr or '').strip())
         except Exception as e:
-            self._aviso('Não foi possível guardar: %s' % e)
+            self._aviso('Não foi possível salvar: %s' % e)
         self.ler('contas')
 
     @Slot(str, str)
@@ -380,7 +380,7 @@ class Config(QObject):
     @Slot()
     def ficheiroGoogle(self):
         def trabalho():
-            return cmd(['kdialog', '--title', 'Ficheiro do cliente Google', '--getopenfilename',
+            return cmd(['kdialog', '--title', 'Arquivo do cliente Google', '--getopenfilename',
                         os.path.join(HOME, 'Downloads'), 'application/json'], 600)
 
         def depois(f):
@@ -389,7 +389,7 @@ class Config(QObject):
                     with open(f) as x:
                         self._configurar(json.load(x))
                 except Exception as e:
-                    self._aviso('Esse ficheiro não é o JSON do cliente Google (%s).' % e)
+                    self._aviso('Esse arquivo não é o JSON do cliente Google (%s).' % e)
         self._fundo(trabalho, depois)
 
     # ---- acoes ------------------------------------------------------------------------------------
@@ -406,7 +406,7 @@ class Config(QObject):
     @Slot(str, str)
     def ligarWifi(self, ssid, senha):
         args = ['nmcli', 'dev', 'wifi', 'connect', ssid] + (['password', senha] if senha else [])
-        self._aviso('A ligar a %s…' % ssid)
+        self._aviso('Ligando a %s…' % ssid)
 
         def depois(r):
             ok = not isinstance(r, Exception) and r.returncode == 0
@@ -474,7 +474,7 @@ class Config(QObject):
 
     @Slot(bool)
     def definirSSH(self, ligar):
-        self._aviso('A pedir autorização…')
+        self._aviso('Pedindo autorização…')
 
         def depois(r):
             ok = not isinstance(r, Exception) and r.returncode == 0
@@ -497,7 +497,7 @@ class Config(QObject):
             json.dump(lista[:12], f)
         adicionar_local(url, nome.split('/')[-1] or nome)
         bg(['dolphin', '--new-window', url])
-        self._aviso('A ligar a %s… (se pedir, escreva o usuário e a senha do servidor)' % nome)
+        self._aviso('Ligando a %s… (se pedir, escreva o usuário e a senha do servidor)' % nome)
         self.ler('rede')
 
     @Slot(str)
@@ -511,16 +511,16 @@ class Config(QObject):
 
     @Slot(bool)
     def definirPartilha(self, ligar):
-        self._aviso('A pedir autorização…')
+        self._aviso('Pedindo autorização…')
         u = os.environ.get('USER') or os.path.basename(HOME)
 
         def depois(r):
             ok = not isinstance(r, Exception) and r.returncode == 0
             if ok and ligar:
-                self._aviso('Partilha de pastas ligada ✓ Escolha a primeira pasta a partilhar.')
+                self._aviso('Compartilhamento de pastas ligado ✓ Escolha a primeira pasta a compartilhar.')
                 self.escolherPastaPedida.emit()
             elif ok:
-                self._aviso('Partilha de pastas desligada ✓')
+                self._aviso('Compartilhamento de pastas desligado ✓')
             else:
                 erro = '' if isinstance(r, Exception) else (r.stderr or b'').decode(errors='ignore').strip()
                 self._aviso('Não foi possível: ' + (erro[-120:] or 'autorização recusada'))
@@ -539,7 +539,7 @@ class Config(QObject):
             caminho = unquote(caminho[7:])
         nome = re.sub(r'[^A-Za-z0-9_-]', '_', os.path.basename(caminho.rstrip('/')) or 'pasta')[:40]
         acl = 'Everyone:F' if escrita else 'Everyone:R'
-        r = subprocess.run(['net', 'usershare', 'add', nome, caminho, 'Partilhada pelo CarinaeOS', acl, 'guest_ok=y'],
+        r = subprocess.run(['net', 'usershare', 'add', nome, caminho, 'Compartilhada pelo CarinaeOS', acl, 'guest_ok=y'],
                            capture_output=True, text=True)
         if r.returncode != 0:
             # ainda sem permissao na sessao atual (grupo novo): faz-se como administrador
@@ -547,8 +547,8 @@ class Config(QObject):
                                 os.environ.get('USER') or ''], capture_output=True, text=True)
         if r.returncode == 0 and escrita:
             subprocess.run(['chmod', 'o+rwx', caminho])
-        self._aviso(('“%s” está partilhada na rede ✓' % nome) if r.returncode == 0
-                    else 'Não foi possível partilhar: ' + (r.stderr.strip() or r.stdout.strip())[:120])
+        self._aviso(('“%s” está compartilhada na rede ✓' % nome) if r.returncode == 0
+                    else 'Não foi possível compartilhar: ' + (r.stderr.strip() or r.stdout.strip())[:120])
         self.ler('partilha')
 
     @Slot(str)
@@ -561,7 +561,7 @@ class Config(QObject):
     @Slot(bool)
     def escolherPastaPartilhar(self, escrita):
         def t():
-            r = subprocess.run(['kdialog', '--title', 'Escolha a pasta a partilhar', '--getexistingdirectory', HOME],
+            r = subprocess.run(['kdialog', '--title', 'Escolha a pasta a compartilhar', '--getexistingdirectory', HOME],
                                capture_output=True, text=True)
             if r.returncode == 0 and r.stdout.strip():
                 self._chegou.emit(lambda c: self.partilharPasta(c, escrita), r.stdout.strip())

@@ -51,7 +51,7 @@ ApplicationWindow {
         try {
             const j = Qt.createQmlObject(kaImport + "KA.CreateAccountJob {}", janela, "criar");
             j.providerName = provedor;
-            contasAviso = "A abrir a página de entrada… termine o login na janela que aparece.";
+            contasAviso = "Abrindo a página de entrada… termine o login na janela que aparece.";
             j.finished.connect(() => {
                 if (j.error === 0) contasAviso = "";
                 else if (j.error === 1) contasAviso = "";          // cancelado
@@ -266,11 +266,11 @@ ApplicationWindow {
                             Text { visible: modelData.segura && !modelData.ligada; text: "🔒"; font.pixelSize: 12 }
                         }
                     }
-                    Linha { visible: (janela.e.redes || []).length === 0; titulo: "A procurar redes…"; sub: "Se não aparecer nenhuma, confirme que o Wi-Fi do computador está ligado." }
+                    Linha { visible: (janela.e.redes || []).length === 0; titulo: "Procurando redes…"; sub: "Se não aparecer nenhuma, confirme que o Wi-Fi do computador está ligado." }
                 }
                 Grupo {
                     visible: janela.pagina === "rede"
-                    titulo: "Ligações ativas"
+                    titulo: "Conexões ativas"
                     Repeater {
                         model: janela.e.ligacoes || []
                         delegate: Linha {
@@ -286,10 +286,10 @@ ApplicationWindow {
                 // pastas partilhadas na rede: como "Outros locais › Ligar ao servidor" do Fedora
                 Grupo {
                     visible: janela.pagina === "rede"
-                    titulo: "Pastas partilhadas na rede"
+                    titulo: "Pastas compartilhadas na rede"
                     Linha {
                         titulo: "Procurar computadores e NAS na rede"
-                        sub: "Windows, Mac, discos de rede (NAS) e impressoras partilhadas"
+                        sub: "Windows, Mac, discos de rede (NAS) e impressoras compartilhadas"
                         icone: "network-workgroup"
                         clicavel: true
                         onCarregado: ajustes.abrir("dolphin --new-window smb:/")
@@ -358,7 +358,7 @@ ApplicationWindow {
                 // ===== Ecrãs =====
                 Grupo {
                     visible: janela.pagina === "ecras"
-                    titulo: "Ecrãs ligados"
+                    titulo: "Telas ligadas"
                     Repeater { model: janela.e.ecras || []; delegate: Linha { required property string modelData; titulo: modelData.replace(/^Output:\s*\d+\s*/, ""); icone: "video-display" } }
                     Linha { titulo: "Resolução, escala e posição…"; clicavel: true; onCarregado: ajustes.completo("ecras"); Seta {} }
                 }
@@ -419,7 +419,7 @@ ApplicationWindow {
                 }
                 Grupo {
                     visible: janela.pagina === "energia"
-                    Linha { titulo: "Suspender e desligar o ecrã…"; clicavel: true; onCarregado: ajustes.completo("energia"); Seta {} }
+                    Linha { titulo: "Suspender e desligar a tela…"; clicavel: true; onCarregado: ajustes.completo("energia"); Seta {} }
                 }
 
                 // ===== Aparência =====
@@ -505,17 +505,17 @@ ApplicationWindow {
                     visible: janela.pagina === "privacidade"
                     Linha { titulo: "Sessão sem rastro, modo escuro forçado"; sub: "Na Central do CarinaeOS"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-central privacidade"); Seta {} }
                     Linha { titulo: "Pastas, arquivos e aplicativos com senha"; sub: "Cadeado"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-central cadeado"); Seta {} }
-                    Linha { titulo: "Bloqueio do ecrã…"; clicavel: true; onCarregado: ajustes.abrir("kcmshell6 kcm_screenlocker"); Seta {} }
+                    Linha { titulo: "Bloqueio da tela…"; clicavel: true; onCarregado: ajustes.abrir("kcmshell6 kcm_screenlocker"); Seta {} }
                 }
 
                 // ===== Partilha =====
                 Grupo {
                     visible: janela.pagina === "partilha"
-                    titulo: "Partilha de pastas"
+                    titulo: "Compartilhamento de pastas"
                     Linha {
-                        titulo: "Partilhar pastas deste computador"
+                        titulo: "Compartilhar pastas deste computador"
                         sub: janela.e.samba ? ("Ligada · noutros computadores aparece como “" + (janela.e.nomePc || "") + "” na Rede (no Windows: \\\\" + ((janela.e.ip || [])[0] || "") + ")")
-                                            : "Outros computadores da casa (Windows, Mac, telemóveis) passam a ver as pastas que escolher."
+                                            : "Outros computadores da casa (Windows, Mac, celulares) passam a ver as pastas que escolher."
                         Switch { checked: !!janela.e.samba; onToggled: ajustes.definirPartilha(checked) }
                     }
                     Repeater {
@@ -525,12 +525,12 @@ ApplicationWindow {
                             titulo: modelData.nome
                             sub: modelData.caminho + (modelData.escrita ? " · todos podem alterar" : " · só leitura")
                             icone: "folder-publicshare"
-                            Botao { texto: "Deixar de partilhar"; onCarregado: ajustes.deixarDePartilhar(modelData.nome) }
+                            Botao { texto: "Deixar de compartilhar"; onCarregado: ajustes.deixarDePartilhar(modelData.nome) }
                         }
                     }
                     Linha {
                         visible: !!janela.e.samba
-                        titulo: "Partilhar uma pasta…"
+                        titulo: "Compartilhar uma pasta…"
                         sub: "Os outros entram sem senha. Escolha se também podem alterar."
                         icone: "list-add"
                         CheckBox { id: escritaPart; text: "Podem alterar" }
@@ -546,7 +546,7 @@ ApplicationWindow {
                         Switch { checked: janela.e.ssh === 1; onToggled: ajustes.definirSSH(checked) }
                     }
                     Linha { visible: janela.e.ssh === 1; titulo: "Endereço deste computador"; sub: (janela.e.ip || []).join("  ·  ") || "—"; icone: "network-wired" }
-                    Linha { visible: janela.e.ssh === 1; titulo: "Utilizador"; sub: janela.e.usuario || ""; icone: "user-identity" }
+                    Linha { visible: janela.e.ssh === 1; titulo: "Usuário"; sub: janela.e.usuario || ""; icone: "user-identity" }
                     Linha { visible: janela.e.ssh === 1; titulo: "Senha"; sub: "A mesma com que entra neste computador (por segurança não é mostrada aqui)"; icone: "dialog-password" }
                     Item {
                         visible: janela.e.ssh === 1
@@ -698,13 +698,13 @@ ApplicationWindow {
                     Linha {
                         titulo: "Google"
                         sub: (janela.e.google || {}).configurado ? "Abre o Google no navegador para entrar e autorizar o CarinaeOS"
-                                                                  : "Primeiro, configure o login do Google (uma vez) aqui em baixo"
+                                                                  : "Primeiro, configure o login do Google (uma vez) aqui embaixo"
                         icone: "im-google"
                         clicavel: !!(janela.e.google || {}).configurado
                         onCarregado: ajustes.entrarGoogle()
                         Seta {}
                     }
-                    Linha { titulo: "Nextcloud"; sub: "Arquivos, calendário e contactos — entra no seu servidor Nextcloud"; icone: "folder-cloud"; clicavel: true; onCarregado: janela.adicionarConta("nextcloud"); Seta {} }
+                    Linha { titulo: "Nextcloud"; sub: "Arquivos, calendário e contatos — entra no seu servidor Nextcloud"; icone: "folder-cloud"; clicavel: true; onCarregado: janela.adicionarConta("nextcloud"); Seta {} }
                     Linha { titulo: "ownCloud"; sub: "Arquivos — entra no seu servidor ownCloud"; icone: "folder-cloud"; clicavel: true; onCarregado: janela.adicionarConta("owncloud"); Seta {} }
                     Linha {
                         visible: janela.contasAviso !== ""
@@ -716,7 +716,7 @@ ApplicationWindow {
                     visible: janela.pagina === "contas" && janela.e.google !== undefined && !janela.e.google.configurado
                     titulo: "Configurar o login do Google (uma vez)"
                     Linha { titulo: "1. Crie o cliente no Google Cloud"; sub: "Tipo «App para computador», com o nome CarinaeOS"; icone: "internet-web-browser"; clicavel: true; onCarregado: ajustes.abrir("xdg-open https://console.cloud.google.com/auth/clients"); Seta {} }
-                    Linha { titulo: "2. Escolha o ficheiro JSON que descarregou"; sub: "client_secret_….json, na pasta Transferências"; icone: "document-open"; clicavel: true; onCarregado: ajustes.ficheiroGoogle(); Seta {} }
+                    Linha { titulo: "2. Escolha o arquivo JSON que baixou"; sub: "client_secret_….json, na pasta Downloads"; icone: "document-open"; clicavel: true; onCarregado: ajustes.ficheiroGoogle(); Seta {} }
                     Item {
                         width: parent.width; height: 132
                         Text { x: 16; y: 10; text: "… ou cole o ID e o segredo do cliente"; color: janela.texto; font.pixelSize: 13 }
@@ -741,7 +741,7 @@ ApplicationWindow {
                                 }
                             }
                         }
-                        Botao { id: btGuardarG; x: parent.width - width - 16; y: 37 + 44; texto: "Guardar"; principal: true; onCarregado: ajustes.configurarGoogle(janela.gId, janela.gSegredo) }
+                        Botao { id: btGuardarG; x: parent.width - width - 16; y: 37 + 44; texto: "Salvar"; principal: true; onCarregado: ajustes.configurarGoogle(janela.gId, janela.gSegredo) }
                     }
                 }
                 Grupo {
@@ -757,7 +757,7 @@ ApplicationWindow {
                     titulo: "Tamanho"
                     Linha { titulo: "Tamanho dos ícones"; sub: Math.round(janela.e.iconSize || 56) + " px"
                             Deslizante { from: 32; to: 96; stepSize: 2; alvo: janela.e.iconSize || 56; onMoved: ajustes.definirDock("iconSize", Math.round(value)) } }
-                    Linha { titulo: "Ampliação ao passar o rato"; sub: (janela.e.zoom || 1.6) <= 1.01 ? "Desligada" : Math.round(((janela.e.zoom || 1.6) - 1) * 100) + "%"
+                    Linha { titulo: "Ampliação ao passar o mouse"; sub: (janela.e.zoom || 1.6) <= 1.01 ? "Desligada" : Math.round(((janela.e.zoom || 1.6) - 1) * 100) + "%"
                             Deslizante { from: 1; to: 2.2; stepSize: 0.1; alvo: janela.e.zoom || 1.6; onMoved: ajustes.definirDock("zoom", value) } }
                 }
                 Grupo {
@@ -769,7 +769,7 @@ ApplicationWindow {
                             anchors.centerIn: parent
                             spacing: 10
                             Repeater {
-                                model: [["bottom", "Em baixo"], ["left", "À esquerda"], ["right", "À direita"], ["top", "Em cima"]]
+                                model: [["bottom", "Embaixo"], ["left", "À esquerda"], ["right", "À direita"], ["top", "Em cima"]]
                                 delegate: Botao {
                                     required property var modelData
                                     texto: modelData[1]
@@ -779,7 +779,7 @@ ApplicationWindow {
                             }
                         }
                     }
-                    Linha { titulo: "Esconder automaticamente"; sub: "Aparece quando o rato chega à beira do ecrã"
+                    Linha { titulo: "Esconder automaticamente"; sub: "Aparece quando o mouse chega à beira da tela"
                             Switch { checked: !!janela.e.esconder; onToggled: ajustes.definirDock("esconder", checked) } }
                 }
                 Grupo {
@@ -806,7 +806,7 @@ ApplicationWindow {
                             }
                         }
                     }
-                    Linha { titulo: "Pôr um separador"; sub: "Na Dock: botão direito num ícone › Adicionar separador à direita. Arraste os ícones para os reorganizar." }
+                    Linha { titulo: "Colocar um separador"; sub: "Na Dock: botão direito num ícone › Adicionar separador à direita. Arraste os ícones para os reorganizar." }
                 }
 
                 // ===== secções que abrem o módulo completo =====

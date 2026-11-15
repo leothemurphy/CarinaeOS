@@ -12,7 +12,7 @@
 - Instale programas da Órbita, do Debian ou do Flathub; desconfie de scripts `curl … | sudo bash`.
 - Mantenha o sistema atualizado (“atualiza o sistema”).
 - Use senhas diferentes e um gestor: **KeePassXC** ou **Bitwarden** (Órbita).
-- Ative a **cifra do disco** ao instalar, sobretudo em portáteis.
+- Ative a **cifra do disco** ao instalar, sobretudo em notebooks.
 - Faça cópias de segurança (capítulo 4).
 
 ## Cifrar
@@ -27,14 +27,14 @@
 ## Sessão sem rastro
 
 Central › Privacidade › **Sessão sem rastro**: na tela de entrada aparece *Convidado (sem rastro)*, sem senha.
-A pasta pessoal do convidado vive só na memória: arquivos, downloads, histórico, senhas e definições
+A pasta pessoal do convidado vive só na memória: arquivos, downloads, histórico, senhas e configurações
 desaparecem ao terminar a sessão. Ótimo para emprestar o computador.
 
 ## Bloqueio e privacidade da tela
 
 - ⊞+L bloqueia. Configurações › Bloqueio de tela: bloquear automaticamente, ao suspender.
-- Notificações no ecrã de bloqueio: Configurações › Notificações.
-- Câmara e microfone: o ícone aparece na bandeja quando um aplicativo os usa.
+- Notificações na tela de bloqueio: Configurações › Notificações.
+- Câmera e microfone: o ícone aparece na bandeja quando um aplicativo os usa.
 
 ## Firewall
 
@@ -43,4 +43,4 @@ desaparecem ao terminar a sessão. Ótimo para emprestar o computador.
 ## Navegadores
 
 O Firefox ESR vem com proteção contra rastreio. Extensões recomendadas: uBlock Origin. Para o Chrome:
-Definições › Privacidade e segurança. O *Modo escuro em todo o lado* (Central › Privacidade) força o escuro nas páginas.
+Configurações › Privacidade e segurança. O *Modo escuro em todo o lado* (Central › Privacidade) força o escuro nas páginas.

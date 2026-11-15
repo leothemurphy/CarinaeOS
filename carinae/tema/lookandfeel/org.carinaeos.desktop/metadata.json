@@ -3,7 +3,7 @@
     "KPlugin": {
         "Authors": [ { "Name": "CarinaeOS" } ],
         "Category": "",
-        "Description": "Visual do CarinaeOS: barra em cima, Dock em baixo com a estrela no centro e o céu de Eta Carinae",
+        "Description": "Visual do CarinaeOS: barra em cima, Dock embaixo com a estrela no centro e o céu de Eta Carinae",
         "Id": "org.carinaeos.desktop",
         "License": "GPL-2.0-or-later",
         "Name": "CarinaeOS",

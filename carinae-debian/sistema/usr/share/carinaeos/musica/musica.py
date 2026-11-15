@@ -81,7 +81,7 @@ def gravar_prefs(p):
 
 
 def escrever_conf(rede, senha):
-    """mpd.conf do utilizador. 'rede' abre o MPD a outros computadores (Home Assistant)."""
+    """mpd.conf do usuário. 'rede' abre o MPD a outros computadores (Home Assistant)."""
     os.makedirs(CONF_DIR, exist_ok=True)
     os.makedirs(os.path.join(DADOS, 'listas'), exist_ok=True)
     os.makedirs(BIBLIO, exist_ok=True)
@@ -107,11 +107,11 @@ def escrever_conf(rede, senha):
     linhas += [
         'audio_output {',
         '    type  "pipewire"',
-        '    name  "Altifalantes deste computador"',
+        '    name  "Alto-falantes deste computador"',
         '}',
         'audio_output {',
         '    type  "pulse"',
-        '    name  "Altifalantes (compatibilidade)"',
+        '    name  "Alto-falantes (compatibilidade)"',
         '    enabled "no"',
         '}',
         'audio_output {',
@@ -688,7 +688,7 @@ class Musica(QObject):
             except Exception:
                 pass
             self._mpd('save', nome)
-        self._bg(trabalho, lambda r: (self._aviso('Lista “%s” guardada ✓ — aparece como fonte no Home Assistant' % nome)
+        self._bg(trabalho, lambda r: (self._aviso('Lista “%s” salva ✓ — aparece como fonte no Home Assistant' % nome)
                                       if not isinstance(r, Exception) else self._aviso('Erro: %s' % r), self.recarregar()))
 
     @Slot(str, str)
@@ -835,7 +835,7 @@ class Musica(QObject):
 
     @Slot(str, str)
     def adicionarRadio(self, nome, url):
-        """Uma rádio da internet guardada como lista (assim também aparece no Home Assistant)."""
+        """Uma rádio da internet salva como lista (assim também aparece no Home Assistant)."""
         nome, url = nome.strip(), url.strip()
         if not url:
             return
@@ -895,7 +895,7 @@ class Musica(QObject):
 
     @Slot()
     def atualizarBiblioteca(self):
-        self._aviso('A ler as pastas de música…')
+        self._aviso('Lendo as pastas de música…')
 
         def trabalho():
             self._mpd('rescan')
@@ -907,7 +907,7 @@ class Musica(QObject):
 
     @Slot()
     def procurarCapas(self):
-        self._aviso('A procurar capas na internet…')
+        self._aviso('Procurando capas na internet…')
         self._bg(lambda: [self._capa_de(a['artista'], a['album'], a['ficheiro'], sincrono=True)
                           for a in list(self._albuns) if not a['capa']],
                  lambda r: self._aviso('Capas atualizadas ✓'))
@@ -919,7 +919,7 @@ class Musica(QObject):
         if senha is not None:
             self._prefs['senha'] = senha.strip()
         gravar_prefs(self._prefs)
-        self._aviso('A aplicar…')
+        self._aviso('Aplicando…')
 
         def trabalho():
             escrever_conf(ligar, self._prefs.get('senha', ''))

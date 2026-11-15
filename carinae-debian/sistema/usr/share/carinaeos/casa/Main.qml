@@ -50,7 +50,7 @@ ApplicationWindow {
             anchors.horizontalCenter: parent.horizontalCenter
             width: 200; height: 42; radius: 21; opacity: casa.ocupado ? 0.6 : 1
             gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: janela.rosa } GradientStop { position: 1; color: janela.ambar } }
-            Text { anchors.centerIn: parent; text: casa.ocupado ? "A ligar…" : "Ligar"; color: "#1a0f14"; font.weight: Font.Bold }
+            Text { anchors.centerIn: parent; text: casa.ocupado ? "Ligando…" : "Ligar"; color: "#1a0f14"; font.weight: Font.Bold }
             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: casa.conectar(campoUrl.text, campoToken.text) }
         }
     }
@@ -75,7 +75,7 @@ ApplicationWindow {
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
                         Text { text: casa.nome; color: janela.texto; font.pixelSize: 18; font.weight: Font.Bold; width: 140; elide: Text.ElideRight }
-                        Text { text: casa.erro !== "" ? "sem ligação" : "ligado"; color: casa.erro !== "" ? janela.rosa : "#8fe3a8"; font.pixelSize: 11 }
+                        Text { text: casa.erro !== "" ? "sem conexão" : "ligado"; color: casa.erro !== "" ? janela.rosa : "#8fe3a8"; font.pixelSize: 11 }
                     }
                 }
                 Item { width: 1; height: 14 }
@@ -165,8 +165,8 @@ ApplicationWindow {
                 Column {
                     visible: rolar.cartoes.length === 0
                     width: parent.width - 16; spacing: 14; topPadding: 60
-                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: janela.todas.length ? "Este painel está vazio" : "A carregar a casa…"; color: janela.texto; font.pixelSize: 20; font.weight: Font.DemiBold }
-                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Monte-o como quiser: botões, luzes, gráficos, câmaras, clima, cenas…"; color: janela.textoSuave }
+                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: janela.todas.length ? "Este painel está vazio" : "Carregando a casa…"; color: janela.texto; font.pixelSize: 20; font.weight: Font.DemiBold }
+                    Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Monte-o como quiser: botões, luzes, gráficos, câmeras, clima, cenas…"; color: janela.textoSuave }
                     Row {
                         visible: janela.todas.length > 0
                         anchors.horizontalCenter: parent.horizontalCenter; spacing: 10
@@ -222,7 +222,7 @@ ApplicationWindow {
             Text { text: "Este computador no Home Assistant"; color: janela.texto; font.pixelSize: 20; font.weight: Font.DemiBold }
             Text {
                 width: parent.width; wrapMode: Text.WordWrap; color: janela.textoSuave; font.pixelSize: 13
-                text: "Com o MQTT (Mosquitto) do Home Assistant, este computador aparece como um dispositivo: processador, memória, disco, volume e bateria, e botões para desligar, reiniciar, suspender, bloquear o ecrã ou silenciar — para usar em automações. Também pode mandar avisos para o ecrã."
+                text: "Com o MQTT (Mosquitto) do Home Assistant, este computador aparece como um dispositivo: processador, memória, disco, volume e bateria, e botões para desligar, reiniciar, suspender, bloquear a tela ou silenciar — para usar em automações. Também pode mandar avisos para a tela."
             }
             TextField { id: mHost; width: parent.width; placeholderText: "Servidor MQTT (normalmente o endereço do Home Assistant)"; text: casa.mqttHost; color: janela.texto
                         background: Rectangle { radius: 10; color: Qt.rgba(1, 1, 1, 0.06); border.color: Qt.rgba(1, 1, 1, 0.15) } }
@@ -235,7 +235,7 @@ ApplicationWindow {
                 Rectangle {
                     width: 220; height: 40; radius: 20
                     gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: janela.rosa } GradientStop { position: 1; color: janela.ambar } }
-                    Text { anchors.centerIn: parent; text: casa.agente ? "Guardar e religar" : "Ligar este computador"; color: "#1a0f14"; font.weight: Font.Bold }
+                    Text { anchors.centerIn: parent; text: casa.agente ? "Salvar e religar" : "Ligar este computador"; color: "#1a0f14"; font.weight: Font.Bold }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: casa.definirAgente(true, mHost.text, mUser.text, mSenha.text) }
                 }
                 Rectangle {
@@ -245,7 +245,7 @@ ApplicationWindow {
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: casa.definirAgente(false, "", "", "") }
                 }
             }
-            Text { text: casa.agente ? "✓ Ligado: procure “CarinaeOS” em Definições › Dispositivos no Home Assistant." : ""; color: "#8fe3a8"; font.pixelSize: 13 }
+            Text { text: casa.agente ? "✓ Ligado: procure “CarinaeOS” em Configurações › Dispositivos no Home Assistant." : ""; color: "#8fe3a8"; font.pixelSize: 13 }
             Item { width: 1; height: 20 }
             Rectangle {
                 width: 220; height: 36; radius: 18; color: Qt.rgba(1, 1, 1, 0.06)
@@ -270,7 +270,7 @@ ApplicationWindow {
                 id: ok
                 function clicar() { if (dlgPainel.indice >= 0) casa.renomearPainel(dlgPainel.indice, nomeP.text); else { casa.novoPainel(nomeP.text); janela.painel = casa.paineis.length - 1; janela.editar = true } dlgPainel.close() }
                 anchors.right: parent.right; width: 120; height: 36; radius: 18; color: janela.ambar
-                Text { anchors.centerIn: parent; text: "Guardar"; color: "#1a0f14"; font.weight: Font.Bold }
+                Text { anchors.centerIn: parent; text: "Salvar"; color: "#1a0f14"; font.weight: Font.Bold }
                 MouseArea { anchors.fill: parent; onClicked: ok.clicar() }
             }
         }
@@ -381,7 +381,7 @@ ApplicationWindow {
                         readonly property bool pode: dlgCartao.info.max === 0 ? tituloC.text !== "" : dlgCartao.escolhidas.length > 0
                         width: 140; height: 38; radius: 19; opacity: pode ? 1 : 0.4
                         gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: janela.rosa } GradientStop { position: 1; color: janela.ambar } }
-                        Text { anchors.centerIn: parent; text: dlgCartao.indice >= 0 ? "Guardar" : "Adicionar"; color: "#1a0f14"; font.weight: Font.Bold }
+                        Text { anchors.centerIn: parent; text: dlgCartao.indice >= 0 ? "Salvar" : "Adicionar"; color: "#1a0f14"; font.weight: Font.Bold }
                         MouseArea {
                             anchors.fill: parent; enabled: parent.pode
                             onClicked: {

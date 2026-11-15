@@ -39,7 +39,7 @@ $ flatpak uninstall --unused         # limpar bibliotecas sem uso
 $ flatpak override --user --filesystem=home com.exemplo.App   # dar acesso à pasta pessoal
 ```
 
-Para gerir permissões dos Flatpak graficamente: Configurações › Aplicativos › Permissões do Flatpak
+Para gerenciar permissões dos Flatpak graficamente: Configurações › Aplicativos › Permissões do Flatpak
 (ou instale o **Flatseal**).
 
 ## .deb baixados
@@ -74,7 +74,7 @@ Se não abrir:
 
 - **Bottles** (Órbita): cria “garrafas” do Wine com tudo configurado; ideal para programas e jogos `.exe`.
 - **Wine** direto: `sudo apt install wine` e duplo clique no `.exe`.
-- **Steam** (Órbita): jogos do Windows correm com o Proton (Steam › Definições › Compatibilidade).
+- **Steam** (Órbita): jogos do Windows rodam com o Proton (Steam › Configurações › Compatibilidade).
 - **Máquina virtual com Windows:** *GNOME Boxes* ou *virt-manager* (Órbita).
 - Alternativas livres: LibreOffice (Office), GIMP/Krita (Photoshop), Inkscape (Illustrator),
   Kdenlive/Shotcut/DaVinci Resolve (vídeo), Audacity (áudio), Blender (3D), FreeCAD (CAD), OBS (gravar e transmitir).
@@ -87,4 +87,4 @@ e a entrada em `~/.local/share/applications`.
 
 ## Programas que arrancam com o sistema
 
-Configurações › Sistema › Arranque automático (adicionar ou remover programas e scripts).
+Configurações › Sistema › Inicialização automática (adicionar ou remover programas e scripts).

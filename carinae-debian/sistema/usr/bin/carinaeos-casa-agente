@@ -84,15 +84,15 @@ def descoberta(c):
             cfg['device_class'] = classe
         c.publish('homeassistant/sensor/%s/%s/config' % (UID, chave), json.dumps(cfg), retain=True)
     for chave, nome, icone in (('desligar', 'Desligar', 'mdi:power'), ('reiniciar', 'Reiniciar', 'mdi:restart'),
-                               ('suspender', 'Suspender', 'mdi:sleep'), ('bloquear', 'Bloquear o ecrã', 'mdi:lock'),
-                               ('apagar_tela', 'Apagar o ecrã', 'mdi:monitor-off'), ('mudo', 'Silenciar / ativar som', 'mdi:volume-mute')):
+                               ('suspender', 'Suspender', 'mdi:sleep'), ('bloquear', 'Bloquear a tela', 'mdi:lock'),
+                               ('apagar_tela', 'Apagar a tela', 'mdi:monitor-off'), ('mudo', 'Silenciar / ativar som', 'mdi:volume-mute')):
         c.publish('homeassistant/button/%s/%s/config' % (UID, chave), json.dumps(dict(
             disp, name=nome, unique_id='%s_%s' % (UID, chave), command_topic=BASE + '/comando', payload_press=chave, icon=icone)), retain=True)
     c.publish('homeassistant/number/%s/volume_ctl/config' % UID, json.dumps(dict(
         disp, name='Volume (ajustar)', unique_id=UID + '_volume_ctl', command_topic=BASE + '/volume', state_topic=BASE + '/estado',
         value_template='{{ value_json.volume }}', min=0, max=100, step=5, icon='mdi:volume-high')), retain=True)
     c.publish('homeassistant/notify/%s/aviso/config' % UID, json.dumps(dict(
-        disp, name='Aviso no ecrã', unique_id=UID + '_aviso', command_topic=BASE + '/aviso')), retain=True)
+        disp, name='Aviso na tela', unique_id=UID + '_aviso', command_topic=BASE + '/aviso')), retain=True)
     c.publish(BASE + '/disponivel', 'online', retain=True)
 
 

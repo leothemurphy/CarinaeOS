@@ -2,23 +2,23 @@
 
 CarinaeOS 1.0 "Eta": Debian 13 (trixie) + KDE Plasma 6 com o visual CarinaeOS:
 
-- menu de arranque e ecrã de carregamento com a estrela (Plymouth);
-- ecrã de entrada ao estilo do macOS (SDDM);
-- barra no topo com a estrela, Dock em baixo com ampliação, fundo de Eta Carinae,
+- menu de inicialização e tela de carregamento com a estrela (Plymouth);
+- tela de entrada ao estilo do macOS (SDDM);
+- barra no topo com a estrela, Dock embaixo com ampliação, fundo de Eta Carinae,
   cores CarinaeOS, letra Inter e efeitos de janela;
 - instalador gráfico (Calamares) com a marca CarinaeOS.
 
 ## Experimentar no VirtualBox (Windows, macOS ou Linux)
 
-1. Descarregue todas as partes da ISO (`CarinaeOS-1.0-amd64.iso.parte00`, `parte01`, …)
-   e o ficheiro `.sha256` da página de *releases*, para a mesma pasta.
+1. Baixe todas as partes da ISO (`CarinaeOS-1.0-amd64.iso.parte00`, `parte01`, …)
+   e o arquivo `.sha256` da página de *releases*, para a mesma pasta.
 2. Junte as partes:
    - **Windows (PowerShell)**, dentro da pasta:
      ```
      cmd /c copy /b "CarinaeOS-1.0-amd64.iso.parte*" CarinaeOS-1.0-amd64.iso
      (Get-FileHash CarinaeOS-1.0-amd64.iso).Hash
      ```
-     O código tem de ser igual ao do ficheiro `.sha256`.
+     O código tem de ser igual ao do arquivo `.sha256`.
    - **macOS / Linux**: `cat CarinaeOS-1.0-amd64.iso.parte* > CarinaeOS-1.0-amd64.iso`
 3. VirtualBox → **Novo**:
    - Nome: `CarinaeOS`; Imagem ISO: a ISO acima; marque **"Pular instalação desassistida"**.
@@ -29,11 +29,11 @@ CarinaeOS 1.0 "Eta": Debian 13 (trixie) + KDE Plasma 6 com o visual CarinaeOS:
    - **Tela**: Memória de vídeo **128 MB**, Controladora **VMSVGA**, marque *Habilitar aceleração 3D*.
    - **Sistema → Placa-mãe**: marque *Habilitar EFI* (opcional; funciona com e sem).
 5. **Iniciar**. No menu escolha *Iniciar o CarinaeOS*.
-   No ecrã de entrada: usuário **carinae**, senha **live**.
+   Na tela de entrada: usuário **carinae**, senha **live**.
 6. Para instalar no disco da VM, abra **"Instalar o CarinaeOS"** na área de trabalho.
 
 Resolução: em *Configurações do Sistema → Monitor*, escolha a maior resolução da lista
-(ou ponha a janela do VirtualBox em ecrã inteiro — Host+F — e volte a escolher).
+(ou coloque a janela do VirtualBox em tela cheia — Host+F — e volte a escolher).
 
 ## Gerar a ISO
 

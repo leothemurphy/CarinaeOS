@@ -98,6 +98,6 @@ PlasmoidItem {
         PlasmaExtras.MenuItem { text: "Desligar…"; icon: "system-shutdown"; onClicked: raiz.correr("qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptShutDown") }
         PlasmaExtras.MenuItem { separator: true }
         PlasmaExtras.MenuItem { text: "Bloquear tela"; icon: "system-lock-screen"; onClicked: raiz.correr("loginctl lock-session") }
-        PlasmaExtras.MenuItem { text: "Terminar sessão…"; icon: "system-log-out"; onClicked: raiz.correr("qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptLogout") }
+        PlasmaExtras.MenuItem { text: "Encerrar sessão…"; icon: "system-log-out"; onClicked: raiz.correr("qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptLogout") }
     }
 }

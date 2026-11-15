@@ -159,7 +159,7 @@ def trancar(caminhos):
         return
     nomes = ', '.join('“%s”' % os.path.basename(p) for p in caminhos[:4]) + ('…' if len(caminhos) > 4 else '')
     senha = nova_senha('Trancar %s' % nomes,
-                       'Escolha uma senha. Sem ela, ninguém consegue abrir — nem você: guarde-a bem.')
+                       'Escolha uma senha. Sem ela, ninguém consegue abrir — nem você: salve-a bem.')
     if senha is None:
         return
     falhas, feitos = [], []

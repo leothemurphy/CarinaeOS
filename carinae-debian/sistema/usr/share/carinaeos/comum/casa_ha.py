@@ -11,12 +11,12 @@ CFG = os.path.join(os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.conf
 DOMINIOS = ('light', 'switch', 'scene', 'script', 'fan', 'cover', 'climate', 'media_player', 'input_boolean',
             'automation', 'lock', 'vacuum', 'sensor', 'binary_sensor', 'button', 'weather', 'camera', 'input_number',
             'number', 'input_button', 'alarm_control_panel', 'humidifier', 'water_heater', 'person', 'select', 'input_select')
-NOMES_DOMINIO = {'light': 'Luzes', 'switch': 'Interruptores', 'scene': 'Cenas', 'script': 'Rotinas', 'fan': 'Ventoinhas',
-                 'cover': 'Estores e portões', 'climate': 'Clima', 'media_player': 'Som e TV', 'input_boolean': 'Interruptores',
+NOMES_DOMINIO = {'light': 'Luzes', 'switch': 'Interruptores', 'scene': 'Cenas', 'script': 'Rotinas', 'fan': 'Ventiladores',
+                 'cover': 'Persianas e portões', 'climate': 'Clima', 'media_player': 'Som e TV', 'input_boolean': 'Interruptores',
                  'automation': 'Automações', 'lock': 'Fechaduras', 'vacuum': 'Aspiradores', 'sensor': 'Sensores',
-                 'binary_sensor': 'Sensores', 'button': 'Botões', 'weather': 'Tempo', 'camera': 'Câmaras',
+                 'binary_sensor': 'Sensores', 'button': 'Botões', 'weather': 'Tempo', 'camera': 'Câmeras',
                  'input_number': 'Números', 'number': 'Números', 'input_button': 'Botões', 'alarm_control_panel': 'Alarme',
-                 'humidifier': 'Humidificadores', 'water_heater': 'Esquentadores', 'person': 'Pessoas',
+                 'humidifier': 'Umidificadores', 'water_heater': 'Aquecedores', 'person': 'Pessoas',
                  'select': 'Escolhas', 'input_select': 'Escolhas'}
 
 

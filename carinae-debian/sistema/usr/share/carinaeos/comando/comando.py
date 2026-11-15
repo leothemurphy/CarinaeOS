@@ -75,25 +75,25 @@ def nome_tamanho(n):
 # ---- comandos do sistema --------------------------------------------------------------
 # (titulo, subtitulo, icone, comando, palavras extra para a pesquisa)
 COMANDOS = [
-    ('Bloquear o ecrã', 'Sistema', 'system-lock-screen', 'loginctl lock-session', 'trancar lock'),
+    ('Bloquear a tela', 'Sistema', 'system-lock-screen', 'loginctl lock-session', 'trancar lock'),
     ('Suspender', 'Sistema', 'system-suspend', 'systemctl suspend', 'dormir sleep'),
     ('Reiniciar…', 'Sistema', 'system-reboot', 'qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptReboot', 'restart reboot'),
     ('Desligar…', 'Sistema', 'system-shutdown', 'qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptShutDown', 'shutdown apagar'),
-    ('Terminar sessão…', 'Sistema', 'system-log-out', 'qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptLogout', 'logout sair'),
-    ('Captura de ecrã', 'Spectacle', 'spectacle', 'spectacle', 'screenshot print foto do ecra tela'),
+    ('Encerrar sessão…', 'Sistema', 'system-log-out', 'qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptLogout', 'logout sair'),
+    ('Captura de tela', 'Spectacle', 'spectacle', 'spectacle', 'screenshot print foto da tela tela'),
     ('Captura de uma região', 'Spectacle', 'spectacle', 'spectacle -r', 'screenshot recorte area tela'),
-    ('Gravar o ecrã', 'Spectacle', 'media-record', 'spectacle -R region', 'gravar video tela'),
+    ('Gravar a tela', 'Spectacle', 'media-record', 'spectacle -R region', 'gravar video tela'),
     ('Histórico da área de transferência', 'Tudo o que copiou com Ctrl+C', 'edit-paste', '@clip', 'clipboard copiar colar ctrl c'),
     ('Monitor do sistema', 'CPU, memória, processos', 'utilities-system-monitor', 'plasma-systemmonitor', 'gestor de tarefas task manager processos'),
     ('Todas as janelas', 'Visão geral', 'view-grid', kglobal('Overview'), 'expose janelas mission control'),
-    ('Mostrar a mesa', 'Afasta todas as janelas', 'user-desktop', kglobal('Show Desktop'), 'desktop area de trabalho'),
+    ('Mostrar a área de trabalho', 'Afasta todas as janelas', 'user-desktop', kglobal('Show Desktop'), 'desktop area de trabalho'),
     ('Papel de parede seguinte', 'Fundos do CarinaeOS', 'preferences-desktop-wallpaper', 'carinaeos-fundo --proximo', 'wallpaper fundo'),
     ('Abrir a lixeira', 'Arquivos', 'user-trash', 'dolphin trash:/', 'lixo reciclagem'),
-    ('Transferências', 'Pasta', 'folder-download', 'xdg-open "$(xdg-user-dir DOWNLOAD)"', 'downloads'),
+    ('Downloads', 'Pasta', 'folder-download', 'xdg-open "$(xdg-user-dir DOWNLOAD)"', 'downloads'),
     ('Wi-Fi e rede', 'Configurações', 'network-wireless', 'kcmshell6 kcm_networkmanagement', 'internet rede wifi'),
     ('Bluetooth', 'Configurações', 'preferences-system-bluetooth', 'kcmshell6 kcm_bluetooth', 'fones'),
-    ('Som', 'Configurações', 'audio-volume-high', 'kcmshell6 kcm_pulseaudio', 'audio volume altifalantes'),
-    ('Ecrãs e monitores', 'Configurações', 'video-display', 'kcmshell6 kcm_kscreen', 'monitor resolucao tela'),
+    ('Som', 'Configurações', 'audio-volume-high', 'kcmshell6 kcm_pulseaudio', 'audio volume alto-falantes'),
+    ('Telas e monitores', 'Configurações', 'video-display', 'kcmshell6 kcm_kscreen', 'monitor resolucao tela'),
     ('Impressoras', 'Configurações', 'printer', 'kcmshell6 kcm_printer_manager', 'imprimir'),
     ('Acesso remoto (SSH)', 'Central', 'network-server', 'carinaeos-central ssh', 'ssh remoto servidor'),
     ('Drivers e hardware', 'Central', 'preferences-system', 'carinaeos-central drivers', 'driver nvidia placa'),
@@ -101,7 +101,7 @@ COMANDOS = [
     ('Supernova', 'Personalizar o visual', 'carinaeos-supernova', 'carinaeos-supernova', 'tema visual dock'),
     ('Órbita', 'Loja de aplicativos', 'carinaeos-orbita', 'carinaeos-orbita', 'loja instalar store'),
     ('Manual do CarinaeOS', 'Ajuda e comandos', 'help-contents', 'carinaeos-manual', 'ajuda help guia'),
-    ('Configurações', 'Wi-Fi, som, ecrãs, aparência…', 'preferences-system', 'carinaeos-configuracoes', 'definicoes settings'),
+    ('Configurações', 'Wi-Fi, som, telas, aparência…', 'preferences-system', 'carinaeos-configuracoes', 'definicoes settings'),
 ]
 
 SUGESTOES_PADRAO = ['@clip', 'plasma-systemmonitor', 'spectacle -r', 'carinaeos-central']
@@ -270,7 +270,7 @@ class Comando(QObject):
             if c in cmds and not any(x['alvo'] == c for x in r):
                 k = cmds[c]
                 r.append(self._item('Sugestões', 'cmd', k[0], k[1], k[2], k[3]))
-        outros = [self._item('Outros', 'cmd', 'Configurações', 'Wi-Fi, som, ecrãs, aparência…', 'preferences-system', 'carinaeos-configuracoes'),
+        outros = [self._item('Outros', 'cmd', 'Configurações', 'Wi-Fi, som, telas, aparência…', 'preferences-system', 'carinaeos-configuracoes'),
                   self._item('Outros', 'cmd', 'Manual do CarinaeOS', 'Ajuda e comandos', 'help-contents', 'carinaeos-manual')]
         return r + outros
 
@@ -658,7 +658,7 @@ class Comando(QObject):
             pass
 
     NOMES = {'plasmashell': 'Ambiente (Plasma)', 'kwin_wayland': 'Janelas (KWin)', 'kwin_x11': 'Janelas (KWin)',
-             'firefox-esr': 'Firefox', 'firefox': 'Firefox', 'chrome': 'Google Chrome', 'Xorg': 'Ecrã (Xorg)',
+             'firefox-esr': 'Firefox', 'firefox': 'Firefox', 'chrome': 'Google Chrome', 'Xorg': 'Tela (Xorg)',
              'dolphin': 'Arquivos', 'konsole': 'Terminal', 'python3': 'Python', 'baloo_file': 'Índice de arquivos',
              'systemd': 'Sistema', 'Isolated Web Co': 'Firefox (página)', 'Web Content': 'Firefox (página)'}
 

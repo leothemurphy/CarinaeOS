@@ -82,11 +82,11 @@ if [ ! -e $K/metadata.json ]; then
     "KPlugin": {
         "Authors": [ { "Name": "Eike Hein" } ],
         "Category": "Application Launchers",
-        "Description": "Aplicações em ecrã inteiro",
+        "Description": "Aplicativos em tela cheia",
         "Icon": "carinaeos-estrela",
         "Id": "org.kde.plasma.kickerdash",
         "License": "GPL-2.0+",
-        "Name": "Aplicações"
+        "Name": "Aplicativos"
     },
     "X-Plasma-API-Minimum-Version": "6.0",
     "X-Plasma-Provides": [ "org.kde.plasma.launchermenu" ],
@@ -171,7 +171,7 @@ renomear() {   # renomear <arquivo.desktop> <Nome> <Descricao>
 sed -i 's/^Icon=.*/Icon=carinaeos-arquivos/' /usr/local/share/applications/org.kde.dolphin.desktop
 renomear org.kde.marble.desktop "Mapas" "Mapas e globo terrestre"
 renomear org.kde.merkuro.calendar.desktop "Calendário" "Agenda, com a conta Google"
-renomear org.kde.merkuro.contact.desktop "Contactos" "Os seus contactos"
+renomear org.kde.merkuro.contact.desktop "Contatos" "Os seus contatos"
 # nenhum nome "KDE"/"K…" no menu: cada aplicativo pelo que faz
 renomear org.kde.dolphin.desktop "Meus documentos" "Pastas e arquivos"
 sed -i 's/^Icon=.*/Icon=carinaeos-arquivos/' /usr/local/share/applications/org.kde.dolphin.desktop
@@ -180,12 +180,12 @@ renomear org.kde.ark.desktop "Compactador" "Comprimir e extrair arquivos"
 renomear org.kde.gwenview.desktop "Fotos" "Ver imagens e fotografias"
 renomear org.kde.kate.desktop "Editor de texto" "Editar texto e código"
 renomear org.kde.kcalc.desktop "Calculadora" "Contas simples e científicas"
-renomear org.kde.kdeconnect.app.desktop "Telemóvel" "Ligar o telemóvel ao computador"
+renomear org.kde.kdeconnect.app.desktop "Celular" "Ligar o celular ao computador"
 renomear org.kde.kinfocenter.desktop "Sobre este computador" "Processador, memória e sistema"
 renomear org.kde.okular.desktop "Documentos" "Ler PDF e documentos"
 renomear org.kde.partitionmanager.desktop "Discos e partições" "Formatar e dividir discos"
 renomear org.kde.skanlite.desktop "Digitalizar" "Scanner"
-renomear org.kde.spectacle.desktop "Captura de ecrã" "Fotografar ou gravar o ecrã"
+renomear org.kde.spectacle.desktop "Captura de tela" "Fotografar ou gravar a tela"
 renomear org.kde.plasma.emojier.desktop "Emojis" "Escolher emojis"
 renomear org.kde.plasma-systemmonitor.desktop "Monitor do sistema" "Processos, CPU e memória"
 

@@ -7,7 +7,7 @@
             }
         ],
         "Category": "Windows and Tasks",
-        "Description": "Dock com ampliação dos ícones ao passar o rato, estrela de menu no centro e lixeira",
+        "Description": "Dock com ampliação dos ícones ao passar o mouse, estrela de menu no centro e lixeira",
         "Description[pt_BR]": "Dock com ampliação dos ícones ao passar o mouse, estrela de menu no centro e lixeira",
         "Icon": "carinaeos-estrela",
         "Id": "org.carinaeos.dock",

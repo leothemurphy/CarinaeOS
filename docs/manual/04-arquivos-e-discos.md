@@ -3,14 +3,14 @@
 ## Os Arquivos
 
 - **Barra lateral:** Início, Área de trabalho, Documentos, Downloads, Música, Imagens, Vídeos, Lixeira,
-  as etiquetas coloridas, **Rede** e os **Dispositivos** (discos, pen drives, telemóveis).
+  as etiquetas coloridas, **Rede** e os **Dispositivos** (discos, pen drives, celulares).
 - **Ver:** ícones, detalhes ou colunas (botões no topo). **F3** divide a janela em duas (ótimo para copiar).
 - **Ctrl+H** mostra/esconde arquivos ocultos (os que começam por `.`).
 - **Ctrl+L** escreve um endereço: `/etc`, `~/Projetos`, `smb://nas/fotos`, `sftp://pc`, `trash:/`, `recentlyused:/`.
 - **Ctrl+F** procura; **F4** abre um terminal embutido na pasta atual.
 - **Pré-visualização:** espaço ou F11 (painel de informações).
 - **Botão direito:** Comprimir/Extrair (Ark), Trancar com senha, Etiquetas, Adicionar à Dock,
-  Abrir com…, Partilhar, Propriedades (permissões).
+  Abrir com…, Compartilhar, Propriedades (permissões).
 - **Abrir como administrador:** não abra os Arquivos com sudo; use o endereço `admin:/` (ex.: `admin:/etc`).
 
 ## Pen drives, HD externos e cartões
@@ -20,7 +20,7 @@ Antes de tirar, clique no ⏏ (ejetar) para gravar tudo com segurança.
 “tira o pen drive”.
 
 - **HD cifrado (LUKS/BitLocker):** ao abrir pede a senha. BitLocker funciona se tiver a chave de recuperação ou a senha.
-- **Formatos:** lê e escreve NTFS (Windows), exFAT e FAT32 (pen drives, câmaras), ext4 (Linux), Btrfs e XFS.
+- **Formatos:** lê e escreve NTFS (Windows), exFAT e FAT32 (pen drives, câmeras), ext4 (Linux), Btrfs e XFS.
   HFS+ (Mac) só leitura. APFS precisa de ferramentas extra.
 - **Formatar:** abra o **Discos e partições**, escolha o disco, botão direito ›
   Formatar. Para usar em Windows e Mac: **exFAT**. Só em Linux: **ext4**.
@@ -38,7 +38,7 @@ $ sudo mkfs.ext4 -L Dados /dev/sdb1 # formatar em ext4 (APAGA TUDO)
 
 ## Discos internos montados sempre (fstab)
 
-Para um segundo disco interno aparecer sempre no mesmo sítio ao ligar:
+Para um segundo disco interno aparecer sempre no mesmo lugar ao ligar:
 
 ```
 $ sudo mkdir -p /mnt/dados
@@ -49,7 +49,7 @@ $ sudo systemctl daemon-reload && sudo mount -a   # testar sem reiniciar
 ```
 
 Para NTFS use `ntfs3 defaults,nofail,uid=1000,gid=1000` em vez de `ext4 defaults,nofail`.
-**`nofail`** evita que o PC fique parado no arranque se o disco faltar.
+**`nofail`** evita que o PC fique parado na inicialização se o disco faltar.
 
 ## Espaço em disco
 
@@ -57,7 +57,7 @@ Para NTFS use `ntfs3 defaults,nofail,uid=1000,gid=1000` em vez de `ext4 defaults
 - Terminal: `df -h` (espaço por disco), `du -sh ~/* | sort -h` (tamanho das pastas),
   `ncdu ~` (navegar pelo espaço, instale com `sudo apt install ncdu`).
 - Libertar: esvaziar a Lixeira, `sudo apt clean` (cache de pacotes), `flatpak uninstall --unused`,
-  `journalctl --vacuum-size=200M` (registos antigos, com sudo).
+  `journalctl --vacuum-size=200M` (registros antigos, com sudo).
 
 ## Lixeira
 
@@ -83,9 +83,9 @@ $ unzip copia.zip                # extrair zip
 $ 7z x arquivo.7z                # extrair 7z (sudo apt install 7zip)
 ```
 
-## Telemóveis
+## Celulares
 
-- **Android:** ligue por cabo e escolha *Transferência de arquivos* no telemóvel; aparece nos Dispositivos.
-  Melhor ainda: **Telemóvel** (o aplicativo, com o KDE Connect instalado no telemóvel) para partilhar arquivos, notificações,
+- **Android:** ligue por cabo e escolha *Transferência de arquivos* no celular; aparece nos Dispositivos.
+  Melhor ainda: **Celular** (o aplicativo, com o KDE Connect instalado no celular) para compartilhar arquivos, notificações,
   área de transferência e controlar o PC pela rede.
-- **iPhone:** fotos por cabo (aparece como câmara). Para arquivos, use a nuvem ou o aplicativo Telemóvel.
+- **iPhone:** fotos por cabo (aparece como câmera). Para arquivos, use a nuvem ou o aplicativo Celular.

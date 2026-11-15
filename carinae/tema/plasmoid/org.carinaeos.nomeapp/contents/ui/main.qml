@@ -55,7 +55,7 @@ PlasmoidItem {
             QQC2.MenuItem { text: "Nova janela"; onTriggered: tarefas.requestNewInstance(raiz.ativo) }
             QQC2.MenuSeparator {}
             QQC2.MenuItem { text: "Minimizar"; onTriggered: tarefas.requestToggleMinimized(raiz.ativo) }
-            QQC2.MenuItem { text: "Ecrã inteiro / restaurar"; onTriggered: tarefas.requestToggleMaximized(raiz.ativo) }
+            QQC2.MenuItem { text: "Tela cheia / restaurar"; onTriggered: tarefas.requestToggleMaximized(raiz.ativo) }
             QQC2.MenuItem { text: "Manter por cima"; onTriggered: tarefas.requestToggleKeepAbove(raiz.ativo) }
             QQC2.MenuSeparator {}
             QQC2.MenuItem { text: "Fechar a janela"; onTriggered: tarefas.requestClose(raiz.ativo) }

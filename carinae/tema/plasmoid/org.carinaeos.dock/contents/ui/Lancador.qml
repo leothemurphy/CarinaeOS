@@ -353,9 +353,9 @@ Kicker.DashboardWindow {
         { id: "sis:dnd", nome: "Não incomodar", icone: "notifications-disabled" },
         { id: "sis:luz", nome: "Luz noturna", icone: "redshift-status-on" },
         { id: "mus:tocar", nome: "Tocar / pausar", icone: "media-playback-start" },
-        { id: "sis:captura", nome: "Captura de ecrã", icone: "spectacle" },
+        { id: "sis:captura", nome: "Captura de tela", icone: "spectacle" },
         { id: "sis:janelas", nome: "Todas as janelas", icone: "view-grid" },
-        { id: "sis:mesa", nome: "Mostrar a mesa", icone: "user-desktop" },
+        { id: "sis:mesa", nome: "Mostrar a área de trabalho", icone: "user-desktop" },
         { id: "sis:bloquear", nome: "Bloquear", icone: "system-lock-screen" },
         { id: "sis:suspender", nome: "Suspender", icone: "system-suspend" }
     ]
@@ -1075,7 +1075,7 @@ Kicker.DashboardWindow {
             id: menuCartao
             property var c: null
             QQC2.MenuItem {
-                text: menuCartao.c && menuCartao.c.fixo ? "Tirar dos primeiros" : "Pôr em primeiro"
+                text: menuCartao.c && menuCartao.c.fixo ? "Tirar dos primeiros" : "Colocar em primeiro"
                 onTriggered: lp.alternarFixo(menuCartao.c.orig)
             }
             QQC2.MenuItem { text: "Mudar o nome…"; onTriggered: formCartao.abrir("nome", menuCartao.c.orig, menuCartao.c.propria, null) }
@@ -1749,7 +1749,7 @@ Kicker.DashboardWindow {
                                             Repeater {
                                                 model: [
                                                     { ic: "color-management", dica: "Mudar a cor", f: "cor" },
-                                                    { ic: "insert-image", dica: "Pôr uma imagem (marca de água)", f: "img" },
+                                                    { ic: "insert-image", dica: "Colocar uma imagem (marca de água)", f: "img" },
                                                     { ic: "edit-clear", dica: "Tirar a imagem", f: "semimg" }
                                                 ].filter(b => b.f !== "semimg" || cartao.modelData.imagem !== "")
                                                 delegate: Rectangle {
@@ -2077,7 +2077,7 @@ Kicker.DashboardWindow {
                             Text { text: "Adicionar ao Deck"; color: lp.texto; font.pixelSize: Math.round(20 * palco.u); font.weight: Font.DemiBold }
                             Text {
                                 width: parent.width; wrapMode: Text.Wrap
-                                text: formAcoes.aCarregar ? "A procurar o que se pode pôr no Deck…" : "Toque numa ação para a pôr no Deck. As que mostram o estado acendem quando estão ligadas."
+                                text: formAcoes.aCarregar ? "Procurando o que se pode colocar no Deck…" : "Toque numa ação para a colocar no Deck. As que mostram o estado acendem quando estão ligadas."
                                 color: lp.suave; font.pixelSize: Math.round(12 * palco.u)
                             }
                         }
@@ -2242,7 +2242,7 @@ Kicker.DashboardWindow {
                             }
                             Text {
                                 visible: formSenha.erro !== "" || formSenha.aVerificar
-                                text: formSenha.aVerificar ? "A verificar…" : formSenha.erro
+                                text: formSenha.aVerificar ? "Verificando…" : formSenha.erro
                                 color: formSenha.aVerificar ? lp.suave : "#ff8a8a"
                                 font.pixelSize: Math.round(12 * palco.u)
                             }
@@ -2304,7 +2304,7 @@ Kicker.DashboardWindow {
                                 wrapMode: Text.Wrap
                                 visible: formCartao.modo === "novo"
                                 text: formCartao.app ? "«" + formCartao.app.nome + "» vai para este ambiente. Depois, botão direito noutros aplicativos › Mover para."
-                                                     : "Depois, botão direito num aplicativo › Mover para. Botão direito no ambiente › Pôr em primeiro."
+                                                     : "Depois, botão direito num aplicativo › Mover para. Botão direito no ambiente › Colocar em primeiro."
                                 color: lp.suave
                                 font.pixelSize: Math.round(12 * palco.u)
                             }
@@ -2313,7 +2313,7 @@ Kicker.DashboardWindow {
                                 spacing: 10
                                 anchors.right: parent.right
                                 QQC2.Button { text: "Cancelar"; onClicked: { formCartao.visible = false; busca.forceActiveFocus(); } }
-                                QQC2.Button { text: formCartao.modo === "novo" ? "Criar" : "Guardar"; highlighted: true; onClicked: formCartao.guardar() }
+                                QQC2.Button { text: formCartao.modo === "novo" ? "Criar" : "Salvar"; highlighted: true; onClicked: formCartao.guardar() }
                             }
                         }
                     }
@@ -2354,7 +2354,7 @@ Kicker.DashboardWindow {
                             Text {
                                 width: parent.width
                                 wrapMode: Text.Wrap
-                                text: "Um comando (ex.: <i>kcalc</i>) ou um site (ex.: <i>https://youtube.com</i>). Para pôr um aplicativo, use o botão direito sobre ele › Adicionar ao Deck."
+                                text: "Um comando (ex.: <i>kcalc</i>) ou um site (ex.: <i>https://youtube.com</i>). Para colocar um aplicativo, use o botão direito sobre ele › Adicionar ao Deck."
                                 color: lp.suave
                                 font.pixelSize: Math.round(12 * palco.u)
                             }
@@ -2520,7 +2520,7 @@ Kicker.DashboardWindow {
                     visible: lp.selecionado === null
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.Wrap
-                    text: "Passe o rato por um aplicativo para ver os detalhes"
+                    text: "Passe o mouse por um aplicativo para ver os detalhes"
                     color: lp.suave
                     font.pixelSize: Math.round(13 * palco.u)
                 }

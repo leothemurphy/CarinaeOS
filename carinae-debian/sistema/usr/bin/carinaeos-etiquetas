@@ -257,7 +257,7 @@ def main():
             print('%s\t%s' % (', '.join(tags), url))
         return
     acao, resto = a[0], a[1:]
-    if acao == 'pôr' and len(resto) >= 2:
+    if acao == 'colocar' and len(resto) >= 2:
         mudar(resto[1:], por=resto[0])
     elif acao == 'outra' and resto:
         cmd = (['kdialog', '--title', 'Etiqueta', '--inputbox', 'Nome da etiqueta:'] if shutil.which('kdialog') else
@@ -272,7 +272,7 @@ def main():
         else:
             mudar(resto, tirar='*')
     else:
-        print(__doc__ if __doc__ else 'uso: carinaeos-etiquetas pôr|tirar|outra|listar ...')
+        print(__doc__ if __doc__ else 'uso: carinaeos-etiquetas colocar|tirar|outra|listar ...')
 
 
 if __name__ == '__main__':

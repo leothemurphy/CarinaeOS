@@ -35,10 +35,10 @@ case "$1" in
     preparar
     NOME="$2"; CAM="$3"; MODO="$4"; U="$5"
     ACL="Everyone:R"; [ "$MODO" = rw ] && ACL="Everyone:F"
-    net usershare add "$NOME" "$CAM" "Partilhada pelo CarinaeOS" "$ACL" guest_ok=y
+    net usershare add "$NOME" "$CAM" "Compartilhada pelo CarinaeOS" "$ACL" guest_ok=y
     [ -n "$U" ] && chown "$U" "/var/lib/samba/usershares/$(echo "$NOME" | tr 'A-Z' 'a-z')" 2>/dev/null || true
     [ "$MODO" = rw ] && chmod o+rwx "$CAM" || true
     systemctl enable --now smbd >/dev/null 2>&1 || true
     ;;
-  *) echo "uso: $0 ligar UTILIZADOR | desligar | pasta NOME CAMINHO ro|rw UTILIZADOR" >&2; exit 2 ;;
+  *) echo "uso: $0 ligar USUÁRIO | desligar | pasta NOME CAMINHO ro|rw USUÁRIO" >&2; exit 2 ;;
 esac

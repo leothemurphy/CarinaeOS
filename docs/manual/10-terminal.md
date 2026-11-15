@@ -169,7 +169,7 @@ free -h; lsblk; df -h
 lspci; lsusb; inxi -Fxz
 sensors                         # temperaturas
 sudo dmesg -T | tail            # mensagens do kernel
-journalctl -b -p err            # erros deste arranque
+journalctl -b -p err            # erros desta inicialização
 date; cal; timedatectl
 whoami; id; groups; w; last     # usuários e sessões
 env; echo $PATH                 # variáveis de ambiente
@@ -230,7 +230,7 @@ flatpak search x; flatpak install flathub id; flatpak update; flatpak list
 chmod +x app.AppImage && ./app.AppImage
 ```
 
-## Serviços, arranque e registos (systemd)
+## Serviços, inicialização e registros (systemd)
 
 ```
 systemctl status serviço
@@ -238,7 +238,7 @@ sudo systemctl restart serviço
 sudo systemctl enable --now serviço
 systemctl --failed
 journalctl -u serviço -f
-journalctl -b -1 -p err           # erros do arranque anterior
+journalctl -b -1 -p err           # erros da inicialização anterior
 systemd-analyze blame
 systemctl list-timers             # tarefas agendadas
 ```

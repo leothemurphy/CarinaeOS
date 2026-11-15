@@ -108,7 +108,7 @@ class Orbita(QObject):
         self._relogio.setInterval(1000)
         self._relogio.timeout.connect(self._medir)
         self._pronto = False
-        self._estado = 'A preparar a loja…'
+        self._estado = 'Preparando a loja…'
         self._resultados = []
         self._proc = {}
         self._buscador = None
@@ -127,7 +127,7 @@ class Orbita(QObject):
 
     def _preparado(self, p):
         self._pronto = True
-        self._estado = '' if p.exitCode() == 0 else 'Sem ligação à internet: ligue-se para instalar aplicativos.'
+        self._estado = '' if p.exitCode() == 0 else 'Sem conexão à internet: ligue-se para instalar aplicativos.'
         self.mudou.emit()
 
     def ler_instalados(self):
@@ -198,7 +198,7 @@ class Orbita(QObject):
     def _correr_flatpak(self, ident, args, tipo):
         self._fila[ident] = tipo
         self._progresso[ident] = 0
-        self._detalhe[ident] = 'a preparar…'
+        self._detalhe[ident] = 'preparando…'
         self._passo.pop(ident, None)
         self._rede0[ident] = self._bytes_rede()
         self.mudou.emit()
