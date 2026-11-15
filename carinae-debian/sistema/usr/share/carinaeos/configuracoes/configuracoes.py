@@ -304,6 +304,11 @@ class Config(QObject):
                 e['auto'] = 'NTP=yes' in cmd(['timedatectl', 'show', '-p', 'NTP'])
                 e['fuso'] = cmd(['timedatectl', 'show', '-p', 'Timezone', '--value'])
                 e['agora'] = cmd(['date', '+%A, %d de %B de %Y · %H:%M'])
+            elif pagina == 'contas':
+                try:
+                    e['google'] = json.loads(cmd(['carinaeos-contas', 'listar']) or '{}')
+                except Exception:
+                    e['google'] = {}
             elif pagina == 'utilizadores':
                 e['usuario'] = os.environ.get('USER') or os.path.basename(HOME)
                 nome = cmd(['getent', 'passwd', e['usuario']]).split(':')
@@ -318,6 +323,66 @@ class Config(QObject):
             if isinstance(r, dict):
                 self._estado = r
                 self.mudou.emit()
+        self._fundo(trabalho, depois)
+
+    # ---- contas Google (login proprio: carinaeos-contas) -------------------------------------------
+    def _contas(self, args, msg_ok='', espera=600):
+        def trabalho():
+            return subprocess.run(['carinaeos-contas'] + args, capture_output=True, text=True, timeout=espera)
+
+        def depois(r):
+            if isinstance(r, Exception):
+                self._aviso('Não foi possível: %s' % r)
+            elif r.returncode != 0:
+                self._aviso((r.stderr or 'Não foi possível.').strip().splitlines()[-1])
+            elif msg_ok:
+                self._aviso(msg_ok)
+            self.ler('contas')
+        self._fundo(trabalho, depois)
+
+    @Slot()
+    def entrarGoogle(self):
+        self._aviso('O Google abriu no navegador: entre com a sua conta e autorize o CarinaeOS.')
+        self._contas(['entrar-google'], 'Conta Google ligada.')
+
+    @Slot(str)
+    def removerGoogle(self, email):
+        self._contas(['remover', email], 'Conta desligada.', 60)
+
+    @Slot(str, bool)
+    def driveGoogle(self, email, ligar):
+        self._contas(['drive', email, 'on' if ligar else 'off'], 'Google Drive ligado em Arquivos.' if ligar else '', 120)
+
+    def _configurar(self, dados):
+        try:
+            r = subprocess.run(['carinaeos-contas', 'configurar-google'], input=json.dumps(dados),
+                               capture_output=True, text=True, timeout=20)
+            self._aviso('Login do Google configurado. Já pode ligar a conta.' if r.returncode == 0
+                        else 'Não foi possível guardar: ' + (r.stderr or '').strip())
+        except Exception as e:
+            self._aviso('Não foi possível guardar: %s' % e)
+        self.ler('contas')
+
+    @Slot(str, str)
+    def configurarGoogle(self, cid, segredo):
+        if not cid.strip().endswith('.apps.googleusercontent.com'):
+            self._aviso('O ID do cliente acaba em .apps.googleusercontent.com — confira o que copiou.')
+            return
+        self._configurar({'client_id': cid.strip(), 'client_secret': segredo.strip()})
+
+    @Slot()
+    def ficheiroGoogle(self):
+        def trabalho():
+            return cmd(['kdialog', '--title', 'Ficheiro do cliente Google', '--getopenfilename',
+                        os.path.join(HOME, 'Downloads'), 'application/json'], 600)
+
+        def depois(f):
+            if isinstance(f, str) and f:
+                try:
+                    with open(f) as x:
+                        self._configurar(json.load(x))
+                except Exception as e:
+                    self._aviso('Esse ficheiro não é o JSON do cliente Google (%s).' % e)
         self._fundo(trabalho, depois)
 
     # ---- acoes ------------------------------------------------------------------------------------

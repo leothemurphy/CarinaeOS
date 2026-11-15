@@ -33,6 +33,8 @@ ApplicationWindow {
     property var contasModelo: null
     property string contasErro: ""
     property string contasAviso: ""
+    property string gId: ""
+    property string gSegredo: ""
     readonly property string kaImport: "import org.kde.kaccounts 1.2 as KA\n"
     function prepararContas(): void {
         if (contasModelo || contasErro !== "") return;
@@ -636,6 +638,30 @@ ApplicationWindow {
                 Grupo {
                     visible: janela.pagina === "contas"
                     titulo: "Contas ligadas"
+                    Repeater {      // contas Google (login do CarinaeOS)
+                        id: rptGoogle
+                        model: (janela.e.google || {}).contas || []
+                        delegate: Linha {
+                            id: lGoogle
+                            required property var modelData
+                            property bool confirmar: false
+                            titulo: modelData.email
+                            sub: "Google" + (modelData.nome ? " · " + modelData.nome : "") + (modelData.drive ? " · Drive em " + String(modelData.pasta || "").replace(/^.*\//, "") : "")
+                            icone: "im-google"
+                            Row {
+                                spacing: 8
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: "Drive"; color: janela.suave; font.pixelSize: 12 }
+                                Switch { anchors.verticalCenter: parent.verticalCenter; checked: !!lGoogle.modelData.drive; onToggled: ajustes.driveGoogle(lGoogle.modelData.email, checked) }
+                                Botao {
+                                    texto: lGoogle.confirmar ? "Desligar mesmo?" : "Desligar"
+                                    onCarregado: {
+                                        if (!lGoogle.confirmar) { lGoogle.confirmar = true; return; }
+                                        ajustes.removerGoogle(lGoogle.modelData.email);
+                                    }
+                                }
+                            }
+                        }
+                    }
                     Repeater {
                         id: rptContas
                         model: janela.contasModelo
@@ -656,7 +682,7 @@ ApplicationWindow {
                         }
                     }
                     Linha {
-                        visible: rptContas.count === 0
+                        visible: rptContas.count === 0 && rptGoogle.count === 0
                         titulo: janela.contasErro !== "" ? "As contas online não estão disponíveis" : "Ainda não há contas ligadas"
                         sub: janela.contasErro !== "" ? janela.contasErro : "Escolha um provedor abaixo e entre com a sua conta."
                         icone: "user-identity"
@@ -665,7 +691,15 @@ ApplicationWindow {
                 Grupo {
                     visible: janela.pagina === "contas"
                     titulo: "Adicionar uma conta"
-                    Linha { titulo: "Google"; sub: "Gmail, Google Drive e calendário — abre a página de entrada do Google"; icone: "im-google"; clicavel: true; onCarregado: janela.adicionarConta("google"); Seta {} }
+                    Linha {
+                        titulo: "Google"
+                        sub: (janela.e.google || {}).configurado ? "Abre o Google no navegador para entrar e autorizar o CarinaeOS"
+                                                                  : "Primeiro, configure o login do Google (uma vez) aqui em baixo"
+                        icone: "im-google"
+                        clicavel: !!(janela.e.google || {}).configurado
+                        onCarregado: ajustes.entrarGoogle()
+                        Seta {}
+                    }
                     Linha { titulo: "Nextcloud"; sub: "Arquivos, calendário e contactos — entra no seu servidor Nextcloud"; icone: "folder-cloud"; clicavel: true; onCarregado: janela.adicionarConta("nextcloud"); Seta {} }
                     Linha { titulo: "ownCloud"; sub: "Arquivos — entra no seu servidor ownCloud"; icone: "folder-cloud"; clicavel: true; onCarregado: janela.adicionarConta("owncloud"); Seta {} }
                     Linha {
@@ -675,10 +709,42 @@ ApplicationWindow {
                     }
                 }
                 Grupo {
+                    visible: janela.pagina === "contas" && janela.e.google !== undefined && !janela.e.google.configurado
+                    titulo: "Configurar o login do Google (uma vez)"
+                    Linha { titulo: "1. Crie o cliente no Google Cloud"; sub: "Tipo «App para computador», com o nome CarinaeOS"; icone: "internet-web-browser"; clicavel: true; onCarregado: ajustes.abrir("xdg-open https://console.cloud.google.com/auth/clients"); Seta {} }
+                    Linha { titulo: "2. Escolha o ficheiro JSON que descarregou"; sub: "client_secret_….json, na pasta Transferências"; icone: "document-open"; clicavel: true; onCarregado: ajustes.ficheiroGoogle(); Seta {} }
+                    Item {
+                        width: parent.width; height: 132
+                        Text { x: 16; y: 10; text: "… ou cole o ID e o segredo do cliente"; color: janela.texto; font.pixelSize: 13 }
+                        Repeater {
+                            model: [["ID do cliente (….apps.googleusercontent.com)", false], ["Segredo do cliente (GOCSPX-…)", true]]
+                            delegate: Rectangle {
+                                required property var modelData
+                                required property int index
+                                x: 16; y: 36 + index * 44; width: parent.width - 32 - (index === 1 ? btGuardarG.width + 10 : 0); height: 36; radius: 8
+                                color: Qt.rgba(1, 1, 1, 0.07)
+                                border.color: campoG.activeFocus ? janela.realce : janela.linha
+                                TextField {
+                                    id: campoG
+                                    anchors.fill: parent; anchors.leftMargin: 6
+                                    background: Item {}
+                                    color: janela.texto
+                                    echoMode: parent.modelData[1] ? TextInput.Password : TextInput.Normal
+                                    placeholderText: parent.modelData[0]
+                                    placeholderTextColor: janela.suave
+                                    font.pixelSize: 13
+                                    onTextChanged: { if (parent.index === 0) janela.gId = text; else janela.gSegredo = text; }
+                                }
+                            }
+                        }
+                        Botao { id: btGuardarG; x: parent.width - width - 16; y: 37 + 44; texto: "Guardar"; principal: true; onCarregado: ajustes.configurarGoogle(janela.gId, janela.gSegredo) }
+                    }
+                }
+                Grupo {
                     visible: janela.pagina === "contas"
                     titulo: "Calendários pelo endereço (iCal)"
                     Linha { titulo: "Google, iCloud ou Outlook"; sub: "Mostrar um calendário no relógio pelo endereço secreto iCal"; icone: "view-calendar"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-central calendarios"); Seta {} }
-                    Linha { titulo: "Abrir o Google Drive"; sub: "Nos Meus documentos (depois de ligar a conta Google)"; icone: "folder-gdrive"; clicavel: true; onCarregado: ajustes.abrir("dolphin --new-window gdrive:/"); Seta {} }
+                    Linha { titulo: "Abrir o Google Drive"; sub: "A pasta Google Drive (ligue o Drive na conta, em cima)"; icone: "folder-gdrive"; clicavel: true; onCarregado: ajustes.abrir("dolphin --new-window \"$HOME/Google Drive\""); Seta {} }
                 }
 
                 // ===== Dock =====

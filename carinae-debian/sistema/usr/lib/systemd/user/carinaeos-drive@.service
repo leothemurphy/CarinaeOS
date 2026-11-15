@@ -1,0 +1,12 @@
+[Unit]
+Description=Google Drive (%i) nos Arquivos — CarinaeOS
+After=network-online.target graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/carinaeos-contas servico-drive %i
+Restart=on-failure
+RestartSec=20
+
+[Install]
+WantedBy=default.target

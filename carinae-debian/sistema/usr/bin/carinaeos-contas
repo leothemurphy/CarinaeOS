@@ -1,0 +1,294 @@
+#!/usr/bin/python3
+"""CarinaeOS - Contas: entrar com a conta Google pelo navegador (login proprio do CarinaeOS).
+
+  carinaeos-contas listar                     JSON com as contas ligadas
+  carinaeos-contas entrar-google              abre o Google no navegador; no fim a conta fica ligada
+  carinaeos-contas remover <email>            desliga a conta (revoga o acesso e apaga os dados locais)
+  carinaeos-contas drive <email> on|off       monta / desmonta o Google Drive em ~/Google Drive
+  carinaeos-contas configurar-google          le {"client_id","client_secret"} da entrada padrao
+  carinaeos-contas servico-drive <remoto>     (usado pelo systemd: corre o rclone mount)
+
+O login usa o fluxo OAuth para aplicacoes instaladas (PKCE + endereco 127.0.0.1): o Google abre no
+navegador normal da pessoa, com o nome da app "CarinaeOS". O cliente OAuth fica em
+~/.config/carinaeos/google-cliente.json (ou /etc/carinaeos/google-cliente.json).
+Os tokens ficam em ~/.local/share/carinaeos/contas (pasta 700, ficheiros 600).
+O Drive e montado com o rclone (fuse) por um servico de utilizador carinaeos-drive@<remoto>.
+"""
+import base64
+import hashlib
+import html
+import http.server
+import json
+import os
+import re
+import secrets
+import shutil
+import subprocess
+import sys
+import threading
+import time
+import urllib.parse
+import urllib.request
+
+CONF = os.path.join(os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config')), 'carinaeos')
+DADOS = os.path.join(os.environ.get('XDG_DATA_HOME', os.path.expanduser('~/.local/share')), 'carinaeos', 'contas')
+CLIENTE = [os.path.join(CONF, 'google-cliente.json'), '/etc/carinaeos/google-cliente.json']
+AUTH = 'https://accounts.google.com/o/oauth2/v2/auth'
+TOKEN = 'https://oauth2.googleapis.com/token'
+REVOGAR = 'https://oauth2.googleapis.com/revoke'
+ESCOPOS = 'openid email profile https://www.googleapis.com/auth/drive'
+
+
+def aviso(titulo, texto='', icone='carinaeos'):
+    try:
+        subprocess.run(['notify-send', '-a', 'Contas', '-i', icone, titulo, texto], timeout=5)
+    except Exception:
+        pass
+
+
+def cliente():
+    for f in CLIENTE:
+        try:
+            with open(f) as x:
+                c = json.load(x)
+            if c.get('client_id'):
+                return c
+        except Exception:
+            pass
+    return None
+
+
+def gravar(f, d):
+    os.makedirs(os.path.dirname(f), mode=0o700, exist_ok=True)
+    tmp = f + '.tmp'
+    with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), 'w') as x:
+        json.dump(d, x, indent=1)
+    os.replace(tmp, f)
+
+
+def ficheiro(email):
+    return os.path.join(DADOS, 'google-' + re.sub(r'[^A-Za-z0-9@._-]', '_', email) + '.json')
+
+
+def contas():
+    r = []
+    if os.path.isdir(DADOS):
+        for n in sorted(os.listdir(DADOS)):
+            if n.endswith('.json'):
+                try:
+                    with open(os.path.join(DADOS, n)) as x:
+                        r.append(json.load(x))
+                except Exception:
+                    pass
+    return r
+
+
+def post(url, dados):
+    req = urllib.request.Request(url, data=urllib.parse.urlencode(dados).encode(),
+                                 headers={'Content-Type': 'application/x-www-form-urlencoded'})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read().decode() or '{}')
+
+
+def jwt(token):
+    p = token.split('.')[1]
+    return json.loads(base64.urlsafe_b64decode(p + '=' * (-len(p) % 4)))
+
+
+PAGINA = '''<!doctype html><html lang="pt"><meta charset="utf-8"><title>CarinaeOS</title>
+<style>body{margin:0;height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;color:#f6f2ff;
+background:radial-gradient(circle at 30%% 20%%,#3b2a8a,#0b0820 70%%)}div{text-align:center;padding:48px 56px;border-radius:28px;
+background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18)}h1{margin:.2em 0;font-weight:600}p{opacity:.75}
+.e{font-size:56px}</style><div><div class="e">%s</div><h1>%s</h1><p>%s</p></div></html>'''
+
+
+def entrar_google():
+    c = cliente()
+    if not c:
+        print('Falta configurar o cliente do Google.', file=sys.stderr)
+        return 2
+    verificador = secrets.token_urlsafe(64)
+    desafio = base64.urlsafe_b64encode(hashlib.sha256(verificador.encode()).digest()).rstrip(b'=').decode()
+    estado = secrets.token_urlsafe(24)
+    resultado = {}
+
+    class Pedido(http.server.BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def do_GET(self):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            if 'code' not in q and 'error' not in q:
+                self.send_response(404)
+                self.end_headers()
+                return
+            ok = q.get('state', [''])[0] == estado and 'code' in q
+            if ok:
+                resultado['code'] = q['code'][0]
+                corpo = PAGINA % ('✦', 'Conta ligada ao CarinaeOS', 'Já pode fechar esta página e voltar às Configurações.')
+            else:
+                resultado['erro'] = q.get('error', ['pedido inválido'])[0]
+                corpo = PAGINA % ('✕', 'Não foi possível ligar a conta', html.escape(resultado['erro']))
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(corpo.encode())
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
+
+    srv = http.server.HTTPServer(('127.0.0.1', 0), Pedido)
+    redirect = 'http://127.0.0.1:%d' % srv.server_address[1]
+    url = AUTH + '?' + urllib.parse.urlencode({
+        'client_id': c['client_id'], 'redirect_uri': redirect, 'response_type': 'code', 'scope': ESCOPOS,
+        'code_challenge': desafio, 'code_challenge_method': 'S256', 'state': estado,
+        'access_type': 'offline', 'prompt': 'consent select_account'})
+    subprocess.Popen(['xdg-open', url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    limite = threading.Timer(300, srv.shutdown)     # 5 minutos para acabar o login
+    limite.daemon = True
+    limite.start()
+    srv.serve_forever()
+    limite.cancel()
+    srv.server_close()
+    if 'code' not in resultado:
+        print(resultado.get('erro', 'cancelado'), file=sys.stderr)
+        return 1
+    dados = {'code': resultado['code'], 'client_id': c['client_id'], 'redirect_uri': redirect,
+             'grant_type': 'authorization_code', 'code_verifier': verificador}
+    if c.get('client_secret'):
+        dados['client_secret'] = c['client_secret']
+    try:
+        t = post(TOKEN, dados)
+    except Exception as e:
+        print('Erro ao pedir o token: %s' % e, file=sys.stderr)
+        return 1
+    info = jwt(t['id_token']) if t.get('id_token') else {}
+    email = info.get('email')
+    if not email:
+        print('O Google não devolveu o email.', file=sys.stderr)
+        return 1
+    antiga = {}
+    try:
+        with open(ficheiro(email)) as x:
+            antiga = json.load(x)
+    except Exception:
+        pass
+    conta = {
+        'provedor': 'google', 'email': email, 'nome': info.get('name', ''), 'foto': info.get('picture', ''),
+        'access_token': t.get('access_token', ''), 'refresh_token': t.get('refresh_token') or antiga.get('refresh_token', ''),
+        'expira': int(time.time()) + int(t.get('expires_in', 3600)), 'escopos': t.get('scope', ''),
+        'drive': antiga.get('drive', False), 'ligada_em': antiga.get('ligada_em') or time.strftime('%Y-%m-%d %H:%M'),
+    }
+    gravar(ficheiro(email), conta)
+    aviso('Conta Google ligada', email)
+    print(email)
+    return 0
+
+
+# ---- Google Drive (rclone) ------------------------------------------------------------------
+def remoto(email):
+    return 'gdrive-' + re.sub(r'[^a-z0-9]', '', email.split('@')[0].lower())[:20]
+
+
+def pasta_drive(email):
+    outras = [c for c in contas() if c.get('drive') and c.get('email') != email]
+    base = os.path.expanduser('~/Google Drive')
+    return base if not outras else base + ' (' + email + ')'
+
+
+def drive(email, ligar):
+    if not shutil.which('rclone'):
+        aviso('Falta o rclone', 'sudo apt install rclone fuse3', 'dialog-error')
+        return 2
+    try:
+        with open(ficheiro(email)) as x:
+            conta = json.load(x)
+    except Exception:
+        return 1
+    rem = remoto(email)
+    unidade = 'carinaeos-drive@%s.service' % rem
+    if not ligar:
+        subprocess.run(['systemctl', '--user', 'disable', '--now', unidade], capture_output=True)
+        conta['drive'] = False
+        gravar(ficheiro(email), conta)
+        return 0
+    c = cliente() or {}
+    token = json.dumps({'access_token': conta.get('access_token', ''), 'token_type': 'Bearer',
+                        'refresh_token': conta.get('refresh_token', ''),
+                        'expiry': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(conta.get('expira', 0)))})
+    r = subprocess.run(['rclone', 'config', 'create', rem, 'drive', 'client_id=' + c.get('client_id', ''),
+                        'client_secret=' + c.get('client_secret', ''), 'scope=drive', 'token=' + token,
+                        '--non-interactive'], capture_output=True, text=True)
+    if r.returncode != 0:
+        print(r.stderr, file=sys.stderr)
+        return 1
+    conta['drive'] = True
+    conta['pasta'] = conta.get('pasta') or pasta_drive(email)
+    conta['remoto'] = rem
+    gravar(ficheiro(email), conta)
+    os.makedirs(conta['pasta'], exist_ok=True)
+    subprocess.run(['systemctl', '--user', 'daemon-reload'], capture_output=True)
+    subprocess.run(['systemctl', '--user', 'enable', '--now', unidade], capture_output=True)
+    aviso('Google Drive ligado', 'Os seus ficheiros estão em ' + conta['pasta'])
+    return 0
+
+
+def servico_drive(rem):
+    for c in contas():
+        if c.get('remoto') == rem and c.get('pasta'):
+            os.makedirs(c['pasta'], exist_ok=True)
+            os.execvp('rclone', ['rclone', 'mount', rem + ':', c['pasta'], '--vfs-cache-mode', 'full',
+                                 '--dir-cache-time', '30s', '--poll-interval', '30s', '--volname', 'Google Drive'])
+    print('Conta não encontrada para ' + rem, file=sys.stderr)
+    return 1
+
+
+def remover(email):
+    try:
+        with open(ficheiro(email)) as x:
+            conta = json.load(x)
+    except Exception:
+        return 1
+    if conta.get('drive'):
+        drive(email, False)
+    if conta.get('remoto') and shutil.which('rclone'):
+        subprocess.run(['rclone', 'config', 'delete', conta['remoto']], capture_output=True)
+    tok = conta.get('refresh_token') or conta.get('access_token')
+    if tok:
+        try:
+            post(REVOGAR, {'token': tok})
+        except Exception:
+            pass
+    os.remove(ficheiro(email))
+    aviso('Conta desligada', email)
+    return 0
+
+
+def main():
+    a = sys.argv[1:]
+    if not a:
+        print(__doc__)
+        return 1
+    if a[0] == 'listar':
+        r = [{k: c.get(k) for k in ('provedor', 'email', 'nome', 'foto', 'drive', 'pasta', 'ligada_em')} for c in contas()]
+        print(json.dumps({'configurado': cliente() is not None, 'contas': r,
+                          'rclone': shutil.which('rclone') is not None}))
+        return 0
+    if a[0] == 'entrar-google':
+        return entrar_google()
+    if a[0] == 'remover' and len(a) > 1:
+        return remover(a[1])
+    if a[0] == 'drive' and len(a) > 2:
+        return drive(a[1], a[2] == 'on')
+    if a[0] == 'servico-drive' and len(a) > 1:
+        return servico_drive(a[1])
+    if a[0] == 'configurar-google':
+        d = json.load(sys.stdin)
+        if 'installed' in d:            # o ficheiro JSON que o Google Cloud deixa descarregar
+            d = d['installed']
+        gravar(os.path.join(CONF, 'google-cliente.json'),
+               {'client_id': d['client_id'].strip(), 'client_secret': d.get('client_secret', '').strip()})
+        return 0
+    return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())
