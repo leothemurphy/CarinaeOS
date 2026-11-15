@@ -249,8 +249,10 @@ PlasmoidItem {
         }
     }
     Timer {
-        interval: 1200
-        running: true
+        // lê as definições do Supernova e a fila de "Adicionar à Dock": cada leitura arranca um processo,
+        // por isso só de 4 em 4 s e nunca enquanto o rato está na Dock (era um dos solavancos da ampliação)
+        interval: 4000
+        running: !dock.ampliado
         repeat: true
         triggeredOnStart: true
         // a fila (~/.cache/carinaeos/dock-adicionar) e lida e apagada de uma vez
