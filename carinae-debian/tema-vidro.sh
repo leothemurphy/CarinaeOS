@@ -39,7 +39,7 @@ sed -i -E \
   -e 's/^link\.color=.*/link.color=#ffb46e/' -e 's/^link\.visited\.color=.*/link.visited.color=#ff8fb0/' \
   -e 's/^text\.color=.*/text.color=#f2ecfa/' -e 's/^window\.text\.color=.*/window.text.color=#f2ecfa/' \
   -e 's/^button\.text\.color=.*/button.text.color=#f2ecfa/' \
-  -e 's/^reduce_window_opacity=.*/reduce_window_opacity=18/' -e 's/^reduce_menu_opacity=.*/reduce_menu_opacity=12/' \
+  -e 's/^reduce_window_opacity=.*/reduce_window_opacity=6/' -e 's/^reduce_menu_opacity=.*/reduce_menu_opacity=4/' \
   "$KV/CarinaeOS.kvconfig"
 mkdir -p "$R/etc/xdg/Kvantum"
 printf '[General]\ntheme=CarinaeOS\n' > "$R/etc/xdg/Kvantum/kvantum.kvconfig"
