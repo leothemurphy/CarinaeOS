@@ -39,7 +39,10 @@ Kicker.DashboardWindow {
     readonly property var paleta: [
         ["#8a4dff", "#d06bff"], ["#2d6bff", "#4fc3ff"], ["#0f9d8a", "#3ee0b0"], ["#ff7a3d", "#ffc04d"],
         ["#ff4f8b", "#ff9bb8"], ["#4b3bd6", "#8a6bff"], ["#2fae55", "#9be06a"], ["#e5484d", "#ff8a65"],
-        ["#0891b2", "#67e8f9"], ["#b45309", "#fbbf24"]
+        ["#0891b2", "#67e8f9"], ["#b45309", "#fbbf24"],
+        ["#1e293b", "#64748b"], ["#7c2d12", "#ea580c"], ["#be185d", "#f472b6"], ["#065f46", "#34d399"],
+        ["#1e3a8a", "#60a5fa"], ["#581c87", "#c084fc"], ["#a16207", "#fde047"], ["#0f766e", "#5eead4"],
+        ["#9f1239", "#fb7185"], ["#3f3f46", "#d4d4d8"], ["#4d7c0f", "#bef264"], ["#c2410c", "#fdba74"]
     ]
 
     // ---- estado -----------------------------------------------------------------
@@ -475,15 +478,30 @@ Kicker.DashboardWindow {
             const f = (dados["stdout"] || "").trim();
             const o = lp.imagemPara;
             if (f !== "" && o !== "") lp.mudarCartoes(c => { c.imagens[o] = "file://" + f; });
+            reabrir.restart();      // deixa a gravação acabar antes de voltar a ler o ficheiro
         }
+    }
+    property bool voltarAEditar: false
+    readonly property Timer reabrir: Timer {
+        interval: 450
+        onTriggered: { lp.voltarAEditar = true; if (!lp.visible) lp.toggle(); else { lp.editando = true; lp.voltarAEditar = false; } }
     }
     function pedirImagem(orig: string): void {
         imagemPara = orig;
+        if (visible) toggle();      // a janela de ficheiros não aparece por cima do Launchpad
         escolherImagem.connectSource("kdialog --title 'Imagem do ambiente' --getopenfilename \"$(xdg-user-dir PICTURES)\" "
             + "'image/png image/jpeg image/webp image/svg+xml' 2>/dev/null #" + Date.now());
     }
     function tirarImagem(orig: string): void {
         mudarCartoes(c => { delete c.imagens[orig]; });
+    }
+    function definirCor(orig: string, i: int): void {
+        mudarCartoes(c => { c.cores[orig] = i; });
+    }
+    function abrirCores(orig: string, junto: var): void {
+        tabelaCores.orig = orig;
+        tabelaCores.parent = junto || palco;
+        tabelaCores.open();
     }
     function mudarCor(orig: string): void {
         mudarCartoes(c => {
@@ -541,7 +559,8 @@ Kicker.DashboardWindow {
             formCartao.visible = false;
             busca.text = "";
             formDeck.visible = false;
-            lp.editando = false;
+            lp.editando = lp.voltarAEditar;
+            lp.voltarAEditar = false;
             vista = "inicio";
             busca.forceActiveFocus();
             entrada.restart();
@@ -800,6 +819,61 @@ Kicker.DashboardWindow {
                 onTriggered: { const a = menuMover.app; Qt.callLater(() => lp.tirarDoCartao(a)); }
             }
         }
+        // tabela de cores de um ambiente
+        QQC2.Popup {
+            id: tabelaCores
+            property string orig: ""
+            readonly property int atual: {
+                const c = lp.cartoesCfg.cores || {};
+                return c[orig] !== undefined ? c[orig] % lp.paleta.length : -1;
+            }
+            x: !parent ? 0 : parent === palco ? (palco.width - width) / 2 : Math.min(0, parent.width - width)
+            y: !parent ? 0 : parent === palco ? (palco.height - height) / 2 : parent.height + Math.round(8 * palco.u)
+            modal: false
+            margins: Math.round(12 * palco.u)
+            padding: Math.round(14 * palco.u)
+            onClosed: parent = palco
+            background: Rectangle {
+                radius: Math.round(18 * palco.u)
+                color: Qt.rgba(0.08, 0.08, 0.12, 0.96)
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.18)
+            }
+            contentItem: Column {
+                spacing: Math.round(10 * palco.u)
+                Text { text: "Cor do ambiente"; color: "white"; font.pixelSize: Math.round(14 * palco.u); font.weight: Font.DemiBold }
+                Grid {
+                    columns: 6
+                    spacing: Math.round(8 * palco.u)
+                    Repeater {
+                        model: lp.paleta.length
+                        delegate: Rectangle {
+                            id: amostra
+                            required property int index
+                            width: Math.round(38 * palco.u)
+                            height: width
+                            radius: width / 2
+                            gradient: Gradient {
+                                orientation: Gradient.Horizontal
+                                GradientStop { position: 0; color: lp.paleta[amostra.index][0] }
+                                GradientStop { position: 1; color: lp.paleta[amostra.index][1] }
+                            }
+                            border.width: tabelaCores.atual === index ? 3 : (mAm.containsMouse ? 2 : 0)
+                            border.color: "white"
+                            scale: mAm.containsMouse ? 1.1 : 1
+                            Kirigami.Icon { visible: tabelaCores.atual === amostra.index; anchors.centerIn: parent; source: "checkmark"; width: parent.width * 0.5; height: width; color: "white"; isMask: true }
+                            MouseArea {
+                                id: mAm
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: { const o = tabelaCores.orig, i = amostra.index; tabelaCores.close(); Qt.callLater(() => lp.definirCor(o, i)); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
         // menu do botão direito de um cartão
         QQC2.Menu {
             id: menuCartao
@@ -809,7 +883,7 @@ Kicker.DashboardWindow {
                 onTriggered: lp.alternarFixo(menuCartao.c.orig)
             }
             QQC2.MenuItem { text: "Mudar o nome…"; onTriggered: formCartao.abrir("nome", menuCartao.c.orig, menuCartao.c.propria, null) }
-            QQC2.MenuItem { text: "Mudar a cor"; onTriggered: lp.mudarCor(menuCartao.c.orig) }
+            QQC2.MenuItem { text: "Mudar a cor…"; onTriggered: { const o = menuCartao.c.orig; Qt.callLater(() => lp.abrirCores(o, null)); } }
             QQC2.MenuSeparator {}
             QQC2.MenuItem { text: "Novo ambiente…"; onTriggered: formCartao.abrir("novo", "", false, null) }
             QQC2.MenuItem {
@@ -1489,7 +1563,7 @@ Kicker.DashboardWindow {
                                                         onClicked: {
                                                             const o = cartao.modelData.orig, f = bEd.modelData.f;
                                                             Qt.callLater(() => {
-                                                                if (f === "cor") lp.mudarCor(o);
+                                                                if (f === "cor") lp.abrirCores(o, bEd);
                                                                 else if (f === "img") lp.pedirImagem(o);
                                                                 else lp.tirarImagem(o);
                                                             });
