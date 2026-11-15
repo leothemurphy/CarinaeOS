@@ -219,12 +219,27 @@ def hardware():
                      'nvidia', 'Controlador oficial da NVIDIA (GTX 750 em diante, RTX…): melhor desempenho em jogos e no Wayland. '
                      'Reinicie depois de instalar.' + (' Com gráficos Intel/AMD também (notebook), as janelas usam a placa '
                                                         'integrada e os jogos a NVIDIA.' if len(gpus) > 1 else ''))
+                itens[-1]['script'] = 'atual'
         elif re.search(r'AMD|ATI', g, re.I):
             item('amd', 'Placa de vídeo AMD', g_curto, ['firmware-amd-graphics', 'mesa-vulkan-drivers'], 'video-display')
         elif re.search(r'Intel', g, re.I):
             item('intel', 'Gráficos Intel', g_curto, ['intel-media-va-driver-non-free', 'mesa-vulkan-drivers'], 'video-display')
         else:
             item('video', 'Placa de vídeo', g_curto, [], 'video-display')
+    # Secure Boot: o controlador NVIDIA (DKMS) só carrega com a chave deste computador registada no firmware
+    if (os.path.isdir('/sys/firmware/efi') and os.path.exists('/var/lib/dkms/mok.pub') and shutil.which('mokutil')
+            and any(instalado(p) for p in ('nvidia-driver', 'nvidia-tesla-470-driver'))):
+        t = subprocess.run(['mokutil', '--test-key', '/var/lib/dkms/mok.pub'], capture_output=True, text=True)
+        estado = (t.stdout + t.stderr).lower()
+        if 'already enrolled' not in estado:
+            pendente = bool(subprocess.run(['mokutil', '--list-new'], capture_output=True, text=True).stdout.strip())
+            item('mok', 'Secure Boot: chave do controlador NVIDIA', 'Para a placa funcionar com o Secure Boot ligado',
+                 [] if pendente else ['chave'], 'security-high',
+                 'Já pedida: reinicie e confirme na tela azul.' if pendente else
+                 'Registre a chave uma vez: na próxima reinicialização aparece uma tela azul onde escreve um código de 8 algarismos.')
+            itens[-1]['script'] = 'mok'
+            if not pendente:
+                itens[-1]['falta'] = ['chave']
     if re.search(r'Network controller|Wireless', lspci) or re.search(r'Wireless|WLAN|802\.11', lsusb, re.I):
         item('wifi', 'Wi-Fi', 'Firmwares para Intel, Realtek, Atheros, Broadcom e MediaTek',
              ['firmware-iwlwifi', 'firmware-realtek', 'firmware-atheros', 'firmware-brcm80211', 'firmware-mediatek'], 'network-wireless')
@@ -467,13 +482,25 @@ class Central(QObject):
 
         def depois(r):
             self._fim(lambda _: '%s: instalado ✓%s' % (it['nome'], ' Reinicie o computador.' if ident.startswith('nvidia') else ''))(r)
+            m = re.search(r'^MOK:(\d+)$', r, re.M) if isinstance(r, str) else None
+            if m:       # Secure Boot: mostra o código para o ecrã azul do próximo arranque
+                self._mok = m.group(1)
+                self.mudou.emit()
             self.lerHardware()
 
         def trabalho():
             p = subprocess.run(['bash', '-c', cmd], capture_output=True, text=True)
             if p.returncode != 0:
                 raise RuntimeError((p.stdout + p.stderr).strip().splitlines()[-1] if (p.stdout + p.stderr).strip() else 'cancelado')
+            return p.stdout
         self._fundo(trabalho, depois, 'Instalando %s… (o sistema pede a sua senha)' % it['nome'])
+
+    codigoMok = Property(str, lambda s: getattr(s, '_mok', ''), notify=mudou)
+
+    @Slot()
+    def esquecerMok(self):
+        self._mok = ''
+        self.mudou.emit()
 
     # tela de entrada
     fotoUsuario = Property(str, lambda s: s._foto(), notify=mudou)

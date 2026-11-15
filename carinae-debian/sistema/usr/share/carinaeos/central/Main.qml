@@ -85,6 +85,57 @@ ApplicationWindow {
         }
     }
 
+    // ---- Secure Boot: o código para o ecrã azul (MOK) do próximo arranque --------------------------
+    Rectangle {
+        visible: central.codigoMok !== ""
+        z: 20
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.55)
+        MouseArea { anchors.fill: parent }
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(parent.width - 60, 560)
+            height: colMok.implicitHeight + 48
+            radius: 20
+            color: "#211a33"
+            border.color: Qt.rgba(1, 0.7, 0.45, 0.4)
+            Column {
+                id: colMok
+                x: 28; y: 24; width: parent.width - 56
+                spacing: 12
+                Text { text: "Falta um passo para o Secure Boot"; color: janela.texto; font.pixelSize: 20; font.weight: Font.DemiBold }
+                Text {
+                    width: parent.width; wrapMode: Text.Wrap; color: janela.suave; font.pixelSize: 13
+                    text: "O controlador da placa de vídeo está assinado com uma chave deste computador. Para o firmware a aceitar, "
+                        + "reinicie e, na tela azul que aparece (tem só 10 segundos, pressione uma tecla):"
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.Wrap; color: janela.texto; font.pixelSize: 14; textFormat: Text.StyledText
+                    text: "1. <b>Enroll MOK</b> › <b>Continue</b> › <b>Yes</b><br>2. Escreva o código abaixo (não aparece nada enquanto escreve)<br>3. <b>Reboot</b>"
+                }
+                Rectangle {
+                    width: parent.width; height: 74; radius: 14
+                    color: Qt.rgba(1, 1, 1, 0.07)
+                    Text {
+                        anchors.centerIn: parent
+                        text: central.codigoMok.replace(/(\d{4})(\d{4})/, "$1 $2")
+                        color: "#ffb46e"; font.pixelSize: 38; font.weight: Font.Bold; font.letterSpacing: 4
+                    }
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.Wrap; color: janela.suave; font.pixelSize: 12
+                    text: "Tire uma foto do código. Se a tela azul passar sem registrar, o pedido fica válido: volte à Central › Drivers e peça de novo."
+                }
+                Row {
+                    anchors.right: parent.right
+                    spacing: 10
+                    Button { text: "Reiniciar agora"; onClicked: central.abrir("qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptReboot") }
+                    Button { text: "Entendi"; highlighted: true; onClicked: central.esquecerMok() }
+                }
+            }
+        }
+    }
+
     // ---- paginas ----------------------------------------------------------------------------------
     ScrollView {
         id: area

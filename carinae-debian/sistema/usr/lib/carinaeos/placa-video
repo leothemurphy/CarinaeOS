@@ -1,10 +1,36 @@
 #!/bin/bash
 # CarinaeOS - controladores de placas de vídeo que o Debian 13 não traz (corre como root, pela Central).
+#   placa-video atual    NVIDIA GTX 750 em diante e RTX: o controlador do Debian 13.
 #   placa-video kepler   NVIDIA Kepler (GeForce GT 710/730/740, GTX 600/700, Quadro K…): controlador 470
 #                        do Debian sid (preso com prioridade baixa: só este pacote vem de lá) e sessão X11.
 set -e
 export DEBIAN_FRONTEND=noninteractive
+
+# Secure Boot: o controlador é compilado aqui (DKMS) e assinado com a chave deste computador
+# (/var/lib/dkms/mok.pub). A chave tem de ser registada no firmware: pede-se aqui com um código
+# de 8 algarismos que a pessoa escreve uma vez no ecrã azul (MOK) do próximo arranque.
+chave_mok() {
+    [ -d /sys/firmware/efi ] || return 0
+    command -v mokutil >/dev/null || return 0
+    [ -f /var/lib/dkms/mok.pub ] || return 0
+    if mokutil --test-key /var/lib/dkms/mok.pub 2>&1 | grep -qi "already enrolled"; then
+        return 0
+    fi
+    codigo=$(shuf -i 10000000-99999999 -n 1)
+    if printf '%s\n%s\n' "$codigo" "$codigo" | mokutil --import /var/lib/dkms/mok.pub >/dev/null 2>&1; then
+        echo "MOK:$codigo"
+    fi
+}
+
 case "$1" in
+mok)
+    chave_mok
+    ;;
+atual)
+    apt-get update -q
+    apt-get install -y linux-headers-amd64 nvidia-driver firmware-misc-nonfree nvidia-suspend-common
+    chave_mok
+    ;;
 kepler)
     echo 'deb http://deb.debian.org/debian sid main contrib non-free non-free-firmware' > /etc/apt/sources.list.d/carinaeos-sid.list
     printf 'Package: *\nPin: release a=unstable\nPin-Priority: 100\n' > /etc/apt/preferences.d/carinaeos-sid
@@ -24,9 +50,10 @@ kepler)
         printf '[Last]\nSession=/usr/share/xsessions/plasmax11.desktop\n' >> /var/lib/sddm/state.conf
     fi
     chown sddm:sddm /var/lib/sddm/state.conf 2>/dev/null || true
+    chave_mok
     ;;
 *)
-    echo "uso: placa-video kepler" >&2
+    echo "uso: placa-video atual|kepler|mok" >&2
     exit 2
     ;;
 esac

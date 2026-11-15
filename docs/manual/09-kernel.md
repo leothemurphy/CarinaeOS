@@ -88,7 +88,7 @@ Exemplos:
 | `i915.enable_psr=0` | corrigir cintilação em telas Intel |
 | `pcie_aspm=off` | resolver alguns problemas de Wi-Fi/NVMe a desligar |
 
-Também se pode editar só para um inicialização: no menu do GRUB pressione **e**, mude a linha `linux` e **Ctrl+X**.
+Também se pode editar só para uma inicialização: no menu do GRUB pressione **e**, mude a linha `linux` e **Ctrl+X**.
 `GRUB_TIMEOUT=5` no mesmo arquivo define quanto tempo o menu fica visível.
 
 ## initramfs

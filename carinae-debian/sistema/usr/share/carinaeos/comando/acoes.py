@@ -125,11 +125,11 @@ acao(id='vol-mudo', titulo='Silenciar o som', icone='audio-volume-muted', botao=
 # brilho
 acao(id='brilho-menos', titulo='Reduzir o brilho', icone='brightness-low', botao='Diminuir',
      frases=['diminuir brilho', 'baixar brilho', 'menos brilho', 'reduzir brilho', 'escurecer ecra', 'escurecer tela'],
-     controlo='deslizante', rotulo='Brilho da tela', descricao='Ajustar o brilho do tela integrada',
+     controlo='deslizante', rotulo='Brilho da tela', descricao='Ajustar o brilho da tela integrada',
      ler=brilho, definir=definir_brilho, fazer=lambda: definir_brilho(brilho() - 0.15))
 acao(id='brilho-mais', titulo='Aumentar o brilho', icone='brightness-high', botao='Aumentar',
      frases=['aumentar brilho', 'subir brilho', 'mais brilho', 'clarear ecra', 'clarear tela'],
-     controlo='deslizante', rotulo='Brilho da tela', descricao='Ajustar o brilho do tela integrada',
+     controlo='deslizante', rotulo='Brilho da tela', descricao='Ajustar o brilho da tela integrada',
      ler=brilho, definir=definir_brilho, fazer=lambda: definir_brilho(brilho() + 0.15))
 # tema
 acao(id='tema-claro', titulo='Alterar o tema atual para Claro', icone='color-management', botao='Aplicar',
