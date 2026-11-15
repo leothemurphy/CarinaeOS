@@ -48,7 +48,7 @@ ApplicationWindow {
                 ColumnLayout {
                     spacing: 2
                     Text { text: "Atualizações"; color: janela.texto; font.pixelSize: 24; font.weight: Font.Bold }
-                    Text { text: "Antes de cada atualização, o CarinaeOS cria um ponto de restauro para poder voltar atrás."
+                    Text { text: "Antes de cada atualização, o CarinaeOS cria um ponto de restauro para poder voltar atrás. As correções de segurança do Debian já são instaladas sozinhas, todos os dias."
                            color: janela.suave; font.pixelSize: 13; wrapMode: Text.Wrap; Layout.fillWidth: true }
                 }
             }

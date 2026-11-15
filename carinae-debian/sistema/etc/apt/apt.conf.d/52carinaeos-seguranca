@@ -1,0 +1,20 @@
+// CarinaeOS: atualizações automáticas só de segurança (o resto passa pelo app Atualizações,
+// com ponto de restauro). Nunca reinicia sozinho nem remove pacotes.
+// (o padrão do Debian também instala as "point releases"; aqui fica só a segurança)
+#clear Unattended-Upgrade::Origins-Pattern;
+Unattended-Upgrade::Origins-Pattern {
+        "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+};
+// o driver NVIDIA antigo vem do sid (fixado) e só se atualiza pelo app, com ponto de restauro
+Unattended-Upgrade::Package-Blacklist {
+        "nvidia-";
+        "libnvidia-";
+        "firmware-nvidia-";
+};
+Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Remove-Unused-Dependencies "false";
+Unattended-Upgrade::Remove-New-Unused-Dependencies "false";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "false";
+Unattended-Upgrade::MinimalSteps "true";
+Unattended-Upgrade::OnlyOnACPower "true";
+Unattended-Upgrade::Skip-Updates-On-Metered-Connections "true";

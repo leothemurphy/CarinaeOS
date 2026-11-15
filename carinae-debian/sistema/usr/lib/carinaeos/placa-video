@@ -55,6 +55,11 @@ kepler)
         printf '[Last]\nSession=/usr/share/xsessions/plasmax11.desktop\n' >> /var/lib/sddm/state.conf
     fi
     chown sddm:sddm /var/lib/sddm/state.conf 2>/dev/null || true
+    # o driver 470 vem do sid: um núcleo novo só pelo app Atualizações (com ponto de restauro),
+    # nunca sozinho de madrugada, para nunca acordar sem imagem se o módulo não compilar
+    mkdir -p /etc/apt/apt.conf.d
+    printf '%s\n' '// CarinaeOS: placa NVIDIA antiga (driver 470) - o núcleo só se atualiza pelo app Atualizações' \
+        'Unattended-Upgrade::Package-Blacklist { "linux-image-"; "linux-headers-"; };' > /etc/apt/apt.conf.d/53carinaeos-nvidia-antiga
     chave_mok
     ;;
 *)

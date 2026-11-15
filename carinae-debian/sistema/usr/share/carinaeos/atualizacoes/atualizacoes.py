@@ -72,12 +72,25 @@ def verificar():
             e = json.load(f)
     except (OSError, ValueError):
         e = {}
+    # as correções de segurança instalam-se sozinhas (unattended-upgrades); algumas pedem reinício
+    try:
+        quando = int(os.path.getmtime('/run/reboot-required'))
+    except OSError:
+        quando = 0
+    if quando and e.get('reinicio') != quando:
+        e['reinicio'] = quando
+        os.makedirs(os.path.dirname(ESTADO), exist_ok=True)
+        with open(ESTADO, 'w') as f:
+            json.dump(e, f)
+        subprocess.Popen(['notify-send', '-a', 'Atualizações', '-i', 'system-reboot',
+                          'Correções de segurança instaladas',
+                          'Reinicie o computador quando puder, para ficarem ativas.'], start_new_session=True)
     hoje = datetime.date.today().isoformat()
     if not p or (e.get('dia') == hoje and e.get('n') == len(p)):
         return 0
     os.makedirs(os.path.dirname(ESTADO), exist_ok=True)
     with open(ESTADO, 'w') as f:
-        json.dump({'dia': hoje, 'n': len(p)}, f)
+        json.dump({'dia': hoje, 'n': len(p), 'reinicio': e.get('reinicio')}, f)
     n = len(p)
     r = cmd(['notify-send', '-a', 'Atualizações', '-i', 'system-software-update', '--wait',
              '-A', 'abrir=Ver e atualizar', 'Há %d atualizaç%s' % (n, 'ão' if n == 1 else 'ões'),

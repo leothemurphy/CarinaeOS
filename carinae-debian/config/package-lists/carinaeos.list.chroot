@@ -152,6 +152,8 @@ openssh-server
 # firewall ligado de origem (Central › Firewall; regras avançadas nas Configurações do Sistema)
 ufw
 plasma-firewall
+# correções de segurança automáticas
+unattended-upgrades
 brightnessctl
 # partilha de pastas, contas online, musica (MPD)
 samba

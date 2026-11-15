@@ -1,0 +1,4 @@
+// CarinaeOS: procura e instala as correções de segurança do Debian todos os dias, sozinho
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+APT::Periodic::AutocleanInterval "7";
