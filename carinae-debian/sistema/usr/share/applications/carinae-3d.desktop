@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae 3D
+GenericName=Biblioteca de modelos 3D
+Comment=Ver, organizar e mandar para o fatiador os modelos STL, 3MF e SVG
+Exec=carinae-3d %F
+Icon=carinae-3d
+Terminal=false
+Categories=Graphics;3DGraphics;Utility;
+Keywords=stl;3mf;svg;impressao;3d;filamento;fatiador;slicer;
+MimeType=model/stl;model/3mf;application/vnd.ms-3mfdocument;application/sla;
+StartupWMClass=carinae-3d

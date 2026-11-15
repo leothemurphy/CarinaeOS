@@ -1,0 +1,31 @@
+[package]
+name = "carinae-3d"
+version = "1.6.0"
+edition = "2021"
+description = "Carinae 3D - visualizador e organizador de modelos STL, 3MF e SVG"
+authors = ["Carinae 3D"]
+
+[dependencies]
+eframe = { version = "0.31", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+# Only macOS, and only to keep a `--screenshot` window from taking the other
+# app's place when it opens. eframe already depends on this exact version, so no
+# second copy of winit is built.
+[target.'cfg(target_os = "macos")'.dependencies]
+winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

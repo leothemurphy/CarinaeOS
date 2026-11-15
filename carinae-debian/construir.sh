@@ -89,6 +89,18 @@ install -m644 arte/calamares-*.png arte/calamares-*.jpg $I/etc/calamares/brandin
 sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:carinaeos-central.desktop,applications:carinaeos-orbita.desktop,applications:org.kde.merkuro.calendar.desktop,applications:carinaeos-configuracoes.desktop</default>#' \
   $U/plasma/plasmoids/org.carinaeos.dock/contents/config/main.xml
 
+# ---- Carinae 3D (Rust): compilado aqui e posto pronto em /usr/bin ----------------
+C3D=$D/../carinae/apps/carinae-3d
+if [ -f "$C3D/Cargo.toml" ]; then
+    if ! command -v cargo >/dev/null; then
+        curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+        . "$HOME/.cargo/env"
+    fi
+    (cd "$C3D" && cargo build --release --locked)
+    install -Dm755 "$C3D/target/release/carinae-3d" $I/usr/bin/carinae-3d
+    strip $I/usr/bin/carinae-3d || true
+fi
+
 # ---- menus de arranque da ISO (BIOS: syslinux; UEFI: GRUB) ----------------------
 B=config/bootloaders
 mkdir -p $B

@@ -1,0 +1,3 @@
+// Icon do Carinae 3D. O 1 é o primeiro ícone do grupo; o Windows pega o
+// tamanho maior de icon.ico para a pasta e os pequenos para a barra de tarefas.
+1 ICON "icon.ico"
