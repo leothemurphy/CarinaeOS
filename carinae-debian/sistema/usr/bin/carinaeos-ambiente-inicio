@@ -60,18 +60,22 @@ esac
 # navegadores com a barra de titulo do sistema (os botoes do Mac a esquerda, iguais aos das outras janelas)
 python3 - <<'EOT' 2>/dev/null
 import json, os, subprocess
-for perfil in ('google-chrome', 'chromium', 'BraveSoftware/Brave-Browser', 'microsoft-edge'):
-    f = os.path.expanduser('~/.config/%s/Default/Preferences' % perfil)
-    if not os.path.exists(f):
-        continue
-    if subprocess.run(['pgrep', '-f', perfil.split('/')[0]], capture_output=True).returncode == 0:
-        continue
-    d = json.load(open(f))
-    b = d.setdefault('browser', {})
-    if b.get('custom_chrome_frame') is not False and not b.get('carinaeos_frame'):
-        b['custom_chrome_frame'] = False
-        b['carinaeos_frame'] = True
-        json.dump(d, open(f, 'w'))
+# instalados normalmente (~/.config) ou como Flatpak (~/.var/app/<id>/config)
+PERFIS = [('google-chrome', 'chrome', 'com.google.Chrome'), ('chromium', 'chromium', 'org.chromium.Chromium'),
+          ('BraveSoftware/Brave-Browser', 'brave', 'com.brave.Browser'), ('microsoft-edge', 'msedge', 'com.microsoft.Edge')]
+for perfil, proc, fp in PERFIS:
+    for base in ('~/.config', '~/.var/app/%s/config' % fp):
+        f = os.path.expanduser('%s/%s/Default/Preferences' % (base, perfil))
+        if not os.path.exists(f):
+            continue
+        if subprocess.run(['pgrep', '-x', proc], capture_output=True).returncode == 0:
+            continue
+        d = json.load(open(f))
+        b = d.setdefault('browser', {})
+        if b.get('custom_chrome_frame') is not False and not b.get('carinaeos_frame'):
+            b['custom_chrome_frame'] = False
+            b['carinaeos_frame'] = True
+            json.dump(d, open(f, 'w'))
 EOT
 
 # GTK com o mesmo visual (botoes do Mac a esquerda), uma vez
