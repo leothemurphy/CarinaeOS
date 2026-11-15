@@ -48,7 +48,7 @@ Kicker.DashboardWindow {
     // os cartões como a pessoa os organizou (~/.config/carinaeos-cartoes.json):
     //   novos: [{nome, icone, cor}]  colocar: {chave: cartão}  fixos: [cartão...] (em primeiro)
     //   nomes: {original: novo}  cores: {cartão: n}  ocultos: [cartão...]
-    property var cartoesCfg: ({ novos: [], colocar: {}, fixos: [], nomes: {}, cores: {}, ocultos: [] })
+    property var cartoesCfg: ({ novos: [], colocar: {}, fixos: [], nomes: {}, cores: {}, ocultos: [], ordem: [], imagens: {} })
     // [{ orig, nome, icone, apps, cor, propria, fixo }]
     readonly property var categorias: {
         const cfg = cartoesCfg, col = cfg.colocar || {}, nomes = cfg.nomes || {}, cores = cfg.cores || {};
@@ -56,6 +56,10 @@ Kicker.DashboardWindow {
         const lista = [], porOrig = {};
         const cor = (orig, padrao) => cores[orig] !== undefined ? paleta[cores[orig] % paleta.length] : padrao;
         const visto = {};      // cada aplicativo só num ambiente (o primeiro onde aparece, ou para onde foi movido)
+        // o ambiente CarinaeOS: sempre lá, com tudo o que é do CarinaeOS (Central, Música, Órbita, Manual…)
+        const doCarinae = itens.filter(a => /^carinaeos/i.test(a.chave || "") && !col[a.chave])
+                               .sort((a, b) => a.nome.localeCompare(b.nome));
+        for (const a of doCarinae) visto[a.chave] = true;
         for (const c of catSistema) {
             const apps = c.apps.filter(a => {
                 if (col[a.chave] || visto[a.chave]) return false;
@@ -76,15 +80,33 @@ Kicker.DashboardWindow {
             lista.push(x);
             porOrig[x.orig] = x;
         }
+        if (ocultos.indexOf("CarinaeOS") === -1) {
+            let ca = porOrig["CarinaeOS"];
+            if (!ca) {
+                ca = { orig: "CarinaeOS", nome: nomes["CarinaeOS"] || "CarinaeOS", icone: "carinaeos-estrela",
+                       cor: cor("CarinaeOS", ["#7b5cff", "#ff8a65"]), propria: false, carinae: true, apps: [] };
+                lista.unshift(ca);
+                porOrig["CarinaeOS"] = ca;
+            }
+            ca.carinae = true;
+            ca.apps = ca.apps.concat(doCarinae.filter(a => ca.apps.indexOf(a) === -1));
+        }
         for (const ch in col) {
             const c = porOrig[col[ch]], a = porChave(ch);
             if (c && a) c.apps.push(a);
         }
-        const r = lista.filter(c => c.propria || c.apps.length > 0);
+        const imagens = cfg.imagens || {};
+        for (const c of lista) c.imagem = imagens[c.orig] || "";
+        const r = lista.filter(c => c.propria || c.carinae || c.apps.length > 0);
+        const ord = cfg.ordem || [];
         r.forEach((c, i) => { c.fixo = fx.indexOf(c.orig) !== -1; c.ordem = i; });
         r.sort((a, b) => {
+            // 1.º os fixados em primeiro, 2.º a ordem arrastada no modo Editar, 3.º a ordem natural
             const ia = fx.indexOf(a.orig), ib = fx.indexOf(b.orig);
             if (ia !== -1 || ib !== -1) return (ia === -1 ? 1e6 : ia) - (ib === -1 ? 1e6 : ib);
+            const oa = ord.indexOf(a.orig), ob = ord.indexOf(b.orig);
+            if (oa !== -1 || ob !== -1) return (oa === -1 ? 1e6 + a.ordem : oa) - (ob === -1 ? 1e6 + b.ordem : ob);
+            if (!!a.carinae !== !!b.carinae) return a.carinae ? -1 : 1;   // o CarinaeOS vem primeiro
             return a.ordem - b.ordem;
         });
         return r;
@@ -191,7 +213,7 @@ Kicker.DashboardWindow {
     // os aplicativos que a pessoa ainda não pôs em nenhum ambiente (somem daqui ao serem movidos)
     readonly property var semAmbiente: {
         const col = cartoesCfg.colocar || {};
-        return itens.filter(a => a.chave && !col[a.chave]).sort((a, b) => a.nome.localeCompare(b.nome));
+        return itens.filter(a => a.chave && !col[a.chave] && !/^carinaeos/i.test(a.chave)).sort((a, b) => a.nome.localeCompare(b.nome));
     }
     readonly property bool emGrelha: filtro !== "" || (vista !== "inicio" && vista !== "deck")
     readonly property string titulo: filtro !== "" ? "Resultados"
@@ -204,7 +226,7 @@ Kicker.DashboardWindow {
         : vista === "semamb" ? "Sem ambiente"
         : (categorias[catAtual] || { nome: "" }).nome
     readonly property string subtitulo: filtro !== "" ? contagem(lista.length)
-        : vista === "inicio" ? "As suas categorias, de um relance"
+        : vista === "inicio" ? (editando ? "Arraste os ambientes para os mudar de lugar · cor e imagem em cada um" : "Os seus ambientes, de um relance")
         : vista === "favoritos" ? "Os aplicativos que estão na Dock"
         : vista === "deck" ? "Ações rápidas num toque · botão direito para tirar"
         : vista === "semamb" ? contagem(lista.length) + " por arrumar · botão direito › Mover para"
@@ -364,7 +386,7 @@ Kicker.DashboardWindow {
             let d = null;
             try { d = JSON.parse((dados["stdout"] || "").trim()); } catch (e) { d = null; }
             if (d && typeof d === "object") {
-                lp.cartoesCfg = Object.assign({ novos: [], colocar: {}, fixos: [], nomes: {}, cores: {}, ocultos: [] }, d);
+                lp.cartoesCfg = Object.assign({ novos: [], colocar: {}, fixos: [], nomes: {}, cores: {}, ocultos: [], ordem: [], imagens: {} }, d);
             }
         }
     }
@@ -436,6 +458,33 @@ Kicker.DashboardWindow {
             if (c.cores[orig] !== undefined) { c.cores[nome] = c.cores[orig]; delete c.cores[orig]; }
         });
     }
+    property bool editando: false
+    function moverAmbiente(de: int, para: int): void {
+        if (de === para || de < 0 || para < 0) return;
+        const l = categorias.map(c => c.orig);
+        const [x] = l.splice(de, 1);
+        l.splice(para, 0, x);
+        mudarCartoes(c => { c.ordem = l; c.fixos = []; });   // a ordem arrastada manda
+    }
+    property string imagemPara: ""
+    readonly property P5Support.DataSource escolherImagem: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            const f = (dados["stdout"] || "").trim();
+            const o = lp.imagemPara;
+            if (f !== "" && o !== "") lp.mudarCartoes(c => { c.imagens[o] = "file://" + f; });
+        }
+    }
+    function pedirImagem(orig: string): void {
+        imagemPara = orig;
+        escolherImagem.connectSource("kdialog --title 'Imagem do ambiente' --getopenfilename \"$(xdg-user-dir PICTURES)\" "
+            + "'image/png image/jpeg image/webp image/svg+xml' 2>/dev/null #" + Date.now());
+    }
+    function tirarImagem(orig: string): void {
+        mudarCartoes(c => { delete c.imagens[orig]; });
+    }
     function mudarCor(orig: string): void {
         mudarCartoes(c => {
             const atual = c.cores[orig] !== undefined ? c.cores[orig] : Math.floor(Math.random() * paleta.length);
@@ -492,6 +541,7 @@ Kicker.DashboardWindow {
             formCartao.visible = false;
             busca.text = "";
             formDeck.visible = false;
+            lp.editando = false;
             vista = "inicio";
             busca.forceActiveFocus();
             entrada.restart();
@@ -1085,6 +1135,26 @@ Kicker.DashboardWindow {
                 }
 
                 // título da vista
+                Rectangle {     // Editar os ambientes (arrastar, cor, imagem)
+                    visible: lp.vista === "inicio" && lp.filtro === ""
+                    anchors.right: parent.right
+                    anchors.verticalCenter: cabecalho.verticalCenter
+                    width: rotEditar.implicitWidth + Math.round(34 * palco.u)
+                    height: Math.round(34 * palco.u)
+                    radius: height / 2
+                    color: lp.editando ? "#ffb46e" : (mEd.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09))
+                    border.width: 1
+                    border.color: Qt.rgba(1, 1, 1, 0.2)
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: Math.round(6 * palco.u)
+                        Kirigami.Icon { source: lp.editando ? "dialog-ok-apply" : "document-edit"; width: Math.round(16 * palco.u); height: width
+                                        isMask: true; color: lp.editando ? "#1a1208" : "white"; anchors.verticalCenter: parent.verticalCenter }
+                        Text { id: rotEditar; text: lp.editando ? "Concluído" : "Editar"; color: lp.editando ? "#1a1208" : "white"
+                               font.pixelSize: Math.round(13 * palco.u); font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+                    }
+                    MouseArea { id: mEd; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: lp.editando = !lp.editando }
+                }
                 Column {
                     id: cabecalho
                     anchors.top: caixaBusca.bottom
@@ -1295,7 +1365,15 @@ Kicker.DashboardWindow {
                                         required property int index
                                         width: cartoes.lc
                                         height: Math.round(178 * palco.u)
-                                        scale: mc.containsMouse ? 1.015 : 1
+                                        // arrastar no modo Editar
+                                        property real dx: 0
+                                        property real dy: 0
+                                        property point inicio
+                                        readonly property bool aArrastar: arrasto.pressed && (Math.abs(dx) + Math.abs(dy)) > 4
+                                        transform: Translate { x: cartao.dx; y: cartao.dy }
+                                        z: aArrastar ? 10 : 0
+                                        opacity: aArrastar ? 0.92 : 1
+                                        scale: aArrastar ? 1.04 : (mc.containsMouse && !lp.editando ? 1.015 : 1)
                                         Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
 
                                         Rectangle {
@@ -1308,10 +1386,21 @@ Kicker.DashboardWindow {
                                                 GradientStop { position: 0; color: lp.alfa(cartao.modelData.cor[0], 0.62) }
                                                 GradientStop { position: 1; color: lp.alfa(cartao.modelData.cor[1], 0.30) }
                                             }
-                                            border.width: 1
-                                            border.color: Qt.rgba(1, 1, 1, mc.containsMouse ? 0.38 : 0.20)
+                                            border.width: lp.editando ? 2 : 1
+                                            border.color: lp.editando ? Qt.rgba(1, 0.75, 0.45, 0.85) : Qt.rgba(1, 1, 1, mc.containsMouse ? 0.38 : 0.20)
+                                            // a imagem do ambiente, como marca de água
+                                            Image {
+                                                visible: cartao.modelData.imagem !== ""
+                                                anchors.fill: parent
+                                                source: cartao.modelData.imagem
+                                                fillMode: Image.PreserveAspectCrop
+                                                asynchronous: true
+                                                sourceSize.width: Math.round(cartao.width)
+                                                opacity: 0.24
+                                            }
                                             // a "ilustração": o ícone da categoria grande e esbatido
                                             Kirigami.Icon {
+                                                visible: cartao.modelData.imagem === ""
                                                 source: cartao.modelData.icone
                                                 width: parent.height * 0.95
                                                 height: width
@@ -1336,6 +1425,90 @@ Kicker.DashboardWindow {
                                                 }
                                             }
                                             onPressAndHold: { menuCartao.c = cartao.modelData; menuCartao.popup(); }
+                                        }
+                                        // modo Editar: o cartão inteiro arrasta-se; os botões ficam por cima
+                                        MouseArea {
+                                            id: arrasto
+                                            z: 5
+                                            anchors.fill: parent
+                                            enabled: lp.editando
+                                            visible: lp.editando
+                                            preventStealing: true
+                                            cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                                            onPressed: (m) => { cartao.inicio = mapToItem(cartoes, m.x, m.y); }
+                                            onPositionChanged: (m) => {
+                                                const p = mapToItem(cartoes, m.x, m.y);
+                                                cartao.dx += p.x - cartao.inicio.x;
+                                                cartao.dy += p.y - cartao.inicio.y;
+                                                cartao.inicio = p;
+                                            }
+                                            onReleased: {
+                                                const cx = cartao.x + cartao.dx + cartao.width / 2;
+                                                const cy = cartao.y + cartao.dy + cartao.height / 2;
+                                                const col = Math.max(0, Math.min(cartoes.colunas - 1, Math.floor(cx / (cartoes.lc + cartoes.spacing))));
+                                                const lin = Math.max(0, Math.floor(cy / (cartao.height + cartoes.spacing)));
+                                                const alvo = Math.min(lp.categorias.length - 1, lin * cartoes.colunas + col);
+                                                const de = cartao.index;
+                                                cartao.dx = 0;
+                                                cartao.dy = 0;
+                                                Qt.callLater(() => lp.moverAmbiente(de, alvo));
+                                            }
+                                            onCanceled: { cartao.dx = 0; cartao.dy = 0; }
+                                        }
+                                        Row {
+                                            z: 6
+                                            visible: lp.editando && !cartao.aArrastar
+                                            anchors.right: parent.right
+                                            anchors.rightMargin: Math.round(12 * palco.u)
+                                            anchors.bottom: parent.bottom
+                                            anchors.bottomMargin: Math.round(12 * palco.u)
+                                            spacing: Math.round(6 * palco.u)
+                                            Repeater {
+                                                model: [
+                                                    { ic: "color-management", dica: "Mudar a cor", f: "cor" },
+                                                    { ic: "insert-image", dica: "Pôr uma imagem (marca de água)", f: "img" },
+                                                    { ic: "edit-clear", dica: "Tirar a imagem", f: "semimg" }
+                                                ].filter(b => b.f !== "semimg" || cartao.modelData.imagem !== "")
+                                                delegate: Rectangle {
+                                                    id: bEd
+                                                    required property var modelData
+                                                    width: Math.round(34 * palco.u)
+                                                    height: width
+                                                    radius: width / 2
+                                                    color: mB.containsMouse ? Qt.rgba(0, 0, 0, 0.55) : Qt.rgba(0, 0, 0, 0.35)
+                                                    border.width: 1
+                                                    border.color: Qt.rgba(1, 1, 1, 0.3)
+                                                    Kirigami.Icon { anchors.centerIn: parent; source: bEd.modelData.ic; width: parent.width * 0.55; height: width; color: "white"; isMask: true }
+                                                    QQC2.ToolTip.visible: mB.containsMouse
+                                                    QQC2.ToolTip.text: bEd.modelData.dica
+                                                    MouseArea {
+                                                        id: mB
+                                                        anchors.fill: parent
+                                                        hoverEnabled: true
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: {
+                                                            const o = cartao.modelData.orig, f = bEd.modelData.f;
+                                                            Qt.callLater(() => {
+                                                                if (f === "cor") lp.mudarCor(o);
+                                                                else if (f === "img") lp.pedirImagem(o);
+                                                                else lp.tirarImagem(o);
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Kirigami.Icon {     // pega para arrastar
+                                            z: 6
+                                            visible: lp.editando
+                                            source: "transform-move"
+                                            color: "white"
+                                            isMask: true
+                                            opacity: 0.8
+                                            width: Math.round(18 * palco.u); height: width
+                                            anchors.right: parent.right
+                                            anchors.rightMargin: Math.round(18 * palco.u)
+                                            y: Math.round(10 * palco.u)
                                         }
                                         Kirigami.Icon {     // fixado em primeiro
                                             visible: cartao.modelData.fixo === true
@@ -1394,6 +1567,7 @@ Kicker.DashboardWindow {
                                             width: Math.round(28 * palco.u)
                                             height: width
                                             radius: width / 2
+                                            visible: !lp.editando
                                             color: Qt.rgba(1, 1, 1, mc.containsMouse ? 0.28 : 0.14)
                                             Kirigami.Icon { anchors.centerIn: parent; source: "go-next"; width: parent.width * 0.55; height: width; color: "white"; isMask: true }
                                         }
