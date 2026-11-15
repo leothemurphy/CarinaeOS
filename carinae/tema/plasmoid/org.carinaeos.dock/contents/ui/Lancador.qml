@@ -379,6 +379,12 @@ Kicker.DashboardWindow {
         return categorias.map(c => ({ orig: c.orig, nome: c.nome,
             marcado: app !== null && (atual === c.orig || (atual === "" && c.apps.indexOf(app) !== -1)) }));
     }
+    // o ambiente onde o aplicativo aparece agora (ou "" se não está em nenhum)
+    function ambienteDe(app: var): string {
+        if (!app) return "";
+        for (const c of categorias) if (c.apps.indexOf(app) !== -1) return c.nome;
+        return "";
+    }
     function cartaoDe(app: var): string {
         return app && app.chave ? ((cartoesCfg.colocar || {})[app.chave] || "") : "";
     }
@@ -1700,12 +1706,12 @@ Kicker.DashboardWindow {
                     }
                     Rectangle {   // categoria
                         anchors.horizontalCenter: parent.horizontalCenter
-                        visible: lp.selecionado !== null && lp.selecionado.cat !== ""
+                        visible: lp.selecionado !== null
                         width: chip.implicitWidth + Math.round(20 * palco.u)
                         height: Math.round(24 * palco.u)
                         radius: height / 2
                         color: Qt.rgba(1, 1, 1, 0.10)
-                        Text { id: chip; anchors.centerIn: parent; text: lp.selecionado ? lp.selecionado.cat : ""; color: lp.suave; font.pixelSize: Math.round(11 * palco.u) }
+                        Text { id: chip; anchors.centerIn: parent; text: lp.selecionado ? (lp.ambienteDe(lp.selecionado) || "Sem ambiente") : ""; color: lp.suave; font.pixelSize: Math.round(11 * palco.u) }
                     }
                     Item { width: 1; height: Math.round(4 * palco.u) }
 
@@ -1771,7 +1777,7 @@ Kicker.DashboardWindow {
                         u: palco.u
                         texto: "Mover para  ›"
                         icone: "folder-favorites"
-                        numero: lp.cartaoDe(lp.selecionado) !== "" ? ((lp.cartoesCfg.nomes || {})[lp.cartaoDe(lp.selecionado)] || lp.cartaoDe(lp.selecionado)) : ""
+                        numero: lp.selecionado ? (lp.ambienteDe(lp.selecionado) || "Sem ambiente") : ""
                         onEscolhido: {
                             menuMover.app = lp.selecionado;
                             menuMover.popup(itemMover, itemMover.width * 0.4, itemMover.height);
