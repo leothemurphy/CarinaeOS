@@ -403,7 +403,6 @@ mkdir -p /usr/lib/carinaeos && touch /usr/lib/carinaeos/.base
 if command -v flatpak >/dev/null; then
   for app in com.google.Chrome com.google.ChromeDev org.chromium.Chromium com.brave.Browser com.microsoft.Edge \
              io.github.ungoogled_software.ungoogled_chromium com.vivaldi.Vivaldi com.opera.Opera; do
-    flatpak override --system "$app" --filesystem=xdg-data/applications --filesystem=xdg-data/icons \
-      --filesystem=xdg-desktop || true
+    flatpak override --system "$app" --filesystem=~/.local/share/applications:create --filesystem=~/.local/share/icons:create || true
   done
 fi
