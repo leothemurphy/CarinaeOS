@@ -285,6 +285,5 @@ class Orbita(QObject):
 
 
 if __name__ == '__main__':
-    o = Orbita()
     sys.exit(iniciar('carinaeos-orbita', 'Órbita', 'carinaeos-orbita',
-                     os.path.join(AQUI, 'Main.qml'), {'orbita': o}))
+                     os.path.join(AQUI, 'Main.qml'), {'orbita': Orbita}))

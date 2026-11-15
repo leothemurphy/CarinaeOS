@@ -168,7 +168,8 @@ class Musica(QObject):
         self._relogio = QTimer(self)
         self._relogio.setInterval(1000)
         self._relogio.timeout.connect(self._tique)
-        self._relogio.start()
+        # o relógio só arranca depois de a aplicação Qt existir (este objeto é criado antes dela):
+        # arranca no fim de _preparar, já no ciclo de eventos
         self._ultimo_id = None
         self._ultima_versao = None
         self._a_ler = False
@@ -248,6 +249,8 @@ class Musica(QObject):
         def depois(r):
             self._ligado = r is True
             self._msg = '' if self._ligado else 'Não foi possível ligar o servidor de música (MPD).'
+            if not self._relogio.isActive():
+                self._relogio.start()
             self.mudou.emit()
             if self._ligado:
                 self.recarregar()
@@ -760,4 +763,4 @@ class Musica(QObject):
 
 if __name__ == '__main__':
     sys.exit(iniciar('carinaeos-musica', 'Música', 'carinaeos-musica', os.path.join(AQUI, 'Main.qml'),
-                     {'musica': Musica()}))
+                     {'musica': Musica}))

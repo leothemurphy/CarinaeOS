@@ -55,6 +55,11 @@ def iniciar(nome_app, titulo, icone, qml, contexto):
     motor = QQmlApplicationEngine()
     motor.addImageProvider('icone', Icones())
     for k, v in contexto.items():
+        # pode vir a classe (ou uma função) em vez do objeto: é criada aqui, já com a aplicação Qt a existir
+        # (relógios QTimer criados antes da aplicação nunca disparam)
+        if callable(v) and not isinstance(v, QObject):
+            v = v()
+        contexto[k] = v
         motor.rootContext().setContextProperty(k, v)
     motor.load(qml)
     if not motor.rootObjects():
