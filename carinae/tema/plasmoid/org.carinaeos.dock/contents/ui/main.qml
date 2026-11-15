@@ -106,6 +106,28 @@ PlasmoidItem {
     property real forca: sobre ? 1 : 0
     Behavior on forca { NumberAnimation { duration: dock.sobre ? 200 : 340; easing.type: Easing.OutCubic } }
 
+    // ---- como no Mac: em repouso o painel tem só a altura do vidro (nada invisível por cima a
+    // apanhar cliques, e as janelas maximizadas param na borda de cima dela); ao passar o rato
+    // cresce para caber a ampliação, por cima das janelas, e volta a encolher quando o rato sai.
+    // O espaço reservado para as janelas é de um painel-espaçador à parte (ver carinaeos-ambiente-inicio).
+    readonly property int alturaVidro: baixo + base + margem * 2
+    readonly property int alturaRepouso: alturaVidro
+    readonly property int alturaAmpliada: Math.ceil(base * (0.62 + zoom)) + 2
+    readonly property var painel: palco.Window.window
+    readonly property bool ampliado: sobre || forca > 0.01
+    onAmpliadoChanged: ajustarPainel()
+    onAlturaRepousoChanged: ajustarPainel()
+    onPainelChanged: ajustarPainel()
+    function ajustarPainel(): void {
+        if (!painel || painel.thickness === undefined) {
+            return;
+        }
+        const t = ampliado ? alturaAmpliada : alturaRepouso;
+        if (painel.thickness !== t) {
+            painel.thickness = t;
+        }
+    }
+
     function centroRepouso(slot: int): real {
         let x = espaco + slot * (base + espaco) + base / 2 + sepAntes(slot) * largSep;
         if (lixeira && slot >= slots - 2) {

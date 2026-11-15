@@ -21,8 +21,9 @@ if [ -d /run/live ] && [ -d "$HOME/Desktop" ]; then
     cp -pn "$HOME"/Desktop/*.desktop "$AT"/ 2>/dev/null
   fi
 fi
-# Plasma: a Dock fica sempre visivel e as janelas maximizadas param na borda de cima dela.
-# Quem vinha da rc16 tinha o modo "as janelas passam por baixo" (3): passa para "sempre visivel" (0).
+# Plasma: a Dock como no Mac. O painel da Dock fica no modo "as janelas passam por baixo" (3) e
+# muda de altura sozinho (so o vidro em repouso, mais alto com o rato por cima); um painel-espacador
+# invisivel reserva a altura do vidro, e as janelas maximizadas param na borda de cima da Dock.
 # Esconder automaticamente (1), escolhido em Configuracoes > Dock, fica como esta.
 # O modo so se guarda no plasmashellrc, com o numero do painel da Dock, e o Plasma tem de estar parado.
 case "$XDG_CURRENT_DESKTOP" in *KDE*)
@@ -34,12 +35,21 @@ case "$XDG_CURRENT_DESKTOP" in *KDE*)
       [ -n "$ID" ] && break
       sleep 2
     done
-    if [ -n "$ID" ] && [ "$(kreadconfig6 --file plasmashellrc --group PlasmaViews --group "Panel $ID" --key panelVisibility)" = 3 ]; then
+    [ -n "$ID" ] || exit 0
+    V=$(kreadconfig6 --file plasmashellrc --group PlasmaViews --group "Panel $ID" --key panelVisibility)
+    if [ "$V" != 3 ] && [ "$V" != 1 ]; then
       sleep 3
       systemctl --user stop plasma-plasmashell.service
-      kwriteconfig6 --file plasmashellrc --group PlasmaViews --group "Panel $ID" --key panelVisibility 0
+      kwriteconfig6 --file plasmashellrc --group PlasmaViews --group "Panel $ID" --key panelVisibility 3
       systemctl --user start plasma-plasmashell.service
     fi
+    for i in $(seq 1 30); do
+      qdbus6 org.kde.plasmashell /PlasmaShell >/dev/null 2>&1 && break
+      sleep 1
+    done
+    sleep 2
+    qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript \
+      "$(cat /usr/share/carinaeos/dock-espacador.js)" >/dev/null 2>&1
   ) &
   ;;
 esac

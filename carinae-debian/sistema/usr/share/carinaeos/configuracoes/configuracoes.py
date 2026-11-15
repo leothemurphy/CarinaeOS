@@ -510,11 +510,17 @@ class Config(QObject):
             v = tipo(valor)
             js = ('var p = panels(); for (var i = 0; i < p.length; i++) { var w = p[i].widgets(); '
                   'for (var j = 0; j < w.length; j++) if (w[j].type == "org.carinaeos.dock") { '
-                  'w[j].currentConfigGroup = ["General"]; w[j].writeConfig("%s", %s); '
-                  # o painel fica só com a altura dos ícones ampliados: por cima deles os cliques passam para as janelas
-                  'var b = Number(w[j].readConfig("iconSize", 48)); var z = Number(w[j].readConfig("zoom", 1.9)); '
-                  'p[i].height = Math.ceil(b * (0.62 + z)) + 2; } }' % (chave, json.dumps(v)))
+                  'w[j].currentConfigGroup = ["General"]; w[j].writeConfig("%s", %s); } }' % (chave, json.dumps(v)))
+        # depois: o painel-espaçador acompanha a Dock (altura do vidro, mesmo lado; sai se a Dock se esconder)
+        try:
+            js += '\n' + open('/usr/share/carinaeos/dock-espacador.js', encoding='utf-8').read()
+        except OSError:
+            pass
         bg(['qdbus6', 'org.kde.plasmashell', '/PlasmaShell', 'org.kde.PlasmaShell.evaluateScript', js])
+        if chave == 'esconder' and not valor:
+            # voltar a "sempre visível" = modo 3 (as janelas passam por baixo; o espaçador reserva o vidro):
+            # só se guarda com o Plasma parado, e o script de entrada trata disso
+            bg(['sh', '-c', 'sleep 2; XDG_CURRENT_DESKTOP=KDE carinaeos-ambiente-inicio'])
         self._aviso('Dock atualizada ✓')
 
     @Slot(bool)

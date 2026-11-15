@@ -51,10 +51,10 @@ relogio.writeConfig("selectedRegions", "br_pt,pt_pt");
 // ---- Dock de baixo -----------------------------------------------------------
 var dock = new Panel;
 dock.location = "bottom";
-dock.height = Math.ceil(48 * (0.62 + 1.9)) + 2;  // só o ícone ampliado (o nome é uma janelinha à parte): por cima, os cliques passam
-dock.floating = true;
+dock.height = Math.round(48 * 0.14) + 48 + 2 * Math.round(48 * 0.16);  // só o vidro: a Dock cresce sozinha com o rato por cima
+dock.floating = false;
 dock.alignment = "center";
 dock.lengthMode = "fit";
 dock.opacity = "translucent";
-dock.hiding = "none";                           // sempre visivel: as janelas maximizadas param na borda de cima da Dock
+dock.hiding = "none";   // o carinaeos-ambiente-inicio passa-a a "as janelas passam por baixo" e cria o espaçador (como no Mac)
 dock.addWidget("org.carinaeos.dock");
