@@ -139,6 +139,7 @@ def baixar(url, timeout=10):
 class Musica(QObject):
     mudou = Signal()
     estadoMudou = Signal()
+    filaMudou = Signal()
     bibliotecaMudou = Signal()
     letraMudou = Signal()
     capaPronta = Signal(str)
@@ -168,6 +169,7 @@ class Musica(QObject):
         self._relogio.start()
         self._ultimo_id = None
         self._ultima_versao = None
+        self._a_ler = False
         self._preparar()
 
     # ---- MPD --------------------------------------------------------------------------------------
@@ -260,18 +262,25 @@ class Musica(QObject):
 
     # ---- estado (a cada segundo) ---------------------------------------------------------------------
     def _tique(self):
-        if not self._ligado:
+        # um pedido de cada vez: num computador lento não se acumulam
+        if not self._ligado or self._a_ler:
             return
+        self._a_ler = True
 
         def trabalho():
             st = self._mpd('status')
             atual = self._mpd('currentsong') if st.get('songid') != self._ultimo_id else None
+            st['_db'] = self._mpd('stats').get('db_update')
             return st, atual
 
         def depois(r):
+            self._a_ler = False
             if isinstance(r, Exception):
                 return
             st, atual = r
+            mudou = st != self._estado
+            if st.get('playlist') != self._estado.get('playlist'):
+                self._ler_fila()
             self._estado = st
             if atual is not None:
                 self._ultimo_id = st.get('songid')
@@ -281,10 +290,13 @@ class Musica(QObject):
                 if atual:
                     self._procurar_letra(atual)
                     self._capa_de(atual.get('albumartist') or atual.get('artist', ''), atual.get('album', ''), atual.get('file', ''))
-                self._ler_fila()
-            if st.get('updating_db') is None and self._ultima_versao is not None and self._ultima_versao != st.get('playlistlength'):
-                pass
-            self.estadoMudou.emit()
+            # a biblioteca mudou (pasta nova, músicas copiadas): volta a ler
+            if st.get('_db') != self._ultima_versao:
+                if self._ultima_versao is not None:
+                    self.recarregar()
+                self._ultima_versao = st.get('_db')
+            if mudou or atual is not None:   # só redesenha quando alguma coisa mudou
+                self.estadoMudou.emit()
         self._bg(trabalho, depois)
 
     # ---- biblioteca ----------------------------------------------------------------------------------
@@ -486,7 +498,7 @@ class Musica(QObject):
                 r.append(dict(id=m.get('id'), pos=int(m.get('pos', 0)), titulo=tit if isinstance(tit, str) else tit[0],
                               artista=art if isinstance(art, str) else art[0]))
             return r
-        self._bg(trabalho, lambda r: (not isinstance(r, Exception)) and (setattr(self, '_fila', r), self.estadoMudou.emit()))
+        self._bg(trabalho, lambda r: (not isinstance(r, Exception)) and (setattr(self, '_fila', r), self.filaMudou.emit()))
 
     # ---- propriedades para o QML ----------------------------------------------------------------------
     ligado = Property(bool, lambda s: s._ligado, notify=mudou)
@@ -495,7 +507,7 @@ class Musica(QObject):
     artistas = Property('QVariantList', lambda s: s._artistas, notify=bibliotecaMudou)
     musicas = Property('QVariantList', lambda s: s._musicas, notify=bibliotecaMudou)
     listas = Property('QVariantList', lambda s: s._listas, notify=bibliotecaMudou)
-    fila = Property('QVariantList', lambda s: s._fila, notify=estadoMudou)
+    fila = Property('QVariantList', lambda s: s._fila, notify=filaMudou)
     letra = Property('QVariantMap', lambda s: s._letra, notify=letraMudou)
 
     @Property('QVariantMap', notify=estadoMudou)

@@ -5,8 +5,9 @@ import QtQuick.Layouts
 
 ApplicationWindow {
     id: janela
+    // cabe no ecrã sem ficar por baixo da Dock
     width: 1180; height: 760
-    minimumWidth: 900; minimumHeight: 580
+    minimumWidth: 860; minimumHeight: 540
     visible: true
     title: "Música"
     color: "#0c0a14"

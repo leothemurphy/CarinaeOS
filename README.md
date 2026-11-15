@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="../../releases"><b>⬇ Baixar a ISO</b></a> ·
+  <a href="../../releases/latest"><b>⬇ Baixar a ISO (versão atual)</b></a> ·
   <a href="#-experimentar-em-5-minutos">Experimentar</a> ·
   <a href="#-launchpad-pesquisa-e-deck">Launchpad, Pesquisa e Deck</a> ·
   <a href="#-como-é-feito">Como é feito</a>
@@ -23,6 +23,7 @@ sobre um lago espelhado.
 
 > **Estado:** versão de testes (*release candidate*). Já dá para usar e instalar, mas ainda pode
 > ter arestas. Encontrou alguma coisa? Abra uma [*issue*](../../issues).
+> Durante os testes fica publicada **só a versão mais recente**: cada nova versão substitui a anterior.
 
 ## ✨ Destaques
 
@@ -32,38 +33,32 @@ sobre um lago espelhado.
     <td width="50%"><img src="docs/imagens/02-entrada.jpg" alt="Tela de entrada"></td>
   </tr>
   <tr>
-    <td><b>Área de trabalho</b>: o céu real do Atacama com a estrela do CarinaeOS, barra no topo e
-        Dock de vidro que amplia os ícones, com <b>Downloads</b> e <b>Lixeira</b> no fim.</td>
-    <td><b>Tela de entrada</b>: relógio grande, senha embaixo e o céu da Eta Carinae ao fundo.
-        Aceita senhas simples, como um PIN de 4 a 6 números.</td>
+    <td><b>Área de trabalho</b>: a nebulosa sobre o lago (também em versão animada), barra escura no topo e a Dock de vidro, que pode reorganizar e dividir com separadores.</td>
+    <td><b>Tela de entrada</b>: relógio grande e a data em português, a sua foto e o céu desfocado ao fundo.</td>
   </tr>
   <tr>
-    <td><img src="docs/imagens/04-launchpad.jpg" alt="Launchpad"></td>
-    <td><img src="docs/imagens/01-arranque.jpg" alt="Arranque com a estrela"></td>
+    <td width="50%"><img src="docs/imagens/04-launchpad.jpg" alt="Launchpad"></td>
+    <td width="50%"><img src="docs/imagens/05-pesquisa.jpg" alt="Pesquisa"></td>
   </tr>
   <tr>
-    <td><b>Launchpad</b>: clique na estrela (ou aperte a tecla ⊞/⌘): categorias em cartões,
-        favoritos, mais usados, o Deck e o detalhe de cada aplicativo, tudo em vidro fosco.</td>
-    <td><b>Arranque com a estrela</b>: do menu de arranque à tela de carregamento e ao instalador,
-        tudo com a marca CarinaeOS. Nenhum logotipo do Debian ou do KDE à vista.</td>
+    <td><b>Launchpad</b>: clique na estrela (ou na tecla ⊞/⌘): categorias em cartões, favoritos, mais usados, o Deck e o detalhe de cada aplicativo, em vidro fosco.</td>
+    <td><b>Pesquisa</b> (Ctrl+Espaço ou a lupa): aplicativos, arquivos indexados, configurações e ações rápidas, como o volume ou o brilho, e abre na hora.</td>
   </tr>
   <tr>
-    <td><img src="docs/imagens/07-orbita.jpg" alt="Loja Órbita"></td>
-    <td><img src="docs/imagens/06-supernova.jpg" alt="Supernova"></td>
+    <td width="50%"><img src="docs/imagens/07-musica.jpg" alt="Música"></td>
+    <td width="50%"><img src="docs/imagens/09-config-dock.jpg" alt="Configurações da Dock"></td>
   </tr>
   <tr>
-    <td><b>Órbita</b>: a loja de aplicativos. Chrome, LibreOffice, Spotify, Discord, VS Code, Steam…
-        com um clique, sem senha e com o progresso do download.</td>
-    <td><b>Supernova</b>: o painel de personalização. Efeitos de janela (lâmpada mágica,
-        gelatina, explosão), Alt+Tab em Flip 3D ou em grade, ajustes da Dock e perfis prontos.</td>
+    <td><b>Música</b>: biblioteca com capas e letras, listas e rádios, por cima do MPD. As listas aparecem como fontes no Home Assistant.</td>
+    <td><b>Configurações</b> no estilo do Fedora. Na Dock: tamanho, ampliação, posição (em baixo, ao lado, em cima), esconder, e a cor e a espessura dos separadores.</td>
   </tr>
   <tr>
-    <td><img src="docs/imagens/08-central.jpg" alt="Central CarinaeOS"></td>
-    <td><img src="docs/imagens/09-arquivos.jpg" alt="Arquivos com etiquetas"></td>
+    <td width="50%"><img src="docs/imagens/08-central.jpg" alt="Central CarinaeOS"></td>
+    <td width="50%"><img src="docs/imagens/01-arranque.jpg" alt="Arranque com a estrela"></td>
   </tr>
   <tr>
-    <td><b>Central CarinaeOS</b>: todas as ferramentas do sistema num só lugar.</td>
-    <td><b>Arquivos</b> no visual Vidro, com as etiquetas coloridas na barra lateral.</td>
+    <td><b>Central CarinaeOS</b>: todas as ferramentas do sistema num só lugar: Supernova, Órbita (loja), Casa, Calendários, Cadeado…</td>
+    <td><b>Arranque com a estrela</b>: do menu de arranque ao instalador, tudo com a marca CarinaeOS.</td>
   </tr>
 </table>
 

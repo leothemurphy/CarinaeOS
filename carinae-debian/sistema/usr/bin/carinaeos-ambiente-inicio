@@ -7,7 +7,12 @@ FUNDO=/usr/share/backgrounds/carinaeos/eta-carinae.jpg
 SEMPRE=true
 grep -qE '"visivel": "(janelas|esconder)"' "${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/supernova.json" 2>/dev/null && SEMPRE=false
 # sessao de teste: sem bloqueio automatico do ecra (a pessoa ainda nao escolheu uma senha)
-[ -d /run/live ] && kwriteconfig6 --file kscreenlockerrc --group Daemon --key Autolock false 2>/dev/null
+if [ -d /run/live ]; then   # sessão de experimentar: nunca bloquear o ecrã (não há senha para o utilizador)
+    kwriteconfig6 --file kscreenlockerrc --group Daemon --key Autolock false 2>/dev/null
+    kwriteconfig6 --file kscreenlockerrc --group Daemon --key LockOnResume false 2>/dev/null
+    kwriteconfig6 --file powerdevilrc --group AC --group Display --key LockBeforeTurnOff false 2>/dev/null
+    (sleep 20; qdbus6 org.freedesktop.ScreenSaver /ScreenSaver org.kde.screensaver.configure) >/dev/null 2>&1 &
+fi
 # sessao de teste: o atalho "Instalar o CarinaeOS" vai para a Area de trabalho em portugues
 if [ -d /run/live ] && [ -d "$HOME/Desktop" ]; then
   AT=$(xdg-user-dir DESKTOP 2>/dev/null)

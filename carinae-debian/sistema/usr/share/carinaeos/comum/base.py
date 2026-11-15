@@ -59,4 +59,14 @@ def iniciar(nome_app, titulo, icone, qml, contexto):
     motor.load(qml)
     if not motor.rootObjects():
         sys.exit(1)
+    # nenhuma janela nasce maior do que o ecrã nem por baixo da Dock (barra de cima ~24 px, Dock ~110 px, com folga para centrar)
+    try:
+        j = motor.rootObjects()[0]
+        g = (j.screen() or app.primaryScreen()).geometry()
+        if j.height() > g.height() - 200:
+            j.setHeight(max(j.minimumHeight(), g.height() - 200))
+        if j.width() > g.width() - 80:
+            j.setWidth(max(j.minimumWidth(), g.width() - 80))
+    except Exception:
+        pass
     return app.exec()
