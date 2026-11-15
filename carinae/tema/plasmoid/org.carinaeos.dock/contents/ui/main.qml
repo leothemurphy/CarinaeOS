@@ -99,7 +99,7 @@ PlasmoidItem {
     // o rato é seguido com um pequeno atraso: a onda desliza em vez de saltar
     Behavior on ratoX {
         enabled: dock.forca > 0.02
-        NumberAnimation { duration: 90; easing.type: Easing.OutQuad }
+        NumberAnimation { duration: 45; easing.type: Easing.OutQuad }
     }
     // só amplia com o rato sobre a faixa da Dock (não no espaço vazio por cima)
     property bool sobre: false
@@ -438,15 +438,24 @@ PlasmoidItem {
             width: dock.base * s
             height: fila.height
 
-            Kirigami.Icon {
+            Item {      // os ícones desenham-se uma vez no tamanho máximo e só mudam de escala (sem redesenhar a cada movimento do rato)
                 id: estrelaIcone
                 rotation: -dock.angulo
-                source: "carinaeos-estrela"
                 width: dock.base * estrela.s
                 height: width
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: parent.height - dock.baixo - dock.margem - height - estrela.pulo
-                active: estrelaRato.containsMouse
+                Kirigami.Icon {
+                    source: "carinaeos-estrela"
+                    active: estrelaRato.containsMouse
+                    width: Math.round(dock.base * Math.max(1, dock.zoom))
+                    height: width
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    transformOrigin: Item.Bottom
+                    scale: parent.width / width
+                    smooth: true
+                }
             }
             Rotulo {
                 alvo: estrelaIcone
@@ -500,15 +509,24 @@ PlasmoidItem {
             readonly property real s: dock.escala(dock.slots - 1)
             width: dock.base * s
             height: fila.height
-            Kirigami.Icon {
+            Item {      // os ícones desenham-se uma vez no tamanho máximo e só mudam de escala (sem redesenhar a cada movimento do rato)
                 id: lixoIcone
                 rotation: -dock.angulo
-                source: "user-trash"
                 width: dock.base * lixo.s
                 height: width
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: parent.height - dock.baixo - dock.margem - height
-                active: lixoRato.containsMouse
+                Kirigami.Icon {
+                    source: "user-trash"
+                    active: lixoRato.containsMouse
+                    width: Math.round(dock.base * Math.max(1, dock.zoom))
+                    height: width
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.bottom: parent.bottom
+                    transformOrigin: Item.Bottom
+                    scale: parent.width / width
+                    smooth: true
+                }
             }
             Rotulo {
                 alvo: lixoIcone

@@ -49,16 +49,25 @@ Item {
         }
     }
 
-    Kirigami.Icon {
+    Item {      // os ícones desenham-se uma vez no tamanho máximo e só mudam de escala (sem redesenhar a cada movimento do rato)
         id: icone
         rotation: -dock.angulo
-        source: tarefa.model.decoration
         width: dock.base * tarefa.s
         height: width
         x: (dock.base * tarefa.s - width) / 2
         opacity: tarefa.arrastando ? 0.75 : 1
         y: parent.height - dock.baixo - dock.margem - height - tarefa.pulo
-        active: rato.containsMouse
+        Kirigami.Icon {
+            source: tarefa.model.decoration
+            active: rato.containsMouse
+            width: Math.round(dock.base * Math.max(1, dock.zoom))
+            height: width
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            transformOrigin: Item.Bottom
+            scale: parent.width / width
+            smooth: true
+        }
     }
     // separador escolhido pela pessoa, à direita do ícone
     Rectangle {

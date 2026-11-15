@@ -57,15 +57,24 @@ Item {
         return mapa[e] || "text-x-generic";
     }
 
-    Kirigami.Icon {
+    Item {      // os ícones desenham-se uma vez no tamanho máximo e só mudam de escala (sem redesenhar a cada movimento do rato)
         id: icone
         rotation: -dock.angulo
-        source: "folder-downloads"
         width: dock.base * pilha.s
         height: width
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height - dock.baixo - dock.margem - height
-        active: rato.containsMouse
+        Kirigami.Icon {
+            source: "folder-downloads"
+            active: rato.containsMouse
+            width: Math.round(dock.base * Math.max(1, dock.zoom))
+            height: width
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            transformOrigin: Item.Bottom
+            scale: parent.width / width
+            smooth: true
+        }
     }
     Rotulo {
         alvo: icone
