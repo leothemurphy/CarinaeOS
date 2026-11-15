@@ -650,8 +650,8 @@ ApplicationWindow {
                 BotaoRedondo { icone: "media-skip-backward"; onClicked: musica.anterior() }
                 Rectangle {
                     width: 44; height: 44; radius: 22; color: mp.containsMouse ? Qt.lighter(janela.ambar, 1.1) : janela.ambar
-                    Image { anchors.centerIn: parent; width: 22; height: 22; sourceSize: Qt.size(44, 44)
-                            source: "image://icone/" + (janela.t.estado === "play" ? "media-playback-pause" : "media-playback-start") }
+                    Text { anchors.centerIn: parent; anchors.horizontalCenterOffset: janela.t.estado === "play" ? 0 : 2
+                           text: janela.t.estado === "play" ? "❚❚" : "▶"; color: "#1a1208"; font.pixelSize: janela.t.estado === "play" ? 15 : 18 }
                     MouseArea { id: mp; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: musica.tocarPausar() }
                 }
                 BotaoRedondo { icone: "media-skip-forward"; onClicked: musica.seguinte() }
@@ -663,7 +663,7 @@ ApplicationWindow {
                 Slider {
                     id: progresso
                     Layout.fillWidth: true; from: 0; to: Math.max(1, janela.t.duracao)
-                    value: pressed ? value : janela.t.tempo
+                    Binding on value { when: !progresso.pressed; value: janela.t.tempo }
                     onMoved: musica.irPara(value)
                     background: Rectangle {
                         x: progresso.leftPadding; y: progresso.topPadding + progresso.availableHeight / 2 - 2
@@ -677,17 +677,18 @@ ApplicationWindow {
             }
         }
 
-        Row {
+        RowLayout {
             anchors { right: parent.right; rightMargin: 20; verticalCenter: parent.verticalCenter }
             spacing: 8
-            BotaoRedondo { icone: "view-media-lyrics"; ativo: janela.pagina === "agora"; onClicked: janela.pagina = "agora" }
-            BotaoRedondo { icone: "media-playlist-append"; ativo: janela.pagina === "fila"; onClicked: janela.pagina = "fila" }
-            Image { source: "image://icone/audio-volume-high"; width: 18; height: 18; sourceSize: Qt.size(36, 36); anchors.verticalCenter: parent.verticalCenter }
+            BotaoRedondo { Layout.preferredWidth: 38; Layout.preferredHeight: 38; icone: "view-media-lyrics"; ativo: janela.pagina === "agora"; onClicked: janela.pagina = "agora" }
+            BotaoRedondo { Layout.preferredWidth: 38; Layout.preferredHeight: 38; icone: "media-playlist-append"; ativo: janela.pagina === "fila"; onClicked: janela.pagina = "fila" }
+            Image { Layout.preferredWidth: 18; Layout.preferredHeight: 18; Layout.leftMargin: 6; source: "image://icone/audio-volume-high"; sourceSize: Qt.size(36, 36) }
             Slider {
-                id: vol; width: 110; anchors.verticalCenter: parent.verticalCenter
+                id: vol
+                Layout.preferredWidth: 120; Layout.preferredHeight: 24
                 from: 0; to: 100; enabled: janela.t.volume >= 0
-                value: pressed ? value : Math.max(0, janela.t.volume)
                 onMoved: musica.definirVolume(Math.round(value))
+                Binding on value { when: !vol.pressed; value: Math.max(0, janela.t.volume) }
                 background: Rectangle {
                     x: vol.leftPadding; y: vol.topPadding + vol.availableHeight / 2 - 2
                     width: vol.availableWidth; height: 4; radius: 2; color: Qt.rgba(1, 1, 1, 0.15)
