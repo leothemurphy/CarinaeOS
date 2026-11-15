@@ -37,7 +37,6 @@ cat > /etc/xdg/kcm-about-distrorc <<'EOT'
 LogoPath=/usr/share/carinaeos/marca/logo-256.png
 Website=https://github.com/leothemurphy/carinaeos
 Version=1.0
-Variant=Edição Plasma
 EOT
 # logotipos do desktop-base e emblemas "debian": desviados e trocados pelos do CarinaeOS
 M=/usr/share/carinaeos/marca

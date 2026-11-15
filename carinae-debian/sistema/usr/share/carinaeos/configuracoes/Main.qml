@@ -625,6 +625,7 @@ ApplicationWindow {
                     Linha { titulo: "Placa gráfica"; sub: janela.e.grafica || "" }
                     Linha { titulo: "Sistema de janelas"; sub: janela.e.janelas || "" }
                     Linha { titulo: "Núcleo (kernel)"; sub: janela.e.nucleo || "" }
+                    Linha { titulo: "Feito a partir de"; sub: janela.e.base || "" }
                 }
                 Grupo {
                     visible: janela.pagina === "sistema"

@@ -1,0 +1,22 @@
+#!/bin/sh
+# CarinaeOS - antes da tela de entrada (SDDM, X11): com dois ou mais ecrãs, põe-nos lado a lado
+# (sem se sobreporem) e o principal é o que o usuário escolheu no Plasma
+# (~/.config/carinaeos/ecra-principal, escrito ao entrar na sessão).
+[ -x /usr/share/sddm/scripts/Xsetup ] && /usr/share/sddm/scripts/Xsetup
+command -v xrandr >/dev/null || exit 0
+saidas=$(xrandr --query | awk '/ connected/{print $1}')
+[ "$(echo "$saidas" | grep -c .)" -gt 1 ] || exit 0
+u=$(sed -n 's/^User=//p' /var/lib/sddm/state.conf 2>/dev/null | head -1)
+casa=$( [ -n "$u" ] && getent passwd "$u" | cut -d: -f6 )
+p=$( [ -n "$casa" ] && head -1 "$casa/.config/carinaeos/ecra-principal" 2>/dev/null )
+echo "$saidas" | grep -qx "$p" || p=$(xrandr --query | awk '/ connected primary/{print $1}' | head -1)
+[ -n "$p" ] || p=$(echo "$saidas" | head -1)
+args="--output $p --auto --primary --pos 0x0"
+ant=$p
+for o in $saidas; do
+    [ "$o" = "$p" ] && continue
+    args="$args --output $o --auto --right-of $ant"
+    ant=$o
+done
+xrandr $args
+exit 0

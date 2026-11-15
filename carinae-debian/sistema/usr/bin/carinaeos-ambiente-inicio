@@ -54,6 +54,22 @@ case "$XDG_CURRENT_DESKTOP" in *KDE*)
   ;;
 esac
 
+# o ecrã principal escolhido no Plasma, para a tela de entrada aparecer nele (sddm-ecras)
+(sleep 20; python3 - <<'EOT' 2>/dev/null
+import json, os, subprocess
+try:
+    d = json.loads(subprocess.run(['kscreen-doctor', '-j'], capture_output=True, text=True, timeout=10).stdout)
+    s = [o for o in d.get('outputs', []) if o.get('enabled') and o.get('connected')]
+    s.sort(key=lambda o: o.get('priority', 99) or 99)
+    if len(s) > 1:
+        f = os.path.expanduser('~/.config/carinaeos/ecra-principal')
+        os.makedirs(os.path.dirname(f), exist_ok=True)
+        open(f, 'w').write(s[0]['name'] + '\n')
+except Exception:
+    pass
+EOT
+) &
+
 # etiquetas (as 7 cores) na barra lateral dos Arquivos, em todos os ambientes
 (carinaeos-etiquetas iniciar >/dev/null 2>&1 &)
 

@@ -159,6 +159,12 @@ def sobre():
     info['grafica'] = gpu.strip() or '—'
     sessao = os.environ.get('XDG_SESSION_TYPE', '')
     info['janelas'] = 'Wayland' if sessao == 'wayland' else ('X11' if sessao == 'x11' else '—')
+    try:
+        deb = open('/etc/debian_version').read().strip()
+    except OSError:
+        deb = ''
+    pl = cmd(['plasmashell', '--version']).replace('plasmashell', '').strip()
+    info['base'] = 'Debian %s · KDE Plasma %s' % (deb or '13', pl or '6')
     info['nucleo'] = os.uname().release
     return info
 

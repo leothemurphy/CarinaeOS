@@ -83,7 +83,7 @@ PlasmoidItem {
         visualParent: raiz
         placement: PlasmaExtras.Menu.BottomPosedLeftAlignedPopup
 
-        PlasmaExtras.MenuItem { text: "Sobre este computador"; icon: "carinaeos"; onClicked: raiz.correr("kinfocenter") }
+        PlasmaExtras.MenuItem { text: "Sobre este computador"; icon: "carinaeos"; onClicked: raiz.correr("carinaeos-configuracoes sistema") }
         PlasmaExtras.MenuItem { separator: true }
         PlasmaExtras.MenuItem { text: "Comando…  (Ctrl+Espaço)"; icon: "search"; onClicked: raiz.correr("carinaeos-comando") }
         PlasmaExtras.MenuItem { text: "Configurações…"; icon: "preferences-system"; onClicked: raiz.correr("carinaeos-configuracoes") }
