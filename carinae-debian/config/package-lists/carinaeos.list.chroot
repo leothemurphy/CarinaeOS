@@ -155,6 +155,8 @@ samba
 kaccounts-integration
 kaccounts-providers
 kio-gdrive
+signon-ui-qt
+signon-ui-service
 mpd
 mpc
 python3-mpd

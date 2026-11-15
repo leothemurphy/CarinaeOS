@@ -27,13 +27,56 @@ ApplicationWindow {
         for (const s of ajustes.seccoes) if (s.id === pagina) return s;
         return ajustes.seccoes[0];
     }
-    onPaginaChanged: ajustes.ler(pagina)
+    onPaginaChanged: { ajustes.ler(pagina); if (pagina === "contas") prepararContas(); }
+
+    // ---- contas online (KDE Online Accounts) --------------------------------
+    property var contasModelo: null
+    property string contasErro: ""
+    property string contasAviso: ""
+    readonly property string kaImport: "import org.kde.kaccounts 1.2 as KA\n"
+    function prepararContas(): void {
+        if (contasModelo || contasErro !== "") return;
+        try {
+            contasModelo = Qt.createQmlObject(kaImport + "KA.AccountsModel {}", janela, "contas");
+        } catch (e) {
+            contasErro = "Falta instalar: sudo apt install kaccounts-integration signon-ui-qt signon-ui-service";
+            console.warn("kaccounts:", e);
+        }
+    }
+    function adicionarConta(provedor: string): void {
+        prepararContas();
+        if (contasErro !== "") return;
+        try {
+            const j = Qt.createQmlObject(kaImport + "KA.CreateAccountJob {}", janela, "criar");
+            j.providerName = provedor;
+            contasAviso = "A abrir a página de entrada… termine o login na janela que aparece.";
+            j.finished.connect(() => {
+                if (j.error === 0) contasAviso = "";
+                else if (j.error === 1) contasAviso = "";          // cancelado
+                else contasAviso = "Não foi possível ligar a conta: " + (j.errorText || ("erro " + j.error));
+                j.destroy(1000);
+            });
+            j.start();
+        } catch (e) {
+            contasAviso = "Não foi possível começar: " + e;
+        }
+    }
+    function removerConta(id: string, nome: string): void {
+        try {
+            const j = Qt.createQmlObject(kaImport + "KA.RemoveAccountJob {}", janela, "remover");
+            j.accountId = id;
+            j.finished.connect(() => j.destroy(1000));
+            j.start();
+        } catch (e) {
+            contasAviso = "Não foi possível remover " + nome + ": " + e;
+        }
+    }
     Timer {
         interval: 2000; repeat: true
         running: janela.active && ["som", "ecras", "energia", "wifi", "bluetooth", "partilha"].indexOf(janela.pagina) !== -1
         onTriggered: ajustes.ler(janela.pagina)
     }
-    Component.onCompleted: ajustes.ler(pagina)
+    Component.onCompleted: { ajustes.ler(pagina); if (pagina === "contas") prepararContas(); }
 
     function sem(t) { return (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
 
@@ -588,17 +631,54 @@ ApplicationWindow {
                 }
 
                 // ===== Contas online =====
+                // usa o KDE Online Accounts (kaccounts): o provedor abre a página de entrada dele, e depois
+                // a conta (o email) aparece aqui. Carregado à mão para a página não partir se faltar o módulo.
                 Grupo {
                     visible: janela.pagina === "contas"
-                    titulo: "Calendários e contactos"
-                    Linha { titulo: "Google"; sub: "Calendário do Google (pelo endereço secreto iCal)"; icone: "view-calendar"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-central calendarios"); Seta {} }
-                    Linha { titulo: "iCloud e Outlook"; sub: "Pelo endereço do calendário (iCal)"; icone: "view-calendar-day"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-central calendarios"); Seta {} }
+                    titulo: "Contas ligadas"
+                    Repeater {
+                        id: rptContas
+                        model: janela.contasModelo
+                        delegate: Linha {
+                            id: lConta
+                            required property var model
+                            property bool confirmar: false
+                            titulo: model.displayName || "(sem nome)"
+                            sub: (model.providerDisplayName || model.providerName || "") + (model.enabled === false ? " · desligada" : "")
+                            icone: model.iconName || "user-identity"
+                            Botao {
+                                texto: lConta.confirmar ? "Remover mesmo?" : "Remover"
+                                onCarregado: {
+                                    if (!lConta.confirmar) { lConta.confirmar = true; return; }
+                                    janela.removerConta(String(lConta.model.id), lConta.model.displayName || "");
+                                }
+                            }
+                        }
+                    }
+                    Linha {
+                        visible: rptContas.count === 0
+                        titulo: janela.contasErro !== "" ? "As contas online não estão disponíveis" : "Ainda não há contas ligadas"
+                        sub: janela.contasErro !== "" ? janela.contasErro : "Escolha um provedor abaixo e entre com a sua conta."
+                        icone: "user-identity"
+                    }
                 }
                 Grupo {
                     visible: janela.pagina === "contas"
-                    titulo: "Contas"
-                    Linha { titulo: "Nextcloud ou ownCloud"; sub: "Arquivos, calendário e contactos sincronizados — entra com a conta na janela que abre"; icone: "folder-cloud"; clicavel: true; onCarregado: ajustes.completo("contas"); Seta {} }
-                    Linha { titulo: "Google Drive"; sub: "Abrir o Google Drive em Meus documentos (entra com a conta Google)"; icone: "folder-gdrive"; clicavel: true; onCarregado: ajustes.abrir("dolphin --new-window gdrive:/"); Seta {} }
+                    titulo: "Adicionar uma conta"
+                    Linha { titulo: "Google"; sub: "Gmail, Google Drive e calendário — abre a página de entrada do Google"; icone: "im-google"; clicavel: true; onCarregado: janela.adicionarConta("google"); Seta {} }
+                    Linha { titulo: "Nextcloud"; sub: "Arquivos, calendário e contactos — entra no seu servidor Nextcloud"; icone: "folder-cloud"; clicavel: true; onCarregado: janela.adicionarConta("nextcloud"); Seta {} }
+                    Linha { titulo: "ownCloud"; sub: "Arquivos — entra no seu servidor ownCloud"; icone: "folder-cloud"; clicavel: true; onCarregado: janela.adicionarConta("owncloud"); Seta {} }
+                    Linha {
+                        visible: janela.contasAviso !== ""
+                        titulo: janela.contasAviso
+                        icone: "dialog-information"
+                    }
+                }
+                Grupo {
+                    visible: janela.pagina === "contas"
+                    titulo: "Calendários pelo endereço (iCal)"
+                    Linha { titulo: "Google, iCloud ou Outlook"; sub: "Mostrar um calendário no relógio pelo endereço secreto iCal"; icone: "view-calendar"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-central calendarios"); Seta {} }
+                    Linha { titulo: "Abrir o Google Drive"; sub: "Nos Meus documentos (depois de ligar a conta Google)"; icone: "folder-gdrive"; clicavel: true; onCarregado: ajustes.abrir("dolphin --new-window gdrive:/"); Seta {} }
                 }
 
                 // ===== Dock =====
