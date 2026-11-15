@@ -232,7 +232,9 @@ def hardware():
         t = subprocess.run(['mokutil', '--test-key', '/var/lib/dkms/mok.pub'], capture_output=True, text=True)
         estado = (t.stdout + t.stderr).lower()
         if 'already enrolled' not in estado:
-            pendente = bool(subprocess.run(['mokutil', '--list-new'], capture_output=True, text=True).stdout.strip())
+            # o pedido (MokNew) só o administrador lê; basta ver se a variável existe
+            import glob
+            pendente = bool(glob.glob('/sys/firmware/efi/efivars/MokNew-*'))
             item('mok', 'Secure Boot: chave do controlador NVIDIA', 'Para a placa funcionar com o Secure Boot ligado',
                  ['chave'], 'security-high',
                  'Já pedida: reinicie e confirme na tela azul. Não sabe o código? Peça de novo.' if pendente else
