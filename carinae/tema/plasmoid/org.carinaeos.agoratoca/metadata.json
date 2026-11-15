@@ -1,0 +1,14 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [ { "Name": "CarinaeOS" } ],
+        "Category": "Multimedia",
+        "Description": "A música que o servidor de música (MPD) está a tocar, na barra de cima; ao passar o rato, os controlos.",
+        "Icon": "carinaeos-musica",
+        "Id": "org.carinaeos.agoratoca",
+        "License": "GPL-2.0-or-later",
+        "Name": "A tocar",
+        "Version": "0.1"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

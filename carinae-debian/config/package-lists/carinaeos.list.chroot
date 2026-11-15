@@ -159,4 +159,5 @@ mpd
 mpc
 python3-mpd
 python3-mutagen
+mpdris2
 power-profiles-daemon

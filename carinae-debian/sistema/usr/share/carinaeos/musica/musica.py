@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -232,6 +233,7 @@ class Musica(QObject):
                 except FileExistsError:
                     pass
             subprocess.run(['systemctl', '--user', 'enable', '--now', 'mpd.service'], capture_output=True, timeout=30)
+            self._ponte_mpris()
             for _ in range(20):
                 try:
                     self._mpd('ping')
@@ -258,6 +260,25 @@ class Musica(QObject):
                 self.recarregar()
         self._bg(trabalho, depois)
 
+    def _ponte_mpris(self):
+        """mpDris2: o MPD aparece como leitor de música do sistema («A tocar» na barra, teclas de música)."""
+        try:
+            d = os.path.join(HOME, '.config/mpDris2')
+            os.makedirs(d, exist_ok=True)
+            senha = self._prefs.get('senha') if self._prefs.get('rede') else ''
+            with open(os.path.join(d, 'mpDris2.conf'), 'w', encoding='utf-8') as f:
+                f.write('[Connection]\nhost = 127.0.0.1\nport = %d\n' % PORTA)
+                if senha:
+                    f.write('password = %s\n' % senha)
+                f.write('\n[Library]\nmusic_dir = %s\ncover_regex = ^(album|cover|folder|front)\\.(jpe?g|png)$\n'
+                        '\n[Bling]\nmmkeys = False\nnotify = False\n' % BIBLIO)
+            if subprocess.run(['systemctl', '--user', 'restart', 'mpDris2.service'], capture_output=True, timeout=20).returncode != 0:
+                subprocess.run(['pkill', '-u', str(os.getuid()), '-f', 'mpDris2'], capture_output=True)
+                if shutil.which('mpDris2'):
+                    subprocess.Popen(['mpDris2'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        except Exception:
+            pass
+
     def _reiniciar_mpd(self):
         with self._lock:
             try:
@@ -273,6 +294,7 @@ class Musica(QObject):
         if r.returncode != 0:
             subprocess.Popen(['mpd', CONF], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         time.sleep(1.5)
+        self._ponte_mpris()
 
     # ---- estado (a cada segundo) ---------------------------------------------------------------------
     def _tique(self):
@@ -417,6 +439,7 @@ class Musica(QObject):
 
     def _capa_ok(self, r):
         k, destino = r
+        self._copia_md5(destino)
         url = 'file://' + destino
         for a in self._albuns:
             if a['chave'] == k:
@@ -424,6 +447,19 @@ class Musica(QObject):
         self.capaPronta.emit(k)
         self.bibliotecaMudou.emit()
         self.estadoMudou.emit()
+
+    def _copia_md5(self, destino):
+        """O «A tocar» da barra de cima encontra a capa pelo md5 de «artista\0álbum» (o QML só tem md5)."""
+        try:
+            for a in self._albuns:
+                if os.path.join(CAPAS, a['chave'] + '.jpg') == destino:
+                    for art in {a['artista']}:
+                        h = hashlib.md5(('%s\x00%s' % (art, a['album'])).lower().encode()).hexdigest()
+                        alvo = os.path.join(CAPAS, h + '.jpg')
+                        if not os.path.exists(alvo):
+                            os.link(destino, alvo)
+        except OSError:
+            pass
 
     # ---- letras -----------------------------------------------------------------------------------------
     def _procurar_letra(self, m):
