@@ -29,7 +29,7 @@ if (dock) {
         s.location = dock.p.location;
         s.floating = false;
         s.lengthMode = "custom";
-        s.alignment = "left";
+        s.alignment = "center";   // fica escondido por trás do meio da Dock (num canto, apanhava cliques e abria o modo de edição)
         s.minimumLength = 1;
         s.maximumLength = 1;
         s.length = 1;
