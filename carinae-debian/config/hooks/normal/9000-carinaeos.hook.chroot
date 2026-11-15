@@ -271,6 +271,8 @@ systemctl disable ssh.service ssh.socket 2>/dev/null || true
 rm -f /etc/ssh/ssh_host_*
 systemctl --global enable carinaeos-calendarios.timer 2>/dev/null || true
 systemctl --global enable carinaeos-atualizacoes.timer 2>/dev/null || true
+# arranque mais rápido: o ambiente de trabalho não espera pela rede (as pastas da rede montam-se quando são abertas)
+systemctl disable NetworkManager-wait-online.service 2>/dev/null || true
 # a pasta pessoal do convidado vive na memoria (montada ao entrar, apagada ao sair) e entra sem senha
 for P in /etc/pam.d/sddm /etc/pam.d/gdm-password /etc/pam.d/lightdm; do
   [ -f "$P" ] || continue
