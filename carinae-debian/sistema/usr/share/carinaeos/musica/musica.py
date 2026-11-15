@@ -25,9 +25,11 @@ from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot  # noqa: E402
 
 try:
     from mpd import MPDClient, CommandError
+    from mpd import ConnectionError as LigacaoMPDPerdida   # não é o ConnectionError do Python
 except ImportError:  # pragma: no cover
     MPDClient = None
     CommandError = Exception
+    LigacaoMPDPerdida = ConnectionError
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 HOME = os.path.expanduser('~')
@@ -200,7 +202,9 @@ class Musica(QObject):
                             c.password(senha)
                         self._cli = c
                     return getattr(self._cli, cmd[0])(*cmd[1:], **kw)
-                except (ConnectionError, OSError, BrokenPipeError) as e:
+                except CommandError:
+                    raise                      # o MPD respondeu (ex.: lista inexistente): a ligação está boa
+                except Exception as e:         # ligação perdida/fechada pelo MPD, protocolo baralhado...: volta a ligar
                     try:
                         if self._cli:
                             self._cli.disconnect()
