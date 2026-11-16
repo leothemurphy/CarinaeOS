@@ -10,8 +10,8 @@ p="$1"
 case "$p" in
   -*|*[!a-z0-9+.-]*|"") echo "nome de pacote inválido: $p" >&2; exit 2 ;;
 esac
-if echo "$p" | grep -Eq '^(carinaeos.*|plasma.*|kwin.*|sddm.*|systemsettings|dolphin|konsole|kio.*|kde.*|libkf.*|xdg-desktop-portal.*|flatpak|apt|dpkg|calamares.*|plymouth.*|network-manager.*|pipewire.*|wireplumber|polkit.*|systemd.*|udisks2|kscreen|powerdevil|bluedevil|breeze.*|khelpcenter|kinfocenter|kmenuedit|discover|plasma-discover.*)$'; then
-  echo "$p faz parte do sistema e não pode ser desinstalado" >&2; exit 3
+if echo "$p" | grep -Eq '^(carinaeos.*|plasma.*|kwin.*|sddm.*|systemsettings|dolphin|konsole|kio.*|kde.*|libkf.*|xdg-desktop-portal.*|flatpak|apt|dpkg|calamares.*|plymouth.*|network-manager.*|pipewire.*|wireplumber|polkit.*|systemd.*|udisks2|kscreen|powerdevil|bluedevil|breeze.*|khelpcenter|kinfocenter|kmenuedit|discover|plasma-discover.*|nvidia.*|libnvidia.*|firmware-.*|linux-image.*|linux-headers.*|grub.*|shim.*|xserver-xorg.*|glx-.*|mesa.*|libgl.*|timeshift)$'; then
+  echo "$p faz parte do sistema (ou da inicialização, como o driver de vídeo) e não pode ser desinstalado" >&2; exit 3
 fi
 dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q "install ok installed" || { echo "$p não está instalado" >&2; exit 3; }
 case "$(dpkg-query -W -f='${Essential}/${Priority}' "$p")" in

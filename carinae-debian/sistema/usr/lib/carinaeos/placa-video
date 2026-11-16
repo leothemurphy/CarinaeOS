@@ -27,13 +27,26 @@ chave_mok() {
     rm -f "$h"
 }
 
+# os pacotes do driver ficam marcados como "instalados à mão": o "apt autoremove" nunca os oferece
+# para apagar (sem eles a imagem não arranca); o desinstalador do CarinaeOS também os recusa
+proteger() {
+    P=$(dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 2>/dev/null \
+        | awk '$1 ~ /^ii/ && $2 ~ /^(nvidia|libnvidia|firmware-nvidia|libcuda|libnvcuvid|libnvoptix|glx-alternative|glx-diversions|xserver-xorg-video-nvidia|libegl-nvidia|libgl1-nvidia|libgles-nvidia|libglx-nvidia)/ {print $2}')
+    [ -n "$P" ] && apt-mark manual $P >/dev/null && echo "protegidos: $(echo $P | wc -w) pacotes da NVIDIA"
+    return 0
+}
+
 case "$1" in
 mok)
     chave_mok
     ;;
+proteger)
+    proteger
+    ;;
 atual)
     apt-get update -q
     apt-get install -y linux-headers-amd64 nvidia-driver firmware-misc-nonfree nvidia-suspend-common
+    proteger
     chave_mok
     ;;
 kepler)
@@ -60,10 +73,11 @@ kepler)
     mkdir -p /etc/apt/apt.conf.d
     printf '%s\n' '// CarinaeOS: placa NVIDIA antiga (driver 470) - o núcleo só se atualiza pelo app Atualizações' \
         'Unattended-Upgrade::Package-Blacklist { "linux-image-"; "linux-headers-"; };' > /etc/apt/apt.conf.d/53carinaeos-nvidia-antiga
+    proteger
     chave_mok
     ;;
 *)
-    echo "uso: placa-video atual|kepler|mok" >&2
+    echo "uso: placa-video atual|kepler|mok|proteger" >&2
     exit 2
     ;;
 esac

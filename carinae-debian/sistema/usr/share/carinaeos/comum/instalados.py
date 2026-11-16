@@ -14,10 +14,7 @@ APPS_USUARIO = os.path.join(HOME, '.local/share/applications')
 PASTA_APPS = os.path.join(HOME, 'Aplicativos')
 BOTTLES = 'com.usebottles.bottles'
 # o que é o próprio sistema: nunca se oferece para remover
-PROTEGIDOS = re.compile(r'^(carinaeos.*|plasma.*|kwin.*|sddm.*|systemsettings|dolphin|konsole|kio.*|kde.*|libkf.*|'
-                        r'xdg-desktop-portal.*|flatpak|apt|dpkg|calamares.*|plymouth.*|network-manager.*|pipewire.*|'
-                        r'wireplumber|polkit.*|systemd.*|udisks2|kscreen|powerdevil|bluedevil|breeze.*|'
-                        r'khelpcenter|kinfocenter|kmenuedit|discover|plasma-discover.*)$')
+PROTEGIDOS = re.compile(r'^(carinaeos.*|plasma.*|kwin.*|sddm.*|systemsettings|dolphin|konsole|kio.*|kde.*|libkf.*|xdg-desktop-portal.*|flatpak|apt|dpkg|calamares.*|plymouth.*|network-manager.*|pipewire.*|wireplumber|polkit.*|systemd.*|udisks2|kscreen|powerdevil|bluedevil|breeze.*|khelpcenter|kinfocenter|kmenuedit|discover|plasma-discover.*|nvidia.*|libnvidia.*|firmware-.*|linux-image.*|linux-headers.*|grub.*|shim.*|xserver-xorg.*|glx-.*|mesa.*|libgl.*|timeshift)$')   # igual ao /usr/lib/carinaeos/remover-pacote
 
 
 def _cmd(args, timeout=20):
