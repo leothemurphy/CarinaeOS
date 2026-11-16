@@ -505,6 +505,11 @@ ApplicationWindow {
                 // ===== Privacidade =====
                 Grupo {
                     visible: janela.pagina === "privacidade"
+                    Linha {
+                        titulo: "Mostrar recentes no Launchpad"
+                        sub: "Ao passar o mouse num aplicativo: os últimos documentos, sites ou conversas (lidos só neste computador)"
+                        Switch { checked: janela.e.recentes !== false; onToggled: ajustes.definirRecentes(checked) }
+                    }
                     Linha { titulo: "Sessão sem rastro, modo escuro forçado"; sub: "Na Central do CarinaeOS"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-central privacidade"); Seta {} }
                     Linha { titulo: "Pastas, arquivos e aplicativos com senha"; sub: "Cadeado"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-central cadeado"); Seta {} }
                     Linha { titulo: "Bloqueio da tela…"; clicavel: true; onCarregado: ajustes.abrir("kcmshell6 kcm_screenlocker"); Seta {} }

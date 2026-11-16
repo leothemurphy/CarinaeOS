@@ -18,6 +18,7 @@ from PySide6.QtCore import Property, QObject, Signal, Slot  # noqa: E402
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 DOCK_JSON = os.path.expanduser('~/.config/carinaeos-dock.json')
+SEM_RECENTES = os.path.expanduser('~/.config/carinaeos/sem-recentes')
 HOME = os.path.expanduser('~')
 
 # (id, nome, icone, modulo completo, palavras para a pesquisa)
@@ -281,7 +282,9 @@ class Config(QObject):
                 e['ssh'] = -1 if not os.path.exists('/usr/sbin/sshd') else (1 if cmd(['systemctl', 'is-active', 'ssh']) == 'active' else 0)
                 e['ip'] = cmd(['hostname', '-I']).split()[:2]
                 e['usuario'] = os.environ.get('USER') or os.path.basename(HOME)
-            elif pagina == 'dock':
+            if pagina == 'privacidade':
+                e['recentes'] = not os.path.exists(SEM_RECENTES)
+            if pagina == 'dock':
                 rc = os.path.join(HOME, '.config/plasma-org.kde.plasma.desktop-appletsrc')
                 d = dict(iconSize=56, zoom=1.6, separatorWidth=1, separatorColor='#ffffff', posicao='bottom', esconder=False)
                 try:
@@ -615,6 +618,18 @@ class Config(QObject):
         threading.Thread(target=t, daemon=True).start()
 
     # ---- Dock -----------------------------------------------------------------------------------------
+    @Slot(bool)
+    def definirRecentes(self, mostrar):
+        if mostrar:
+            try:
+                os.remove(SEM_RECENTES)
+            except OSError:
+                pass
+        else:
+            os.makedirs(os.path.dirname(SEM_RECENTES), exist_ok=True)
+            open(SEM_RECENTES, 'w').close()
+        self.ler('privacidade')
+
     @Slot(str, str)
     def definirModeloDock(self, chave, valor):
         """estilo (fluent, vidro, …) ou ampliacao (dentro/onda): a Dock aplica em até 4 segundos."""

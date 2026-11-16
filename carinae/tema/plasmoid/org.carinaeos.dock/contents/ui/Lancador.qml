@@ -124,7 +124,6 @@ Kicker.DashboardWindow {
     property string filtro: ""
     property var selecionado: null
     property var acoesSel: []
-    onSelecionadoChanged: acoesSel = []
     property int indice: 0
 
     function alfa(c: var, a: real): color {
@@ -404,6 +403,46 @@ Kicker.DashboardWindow {
                + " | base64 -d > \"$HOME/.config/carinaeos-deck.json\"'");
     }
     // ---- cartões: ler e gravar ~/.config/carinaeos-cartoes.json ----------------------
+    // ---- recentes do aplicativo escolhido (carinaeos-recentes): documentos, sites, conversas ----
+    property var recentes: []
+    property var cacheRecentes: ({})
+    property string chaveRecentes: ""
+    onSelecionadoChanged: {
+        acoesSel = [];
+        const k = selecionado && selecionado.chave ? selecionado.chave : "";
+        if (k === chaveRecentes) return;
+        chaveRecentes = k;
+        const c = cacheRecentes[k];
+        recentes = c && Date.now() - c.quando < 60000 ? c.lista : [];
+        if (k !== "" && !(c && Date.now() - c.quando < 60000)) pedirRecentes.restart();
+    }
+    readonly property Timer pedirRecentes: Timer {
+        // só depois de o rato parar um pouco no aplicativo (passar por cima de vários não lê nada)
+        interval: 250
+        onTriggered: if (lp.chaveRecentes !== "" && /^[A-Za-z0-9._-]+$/.test(lp.chaveRecentes))
+            lp.lerRecentes.connectSource("carinaeos-recentes '" + lp.chaveRecentes + "' #" + Date.now())
+    }
+    readonly property P5Support.DataSource lerRecentes: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            const m = fonte.match(/^carinaeos-recentes '([^']+)'/);
+            if (!m) return;
+            let l = [];
+            try { l = JSON.parse((dados["stdout"] || "").trim()) || []; } catch (e) { l = []; }
+            const c = Object.assign({}, lp.cacheRecentes);
+            c[m[1]] = { quando: Date.now(), lista: l };
+            lp.cacheRecentes = c;
+            if (m[1] === lp.chaveRecentes) lp.recentes = l;
+        }
+    }
+    function abrirRecente(app: var, item: var): void {
+        if (!app || !app.chave || !item || !item.u) return;
+        correr("carinaeos-recentes abrir '" + app.chave.replace(/'/g, "") + "' '" + String(item.u).replace(/'/g, "'\\''") + "'");
+        lp.toggle();
+    }
+
     // ---- descrições curtas em português de todos os aplicativos (carinaeos-descricoes) ------
     property var descricoes: ({})
     function descricaoDe(app: var): string {
@@ -2538,6 +2577,27 @@ Kicker.DashboardWindow {
                         onEscolhido: {
                             menuMover.app = lp.selecionado;
                             menuMover.popup(itemMover, itemMover.width * 0.4, itemMover.height);
+                        }
+                    }
+
+                    // o que foi aberto há pouco com este aplicativo: atalhos diretos
+                    Text {
+                        visible: lp.recentes.length > 0
+                        text: "RECENTES"
+                        color: lp.suave
+                        font.pixelSize: Math.round(11 * palco.u)
+                        font.letterSpacing: 1.2
+                        topPadding: Math.round(10 * palco.u)
+                    }
+                    Repeater {
+                        model: lp.recentes
+                        delegate: ItemLado {
+                            u: palco.u
+                            required property var modelData
+                            texto: modelData.t || ""
+                            icone: modelData.i || "document-open-recent"
+                            numero: modelData.q || ""
+                            onEscolhido: lp.abrirRecente(lp.selecionado, modelData)
                         }
                     }
                 }
