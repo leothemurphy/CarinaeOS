@@ -15,12 +15,25 @@ ApplicationWindow {
     readonly property color rosa: "#ff6f91"
     readonly property color texto: "#f6f2ff"
     readonly property color suave: "#b9b0cc"
+    // botão em pílula (página Celular)
+    component Pilula: Rectangle {
+        id: pil
+        property string texto: ""
+        property bool principal: false
+        signal carregado()
+        width: tPil.implicitWidth + 32; height: 36; radius: 18
+        color: principal ? janela.ambar : Qt.rgba(1, 1, 1, mPil.containsMouse ? 0.13 : 0.08)
+        opacity: central.ocupado ? 0.5 : 1
+        Text { id: tPil; anchors.centerIn: parent; text: pil.texto; color: pil.principal ? "#1a0f14" : janela.texto; font.weight: pil.principal ? Font.Bold : Font.Normal }
+        MouseArea { id: mPil; anchors.fill: parent; hoverEnabled: true; enabled: !central.ocupado; cursorShape: Qt.PointingHandCursor; onClicked: pil.carregado() }
+    }
     property string pagina: central.paginaInicial || "inicio"
     function carregar() {
         if (pagina === "calendarios") central.lerCalendarios()
         if (pagina === "drivers") central.lerHardware()
         if (pagina === "ssh" || pagina === "firewall") central.lerSSH()
         if (pagina === "jogos") central.lerJogos()
+        if (pagina === "celular") central.lerCelular()
     }
     onPaginaChanged: carregar()
     Component.onCompleted: carregar()
@@ -431,6 +444,105 @@ ApplicationWindow {
                         width: 210; height: 38; radius: 19; color: Qt.rgba(1, 1, 1, 0.08)
                         Text { anchors.centerIn: parent; text: "Voltar ao céu do CarinaeOS"; color: janela.texto }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: central.reporFundoEntrada() }
+                    }
+                }
+            }
+
+            // ===== celular (KDE Connect) =====
+            Column {
+                visible: janela.pagina === "celular"
+                width: conteudo.largura; spacing: 16
+                readonly property var c: central.celular || {}
+                Row {
+                    spacing: 12
+                    Text { text: "Celular"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
+                    Pilula { anchors.verticalCenter: parent.verticalCenter; texto: "Atualizar"; onCarregado: central.lerCelular() }
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                    text: "Com o app KDE Connect no celular (App Store ou Google Play), na mesma rede Wi-Fi, envie arquivos e texto, faça o celular tocar para encontrá-lo e, no Android, veja os arquivos dele."
+                }
+                // aparelhos
+                Repeater {
+                    model: (central.celular || {}).aparelhos || []
+                    delegate: Rectangle {
+                        id: cartaoCel
+                        required property var modelData
+                        width: parent ? parent.width : 0
+                        height: colCel.implicitHeight + 32; radius: 20
+                        color: Qt.rgba(1, 1, 1, 0.05); border.color: modelData.ligado ? Qt.rgba(1, 0.7, 0.43, 0.35) : Qt.rgba(1, 1, 1, 0.08)
+                        Column {
+                            id: colCel
+                            x: 18; y: 16; width: parent.width - 36; spacing: 12
+                            Row {
+                                spacing: 12
+                                Image { width: 34; height: 34; source: "image://icone/" + (cartaoCel.modelData.tipo === "tablet" ? "tablet" : "smartphone"); sourceSize: Qt.size(68, 68); opacity: cartaoCel.modelData.ligado ? 1 : 0.5 }
+                                Column {
+                                    Text { text: cartaoCel.modelData.nome; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                                    Text {
+                                        color: cartaoCel.modelData.ligado ? janela.ambar : janela.suave; font.pixelSize: 13
+                                        text: !cartaoCel.modelData.pareado ? "Não pareado"
+                                            : !cartaoCel.modelData.ligado ? "Fora de alcance (abra o KDE Connect no celular, na mesma rede)"
+                                            : "Ligado" + (cartaoCel.modelData.bateria >= 0 ? " · bateria " + cartaoCel.modelData.bateria + "%" : "")
+                                    }
+                                }
+                            }
+                            Flow {
+                                width: parent.width; spacing: 8
+                                visible: cartaoCel.modelData.ligado
+                                Pilula { texto: "Enviar arquivo…"; principal: true; onCarregado: central.celularAcao(cartaoCel.modelData.id, "arquivo") }
+                                Pilula { texto: "Enviar texto copiado"; onCarregado: central.celularAcao(cartaoCel.modelData.id, "texto") }
+                                Pilula { texto: "Tocar (encontrar)"; onCarregado: central.celularAcao(cartaoCel.modelData.id, "tocar") }
+                                Pilula { visible: cartaoCel.modelData.arquivos; texto: "Ver arquivos do celular"; onCarregado: central.celularAcao(cartaoCel.modelData.id, "ver") }
+                            }
+                            Pilula { visible: !cartaoCel.modelData.pareado; texto: "Parear…"; principal: true; onCarregado: central.celularAcao(cartaoCel.modelData.id, "parear") }
+                        }
+                    }
+                }
+                Rectangle {
+                    visible: (((central.celular || {}).aparelhos) || []).length === 0
+                    width: parent.width; height: colVazio.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: colVazio
+                        x: 18; y: 16; width: parent.width - 36; spacing: 10
+                        Text { text: "Nenhum celular encontrado"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: "1. Instale o KDE Connect no celular (App Store ou Google Play).\n2. Ligue o celular à mesma rede Wi-Fi deste computador e abra o app.\n3. Toque no nome deste computador e em Parear; aceite aqui o pedido que aparece." }
+                        Pilula { texto: "Abrir o KDE Connect"; onCarregado: central.abrir("kdeconnect-app") }
+                    }
+                }
+                // arquivos pelo app Arquivos do iPhone (Samba)
+                Rectangle {
+                    width: parent.width; height: colArq.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: colArq
+                        x: 18; y: 16; width: parent.width - 36; spacing: 10
+                        Text { text: "Arquivos entre o iPhone e este computador"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: (central.celular || {}).samba
+                                     ? "No iPhone, abra o app Arquivos › ··· (em cima) › Conectar ao servidor e escreva o endereço abaixo. Entre com o seu usuário (" + central.usuario + ") e a senha da rede. Vê e copia as pastas que compartilhou, nos dois sentidos, sem o KDE Connect aberto."
+                                     : "O app Arquivos do iPhone abre as pastas compartilhadas deste computador (também serve no Android, com um gerenciador de arquivos que abra SMB). Ligue primeiro o compartilhamento de pastas." }
+                        Text {
+                            visible: !!(central.celular || {}).samba && !!(central.celular || {}).ip
+                            text: "smb://" + ((central.celular || {}).ip || "")
+                            color: janela.ambar; font.pixelSize: 26; font.weight: Font.Bold; font.family: "monospace"
+                        }
+                        Pilula {
+                            texto: (central.celular || {}).samba ? "Escolher as pastas…" : "Ligar o compartilhamento de pastas"
+                            principal: !(central.celular || {}).samba
+                            onCarregado: central.abrir("carinaeos-configuracoes compartilhamento")
+                        }
+                    }
+                }
+                // limites do iPhone, ditos com franqueza
+                Rectangle {
+                    width: parent.width; height: colLim.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.03); border.color: Qt.rgba(1, 1, 1, 0.06)
+                    Column {
+                        id: colLim
+                        x: 18; y: 16; width: parent.width - 36; spacing: 8
+                        Text { text: "O que o iPhone não deixa fazer"; color: janela.texto; font.pixelSize: 15; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: "A Apple não deixa nenhum app (o KDE Connect incluído) mostrar no computador as notificações, SMS e chamadas do iPhone, sincronizar a área de transferência sozinho, abrir os arquivos do iPhone a partir daqui, nem funcionar com o app fechado. Não é uma falha do CarinaeOS: no Android, tudo isto funciona.\nPara contornar: arquivos pelo app Arquivos (acima), texto copiado pelo botão do aparelho, e a música do computador pelo Home Assistant ou por um app de MPD." }
                     }
                 }
             }

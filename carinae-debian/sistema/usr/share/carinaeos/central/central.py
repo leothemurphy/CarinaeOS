@@ -24,6 +24,7 @@ FERRAMENTAS = [
     dict(id='orbita', nome='Órbita', desc='Loja de aplicativos', icone='carinaeos-orbita', cmd='carinaeos-orbita'),
     dict(id='atualizacoes', nome='Atualizações', desc='Atualizar com ponto de restauro e voltar atrás', icone='system-software-update', cmd='carinaeos-atualizacoes'),
     dict(id='casa', nome='Carinae Casa', desc='Ligado ao Home Assistant', icone='carinaeos-casa', cmd='carinaeos-casa'),
+    dict(id='celular', nome='Celular', desc='KDE Connect: arquivos, encontrar o celular, texto copiado', icone='smartphone', pagina='celular'),
     dict(id='jogos', nome='Jogos', desc='Steam, Proton e desempenho, só se quiser', icone='applications-games', pagina='jogos'),
     dict(id='calendarios', nome='Calendários', desc='Google, iCloud e endereços iCal', icone='view-calendar', pagina='calendarios'),
     dict(id='janelas', nome='Janelas em zonas', desc='Encaixar janelas lado a lado e áreas de trabalho', icone='view-grid', pagina='janelas'),
@@ -362,6 +363,56 @@ def enderecos():
     return [ip for ip in r if ':' not in ip] or r[:2]
 
 
+# ---- celular (KDE Connect) -------------------------------------------------------------------------------
+KDC = 'org.kde.kdeconnect'
+
+
+def _kdc_prop(caminho, interface, nome):
+    try:
+        r = subprocess.run(['qdbus6', KDC, caminho, 'org.freedesktop.DBus.Properties.Get', interface, nome],
+                           capture_output=True, text=True, timeout=4)
+        return r.stdout.strip() if r.returncode == 0 else ''
+    except (OSError, subprocess.SubprocessError):
+        return ''
+
+
+def celulares():
+    """Aparelhos do KDE Connect: nome, ligado (pareado e ao alcance), pareado, bateria, e se deixa ver os arquivos
+    (o iPhone não deixa: a Apple não permite SFTP nem trabalho em segundo plano)."""
+    def ids(*opc):
+        try:
+            r = subprocess.run(['kdeconnect-cli', '--id-name-only'] + list(opc), capture_output=True, text=True, timeout=8)
+        except (OSError, subprocess.SubprocessError):
+            return {}
+        d = {}
+        for l in r.stdout.splitlines():
+            if ' ' in l.strip():
+                i, n = l.strip().split(' ', 1)
+                d[i] = n
+        return d
+    todos, ao_alcance = ids('-l'), ids('-a')
+    r = []
+    for i, nome in todos.items():
+        caminho = '/modules/kdeconnect/devices/' + i
+        pareado = i in ao_alcance or _kdc_prop(caminho, 'org.kde.kdeconnect.device', 'isPaired') == 'true' \
+            or _kdc_prop(caminho, 'org.kde.kdeconnect.device', 'pairState') == '3'
+        plugins = _kdc_prop(caminho, 'org.kde.kdeconnect.device', 'supportedPlugins')
+        bat = _kdc_prop(caminho + '/battery', 'org.kde.kdeconnect.device.battery', 'charge') if i in ao_alcance else ''
+        tipo = _kdc_prop(caminho, 'org.kde.kdeconnect.device', 'type')
+        r.append(dict(id=i, nome=nome, ligado=i in ao_alcance, pareado=pareado,
+                      bateria=int(bat) if bat.lstrip('-').isdigit() and int(bat) >= 0 else -1,
+                      arquivos='kdeconnect_sftp' in plugins, tipo=tipo or 'smartphone'))
+    r.sort(key=lambda x: (not x['ligado'], not x['pareado'], x['nome'].lower()))
+    return r
+
+
+def samba_ligado():
+    try:
+        return subprocess.run(['systemctl', 'is-active', 'smbd'], capture_output=True, text=True, timeout=5).stdout.strip() == 'active'
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 # ---- privacidade: sessao sem rastro e modo escuro forcado -------------------------------------------
 def convidado_ativo():
     try:
@@ -454,6 +505,7 @@ class Central(QObject):
         self._ocupado = False
         self._chegou.connect(lambda f, r: f(r))
         self._jogos = {}
+        self._celular = {}
         self._passo.connect(self._mostrar_passo)
 
     ferramentas = Property('QVariantList', lambda s: FERRAMENTAS, constant=True)
@@ -466,6 +518,7 @@ class Central(QObject):
     escuroForcado = Property(bool, lambda s: escuro_forcado(), notify=mudou)
     convidado = Property(int, lambda s: {None: -1, False: 0, True: 1}[convidado_ativo()], notify=mudou)
     jogos = Property('QVariantMap', lambda s: s._jogos, notify=mudou)
+    celular = Property('QVariantMap', lambda s: s._celular, notify=mudou)
     firewall = Property(int, lambda s: firewall_estado(), notify=mudou)
     firewallAbertos = Property('QVariantList', lambda s: firewall_abertos(), notify=mudou)
     ssh = Property(int, lambda s: ssh_estado(), notify=mudou)
@@ -767,6 +820,62 @@ class Central(QObject):
         cmd = ['pkexec', '/usr/lib/carinaeos/firewall', 'ligar' if ligar else 'desligar']
         self._fundo(lambda: subprocess.run(cmd, check=True, capture_output=True), self._fim(
             'Firewall %s ✓' % ('ligado' if ligar else 'desligado')))
+
+    # celular (KDE Connect)
+    @Slot()
+    def lerCelular(self):
+        def ler():
+            ips = enderecos()
+            return dict(aparelhos=celulares(), samba=samba_ligado(), ip=ips[0] if ips else '',
+                        instalado=os.path.exists('/usr/bin/kdeconnect-cli'))
+
+        def depois(r):
+            self._ocupado = False
+            self._celular = r if isinstance(r, dict) else {}
+            self.mudou.emit()
+        self._fundo(ler, depois)
+
+    @Slot(str, str)
+    def celularAcao(self, ident, acao):
+        if not re.fullmatch(r'[A-Za-z0-9_{}-]+', ident):
+            return
+        nome = next((a['nome'] for a in self._celular.get('aparelhos', []) if a['id'] == ident), 'o celular')
+
+        def trabalho():
+            base = ['kdeconnect-cli', '-d', ident]
+            if acao == 'tocar':
+                subprocess.run(base + ['--ring'], check=True, capture_output=True, timeout=15)
+                return 'O %s está tocando ✓' % nome
+            if acao == 'texto':
+                txt = subprocess.run(['qdbus6', 'org.kde.klipper', '/klipper', 'getClipboardContents'],
+                                     capture_output=True, text=True, timeout=5).stdout.rstrip('\n')
+                if not txt.strip():
+                    return 'Não há texto copiado (copie algo com Ctrl+C e tente de novo).'
+                subprocess.run(base + ['--share-text', txt], check=True, capture_output=True, timeout=15)
+                return 'Texto enviado para o %s ✓' % nome
+            if acao == 'arquivo':
+                r = subprocess.run(['kdialog', '--title', 'Enviar para ' + nome, '--multiple', '--separate-output',
+                                    '--getopenfilename', HOME], capture_output=True, text=True)
+                arqs = [a for a in r.stdout.splitlines() if a.strip()]
+                if not arqs:
+                    return ''
+                for a in arqs:
+                    subprocess.run(base + ['--share', a], check=True, capture_output=True, timeout=60)
+                return '%d arquivo(s) enviados para o %s ✓' % (len(arqs), nome)
+            if acao == 'ver':
+                subprocess.Popen(['dolphin', '--new-window', 'kdeconnect://' + ident], start_new_session=True)
+                return ''
+            if acao == 'parear':
+                subprocess.Popen(['kdeconnect-app'], start_new_session=True)
+                return ''
+            return ''
+
+        def depois(r):
+            self._ocupado = False
+            self._msg = ('Não funcionou: o celular está com o KDE Connect aberto e na mesma rede?'
+                         if isinstance(r, Exception) else r)
+            self.mudou.emit()
+        self._fundo(trabalho, depois)
 
     @Slot()
     def lerSSH(self):
