@@ -167,6 +167,12 @@ case "$XDG_CURRENT_DESKTOP" in
   *KDE*)
     # computador fraco: no primeiro login liga o modo leve (só uma vez; depois decide o usuário)
     command -v carinaeos-modo-leve >/dev/null && (sleep 25; carinaeos-modo-leve auto) >/dev/null 2>&1 &
+    # sistema num disco mecânico: perfil do Chrome/Firefox na memória (profile-sync-daemon), uma vez
+    R=$(lsblk -no PKNAME "$(findmnt -no SOURCE /)" 2>/dev/null | head -1)
+    if [ -n "$R" ] && [ "$(cat /sys/block/$R/queue/rotational 2>/dev/null)" = 1 ] && command -v psd >/dev/null \
+       && ! systemctl --user -q is-enabled psd.service 2>/dev/null && [ ! -e "$HOME/.config/carinaeos/sem-psd" ]; then
+      systemctl --user enable psd.service >/dev/null 2>&1
+    fi
     # trocou de estilo (Mac / Windows 11) a partir de outro ambiente: aplicar agora
     P="${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/plasma-visual-pendente"
     if [ -s "$P" ]; then

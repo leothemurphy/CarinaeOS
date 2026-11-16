@@ -275,6 +275,8 @@ systemctl --global enable carinaeos-atualizacoes.timer 2>/dev/null || true
 systemctl --global enable carinaeos-aquecer.timer 2>/dev/null || true
 # firewall ligado de origem (ufw): liga-se na primeira inicialização (no chroot não há rede para configurar)
 systemctl enable ufw.service carinaeos-firewall.service 2>/dev/null || true
+# sistema num disco mecânico: menos gravações do diário do ext4 (só age se / estiver num HD)
+systemctl enable carinaeos-disco.service 2>/dev/null || true
 # correções de segurança do Debian instaladas sozinhas todos os dias (só segurança; ver /etc/apt/apt.conf.d/52carinaeos-seguranca)
 echo "unattended-upgrades unattended-upgrades/enable_auto_updates boolean true" | debconf-set-selections
 systemctl enable apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true

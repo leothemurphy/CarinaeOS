@@ -155,6 +155,8 @@ ufw
 plasma-firewall
 # correções de segurança automáticas
 unattended-upgrades
+# perfil dos navegadores na memória quando o sistema está num disco mecânico
+profile-sync-daemon
 brightnessctl
 # partilha de pastas, contas online, musica (MPD)
 samba

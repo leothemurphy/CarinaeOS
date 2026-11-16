@@ -1,0 +1,3 @@
+# CarinaeOS - discos mecânicos (HD): agendador BFQ, que dá prioridade ao que se está a usar
+# (janelas, Dock) sobre as gravações de fundo. SSD e NVMe ficam como estão.
+ACTION=="add|change", KERNEL=="sd[a-z]*|hd[a-z]*", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq"
