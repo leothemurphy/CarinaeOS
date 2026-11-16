@@ -165,6 +165,8 @@ case "$XDG_CURRENT_DESKTOP" in
     command -v numlockx >/dev/null && numlockx on
     ;;
   *KDE*)
+    # computador fraco: no primeiro login liga o modo leve (só uma vez; depois decide o usuário)
+    command -v carinaeos-modo-leve >/dev/null && (sleep 25; carinaeos-modo-leve auto) >/dev/null 2>&1 &
     # trocou de estilo (Mac / Windows 11) a partir de outro ambiente: aplicar agora
     P="${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/plasma-visual-pendente"
     if [ -s "$P" ]; then

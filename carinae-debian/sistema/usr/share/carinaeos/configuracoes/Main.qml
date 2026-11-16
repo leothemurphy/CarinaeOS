@@ -454,6 +454,19 @@ ApplicationWindow {
                 }
                 Grupo {
                     visible: janela.pagina === "aparencia"
+                    titulo: "Desempenho"
+                    Linha {
+                        titulo: "Modo leve"
+                        sub: (janela.e.leve || {}).ligado
+                             ? "Ligado: papel de parede parado, sem desfoque nas janelas, animações curtas e sem indexar o conteúdo dos arquivos."
+                             : (janela.e.leve || {}).recomendado
+                               ? "Recomendado para este computador (" + (janela.e.leve || {}).motivo + "). Deixa tudo mais rápido."
+                               : "Para computadores mais antigos: papel de parede parado, sem desfoque, animações curtas."
+                        Switch { checked: !!(janela.e.leve || {}).ligado; onToggled: ajustes.definirModoLeve(checked) }
+                    }
+                }
+                Grupo {
+                    visible: janela.pagina === "aparencia"
                     titulo: "Papel de parede"
                     Flow {
                         width: parent.width

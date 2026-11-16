@@ -282,6 +282,11 @@ class Config(QObject):
                 e['ssh'] = -1 if not os.path.exists('/usr/sbin/sshd') else (1 if cmd(['systemctl', 'is-active', 'ssh']) == 'active' else 0)
                 e['ip'] = cmd(['hostname', '-I']).split()[:2]
                 e['usuario'] = os.environ.get('USER') or os.path.basename(HOME)
+            if pagina == 'aparencia':
+                try:
+                    e['leve'] = json.loads(cmd(['carinaeos-modo-leve', 'estado']) or '{}')
+                except ValueError:
+                    e['leve'] = {}
             if pagina == 'privacidade':
                 e['recentes'] = not os.path.exists(SEM_RECENTES)
             if pagina == 'dock':
@@ -618,6 +623,16 @@ class Config(QObject):
         threading.Thread(target=t, daemon=True).start()
 
     # ---- Dock -----------------------------------------------------------------------------------------
+    @Slot(bool)
+    def definirModoLeve(self, ligar):
+        self._aviso('Ligando o modo leve…' if ligar else 'Desligando o modo leve…')
+
+        def depois(r):
+            self._aviso('Modo leve %s ✓' % ('ligado' if ligar else 'desligado'))
+            self.ler('aparencia')
+        self._fundo(lambda: subprocess.run(['carinaeos-modo-leve', 'ligar' if ligar else 'desligar'],
+                                           capture_output=True, timeout=120), depois)
+
     @Slot(bool)
     def definirRecentes(self, mostrar):
         if mostrar:

@@ -1,0 +1,161 @@
+#!/usr/bin/python3
+"""CarinaeOS - modo leve, para computadores mais antigos.
+
+  carinaeos-modo-leve ligar | desligar   liga ou desliga (e guarda o que estava, para voltar igual)
+  carinaeos-modo-leve estado             JSON: {"ligado", "recomendado", "motivo"}
+  carinaeos-modo-leve auto               no login: na primeira vez, liga-o sozinho se o computador for fraco
+
+O que muda (tudo do usuário, nada do sistema):
+  - papel de parede: a mesma nebulosa, parada (sem a animação)
+  - janelas: sem desfoque nem contraste por trás das transparências; animações mais curtas
+  - arquivos: a indexação da pesquisa de conteúdo (Baloo) fica parada
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+
+HOME = os.path.expanduser('~')
+CFG = os.path.join(HOME, '.config/carinaeos')
+FLAG = os.path.join(CFG, 'modo-leve')
+GUARDADO = os.path.join(CFG, 'modo-leve-antes.json')
+DECIDIDO = os.path.join(CFG, 'modo-leve-decidido')
+FUNDO_FIXO = 'file:///usr/share/wallpapers/CarinaeOS-NebulosaSobreOLago/contents/images/2560x1440.jpg'
+EFEITOS = ['blurEnabled', 'contrastEnabled']
+
+
+def correr(args, **kw):
+    try:
+        return subprocess.run(args, capture_output=True, text=True, timeout=kw.get('timeout', 20))
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def ler_cfg(arquivo, grupo, chave, padrao=''):
+    p = correr(['kreadconfig6', '--file', arquivo, '--group', grupo, '--key', chave, '--default', padrao])
+    return p.stdout.strip() if p else padrao
+
+
+def escrever_cfg(arquivo, grupo, chave, valor):
+    if valor is None or valor == '':
+        correr(['kwriteconfig6', '--file', arquivo, '--group', grupo, '--key', chave, '--delete'])
+    else:
+        correr(['kwriteconfig6', '--file', arquivo, '--group', grupo, '--key', chave, str(valor)])
+
+
+def plasma(js):
+    correr(['qdbus6', 'org.kde.plasmashell', '/PlasmaShell', 'org.kde.PlasmaShell.evaluateScript', js])
+
+
+def fundo_atual():
+    """O plugin do papel de parede e, se for o animado, a variante (lidos do arquivo do Plasma)."""
+    try:
+        txt = open(os.path.join(HOME, '.config/plasma-org.kde.plasma.desktop-appletsrc'), encoding='utf-8').read()
+    except OSError:
+        return 'org.carinaeos.vivo', 1
+    m = re.search(r'^wallpaperplugin=(.+)$', txt, re.M)
+    v = re.search(r'\[Wallpaper\]\[org\.carinaeos\.vivo\]\[General\]\n(?:.*\n)*?Variante=(\d)', txt)
+    return (m.group(1).strip() if m else 'org.carinaeos.vivo'), int(v.group(1)) if v else 1
+
+
+def recomendado():
+    motivos = []
+    try:
+        kb = int(re.search(r'MemTotal:\s+(\d+)', open('/proc/meminfo').read()).group(1))
+        if kb < 3.5 * 1024 * 1024:     # (uma máquina virtual de 4 GB não conta)
+            motivos.append('%.0f GB de memória' % (kb / 1024 / 1024))
+    except (OSError, AttributeError, ValueError):
+        pass
+    if (os.cpu_count() or 4) <= 1:
+        motivos.append('processador com um só núcleo')
+    p = correr(['lspci'], timeout=10)
+    for l in (p.stdout.splitlines() if p else []):
+        if 'VGA' not in l and '3D' not in l:
+            continue
+        if 'NVIDIA' in l and re.search(r'\b(GK|GF|GT2|G8|G9|G7|G6|NV)\d', l):
+            motivos.append('placa de vídeo antiga (%s)' % (re.search(r'\[(GeForce[^\]]*)\]', l) or re.search(r'(NVIDIA.*)', l)).group(1))
+        elif 'Intel' in l and re.search(r'(GMA|HD Graphics( 2000| 3000| 2500| 4000)?\b|Atom|Pineview|Ironlake|Sandy|Ivy)', l):
+            motivos.append('vídeo integrado antigo')
+    if os.path.exists('/dev/dri') and not os.listdir('/dev/dri'):
+        motivos.append('sem aceleração de vídeo')
+    return motivos
+
+
+def ligar():
+    os.makedirs(CFG, exist_ok=True)
+    if not os.path.exists(FLAG):
+        plugin, variante = fundo_atual()
+        antes = dict(plugin=plugin, variante=variante,
+                     efeitos={e: ler_cfg('kwinrc', 'Plugins', e) for e in EFEITOS},
+                     animacao=ler_cfg('kdeglobals', 'KDE', 'AnimationDurationFactor'),
+                     baloo=ler_cfg('baloofilerc', 'Basic Settings', 'Indexing-Enabled', 'true'))
+        json.dump(antes, open(GUARDADO, 'w'))
+    for e in EFEITOS:
+        escrever_cfg('kwinrc', 'Plugins', e, 'false')
+    escrever_cfg('kdeglobals', 'KDE', 'AnimationDurationFactor', '0.5')
+    correr(['qdbus6', 'org.kde.KWin', '/KWin', 'reconfigure'])
+    for e in ('blur', 'contrast'):
+        correr(['qdbus6', 'org.kde.KWin', '/Effects', 'org.kde.kwin.Effects.unloadEffect', e])
+    if fundo_atual()[0] == 'org.carinaeos.vivo':
+        plasma('var d = desktops(); for (var i = 0; i < d.length; i++) { d[i].wallpaperPlugin = "org.kde.image"; '
+               'd[i].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"]; d[i].writeConfig("Image", "%s"); }' % FUNDO_FIXO)
+    correr(['balooctl6', 'disable'], timeout=30)
+    open(FLAG, 'w').close()
+    open(DECIDIDO, 'w').close()
+    return 0
+
+
+def desligar():
+    try:
+        antes = json.load(open(GUARDADO))
+    except (OSError, ValueError):
+        antes = dict(plugin='org.carinaeos.vivo', variante=1, efeitos={}, animacao='', baloo='true')
+    for e in EFEITOS:
+        escrever_cfg('kwinrc', 'Plugins', e, antes.get('efeitos', {}).get(e, ''))
+    escrever_cfg('kdeglobals', 'KDE', 'AnimationDurationFactor', antes.get('animacao', ''))
+    correr(['qdbus6', 'org.kde.KWin', '/KWin', 'reconfigure'])
+    for e in ('blur', 'contrast'):
+        if antes.get('efeitos', {}).get(e + 'Enabled', '') != 'false':
+            correr(['qdbus6', 'org.kde.KWin', '/Effects', 'org.kde.kwin.Effects.loadEffect', e])
+    if antes.get('plugin') == 'org.carinaeos.vivo' and fundo_atual()[0] == 'org.kde.image':
+        plasma('var d = desktops(); for (var i = 0; i < d.length; i++) { d[i].wallpaperPlugin = "org.carinaeos.vivo"; '
+               'd[i].currentConfigGroup = ["Wallpaper", "org.carinaeos.vivo", "General"]; d[i].writeConfig("Variante", %d); }'
+               % int(antes.get('variante', 1)))
+    if antes.get('baloo', 'true') != 'false':
+        correr(['balooctl6', 'enable'], timeout=30)
+    for f in (FLAG, GUARDADO):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+    open(DECIDIDO, 'w').close()
+    return 0
+
+
+def estado():
+    m = recomendado()
+    print(json.dumps(dict(ligado=os.path.exists(FLAG), recomendado=bool(m), motivo=', '.join(m)), ensure_ascii=False))
+    return 0
+
+
+def auto():
+    if os.path.exists(DECIDIDO):
+        return 0
+    m = recomendado()
+    if not m:
+        open(DECIDIDO, 'w').close()
+        return 0
+    ligar()
+    correr(['notify-send', '-a', 'CarinaeOS', '-i', 'speedometer', 'Modo leve ligado',
+            'Para o CarinaeOS ficar rápido neste computador (%s). Pode desligá-lo em Configurações › Aparência.' % ', '.join(m)])
+    return 0
+
+
+if __name__ == '__main__':
+    acoes = dict(ligar=ligar, desligar=desligar, estado=estado, auto=auto)
+    a = sys.argv[1] if len(sys.argv) > 1 else ''
+    if a not in acoes:
+        print(__doc__)
+        sys.exit(2)
+    sys.exit(acoes[a]())
