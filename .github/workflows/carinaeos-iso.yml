@@ -1,6 +1,8 @@
 # CarinaeOS - gera a ISO (Debian 13 + KDE Plasma + visual CarinaeOS) nos
 # servidores do GitHub e publica-a como "release" (em partes de 1,9 GB, porque o
-# GitHub nao aceita ficheiros maiores do que 2 GB).
+# GitHub nao aceita ficheiros maiores do que 2 GB). Com os secrets configurados:
+#   GPG_CHAVE + GPG_SENHA      -> SHA256SUMS.asc e .iso.asc (assinatura GPG)
+#   SF_CHAVE_SSH + vars SF_USUARIO, SF_PROJETO -> a ISO inteira no SourceForge e um .torrent
 # Correr: separador "Actions" -> "CarinaeOS ISO" -> "Run workflow",
 # ou alterar o ficheiro carinae-debian/VERSAO (a versao publicada e o que la estiver).
 name: CarinaeOS ISO
@@ -33,24 +35,80 @@ jobs:
             DEBIAN_FRONTEND=noninteractive apt-get install -y live-build librsvg2-bin fonts-dejavu-core apt-utils git cmake g++ make python3-numpy python3-pil curl gtk-update-icon-cache ca-certificates &&
             ./construir.sh'
 
-      - name: Dividir e calcular somas
+      - name: Somas, assinatura e partes
+        env:
+          GPG_CHAVE: ${{ secrets.GPG_CHAVE }}
+          GPG_SENHA: ${{ secrets.GPG_SENHA }}
         run: |
           cd carinae-debian
-          mv carinaeos-amd64.hybrid.iso CarinaeOS-1.0-amd64.iso
-          sha256sum CarinaeOS-1.0-amd64.iso > CarinaeOS-1.0-amd64.iso.sha256
-          split -b 1900M -d CarinaeOS-1.0-amd64.iso CarinaeOS-1.0-amd64.iso.parte
+          ISO=CarinaeOS-1.0-amd64.iso
+          mv carinaeos-amd64.hybrid.iso "$ISO"
+          sha256sum "$ISO" > SHA256SUMS
+          cp SHA256SUMS "$ISO.sha256"     # nome antigo, para quem já tinha as instruções
+          # assinatura GPG (as chaves ficam nos "secrets" do repositório; sem elas, publica sem assinar)
+          if [ -n "$GPG_CHAVE" ]; then
+            export GNUPGHOME=$(mktemp -d)
+            printf '%s\n' "$GPG_CHAVE" | gpg --batch --import
+            assinar() { gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_SENHA" --armor --detach-sign -o "$2" "$1"; }
+            assinar SHA256SUMS SHA256SUMS.asc
+            assinar "$ISO" "$ISO.asc"
+            gpg --verify SHA256SUMS.asc SHA256SUMS
+            rm -rf "$GNUPGHOME"
+          else
+            echo "::warning::Sem GPG_CHAVE nos secrets: a ISO sai sem assinatura."
+          fi
+          split -b 1900M -d "$ISO" "$ISO.parte"
           ls -lh
+
+      - name: SourceForge (arquivo único) e torrent
+        env:
+          SF_CHAVE_SSH: ${{ secrets.SF_CHAVE_SSH }}
+          SF_USUARIO: ${{ vars.SF_USUARIO }}
+          SF_PROJETO: ${{ vars.SF_PROJETO }}
+        run: |
+          cd carinae-debian
+          ISO=CarinaeOS-1.0-amd64.iso
+          VER=$(head -1 VERSAO | tr -d ' \n')
+          [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && VER=$VER-teste-$GITHUB_RUN_NUMBER
+          if [ -z "$SF_CHAVE_SSH" ] || [ -z "$SF_USUARIO" ] || [ -z "$SF_PROJETO" ]; then
+            echo "::warning::SourceForge não configurado (SF_CHAVE_SSH, SF_USUARIO, SF_PROJETO): só as partes no GitHub."
+            exit 0
+          fi
+          mkdir -p ~/.ssh && printf '%s\n' "$SF_CHAVE_SSH" > ~/.ssh/sf && chmod 600 ~/.ssh/sf
+          ssh-keyscan -t ed25519,rsa frs.sourceforge.net >> ~/.ssh/known_hosts 2>/dev/null
+          PASTA="/home/frs/project/$SF_PROJETO/$VER"
+          echo "-mkdir $PASTA" | sftp -b - -i ~/.ssh/sf "$SF_USUARIO@frs.sourceforge.net"
+          ENVIAR="$ISO SHA256SUMS"
+          for f in "$ISO.asc" SHA256SUMS.asc; do [ -f "$f" ] && ENVIAR="$ENVIAR $f"; done
+          rsync -e "ssh -i ~/.ssh/sf" -av $ENVIAR "$SF_USUARIO@frs.sourceforge.net:$PASTA/"
+          URL="https://downloads.sourceforge.net/project/$SF_PROJETO/$VER/$ISO"
+          # torrent com "web seed": baixa também do SourceForge, mesmo sem ninguém compartilhando
+          sudo apt-get install -y -q mktorrent >/dev/null
+          mktorrent -l 22 -n "$ISO" -w "$URL" \
+            -a udp://tracker.opentrackr.org:1337/announce -a udp://open.stealth.si:80/announce \
+            -a udp://tracker.torrent.eu.org:451/announce \
+            -c "CarinaeOS $VER" -o "$ISO.torrent" "$ISO"
+          printf '%s\n' "$URL" > sourceforge.txt
+          rm -f ~/.ssh/sf
 
       - name: Publicar
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd carinae-debian
+          ISO=CarinaeOS-1.0-amd64.iso
           TAG=carinaeos-v$(head -1 VERSAO | tr -d ' \n')
           [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && TAG=$TAG-teste-$GITHUB_RUN_NUMBER
+          NOTAS=$(mktemp)
+          if [ -f sourceforge.txt ]; then
+            printf '### ⬇ Download num arquivo único\n- [%s (SourceForge)](%s)\n- ou o `.torrent` abaixo (também baixa do SourceForge, mesmo sem ninguém compartilhando)\n\n' "$ISO" "$(cat sourceforge.txt)" > "$NOTAS"
+          fi
+          cat ../.github/notas-da-versao.md >> "$NOTAS"
+          EXTRA=""
+          for f in SHA256SUMS.asc "$ISO.asc" "$ISO.torrent" ../carinaeos-chave.asc; do [ -f "$f" ] && EXTRA="$EXTRA $f"; done
           gh release create "$TAG" --title "CarinaeOS ($TAG)" --prerelease \
-            --notes-file ../.github/notas-da-versao.md \
-            CarinaeOS-1.0-amd64.iso.parte* CarinaeOS-1.0-amd64.iso.sha256
+            --notes-file "$NOTAS" \
+            "$ISO".parte* SHA256SUMS "$ISO.sha256" $EXTRA
 
       - name: Deixar só a versão atual
         env:

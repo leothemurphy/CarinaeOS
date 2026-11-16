@@ -183,23 +183,32 @@ Vem dentro do sistema como o aplicativo *Manual*, com pesquisa.
 
 ## 🚀 Experimentar em 5 minutos
 
-1. Em [**Releases**](../../releases), abra a versão mais recente e baixe **todas as partes**
-   (`CarinaeOS-1.0-amd64.iso.parte00`, `parte01`, …) e o arquivo `.sha256` para a mesma pasta.
-   A ISO vem em partes porque o GitHub não aceita arquivos com mais de 2 GB.
-2. Junte as partes numa única ISO:
+1. Em [**Releases**](../../releases), abra a versão mais recente e baixe a ISO:
 
-   - **Windows**: abra a pasta, clique na barra de endereço, escreva `cmd` e Enter. Depois:
-     ```
-     copy /b CarinaeOS-1.0-amd64.iso.parte00 + CarinaeOS-1.0-amd64.iso.parte01 CarinaeOS-1.0.iso
-     ```
-     No **PowerShell**, coloque `cmd /c` antes do mesmo comando.
-   - **macOS / Linux**:
-     ```
-     cat CarinaeOS-1.0-amd64.iso.parte* > CarinaeOS-1.0.iso
-     ```
+   - **Num arquivo único** (recomendado): o link do **SourceForge** no topo das notas da versão,
+     ou o arquivo `.torrent`, que também baixa do SourceForge mesmo sem ninguém compartilhando.
+   - **Em partes**, pelo GitHub (que não aceita arquivos com mais de 2 GB): baixe **todas as partes**
+     (`CarinaeOS-1.0-amd64.iso.parte00`, `parte01`, …) para a mesma pasta e junte-as:
+     - **Windows**: abra a pasta, clique na barra de endereço, escreva `cmd` e Enter. Depois:
+       ```
+       copy /b CarinaeOS-1.0-amd64.iso.parte00 + CarinaeOS-1.0-amd64.iso.parte01 CarinaeOS-1.0-amd64.iso
+       ```
+       No **PowerShell**, coloque `cmd /c` antes do mesmo comando.
+     - **macOS / Linux**:
+       ```
+       cat CarinaeOS-1.0-amd64.iso.parte* > CarinaeOS-1.0-amd64.iso
+       ```
 
-   Opcional, para confirmar que veio inteira: `certutil -hashfile CarinaeOS-1.0.iso SHA256`
-   (Windows) ou `shasum -a 256 CarinaeOS-1.0.iso` (Mac/Linux). O código tem de ser igual ao do `.sha256`.
+2. **Confirme que a ISO é a original** (recomendado). Baixe também `SHA256SUMS` e `SHA256SUMS.asc`.
+   - Que veio inteira: `certutil -hashfile CarinaeOS-1.0-amd64.iso SHA256` (Windows) ou
+     `sha256sum -c SHA256SUMS` (Linux; no Mac, `shasum -a 256 -c SHA256SUMS`). O código tem de ser igual.
+   - Que foi o CarinaeOS que a publicou (assinatura GPG, no Linux ou Mac com GnuPG):
+     ```
+     curl -fsSL https://raw.githubusercontent.com/leothemurphy/CarinaeOS/main/carinaeos-chave.asc | gpg --import
+     gpg --verify SHA256SUMS.asc SHA256SUMS
+     ```
+     Tem de aparecer **Good signature from "CarinaeOS…"** (ou a mesma frase em português), com a impressão digital
+     publicada em [Segurança e privacidade](#-segurança-e-privacidade).
 
 3. **Numa máquina virtual** (VirtualBox, VMware, GNOME Boxes…): crie uma máquina
    *Linux → Debian 64-bit* com **4 GB de memória**, **2 processadores**, **30 GB de disco**, vídeo
