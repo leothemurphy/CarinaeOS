@@ -136,14 +136,10 @@ Item {
         NumberAnimation { target: tarefa; property: "pulo"; to: dock.alturaPulo; duration: 300; easing.type: Easing.OutCubic }
         NumberAnimation { target: tarefa; property: "pulo"; to: 0; duration: 300; easing.type: Easing.InCubic }
     }
-    Connections {
-        target: tarefa.model
-        function onIsStartupChanged(): void {
-            if (tarefa.model.IsStartup && tarefa.mostrar && Plasmoid.configuration.bounce) {
-                salto.restart();
-            }
-        }
-    }
+    // (o "model" de um delegate não emite IsStartupChanged: vigia-se uma propriedade ligada a ele;
+    // a Connections antiga só enchia o registo de avisos e o salto nunca acontecia)
+    readonly property bool iniciando: tarefa.model.IsStartup === true
+    onIniciandoChanged: if (iniciando && tarefa.mostrar && Plasmoid.configuration.bounce) salto.restart()
 
     // às vezes o pedido para trazer a janela para a frente perde-se (a janela ficava "presa" atrás):
     // se meio segundo depois ela ainda não está ativa, pede-se de novo (até 2 vezes)
