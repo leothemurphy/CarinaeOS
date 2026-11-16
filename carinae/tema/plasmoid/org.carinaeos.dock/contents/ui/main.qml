@@ -173,7 +173,10 @@ PlasmoidItem {
     }
     onAlturaRepousoChanged: ajustarPainel()
     onAlturaAmpliadaChanged: ajustarPainel()
-    onDentroChanged: ajustarPainel()
+    onDentroChanged: {
+        ultimaForma = "";
+        ajustarPainel();
+    }
     // o painel-espaçador (reserva o espaço das janelas) lê esta altura ao entrar na sessão
     onAlturaVidroChanged: if (Plasmoid.configuration.glassHeight !== alturaVidro) Plasmoid.configuration.glassHeight = alturaVidro
     Component.onCompleted: if (Plasmoid.configuration.glassHeight !== alturaVidro) Plasmoid.configuration.glassHeight = alturaVidro
@@ -223,8 +226,14 @@ PlasmoidItem {
     function pontoNaDock(): point {
         return vidro.mapToGlobal(vidro.width / 2, vidro.height / 2);
     }
+    property string ultimaForma: ""
     function enviarForma(): void {
         if (!modoFixo || !painel) {
+            return;
+        }
+        // "dentro": a janela é só o vidro e aceita cliques toda; basta dizê-lo uma vez
+        // (antes lançava-se um processo a cada entrada e saída do rato)
+        if (dentro && ultimaForma === "tudo") {
             return;
         }
         const c = pontoNaDock();
@@ -239,6 +248,7 @@ PlasmoidItem {
             cmd = "carinaeos-dock-cliques " + x0 + " " + y0 + " " + (x1 - x0) + " " + (y1 - y0)
                 + " " + Math.round(c.x) + " " + Math.round(c.y);
         }
+        ultimaForma = (ampliado || dentro) ? "tudo" : "vidro";
         // o mesmo comando duas vezes seguidas seria ignorado pelo DataSource
         cliques.connectSource(cmd + " #" + Date.now());
     }
