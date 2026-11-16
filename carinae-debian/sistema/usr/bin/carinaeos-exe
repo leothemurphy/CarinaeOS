@@ -147,7 +147,16 @@ IGNORAR = re.compile(r'(?i)(unins|uninstall|update|updater|crash|helper|elevate|
 
 
 def drive_c(garrafa):
-    return os.path.expanduser('~/.var/app/%s/data/bottles/bottles/%s/drive_c' % (BOTTLES, garrafa))
+    """A pasta da garrafa: o Bottles guarda "Programas do Windows" em Programas-do-Windows (vê-se no bottle.yml)."""
+    base = os.path.expanduser('~/.var/app/%s/data/bottles/bottles' % BOTTLES)
+    for yml in glob.glob(os.path.join(base, '*', 'bottle.yml')):
+        try:
+            for l in open(yml, encoding='utf-8', errors='ignore'):
+                if l.startswith('Name:') and l.split(':', 1)[1].strip().strip('\'"') == garrafa:
+                    return os.path.join(os.path.dirname(yml), 'drive_c')
+        except OSError:
+            pass
+    return os.path.join(base, garrafa.replace(' ', '-'), 'drive_c')
 
 
 def exes_da_garrafa(c):
