@@ -145,6 +145,21 @@ Item {
         }
     }
 
+    // às vezes o pedido para trazer a janela para a frente perde-se (a janela ficava "presa" atrás):
+    // se meio segundo depois ela ainda não está ativa, pede-se de novo (até 2 vezes)
+    Timer {
+        id: confirmar
+        property int tentativas: 0
+        interval: 450
+        onTriggered: {
+            if (tarefa.model.IsActive || tarefa.model.IsLauncher || tentativas >= 2) return;
+            tentativas++;
+            if (tarefa.model.IsMinimized) dock.modelo.requestToggleMinimized(tarefa.indice());
+            dock.modelo.requestActivate(tarefa.indice());
+            restart();
+        }
+    }
+
     onSChanged: geoTimer.restart()
     Timer {
         id: geoTimer
@@ -226,6 +241,8 @@ Item {
                     dock.modelo.requestToggleMinimized(tarefa.indice());
                 } else {
                     dock.modelo.requestActivate(tarefa.indice());
+                    confirmar.tentativas = 0;
+                    confirmar.restart();
                 }
             }
         }
