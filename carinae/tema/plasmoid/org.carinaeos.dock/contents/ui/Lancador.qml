@@ -232,7 +232,7 @@ Kicker.DashboardWindow {
     readonly property string subtitulo: filtro !== "" ? contagem(lista.length)
         : vista === "inicio" ? (editando ? "Arraste os ambientes para os mudar de lugar · cor e imagem em cada um" : "Os seus ambientes, de um relance")
         : vista === "favoritos" ? "Os aplicativos que estão na Dock"
-        : vista === "deck" ? "A casa, o sistema e a música num toque · botão direito para tirar"
+        : vista === "deck" ? "Rotinas: vários passos num só toque · botão direito para editar ou tirar"
         : vista === "semamb" ? contagem(lista.length) + " por arrumar · botão direito › Mover para"
         : contagem(lista.length)
 
@@ -354,15 +354,12 @@ Kicker.DashboardWindow {
     // ---- Deck: ler e gravar ~/.config/carinaeos-deck.json -------------------------
     // as teclas do Deck são ações (carinaeos-deck): { id, nome, icone }; continuam a valer
     // as antigas { nome, icone, cmd } (comando ou site) e { app } (de versões anteriores)
+    // o Deck é o lugar das rotinas (vários passos num só toque; app Rotinas): começa com os exemplos
     readonly property var deckPadrao: [
-        { id: "sis:dnd", nome: "Não incomodar", icone: "notifications-disabled" },
-        { id: "sis:luz", nome: "Luz noturna", icone: "redshift-status-on" },
-        { id: "mus:tocar", nome: "Tocar / pausar", icone: "media-playback-start" },
-        { id: "sis:captura", nome: "Captura de tela", icone: "spectacle" },
-        { id: "sis:janelas", nome: "Todas as janelas", icone: "view-grid" },
-        { id: "sis:mesa", nome: "Mostrar a área de trabalho", icone: "user-desktop" },
-        { id: "sis:bloquear", nome: "Bloquear", icone: "system-lock-screen" },
-        { id: "sis:suspender", nome: "Suspender", icone: "system-suspend" }
+        { id: "rot:modo-foco", nome: "Modo foco", icone: "view-focus" },
+        { id: "rot:modo-filme", nome: "Modo filme", icone: "video-television" },
+        { id: "rot:fim-do-dia", nome: "Fim do dia", icone: "weather-clear-night" },
+        { id: "sis:captura", nome: "Captura de tela", icone: "spectacle" }
     ]
     // os comandos do Deck antigo: um Deck só com estes é o de origem e passa ao novo
     readonly property var deckAntigo: ["spectacle", "konsole", "plasma-systemmonitor", "carinaeos-central", "carinaeos-supernova",
@@ -1175,7 +1172,16 @@ Kicker.DashboardWindow {
         QQC2.Menu {
             id: menuDeck
             property int i: -1
+            QQC2.MenuItem {
+                readonly property string rot: menuDeck.i >= 0 && lp.deck[menuDeck.i] && String(lp.deck[menuDeck.i].id || "").startsWith("rot:") ? lp.deck[menuDeck.i].id.slice(4) : ""
+                visible: rot !== ""
+                height: visible ? implicitHeight : 0
+                text: "Editar rotina…"
+                icon.name: "document-edit"
+                onTriggered: { lp.correr("carinaeos-rotinas --editar " + lp.aspas(rot)); lp.toggle(); }
+            }
             QQC2.MenuItem { text: "Tirar do Deck"; onTriggered: lp.tirarDoDeck(menuDeck.i) }
+            QQC2.MenuItem { text: "Criar rotina…"; icon.name: "list-add"; onTriggered: { lp.correr("carinaeos-rotinas --nova"); lp.toggle(); } }
             QQC2.MenuItem {
                 readonly property var app: menuDeck.i >= 0 && lp.deck[menuDeck.i] && lp.deck[menuDeck.i].app ? lp.porChave(lp.deck[menuDeck.i].app) : null
                 visible: app !== null
@@ -2208,7 +2214,10 @@ Kicker.DashboardWindow {
                                                         anchors.fill: parent
                                                         hoverEnabled: true
                                                         cursorShape: Qt.PointingHandCursor
-                                                        onClicked: if (!chipA.ja) lp.adicionarAcao(chipA.modelData)
+                                                        onClicked: {
+                                                            if (chipA.modelData.id === "rot:+nova") { formAcoes.visible = false; lp.correr("carinaeos-rotinas --nova"); lp.toggle(); }
+                                                            else if (!chipA.ja) lp.adicionarAcao(chipA.modelData);
+                                                        }
                                                     }
                                                 }
                                             }

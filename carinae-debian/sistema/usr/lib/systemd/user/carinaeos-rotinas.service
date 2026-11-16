@@ -1,0 +1,6 @@
+[Unit]
+Description=CarinaeOS - correr as rotinas desta hora
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/carinaeos-rotinas --gatilho minuto

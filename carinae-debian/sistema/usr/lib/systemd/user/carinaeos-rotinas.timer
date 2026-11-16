@@ -1,0 +1,9 @@
+[Unit]
+Description=CarinaeOS - as rotinas com hora marcada
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

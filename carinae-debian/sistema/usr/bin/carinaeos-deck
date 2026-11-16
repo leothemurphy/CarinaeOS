@@ -4,11 +4,13 @@
   carinaeos-deck catalogo          JSON: todas as ações que se podem pôr no Deck, por grupos
   carinaeos-deck estado <id>...    JSON: {id: {"ligado": true|false|null, "texto": "..."}}
   carinaeos-deck tocar <id>        faz a ação; escreve o estado novo (JSON)
+  carinaeos-deck definir <id> ligar|desligar|tocar   como tocar, mas só se não estiver já assim (rotinas)
 
 Ids:
   sis:dnd  sis:luz  sis:wifi  sis:bt  sis:energia:<perfil>  sis:som:<saída>
   sis:captura  sis:janelas  sis:mesa  sis:bloquear  sis:suspender
-  mus:tocar  mus:seguinte  mus:lista:<nome>
+  mus:tocar  mus:pausar  mus:seguinte  mus:lista:<nome>
+  rot:<id>                         uma rotina (app Rotinas): vários passos de seguida
   ha:<entity_id>                   (Home Assistant, pela ligação da app Casa)
 """
 import datetime
@@ -23,6 +25,10 @@ try:
     import casa_ha as HA
 except Exception:       # sem a app Casa não há Home Assistant, o resto funciona
     HA = None
+try:
+    import rotinas as ROT
+except Exception:
+    ROT = None
 
 ENERGIA = [('power-saver', 'Poupança', 'battery-profile-powersave'),
            ('balanced', 'Equilibrado', 'battery-profile-balanced'),
@@ -149,6 +155,8 @@ def estados(ids):
             r[i] = estado_sis(i)
         elif i.startswith('mus:'):
             r[i] = estado_mus(i)
+        elif i.startswith('rot:'):
+            r[i] = {'ligado': None, 'texto': 'Rodando…' if ROT and ROT.correndo(i[4:]) else ''}
     return r
 
 
@@ -195,6 +203,8 @@ def tocar(i):
         bg(['systemctl', 'suspend'])
     elif i == 'mus:tocar':
         sh(['mpc', 'toggle'])
+    elif i == 'mus:pausar':
+        sh(['mpc', 'pause'])
     elif i == 'mus:seguinte':
         sh(['mpc', 'next'])
     elif i.startswith('mus:lista:'):
@@ -204,7 +214,19 @@ def tocar(i):
         sh(['mpc', 'play'])
     elif i.startswith('ha:') and HA:
         HA.alternar(i[3:])
+    elif i.startswith('rot:') and ROT:
+        ROT.lancar(i[4:])
+        return {'ligado': None, 'texto': 'Rodando…'}
     return estados([i]).get(i, {'ligado': None, 'texto': ''})
+
+
+def definir(i, modo):
+    """Para as rotinas: ligar/desligar só mexe se ainda não estiver assim; tocar faz sempre."""
+    if modo in ('ligar', 'desligar'):
+        e = estados([i]).get(i, {})
+        if e.get('ligado') is not None and e['ligado'] == (modo == 'ligar'):
+            return e
+    return tocar(i)
 
 
 # ---- catálogo --------------------------------------------------------------------------------
@@ -227,7 +249,12 @@ def catalogo():
     som = [dict(id='sis:som:' + n, nome=d, icone='audio-card') for n, d in saidas()]
     if som:
         g.append(dict(grupo='Saída de som', itens=som))
+    if ROT:
+        rots = [dict(id='rot:' + r['id'], nome=r['nome'], icone=r.get('icone') or 'media-playlist-play') for r in ROT.ler()]
+        g.insert(0, dict(grupo='Rotinas', itens=rots + [dict(id='rot:+nova', nome='Criar rotina…', icone='list-add')],
+                         aviso='Um toque faz várias coisas de seguida: abrir apps, Não incomodar, som, música, luzes da casa…'))
     mus = [dict(id='mus:tocar', nome='Tocar / pausar', icone='media-playback-start'),
+           dict(id='mus:pausar', nome='Pausar a música', icone='media-playback-pause'),
            dict(id='mus:seguinte', nome='Música seguinte', icone='media-skip-forward')]
     for n in (sh(['mpc', 'lsplaylists'], 4) or '').splitlines():
         if n.strip():
@@ -261,6 +288,8 @@ def main():
         print(json.dumps(estados(a[1:])))
     elif a[0] == 'tocar' and len(a) > 1:
         print(json.dumps(tocar(a[1])))
+    elif a[0] == 'definir' and len(a) > 2:
+        print(json.dumps(definir(a[1], a[2])))
     else:
         return 1
     return 0

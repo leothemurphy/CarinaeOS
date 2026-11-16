@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Rotinas ao entrar
+Exec=sh -c 'sleep 8; carinaeos-rotinas --gatilho entrar'
+NoDisplay=true
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2
