@@ -284,6 +284,15 @@ Item {
             onClicked: dock.alternarTranca(appId)
         }
         PlasmaExtras.MenuItem {
+            text: "Forçar o encerramento"
+            icon: "process-stop"
+            visible: !tarefa.model.IsLauncher
+            onClicked: {
+                const m = String(tarefa.url()).match(/([^\/:]+)\.desktop$/);
+                dock.forcarEncerramento(tarefa.model.AppPid || 0, m ? m[1] : "");
+            }
+        }
+        PlasmaExtras.MenuItem {
             text: i18nc("@action:inmenu", "Fechar")
             icon: "window-close"
             visible: !tarefa.model.IsLauncher

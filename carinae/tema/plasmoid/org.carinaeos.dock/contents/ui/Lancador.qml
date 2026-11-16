@@ -1054,6 +1054,13 @@ Kicker.DashboardWindow {
                 text: "Voltar à categoria original"
                 onTriggered: { const a = menuApp.app; Qt.callLater(() => lp.tirarDoCartao(a)); }
             }
+            QQC2.MenuSeparator {}
+            QQC2.MenuItem {      // como no Windows: abre Configurações › Aplicativos já com este app
+                text: "Desinstalar…"
+                icon.name: "edit-delete"
+                enabled: menuApp.app !== null
+                onTriggered: { const a = menuApp.app; lp.correr("carinaeos-configuracoes aplicativos " + lp.aspas(a.nome)); lp.toggle(); }
+            }
         }
         // "Mover para ›" no painel do detalhe
         QQC2.Menu {

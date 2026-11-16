@@ -435,6 +435,17 @@ PlasmoidItem {
     function lerCadeado(): void {
         lerTrancados.connectSource("carinaeos-cadeado estado #" + Date.now());
     }
+    // forçar o encerramento de um aplicativo travado (menu do botão direito)
+    P5Support.DataSource {
+        id: encerrador
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => disconnectSource(fonte)
+    }
+    function forcarEncerramento(pid: int, appId: string): void {
+        encerrador.connectSource("carinaeos-encerrar --pid " + Math.max(0, pid || 0) + " --app '" + String(appId || "").replace(/[^A-Za-z0-9._-]/g, "") + "' #" + Date.now());
+    }
+
     function alternarTranca(appId: string): void {
         if (appId === "") return;
         const acao = trancados.indexOf(appId) !== -1 ? "destrancar-app" : "trancar-app";

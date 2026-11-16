@@ -20,7 +20,8 @@ ApplicationWindow {
     readonly property color texto: "#f2f0f6"
     readonly property color suave: "#a8a3b6"
     readonly property color realce: "#7aa7ff"
-    property bool maisModelos: false        // Configurações › Dock: mostrar os modelos clássicos
+    property bool maisModelos: false
+    property string msgVista: ""             // a mensagem de baixo some sozinha passados uns segundos        // Configurações › Dock: mostrar os modelos clássicos
     readonly property color linha: Qt.rgba(1, 1, 1, 0.07)
     property string pagina: ajustes.inicio
     readonly property var e: ajustes.estado
@@ -81,6 +82,25 @@ ApplicationWindow {
         onTriggered: ajustes.ler(janela.pagina)
     }
     Component.onCompleted: { ajustes.ler(pagina); if (pagina === "contas") prepararContas(); }
+
+    // ---- aplicativos instalados ---------------------------------------------------------------------
+    property string procuraApps: ajustes.procuraInicial
+    property string origemApps: ""
+    property string ordemApps: "nome"
+    readonly property var appsFiltrados: {
+        const p = sem(procuraApps)
+        const l = (e.apps || []).filter(a => (origemApps === "" || a.origem === origemApps) && (p === "" || sem(a.nome + " " + a.detalhe).indexOf(p) !== -1))
+        if (ordemApps === "tamanho") l.sort((a, b) => b.tamanho - a.tamanho)
+        else if (ordemApps === "data") l.sort((a, b) => b.data - a.data)
+        return l
+    }
+    function tamanho(b) {
+        if (!b) return ""
+        const u = ["B", "KB", "MB", "GB", "TB"]; let i = 0
+        while (b >= 1000 && i < u.length - 1) { b /= 1000; i++ }
+        return b.toLocaleString(Qt.locale("pt_BR"), "f", b < 10 && i > 1 ? 1 : 0) + " " + u[i]
+    }
+    function origemNome(o) { return ({ Flathub: "Flathub", Debian: "Debian", AppImage: "AppImage", Aplicativo: "Aplicativo", Windows: "Programa do Windows" })[o] || o }
 
     function sem(t) { return (t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); }
 
@@ -222,8 +242,10 @@ ApplicationWindow {
         height: parent.height
 
         Text { id: cab; anchors.horizontalCenter: parent.horizontalCenter; y: 18; text: janela.seccao.nome; color: janela.texto; font.pixelSize: 16; font.weight: Font.DemiBold }
+        Timer { id: tempoMsg; interval: 6000; onTriggered: janela.msgVista = ajustes.mensagem }
+        Connections { target: ajustes; function onMudou() { if (ajustes.mensagem !== janela.msgVista && ajustes.mensagem !== "Desinstalando…") tempoMsg.restart() } }
         Rectangle {
-            visible: ajustes.mensagem !== ""
+            visible: ajustes.mensagem !== "" && ajustes.mensagem !== janela.msgVista
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom; anchors.bottomMargin: 18
             z: 5
@@ -664,6 +686,80 @@ ApplicationWindow {
                     Linha { titulo: "Manual do CarinaeOS"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-manual"); Seta {} }
                 }
 
+                // ===== Aplicativos (como o "Aplicativos instalados" do Windows) =====
+                Grupo {
+                    visible: janela.pagina === "aplicativos"
+                    Linha { titulo: "Aplicativos padrão"; sub: "Navegador, e-mail, música… e com que aplicativo abrir cada tipo de arquivo"
+                            clicavel: true; onCarregado: ajustes.completo("aplicativos"); Seta {} }
+                    Linha { titulo: "Instalar mais aplicativos"; sub: "Órbita"; clicavel: true; onCarregado: ajustes.abrir("carinaeos-orbita"); Seta {} }
+                }
+                RowLayout {
+                    visible: janela.pagina === "aplicativos"
+                    Layout.fillWidth: true; spacing: 8
+                    Rectangle {
+                        Layout.fillWidth: true; height: 36; radius: 8; color: Qt.rgba(1, 1, 1, 0.07)
+                        Text { x: 12; anchors.verticalCenter: parent.verticalCenter; text: "⌕"; color: janela.suave; font.pixelSize: 16 }
+                        TextField {
+                            x: 30; width: parent.width - 36; anchors.verticalCenter: parent.verticalCenter
+                            background: Item {}
+                            color: janela.texto; font.pixelSize: 13
+                            placeholderText: "Procurar aplicativo"; placeholderTextColor: janela.suave
+                            text: janela.procuraApps; onTextEdited: janela.procuraApps = text
+                        }
+                    }
+                    Repeater {
+                        model: [["nome", "Nome"], ["tamanho", "Tamanho"], ["data", "Data"]]
+                        delegate: Rectangle {
+                            required property var modelData
+                            implicitWidth: to.implicitWidth + 24; height: 32; radius: 16
+                            color: janela.ordemApps === modelData[0] ? Qt.rgba(0.48, 0.65, 1, 0.22) : Qt.rgba(1, 1, 1, 0.07)
+                            Text { id: to; anchors.centerIn: parent; text: modelData[1]; color: janela.ordemApps === modelData[0] ? janela.realce : janela.texto; font.pixelSize: 12; font.weight: Font.DemiBold }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: janela.ordemApps = modelData[0] }
+                        }
+                    }
+                }
+                Flow {
+                    visible: janela.pagina === "aplicativos"
+                    Layout.fillWidth: true; spacing: 6
+                    Repeater {
+                        model: [["", "Todos"], ["Flathub", "Flathub"], ["Debian", "Debian"], ["AppImage", "AppImage"], ["Aplicativo", "Apps"], ["Windows", "Windows"]]
+                        delegate: Rectangle {
+                            required property var modelData
+                            readonly property int n: modelData[0] === "" ? (janela.e.apps || []).length : (janela.e.apps || []).filter(a => a.origem === modelData[0]).length
+                            visible: modelData[0] === "" || n > 0
+                            width: tf.implicitWidth + 24; height: 28; radius: 14
+                            color: janela.origemApps === modelData[0] ? Qt.rgba(0.48, 0.65, 1, 0.22) : "transparent"
+                            border.width: 1; border.color: janela.origemApps === modelData[0] ? janela.realce : janela.linha
+                            Text { id: tf; anchors.centerIn: parent; text: modelData[1] + "  " + n; color: janela.origemApps === modelData[0] ? janela.realce : janela.suave; font.pixelSize: 12 }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: janela.origemApps = modelData[0] }
+                        }
+                    }
+                }
+                Grupo {
+                    visible: janela.pagina === "aplicativos"
+                    titulo: janela.e.apps === undefined ? "Procurando os aplicativos…"
+                          : janela.appsFiltrados.length + (janela.appsFiltrados.length === 1 ? " aplicativo" : " aplicativos")
+                            + " · " + janela.tamanho(janela.appsFiltrados.reduce((t, a) => t + a.tamanho, 0))
+                    Repeater {
+                        model: janela.pagina === "aplicativos" ? janela.appsFiltrados : []
+                        delegate: Linha {
+                            id: la
+                            required property var modelData
+                            titulo: modelData.nome
+                            icone: modelData.icone || "application-x-executable"
+                            sub: [janela.origemNome(modelData.origem), modelData.versao ? "versão " + modelData.versao.replace(/^\d+:/, "").split(/[-+~]/)[0] : "",
+                                  janela.tamanho(modelData.tamanho), modelData.data ? "instalado em " + new Date(modelData.data * 1000).toLocaleDateString(Qt.locale("pt_BR"), "dd/MM/yyyy") : ""]
+                                 .filter(x => x).join(" · ")
+                            Text { visible: !la.modelData.removivel; anchors.verticalCenter: parent.verticalCenter; text: "Do sistema"; color: janela.suave; font.pixelSize: 12 }
+                            Botao {
+                                visible: la.modelData.removivel
+                                texto: ajustes.aRemover === la.modelData.id ? "Desinstalando…" : "Desinstalar"
+                                onCarregado: if (ajustes.aRemover === "") { dlgDesinstalar.app = la.modelData; ajustes.previaApp(la.modelData.id); dlgDesinstalar.open() }
+                            }
+                        }
+                    }
+                }
+
                 // ===== Contas online =====
                 // usa o KDE Online Accounts (kaccounts): o provedor abre a página de entrada dele, e depois
                 // a conta (o email) aparece aqui. Carregado à mão para a página não partir se faltar o módulo.
@@ -945,6 +1041,45 @@ ApplicationWindow {
                     onCarregado: ajustes.completo(janela.pagina)
                 }
                 Item { Layout.preferredHeight: 40 }
+            }
+        }
+    }
+
+    // desinstalar um aplicativo (confirmação, como no Windows)
+    Popup {
+        id: dlgDesinstalar
+        objectName: "dlgDesinstalar"
+        property var app: ({})
+        readonly property var pv: ajustes.previa.ident === app.id ? ajustes.previa : ({ aCarregar: true })
+        readonly property bool pode: !pv.aCarregar && !!pv.pode
+        anchors.centerIn: parent
+        modal: true; width: 460; padding: 24
+        onOpened: apagarDados.ligado = false
+        Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.5) }
+        background: Rectangle { radius: 16; color: "#2d2b35"; border.color: janela.linha }
+        contentItem: ColumnLayout {
+            spacing: 14
+            RowLayout {
+                spacing: 14
+                Image { source: "image://icone/" + (dlgDesinstalar.app.icone || "application-x-executable"); Layout.preferredWidth: 48; Layout.preferredHeight: 48; sourceSize: Qt.size(96, 96) }
+                Text { Layout.fillWidth: true; text: "Desinstalar " + (dlgDesinstalar.app.nome || "") + "?"; color: janela.texto; font.pixelSize: 18; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
+            }
+            Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; color: dlgDesinstalar.pv.aCarregar || dlgDesinstalar.pode ? janela.texto : "#ff9db0"; font.pixelSize: 13
+                   text: dlgDesinstalar.pv.aCarregar ? "Verificando…" : dlgDesinstalar.pode ? "Este aplicativo e suas informações serão desinstalados." : (dlgDesinstalar.pv.mensagem || "") }
+            Text { visible: dlgDesinstalar.pode && (dlgDesinstalar.pv.mensagem || "") !== ""; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                   text: dlgDesinstalar.pv.mensagem || ""; color: janela.suave; font.pixelSize: 12 }
+            Text { visible: dlgDesinstalar.pode && dlgDesinstalar.app.origem === "Debian"; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                   text: "Vai ser pedida a sua senha."; color: janela.suave; font.pixelSize: 12 }
+            RowLayout {
+                visible: !!dlgDesinstalar.pv.dados; spacing: 10
+                Switch { id: apagarDados; property bool ligado: false; checked: ligado; onToggled: ligado = checked }
+                Text { Layout.fillWidth: true; wrapMode: Text.WordWrap; text: "Apagar também os dados e as configurações do aplicativo"; color: janela.texto; font.pixelSize: 13 }
+            }
+            RowLayout {
+                Layout.alignment: Qt.AlignRight; spacing: 8
+                Botao { texto: "Cancelar"; onCarregado: dlgDesinstalar.close() }
+                Botao { visible: dlgDesinstalar.pode; texto: "Desinstalar"; principal: true
+                        onCarregado: { ajustes.desinstalarApp(dlgDesinstalar.app.id, apagarDados.ligado); dlgDesinstalar.close() } }
             }
         }
     }

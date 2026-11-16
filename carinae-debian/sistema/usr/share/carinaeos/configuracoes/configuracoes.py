@@ -13,6 +13,7 @@ import threading
 
 sys.path.insert(0, '/usr/share/carinaeos/comum')
 from base import correr, iniciar  # noqa: E402
+import instalados  # noqa: E402
 
 from PySide6.QtCore import Property, QObject, Signal, Slot  # noqa: E402
 
@@ -33,7 +34,7 @@ SECCOES = [
     ('dock', 'Dock', 'preferences-desktop-icons', None, 'barra icones tamanho separador esconder posicao'),
     ('notificacoes', 'Notificações', 'preferences-desktop-notification', 'kcm_notifications', 'avisos nao incomodar'),
     ('pesquisa', 'Pesquisa', 'search', 'kcm_baloofile', 'indexacao arquivos procurar'),
-    ('aplicativos', 'Aplicativos', 'preferences-desktop-default-applications', 'kcm_componentchooser', 'padrao navegador email abrir com'),
+    ('aplicativos', 'Aplicativos', 'preferences-desktop-default-applications', 'kcm_componentchooser', 'instalados desinstalar remover tamanho padrao navegador email abrir com'),
     ('privacidade', 'Privacidade e segurança', 'preferences-system-privacy', None, 'convidado bloqueio tela senha'),
     ('partilha', 'Compartilhamento', 'network-server', None, 'ssh acesso remoto pastas'),
     ('teclado', 'Teclado', 'preferences-desktop-keyboard', 'kcm_keyboard', 'atalhos idioma layout numlock'),
@@ -180,9 +181,12 @@ class Config(QObject):
     mudou = Signal()
     _chegou = Signal(object, object)
 
-    def __init__(self, inicio):
+    def __init__(self, inicio, procura=''):
         super().__init__()
         self._inicio = inicio if any(s[0] == inicio for s in SECCOES) else 'wifi'
+        self._procura = procura
+        self._previa = {}
+        self._a_remover = ''
         self._redes = []
         self._msg = ''
         self._estado = {}
@@ -194,6 +198,9 @@ class Config(QObject):
     redes = Property('QVariantList', lambda s: s._redes, notify=mudou)
     mensagem = Property(str, lambda s: s._msg, notify=mudou)
     estado = Property('QVariantMap', lambda s: s._estado, notify=mudou)
+    procuraInicial = Property(str, lambda s: s._procura, constant=True)
+    previa = Property('QVariantMap', lambda s: s._previa, notify=mudou)
+    aRemover = Property(str, lambda s: s._a_remover, notify=mudou)
 
     def _fundo(self, trabalho, depois):
         def t():
@@ -347,6 +354,8 @@ class Config(QObject):
                 e['foto'] = 'file://' + foto if os.path.exists(foto) else ''
             elif pagina == 'sistema':
                 e.update(sobre())
+            elif pagina == 'aplicativos':
+                e['apps'] = instalados.listar()
             return e
 
         def depois(r):
@@ -693,6 +702,31 @@ class Config(QObject):
     def definirHoraAuto(self, ligar):
         bg(['timedatectl', 'set-ntp', 'true' if ligar else 'false'])
 
+    # ---- aplicativos instalados: desinstalar ----------------------------------------------------------
+    @Slot(str)
+    def previaApp(self, ident):
+        self._previa = dict(ident=ident, aCarregar=True)
+        self.mudou.emit()
+
+        def depois(r):
+            if isinstance(r, Exception):
+                r = dict(pode=False, mensagem=str(r))
+            self._previa = dict(r, ident=ident, aCarregar=False)
+            self.mudou.emit()
+        self._fundo(lambda: instalados.previa(ident), depois)
+
+    @Slot(str, bool)
+    def desinstalarApp(self, ident, apagar_dados):
+        self._a_remover = ident
+        self._aviso('Desinstalando…')
+
+        def depois(r):
+            self._a_remover = ''
+            ok, msg = r if not isinstance(r, Exception) else (False, str(r))
+            self._aviso(('✓ ' if ok else '') + msg)
+            self.ler('aplicativos')
+        self._fundo(lambda: instalados.desinstalar(ident, apagar_dados), depois)
+
     @Slot(str)
     def abrir(self, comando):
         correr(['bash', '-lc', comando], espera=False)
@@ -700,5 +734,6 @@ class Config(QObject):
 
 if __name__ == '__main__':
     pag = sys.argv[1] if len(sys.argv) > 1 else ''
+    procura = sys.argv[2] if len(sys.argv) > 2 else ''      # carinaeos-configuracoes aplicativos "Nome do app"
     sys.exit(iniciar('carinaeos-configuracoes', 'Configurações', 'preferences-system', os.path.join(AQUI, 'Main.qml'),
-                     {'ajustes': Config(pag)}))
+                     {'ajustes': Config(pag, procura)}))

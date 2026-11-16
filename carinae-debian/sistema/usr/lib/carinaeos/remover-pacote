@@ -1,0 +1,24 @@
+#!/bin/sh
+# CarinaeOS - desinstala UM aplicativo do Debian pedido pelas Configurações › Aplicativos. Corre como root (pkexec).
+#   remover-pacote PACOTE
+# Recusa: nomes inválidos, partes do sistema, e qualquer remoção que levasse outros pacotes junto
+# (exceto as peças do próprio aplicativo, como as traduções: PACOTE-…).
+# Nunca corre "autoremove" (as bibliotecas que ficam podem ser precisas, ex.: as da NVIDIA).
+set -e
+[ $# -eq 1 ] || { echo "uso: $0 PACOTE" >&2; exit 2; }
+p="$1"
+case "$p" in
+  -*|*[!a-z0-9+.-]*|"") echo "nome de pacote inválido: $p" >&2; exit 2 ;;
+esac
+if echo "$p" | grep -Eq '^(carinaeos.*|plasma.*|kwin.*|sddm.*|systemsettings|dolphin|konsole|kio.*|kde.*|libkf.*|xdg-desktop-portal.*|flatpak|apt|dpkg|calamares.*|plymouth.*|network-manager.*|pipewire.*|wireplumber|polkit.*|systemd.*|udisks2|kscreen|powerdevil|bluedevil|breeze.*|khelpcenter|kinfocenter|kmenuedit|discover|plasma-discover.*)$'; then
+  echo "$p faz parte do sistema e não pode ser desinstalado" >&2; exit 3
+fi
+dpkg-query -W -f='${Status}' "$p" 2>/dev/null | grep -q "install ok installed" || { echo "$p não está instalado" >&2; exit 3; }
+case "$(dpkg-query -W -f='${Essential}/${Priority}' "$p")" in
+  yes/*|*/required|*/important) echo "$p é essencial para o sistema" >&2; exit 3 ;;
+esac
+# só podem sair junto as peças do próprio aplicativo (traduções, complementos: "$p-…")
+junto=$(apt-get -s remove "$p" 2>/dev/null | awk '/^Remv /{print $2}' | grep -vx "$p" | grep -v "^$p-" || true)
+[ -z "$junto" ] || { echo "também sairiam: $(echo $junto | tr ' ' ',')" >&2; exit 4; }
+export DEBIAN_FRONTEND=noninteractive
+apt-get remove -y -q "$p"
