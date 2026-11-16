@@ -27,9 +27,22 @@ function cursorSobreJanela() {
 // "nenhuma janela" (null). E a propriedade workspace.showingDesktop nao existe no script, por isso
 // usa-se o atalho "Mostrar a area de trabalho" do KWin (com o efeito que afasta as janelas).
 var mostrando = false;
+// minimizar ou fechar uma janela também passa a ativação para "nenhuma janela": nesse caso NÃO foi um
+// clique no papel de parede (sem isto, minimizar uma janela num ecrã escondia as do outro ecrã)
+var ultimaSaida = 0;
+function vigiar(w) {
+    if (!w || !w.minimizedChanged) return;
+    w.minimizedChanged.connect(function () { if (w.minimized) ultimaSaida = Date.now(); });
+}
+workspace.windowAdded.connect(vigiar);
+workspace.windowRemoved.connect(function () { ultimaSaida = Date.now(); });
+var todasAbertas = workspace.windowList();
+for (var k = 0; k < todasAbertas.length; k++) vigiar(todasAbertas[k]);
+
 workspace.windowActivated.connect(function (w) {
     if (w && (w.normalWindow || w.dialog)) { mostrando = false; return; }
     if (!opcao("mostrarMesaAoClicar", true) || mostrando) return;
+    if (Date.now() - ultimaSaida < 1500) return;
     if (w && !w.desktopWindow) return;
     var tem = false;
     var lista = workspace.stackingOrder;
