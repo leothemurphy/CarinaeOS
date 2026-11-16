@@ -21,7 +21,7 @@ DIAS = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom']
 
 # os exemplos com que o Deck começa (só usam o que existe em qualquer computador)
 MODELOS = [
-    dict(id='modo-foco', nome='Modo foco', icone='view-focus', gatilho=dict(tipo='manual'), passos=[
+    dict(id='modo-foco', nome='Modo foco', icone='chronometer', gatilho=dict(tipo='manual'), passos=[
         dict(tipo='acao', id='sis:dnd', modo='ligar', nome='Não incomodar'),
         dict(tipo='acao', id='mus:pausar', modo='tocar', nome='Pausar a música'),
         dict(tipo='aviso', texto='Modo foco: notificações em silêncio. Bom trabalho!')]),

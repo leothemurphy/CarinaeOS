@@ -21,7 +21,7 @@ ApplicationWindow {
 
     property var atual: null          // a rotina a ser editada (uma cópia)
     property bool sujo: false
-    readonly property var icones: ["media-playlist-play", "view-focus", "video-television", "weather-clear-night", "weather-clear",
+    readonly property var icones: ["media-playlist-play", "chronometer", "video-television", "weather-clear-night", "weather-clear",
         "go-home", "applications-office", "applications-games", "audio-headphones", "folder-music", "applications-graphics",
         "printer", "lightbulb", "chronometer", "starred", "system-suspend", "internet-web-browser", "user-desktop"]
 

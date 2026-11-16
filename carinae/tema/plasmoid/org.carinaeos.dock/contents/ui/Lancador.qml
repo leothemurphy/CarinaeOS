@@ -232,7 +232,7 @@ Kicker.DashboardWindow {
     readonly property string subtitulo: filtro !== "" ? contagem(lista.length)
         : vista === "inicio" ? (editando ? "Arraste os ambientes para os mudar de lugar · cor e imagem em cada um" : "Os seus ambientes, de um relance")
         : vista === "favoritos" ? "Os aplicativos que estão na Dock"
-        : vista === "deck" ? "Rotinas: vários passos num só toque · botão direito para editar ou tirar"
+        : vista === "deck" ? "Seus favoritos e atalhos · botão direito num atalho para editar ou tirar"
         : vista === "semamb" ? contagem(lista.length) + " por arrumar · botão direito › Mover para"
         : contagem(lista.length)
 
@@ -356,7 +356,7 @@ Kicker.DashboardWindow {
     // as antigas { nome, icone, cmd } (comando ou site) e { app } (de versões anteriores)
     // o Deck é o lugar das rotinas (vários passos num só toque; app Rotinas): começa com os exemplos
     readonly property var deckPadrao: [
-        { id: "rot:modo-foco", nome: "Modo foco", icone: "view-focus" },
+        { id: "rot:modo-foco", nome: "Modo foco", icone: "chronometer" },
         { id: "rot:modo-filme", nome: "Modo filme", icone: "video-television" },
         { id: "rot:fim-do-dia", nome: "Fim do dia", icone: "weather-clear-night" },
         { id: "sis:captura", nome: "Captura de tela", icone: "spectacle" }
@@ -741,6 +741,26 @@ Kicker.DashboardWindow {
         deck = d;
         gravarDeck();
     }
+    // ---- Deck › favoritos do navegador principal (carinaeos-favoritos) ----------------------
+    property var favoritos: ({ navegador: "", itens: [] })
+    property var favPilha: []             // as pastas abertas: [{ nome, itens }]
+    readonly property var favAtuais: favPilha.length ? favPilha[favPilha.length - 1].itens : (favoritos.itens || [])
+    readonly property P5Support.DataSource lerFavoritos: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            try { lp.favoritos = JSON.parse((dados["stdout"] || "").trim()); } catch (e) {}
+        }
+    }
+    function atualizarFavoritos(): void { lerFavoritos.connectSource("carinaeos-favoritos #" + Date.now()); }
+    function abrirFavorito(f: var): void {
+        if (f.tipo === "pasta") { favPilha = favPilha.concat([f]); return; }
+        correr("xdg-open " + aspas(f.url));
+        lp.toggle();
+    }
+    onVistaChanged: if (vista === "deck") { favPilha = []; atualizarFavoritos(); }
+
     property var deckEstado: ({})
     readonly property P5Support.DataSource estadoDeck: P5Support.DataSource {
         engine: "executable"
@@ -1999,12 +2019,127 @@ Kicker.DashboardWindow {
                         }
                     }
 
-                    // ---- Deck -----------------------------------------------------------
-                    GridView {
-                        id: grelhaDeck
+                    // ---- Deck: secções (favoritos do navegador, atalhos) ---------------------
+                    Flickable {
+                        id: rolarDeck
                         anchors.fill: parent
                         visible: !lp.emGrelha && lp.vista === "deck"
                         clip: true
+                        contentHeight: colDeck.height + Math.round(20 * palco.u)
+                        boundsBehavior: Flickable.StopAtBounds
+                        QQC2.ScrollBar.vertical: QQC2.ScrollBar {}
+                    Column {
+                        id: colDeck
+                        width: rolarDeck.width
+                        spacing: Math.round(6 * palco.u)
+
+                        // ---- Favoritos do navegador ----
+                        Item {
+                            width: parent.width; height: Math.round(40 * palco.u)
+                            visible: (lp.favoritos.itens || []).length > 0 || lp.favoritos.navegador !== ""
+                            Row {
+                                x: Math.round(8 * palco.u); anchors.verticalCenter: parent.verticalCenter
+                                spacing: Math.round(8 * palco.u)
+                                Text {
+                                    visible: lp.favPilha.length > 0
+                                    text: "‹"; color: lp.texto; font.pixelSize: Math.round(22 * palco.u)
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    MouseArea { anchors.fill: parent; anchors.margins: -8; cursorShape: Qt.PointingHandCursor
+                                                onClicked: lp.favPilha = lp.favPilha.slice(0, -1) }
+                                }
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: (lp.favoritos.navegador ? "Favoritos do " + lp.favoritos.navegador : "Favoritos")
+                                          + lp.favPilha.map(p => "  ›  " + p.nome).join("")
+                                    color: lp.texto; font.pixelSize: Math.round(15 * palco.u); font.weight: Font.DemiBold
+                                }
+                            }
+                        }
+                        Text {
+                            visible: lp.favoritos.navegador !== "" && lp.favAtuais.length === 0
+                            x: Math.round(8 * palco.u); width: parent.width - x * 2; wrapMode: Text.Wrap
+                            text: "A barra de favoritos está vazia. No navegador, clique na estrela ☆ da barra de endereço e escolha a pasta “Barra de favoritos”."
+                            color: lp.suave; font.pixelSize: Math.round(12 * palco.u)
+                        }
+                        Flow {
+                            id: fluxoFav
+                            visible: lp.favAtuais.length > 0
+                            width: parent.width
+                            spacing: 0
+                            readonly property int colunas: Math.max(4, Math.floor(width / Math.round(132 * palco.u)))
+                            readonly property real lado: Math.floor(width / colunas)
+                            Repeater {
+                                model: lp.favAtuais
+                                delegate: Item {
+                                    id: fav
+                                    required property var modelData
+                                    required property int index
+                                    readonly property bool pasta: modelData.tipo === "pasta"
+                                    readonly property var cor: lp.paleta[(index * 5 + 2) % lp.paleta.length]
+                                    width: fluxoFav.lado; height: Math.round(104 * palco.u)
+                                    Rectangle {
+                                        anchors.fill: parent; anchors.margins: Math.round(6 * palco.u)
+                                        radius: Math.round(18 * palco.u)
+                                        scale: mf.pressed ? 0.95 : (mf.containsMouse ? 1.04 : 1)
+                                        Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutBack } }
+                                        color: mf.containsMouse ? Qt.rgba(1, 1, 1, 0.16) : Qt.rgba(1, 1, 1, 0.08)
+                                        border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.14)
+                                        // o ícone do site (do cache do navegador), uma pasta, ou a inicial numa bolinha
+                                        Item {
+                                            id: icFav
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            y: Math.round(14 * palco.u)
+                                            width: Math.round(38 * palco.u); height: width
+                                            Kirigami.Icon { anchors.fill: parent; visible: fav.pasta; source: "folder-favorites" }
+                                            Image {
+                                                id: imgFav
+                                                anchors.centerIn: parent
+                                                width: Math.round(30 * palco.u); height: width
+                                                visible: !fav.pasta && status === Image.Ready
+                                                source: !fav.pasta && fav.modelData.icone ? "file://" + fav.modelData.icone : ""
+                                                sourceSize: Qt.size(64, 64); smooth: true; asynchronous: true
+                                            }
+                                            Rectangle {
+                                                anchors.fill: parent; radius: width / 2
+                                                visible: !fav.pasta && imgFav.status !== Image.Ready
+                                                gradient: Gradient {
+                                                    GradientStop { position: 0; color: fav.cor[1] }
+                                                    GradientStop { position: 1; color: fav.cor[0] }
+                                                }
+                                                Text { anchors.centerIn: parent; color: "white"; font.pixelSize: Math.round(18 * palco.u); font.weight: Font.Bold
+                                                       text: (fav.modelData.nome || "?").replace(/^[^A-Za-z0-9À-ÿ]+/, "").charAt(0).toUpperCase() }
+                                            }
+                                        }
+                                        Text {
+                                            anchors.top: icFav.bottom; anchors.topMargin: Math.round(8 * palco.u)
+                                            x: 6; width: parent.width - 12
+                                            horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
+                                            text: fav.modelData.nome; color: lp.texto
+                                            font.pixelSize: Math.round(12 * palco.u)
+                                        }
+                                    }
+                                    MouseArea {
+                                        id: mf
+                                        anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: lp.abrirFavorito(fav.modelData)
+                                    }
+                                    QQC2.ToolTip.visible: mf.containsMouse && !fav.pasta
+                                    QQC2.ToolTip.text: fav.pasta ? "" : fav.modelData.url
+                                    QQC2.ToolTip.delay: 600
+                                }
+                            }
+                        }
+
+                        // ---- Atalhos (as teclas de sempre) ----
+                        Text {
+                            x: Math.round(8 * palco.u); topPadding: Math.round(14 * palco.u)
+                            text: "Atalhos"; color: lp.texto; font.pixelSize: Math.round(15 * palco.u); font.weight: Font.DemiBold
+                        }
+                    GridView {
+                        id: grelhaDeck
+                        width: parent.width
+                        height: Math.ceil(count / colunas) * cellHeight
+                        interactive: false
                         readonly property int colunas: Math.max(3, Math.floor(width / Math.round(180 * palco.u)))
                         cellWidth: Math.floor(width / colunas)
                         cellHeight: Math.round(150 * palco.u)
@@ -2117,6 +2252,8 @@ Kicker.DashboardWindow {
                                 onPressAndHold: if (!tecla.mais) { menuDeck.i = tecla.index; menuDeck.popup(); }
                             }
                         }
+                    }
+                    }
                     }
 
                     // escolher uma ação para o Deck (catálogo do carinaeos-deck)
