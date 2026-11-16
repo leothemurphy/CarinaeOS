@@ -13,8 +13,8 @@
 O login usa o fluxo OAuth para aplicacoes instaladas (PKCE + endereco 127.0.0.1): o Google abre no
 navegador normal da pessoa, com o nome da app "CarinaeOS". O cliente OAuth fica em
 ~/.config/carinaeos/google-cliente.json (ou /etc/carinaeos/google-cliente.json).
-Os tokens ficam em ~/.local/share/carinaeos/contas (pasta 700, ficheiros 600).
-O Drive e montado com o rclone (fuse) por um servico de utilizador carinaeos-drive@<remoto>.
+Os tokens ficam em ~/.local/share/carinaeos/contas (pasta 700, arquivos 600).
+O Drive é montado com o rclone (fuse) por um serviço do usuário carinaeos-drive@<remoto>.
 """
 import base64
 import hashlib
@@ -349,7 +349,7 @@ def sincronizar_conta(conta):
 
 
 def lembretes_calendario():
-    """Os lembretes do calendário (e o Akonadi por trás deles) só arrancam com a sessão depois de haver calendários."""
+    """Os lembretes do calendário (e o Akonadi por trás deles) só iniciam com a sessão depois de haver calendários."""
     subprocess.run(['kwriteconfig6', '--file', 'kalendaracrc', '--group', 'General', '--key', 'Autostart', 'true'], capture_output=True)
     if subprocess.run(['pgrep', '-x', 'kalendarac'], capture_output=True).returncode != 0:
         subprocess.Popen(['kalendarac'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)

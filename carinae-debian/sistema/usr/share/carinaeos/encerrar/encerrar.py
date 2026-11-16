@@ -71,7 +71,7 @@ def _desktops():
 
 
 def _flatpaks():
-    """{app id: pid real} das instâncias Flatpak que estão a correr."""
+    """{app id: pid real} das instâncias Flatpak que estão rodando."""
     r = {}
     for l in _cmd(['flatpak', 'ps', '--columns=application,pid']).splitlines():
         p = l.split()

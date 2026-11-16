@@ -6,9 +6,9 @@ a parte transparente por cima do vidro deixa passar os cliques para as janelas d
 Isto é a "forma de entrada" (X Shape, ShapeInput) da janela da Dock.
 
   carinaeos-dock-cliques --teste             escreve "ok" se der para usar (sessão X11)
-  carinaeos-dock-cliques X Y L A cx cy       só o retângulo X,Y,L,A (no ecrã) aceita cliques
+  carinaeos-dock-cliques X Y L A cx cy       só o retângulo X,Y,L,A (na tela) aceita cliques
   carinaeos-dock-cliques tudo cx cy          a janela inteira aceita cliques
-cx,cy: um ponto do ecrã dentro da Dock (para encontrar a janela dela).
+cx,cy: um ponto da tela dentro da Dock (para encontrar a janela dela).
 """
 import ctypes
 import ctypes.util

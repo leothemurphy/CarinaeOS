@@ -23,6 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Português do Brasil no texto que o usuário vê
+        run: python3 carinae-debian/testes/verificar-ptbr.py
+
       - name: Libertar espaco no disco
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache /usr/local/share/boost
@@ -34,6 +37,9 @@ jobs:
             apt-get update &&
             DEBIAN_FRONTEND=noninteractive apt-get install -y live-build librsvg2-bin fonts-dejavu-core apt-utils git cmake g++ make python3-numpy python3-pil curl gtk-update-icon-cache ca-certificates &&
             ./construir.sh'
+
+      - name: Conferir a ISO (zram, música, atalhos, administrador, limpeza)
+        run: bash carinae-debian/testes/verificar-iso.sh carinae-debian/carinaeos-amd64.hybrid.iso
 
       - name: Somas, assinatura e partes
         env:

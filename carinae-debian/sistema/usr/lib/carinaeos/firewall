@@ -19,7 +19,7 @@ portas() {
     musica) echo "6600/tcp 8000/tcp" ;;
     kdeconnect) echo "1714:1764/tcp 1714:1764/udp" ;;
     descoberta) echo "5353/udp" ;;
-    *) echo "serviço desconhecido: $1 (ssh, partilha, musica)" >&2; exit 2 ;;
+    *) echo "serviço desconhecido: $1 (ssh, partilha, musica)" >&2; exit 2 ;;   # ptbr-ok: nomes internos dos serviços
   esac
 }
 

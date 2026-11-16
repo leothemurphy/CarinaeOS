@@ -763,7 +763,7 @@ ApplicationWindow {
                 id: colCasa; width: parent.width; spacing: 14
                 Text { text: "Home Assistant"; color: janela.texto; font.pixelSize: 26; font.weight: Font.Bold }
                 Text { width: parent.width; wrapMode: Text.Wrap; color: janela.suave; font.pixelSize: 13
-                       text: "Este computador fica a ser um leitor de música que o Home Assistant (e qualquer programa MPD/mpc) controla. As suas listas aparecem lá como fontes." }
+                       text: "Este computador passa a ser um leitor de música que o Home Assistant (e qualquer programa MPD/mpc) controla. As suas listas aparecem lá como fontes." }
                 Rectangle {
                     width: parent.width; height: 74; radius: 14; color: janela.cartao
                     Row {

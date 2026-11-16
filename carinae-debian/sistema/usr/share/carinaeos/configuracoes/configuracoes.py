@@ -24,7 +24,7 @@ HOME = os.path.expanduser('~')
 
 # (id, nome, icone, modulo completo, palavras para a pesquisa)
 SECCOES = [
-    ('wifi', 'Wi-Fi', 'network-wireless', 'kcm_networkmanagement', 'internet rede sem fios'),
+    ('wifi', 'Wi-Fi', 'network-wireless', 'kcm_networkmanagement', 'internet rede sem fio'),
     ('rede', 'Rede', 'network-wired', 'kcm_networkmanagement', 'cabo ethernet vpn proxy'),
     ('bluetooth', 'Bluetooth', 'preferences-system-bluetooth', 'kcm_bluetooth', 'fones fones de ouvido mouse'),
     ('ecras', 'Telas', 'video-display', 'kcm_kscreen', 'monitor resolucao escala brilho luz noturna tela'),

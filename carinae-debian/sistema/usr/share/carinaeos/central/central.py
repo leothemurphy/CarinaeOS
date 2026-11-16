@@ -79,7 +79,7 @@ def criar_recurso(tipo):
 
 
 def lembretes_calendario():
-    """Os lembretes do calendário (e o Akonadi por trás deles) só arrancam com a sessão depois de haver calendários."""
+    """Os lembretes do calendário (e o Akonadi por trás deles) só iniciam com a sessão depois de haver calendários."""
     subprocess.run(['kwriteconfig6', '--file', 'kalendaracrc', '--group', 'General', '--key', 'Autostart', 'true'], capture_output=True)
     if subprocess.run(['pgrep', '-x', 'kalendarac'], capture_output=True).returncode != 0:
         subprocess.Popen(['kalendarac'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)

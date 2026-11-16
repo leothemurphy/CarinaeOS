@@ -1,0 +1,32 @@
+# CarinaeOS - verificação rápida a cada envio (sem gerar a ISO): português do Brasil no texto que o
+# usuário vê e o Python do sistema a compilar. A ISO completa é conferida em carinaeos-iso.yml.
+name: CarinaeOS verificar
+
+on:
+  push:
+    branches: [testes, main]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Português do Brasil
+        run: python3 carinae-debian/testes/verificar-ptbr.py
+      - name: Python compila
+        run: |
+          set -e
+          for f in $(grep -rlE '^#!/usr/bin/(env )?python3' carinae-debian/sistema/usr/bin carinae-debian/sistema/usr/lib/carinaeos) \
+                   $(find carinae-debian/sistema/usr/share/carinaeos -name '*.py'); do
+            python3 -c "import ast,sys; ast.parse(open(sys.argv[1], encoding='utf-8').read(), sys.argv[1])" "$f"
+          done
+          echo "Python: tudo compila."
+      - name: Scripts de shell
+        run: |
+          set -e
+          for f in $(grep -rlE '^#!/bin/(ba)?sh' carinae-debian/sistema/usr/bin carinae-debian/sistema/usr/lib/carinaeos carinae-debian/testes); do
+            bash -n "$f"
+          done
+          echo "Shell: sintaxe certa."

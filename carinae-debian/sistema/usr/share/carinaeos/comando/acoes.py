@@ -140,7 +140,7 @@ acao(id='tema-escuro', titulo='Alterar o tema atual para Escuro', icone='color-m
      fazer=lambda: aplicar_tema(False))
 # rede e bluetooth
 acao(id='wifi-ligar', titulo='Ligar o Wi-Fi', icone='network-wireless', botao='Ligar',
-     frases=['ligar wifi', 'ativar wifi', 'ligar wi-fi', 'ativar wi-fi', 'ligar a internet sem fios'],
+     frases=['ligar wifi', 'ativar wifi', 'ligar wi-fi', 'ativar wi-fi', 'ligar a internet sem fio'],
      controlo='interruptor', rotulo='Wi-Fi', ler=wifi,
      definir=lambda v: _bg(['nmcli', 'radio', 'wifi', 'on' if v else 'off']),
      fazer=lambda: _bg(['nmcli', 'radio', 'wifi', 'on']))

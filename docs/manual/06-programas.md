@@ -85,6 +85,6 @@ Se não abrir:
 ou os comandos `apt remove` / `flatpak uninstall` acima. AppImage: apague o arquivo em `~/Aplicativos`
 e a entrada em `~/.local/share/applications`.
 
-## Programas que arrancam com o sistema
+## Programas que iniciam com o sistema
 
 Configurações › Sistema › Inicialização automática (adicionar ou remover programas e scripts).

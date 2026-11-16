@@ -1,6 +1,6 @@
 // CarinaeOS — mesa
 // 1) Clicar no papel de parede afasta as janelas para os lados, como no macOS
-//    ("clicar no papel de parede para mostrar a mesa"). Clicar numa janela ou na Dock traz tudo de volta.
+//    ("clicar no papel de parede para mostrar a área de trabalho"). Clicar numa janela ou na Dock traz tudo de volta.
 //    Desligado de origem; liga-se no Supernova › Clicar no papel de parede.
 
 function opcao(nome, padrao) {
