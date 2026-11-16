@@ -182,7 +182,7 @@ Kicker.DashboardWindow {
             for (const x of itens) {
                 const n = semAcentos(x.nome);
                 if (n.startsWith(f)) a.push(x);
-                else if (n.indexOf(f) !== -1 || semAcentos(x.desc).indexOf(f) !== -1) b.push(x);
+                else if (n.indexOf(f) !== -1 || semAcentos(lp.descricaoDe(x)).indexOf(f) !== -1) b.push(x);
             }
             return a.concat(b);
         }
@@ -404,6 +404,20 @@ Kicker.DashboardWindow {
                + " | base64 -d > \"$HOME/.config/carinaeos-deck.json\"'");
     }
     // ---- cartões: ler e gravar ~/.config/carinaeos-cartoes.json ----------------------
+    // ---- descrições curtas em português de todos os aplicativos (carinaeos-descricoes) ------
+    property var descricoes: ({})
+    function descricaoDe(app: var): string {
+        if (!app) return "";
+        return (app.chave && descricoes[app.chave]) || descricoes["nome:" + (app.nome || "").toLowerCase()] || app.desc || "";
+    }
+    readonly property P5Support.DataSource lerDescricoes: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => {
+            disconnectSource(fonte);
+            try { lp.descricoes = JSON.parse((dados["stdout"] || "").trim()) || {}; } catch (e) {}
+        }
+    }
     readonly property P5Support.DataSource lerCartoes: P5Support.DataSource {
         engine: "executable"
         connectedSources: []
@@ -430,15 +444,22 @@ Kicker.DashboardWindow {
     }
     // lista fixa dos ambientes para um menu (tirada ao abrir: mudar os ambientes com o menu aberto
     // recriava os itens debaixo do rato e prendia o Plasma)
+    // o mesmo aplicativo pode chegar de listas diferentes (Favoritos, um cartão, a pesquisa) como objetos
+    // diferentes: compara-se pela chave (o nome do .desktop), não pelo objeto
+    function temApp(lista: var, app: var): bool {
+        if (!app || !lista) return false;
+        if (lista.indexOf(app) !== -1) return true;
+        return !!app.chave && lista.some(a => a && a.chave === app.chave);
+    }
     function ambientesPara(app: var): var {
         const atual = cartaoDe(app);
         return categorias.map(c => ({ orig: c.orig, nome: c.nome,
-            marcado: app !== null && (atual === c.orig || (atual === "" && c.apps.indexOf(app) !== -1)) }));
+            marcado: app !== null && (atual === c.orig || (atual === "" && lp.temApp(c.apps, app))) }));
     }
     // o ambiente onde o aplicativo aparece agora (ou "" se não está em nenhum)
     function ambienteDe(app: var): string {
         if (!app) return "";
-        for (const c of categorias) if (c.apps.indexOf(app) !== -1) return c.nome;
+        for (const c of categorias) if (lp.temApp(c.apps, app)) return c.nome;
         return "";
     }
     function cartaoDe(app: var): string {
@@ -754,6 +775,7 @@ Kicker.DashboardWindow {
                 + "f=${f#file://}; if [ -d \"$f\" ]; then ls -S \"$f\"/contents/images/* 2>/dev/null | tail -1; else echo \"$f\"; fi #" + Date.now());
             lp.lerDeck.connectSource("cat \"$HOME/.config/carinaeos-deck.json\" 2>/dev/null #" + Date.now());
             lp.lerCartoes.connectSource("cat \"$HOME/.config/carinaeos-cartoes.json\" 2>/dev/null #" + Date.now());
+            lp.lerDescricoes.connectSource("carinaeos-descricoes #" + Date.now());
             formCartao.visible = false;
             formSenha.visible = false;
             busca.text = "";
@@ -2435,7 +2457,7 @@ Kicker.DashboardWindow {
                         wrapMode: Text.Wrap
                         maximumLineCount: 3
                         elide: Text.ElideRight
-                        text: lp.selecionado ? lp.selecionado.desc : ""
+                        text: lp.selecionado ? lp.descricaoDe(lp.selecionado) : ""
                         visible: text !== ""
                         color: lp.suave
                         font.pixelSize: Math.round(13 * palco.u)
