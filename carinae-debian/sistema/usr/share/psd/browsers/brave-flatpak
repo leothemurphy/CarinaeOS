@@ -1,0 +1,5 @@
+# CarinaeOS: Brave em Flatpak (o profile-sync-daemon só conhece os navegadores instalados como pacote)
+if [[ -d "$HOME/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser" ]]; then
+    DIRArr[0]="$HOME/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser"
+    PSNAME="brave"
+fi

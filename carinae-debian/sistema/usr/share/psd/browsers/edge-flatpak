@@ -1,0 +1,5 @@
+# CarinaeOS: Microsoft Edge em Flatpak (o profile-sync-daemon só conhece os navegadores instalados como pacote)
+if [[ -d "$HOME/.var/app/com.microsoft.Edge/config/microsoft-edge" ]]; then
+    DIRArr[0]="$HOME/.var/app/com.microsoft.Edge/config/microsoft-edge"
+    PSNAME="msedge"
+fi

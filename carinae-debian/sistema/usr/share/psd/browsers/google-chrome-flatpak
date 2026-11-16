@@ -1,0 +1,5 @@
+# CarinaeOS: Google Chrome em Flatpak (o profile-sync-daemon só conhece os navegadores instalados como pacote)
+if [[ -d "$HOME/.var/app/com.google.Chrome/config/google-chrome" ]]; then
+    DIRArr[0]="$HOME/.var/app/com.google.Chrome/config/google-chrome"
+    PSNAME="chrome"
+fi
