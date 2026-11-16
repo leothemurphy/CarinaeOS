@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 # CarinaeOS - Casa: painéis do Home Assistant montados pelo usuário, com tipos de cartões
-# (botão, luz, entidades, sensor, gráfico, clima, cenas, som/TV, câmara, estores, tempo,
-# número, texto), e este computador no Home Assistant (MQTT).
+# no visual do Home Assistant e dos cartões Mushroom (entidade, chips, luz, entidades, sensor,
+# gráfico, termostato, cenas, som/TV, câmera, persianas, tempo, número, pessoa, título),
+# e este computador no Home Assistant (MQTT).
 #
-# Para nunca travar: a rede corre sempre noutra thread; a lista de cartões só muda quando o
+# Para nunca travar: a rede roda sempre noutra thread; a lista de cartões só muda quando o
 # usuário mexe no painel; os estados chegam num dicionário (os cartões só atualizam o texto).
 import json
 import os
@@ -19,23 +20,26 @@ import casa_ha as HA  # noqa: E402
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot  # noqa: E402
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
+ICONES = os.path.join(AQUI, 'mdi.json')   # os ícones do Home Assistant (Material Design Icons)
 PAINEIS = os.path.join(os.path.dirname(HA.CFG), 'casa-paineis.json')
 CAMERAS = os.path.join(tempfile.gettempdir(), 'carinaeos-casa-%d' % os.getuid())
 
 TIPOS = [
-    dict(id='botao', nome='Botão', desc='Um aparelho grande para ligar e desligar', dominios=['light', 'switch', 'fan', 'input_boolean', 'lock', 'cover', 'scene', 'script', 'button', 'input_button', 'automation'], max=1),
-    dict(id='luz', nome='Luz', desc='Luz com brilho', dominios=['light'], max=1),
-    dict(id='entidades', nome='Lista', desc='Vários aparelhos ou sensores numa lista', dominios=[], max=12),
-    dict(id='sensor', nome='Sensor', desc='Um valor em grande (temperatura, consumo…)', dominios=['sensor', 'binary_sensor'], max=1),
-    dict(id='grafico', nome='Gráfico', desc='Histórico das últimas 24 horas', dominios=['sensor'], max=1),
-    dict(id='clima', nome='Clima', desc='Ar condicionado ou aquecimento', dominios=['climate', 'water_heater', 'humidifier'], max=1),
-    dict(id='cenas', nome='Cenas', desc='Fila de botões para cenas e rotinas', dominios=['scene', 'script', 'button', 'input_button', 'automation'], max=8),
-    dict(id='media', nome='Som e TV', desc='Música ou TV com controles', dominios=['media_player'], max=1),
-    dict(id='camera', nome='Câmera', desc='Imagem ao vivo (a cada 10 s)', dominios=['camera'], max=1),
-    dict(id='estores', nome='Persianas e portões', desc='Abrir, parar e fechar', dominios=['cover'], max=1),
-    dict(id='tempo', nome='Tempo', desc='Previsão do tempo', dominios=['weather'], max=1),
-    dict(id='numero', nome='Número', desc='Controle deslizante ou escolha', dominios=['input_number', 'number', 'select', 'input_select'], max=1),
-    dict(id='texto', nome='Texto', desc='Uma nota ou título', dominios=[], max=0),
+    dict(id='botao', nome='Entidade', icone='gesture-tap-button', desc='Um aparelho: toque para ligar e desligar', dominios=['light', 'switch', 'fan', 'input_boolean', 'lock', 'cover', 'scene', 'script', 'button', 'input_button', 'automation', 'vacuum', 'humidifier', 'alarm_control_panel', 'sensor', 'binary_sensor'], max=1),
+    dict(id='chips', nome='Chips', icone='dots-horizontal-circle', desc='Pílulas pequenas no topo: temperatura, luzes…', dominios=[], max=10),
+    dict(id='luz', nome='Luz', icone='lightbulb', desc='Luz com barra de brilho', dominios=['light'], max=1),
+    dict(id='entidades', nome='Entidades', icone='format-list-bulleted', desc='Vários aparelhos ou sensores numa lista', dominios=[], max=12),
+    dict(id='sensor', nome='Sensor', icone='eye', desc='Um valor em grande (temperatura, consumo…)', dominios=['sensor', 'binary_sensor'], max=1),
+    dict(id='grafico', nome='Gráfico', icone='chart-line', desc='Valor e histórico das últimas 24 horas', dominios=['sensor'], max=1),
+    dict(id='clima', nome='Termostato', icone='thermostat', desc='Ar condicionado ou aquecimento', dominios=['climate', 'water_heater', 'humidifier'], max=1),
+    dict(id='cenas', nome='Cenas', icone='palette', desc='Grade de botões para cenas e rotinas', dominios=['scene', 'script', 'button', 'input_button', 'automation'], max=8),
+    dict(id='media', nome='Som e TV', icone='play-circle', desc='Música ou TV com controles e volume', dominios=['media_player'], max=1),
+    dict(id='camera', nome='Câmera', icone='cctv', desc='Imagem ao vivo (a cada 10 s)', dominios=['camera'], max=1),
+    dict(id='estores', nome='Persianas e portões', icone='window-shutter', desc='Abrir, parar, fechar e posição', dominios=['cover'], max=1),
+    dict(id='tempo', nome='Previsão do tempo', icone='weather-partly-cloudy', desc='Tempo agora e nos próximos dias', dominios=['weather'], max=1),
+    dict(id='numero', nome='Número ou escolha', icone='ray-vertex', desc='Barra deslizante ou botões de opção', dominios=['input_number', 'number', 'select', 'input_select'], max=1),
+    dict(id='pessoa', nome='Pessoa', icone='account', desc='Quem está em casa', dominios=['person'], max=1),
+    dict(id='texto', nome='Título', icone='format-title', desc='Título e saudação, sem fundo', dominios=[], max=0),
 ]
 
 
@@ -51,27 +55,33 @@ def ler_paineis():
 
 
 def sugerir(ents):
-    """Um primeiro painel a partir do que existe na casa."""
+    """Um primeiro painel a partir do que existe na casa, no estilo Mushroom."""
     por = lambda *d: [e['id'] for e in ents if e['dominio'] in d]  # noqa: E731
-    cart = []
-    cenas = por('scene', 'script')[:6]
+    cart = [dict(tipo='texto', titulo='{saudacao}, {nome}!\nEstá tudo aqui, à mão.', ents=[], largura=4)]
+    chips = por('weather')[:1] + [e['id'] for e in ents if e['dominio'] == 'sensor'
+                                   and e['classe'] in ('temperature', 'humidity', 'power')][:3] + por('person')[:2]
+    if chips:
+        cart.append(dict(tipo='chips', titulo='', ents=chips, largura=4))
+    cenas = por('scene', 'script')[:4]
     if cenas:
         cart.append(dict(tipo='cenas', titulo='Cenas', ents=cenas, largura=2))
     for eid in por('light')[:4]:
         cart.append(dict(tipo='luz', titulo='', ents=[eid], largura=1))
     for eid in por('climate')[:2]:
         cart.append(dict(tipo='clima', titulo='', ents=[eid], largura=1))
+    for eid in por('cover')[:2]:
+        cart.append(dict(tipo='estores', titulo='', ents=[eid], largura=1))
     t = [e['id'] for e in ents if e['dominio'] == 'sensor' and e['classe'] in ('temperature', 'humidity')][:2]
     for eid in t:
         cart.append(dict(tipo='grafico', titulo='', ents=[eid], largura=1))
     w = por('weather')[:1]
     if w:
-        cart.append(dict(tipo='tempo', titulo='', ents=w, largura=2))
+        cart.append(dict(tipo='tempo', titulo='', ents=w, largura=1))
     sw = por('switch', 'input_boolean', 'fan')[:6]
     if sw:
         cart.append(dict(tipo='entidades', titulo='Interruptores', ents=sw, largura=1))
     for eid in por('media_player')[:1]:
-        cart.append(dict(tipo='media', titulo='', ents=[eid], largura=2))
+        cart.append(dict(tipo='media', titulo='', ents=[eid], largura=1))
     return cart
 
 
@@ -94,6 +104,17 @@ class Casa(QObject):
         self._ocupado = False
         self._a_buscar = False
         self._p = ler_paineis()
+        try:
+            with open(ICONES, encoding='utf-8') as f:
+                self._icones = f.read()
+        except OSError:
+            self._icones = '{}'
+        try:
+            import pwd
+            g = pwd.getpwuid(os.getuid())
+            self._usuario = (g.pw_gecos.split(',')[0] or g.pw_name).split()[0]
+        except (KeyError, IndexError):
+            self._usuario = ''
         self._chegou.connect(lambda f, r: f(r))
         self._relogio = QTimer(self)
         self._relogio.setInterval(4000)
@@ -124,6 +145,8 @@ class Casa(QObject):
     total = Property(int, lambda s: len(s._todas), notify=mudouEstados)
     paineis = Property('QVariantList', lambda s: s._p['paineis'], notify=mudouPaineis)
     tipos = Property('QVariantList', lambda s: TIPOS, constant=True)
+    iconesJson = Property(str, lambda s: s._icones, constant=True)
+    usuario = Property(str, lambda s: s._usuario, constant=True)
 
     def _fundo(self, trabalho, depois):
         def t():
@@ -309,14 +332,14 @@ class Casa(QObject):
     @Slot(int, str, str, 'QVariantList', int)
     def adicionarCartao(self, painel, tipo, titulo, ents, largura):
         self._p['paineis'][painel]['cartoes'].append(
-            dict(tipo=tipo, titulo=titulo, ents=[str(e) for e in ents], largura=max(1, min(3, largura))))
+            dict(tipo=tipo, titulo=titulo, ents=[str(e) for e in ents], largura=max(1, min(4, largura))))
         self._gravar()
 
     @Slot(int, int, str, str, 'QVariantList', int)
     def editarCartao(self, painel, i, tipo, titulo, ents, largura):
         c = self._p['paineis'][painel]['cartoes']
         if 0 <= i < len(c):
-            c[i] = dict(tipo=tipo, titulo=titulo, ents=[str(e) for e in ents], largura=max(1, min(3, largura)))
+            c[i] = dict(tipo=tipo, titulo=titulo, ents=[str(e) for e in ents], largura=max(1, min(4, largura)))
             self._gravar()
 
     @Slot(int, int)
