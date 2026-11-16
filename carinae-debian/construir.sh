@@ -60,15 +60,8 @@ find $I/usr/share/carinaeos -name __pycache__ -prune -exec rm -rf {} +
 # visual "Vidro" (Kvantum + Aurorae + icones WhiteSur, com as cores do CarinaeOS)
 bash tema-vidro.sh "$PWD/$I" "$PWD/cache/vidro" || echo "AVISO: tema Vidro nao instalado"
 
-# ArtCraft Launcher (instala e atualiza os aplicativos da Craft App Suite)
-mkdir -p config/packages.chroot
+# ArtCraft Launcher: já não vem na ISO (está na Órbita › Impressão 3D e CAD, por /usr/lib/carinaeos/instalar-extra)
 rm -f config/packages.chroot/artcraft-launcher*
-ACV=$(curl -sfL https://api.github.com/repos/storytold/craft-launcher/releases/latest | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"].lstrip("v"))' 2>/dev/null || echo 0.9.0)
-if [ ! -s cache/artcraft-launcher-$ACV.deb ]; then
-  curl -sfL -o cache/artcraft-launcher-$ACV.deb \
-    https://github.com/storytold/craft-launcher/releases/download/v$ACV/artcraft-launcher-$ACV-linux-x86_64.deb || rm -f cache/artcraft-launcher-$ACV.deb
-fi
-[ -s cache/artcraft-launcher-$ACV.deb ] && cp cache/artcraft-launcher-$ACV.deb config/packages.chroot/artcraft-launcher_${ACV}_amd64.deb || echo "AVISO: sem o ArtCraft Launcher"
 
 # colecao de papeis de parede 8K (fotos do Webb/Hubble + desenhos do CarinaeOS) para Plasma, GNOME e XFCE
 python3 fundos/fundos.py "$PWD/$I" "$PWD/cache/fundos"

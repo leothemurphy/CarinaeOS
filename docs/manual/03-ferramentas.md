@@ -122,4 +122,4 @@ A sua **foto** (aparece no login, no bloqueio de tela e no menu) e a **imagem de
 
 ## ArtCraft Launcher
 
-Já vem instalado: baixa e mantém atualizados os aplicativos da Craft App Suite.
+Na **Órbita › Impressão 3D e CAD**: baixa e mantém atualizados os aplicativos da Craft App Suite (pede a senha para instalar).

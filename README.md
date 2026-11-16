@@ -88,8 +88,8 @@ sobre um lago espelhado.
   (nouveau) nas muito antigas —, e os de AMD e Intel.
 - **Dock como no Mac**: só o vidro em repouso, cresce com o mouse por cima das janelas, que param na borda dela;
   pré-visualização das janelas ao passar o mouse e os nomes numa janelinha.
-- **AppImages de impressão 3D** (OrcaSlicer, ElegooSlicer, Bambu Studio, Cura) funcionam logo, e os navegadores em
-  Flatpak já criam aplicativos (PWA) com ícone.
+- **AppImages de impressão 3D** (OrcaSlicer, ElegooSlicer, Bambu Studio, Cura): ao abrir o primeiro, o CarinaeOS
+  oferece as bibliotecas que faltam; e os navegadores em Flatpak já criam aplicativos (PWA) com ícone.
 - **Janelas menos transparentes** e com os botões do Mac também nos navegadores instalados como Flatpak.
 
 E ainda:
@@ -115,7 +115,7 @@ E ainda:
 - **Calendários**: conta Google, iCloud (CalDAV) ou qualquer endereço iCal (Google, iCloud, Outlook, feriados), e **Mapas**.
 - **Etiquetas** coloridas nos Arquivos, como no Finder, na barra lateral, até em pastas de rede.
 - **Papéis de parede em 8K**: o céu do Atacama com a estrela, fotografias do James Webb e do Hubble e desenhos originais.
-- **ArtCraft Launcher** já instalado, para baixar os aplicativos da Craft App Suite.
+- **Órbita › Impressão 3D e CAD**: OrcaSlicer, PrusaSlicer, Bambu Studio, Cura, FreeCAD e o ArtCraft Launcher, num clique.
 - **AppImage com duplo clique** (por exemplo o Elegoo Slicer para impressoras 3D): o CarinaeOS instala-o no menu,
   com ícone, e oferece pô-lo na Dock.
 - **Tela de entrada à sua maneira**: a sua foto e a imagem de fundo do login (Central › Tela de entrada).
@@ -345,7 +345,6 @@ O CarinaeOS existe graças a projetos livres incríveis:
 o tema e os ícones [WhiteSur](https://github.com/vinceliuice/WhiteSur-kde) de Vince Liuice (GPL-3.0), recoloridos para o CarinaeOS,
 as fotografias do [ESO](https://www.eso.org/public/images/) (Y. Beletsky, J. Colosimo, D. Malin, J. Busqué; CC BY 4.0)
 e do [ESA/Webb e ESA/Hubble](https://esawebb.org/images/) (CC BY 4.0),
-o [ArtCraft Launcher](https://github.com/storytold/craft-launcher)
 e a fonte [Inter](https://rsms.me/inter/) (SIL OFL).
 O código próprio do CarinaeOS (Dock, Launchpad, Pesquisa, Configurações, Órbita, Supernova, tema) é distribuído sob a
 **GPL-2.0-or-later**, como o KDE em que se baseia.

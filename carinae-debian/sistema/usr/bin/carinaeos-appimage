@@ -43,6 +43,17 @@ def extrair(appimage, destino):
     return os.path.join(destino, 'squashfs-root')
 
 
+def precisa_webkit(nome, arquivo):
+    """Os fatiadores 3D (OrcaSlicer, ElegooSlicer, Bambu Studio, Creality Print…) usam WebKitGTK."""
+    if re.search(r'(?i)(orca|elegoo|bambu|creality|anycubic|slicer|cura|prusa|flashprint)', nome + ' ' + os.path.basename(arquivo)):
+        return True
+    try:   # outros: procura a biblioteca dentro do AppImage (rápido: só os nomes)
+        with open(arquivo, 'rb') as f:
+            return b'libwebkit2gtk-4.1' in f.read(64 * 1024 * 1024)
+    except OSError:
+        return False
+
+
 def principal():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -90,6 +101,14 @@ def principal():
                 'Comment=Aplicativo (AppImage) em %s\nX-CarinaeOS-AppImage=true\n' % (nome, final, icone, categorias, PASTA))
     subprocess.run(['update-desktop-database', APPS], capture_output=True)
     subprocess.run(['kbuildsycoca6'], capture_output=True)
+    # fatiadores 3D e outros AppImages feitos com WebKitGTK: as bibliotecas não vêm na ISO (pesam),
+    # instalam-se agora, só para quem precisa
+    if precisa_webkit(nome, final) and not os.path.exists('/usr/lib/x86_64-linux-gnu/libwebkit2gtk-4.1.so.0'):
+        if avisar('%s precisa de mais umas bibliotecas' % nome,
+                  'São cerca de 60 MB (WebKitGTK e GStreamer, do Debian). Instalar agora?', icone,
+                  [('sim', 'Instalar'), ('nao', 'Agora não')]) == 'sim':
+            subprocess.run(['pkexec', '/usr/lib/carinaeos/instalar-pacotes', 'libwebkit2gtk-4.1-0',
+                            'gstreamer1.0-plugins-good', 'libgstreamer-plugins-base1.0-0', 'libglu1-mesa'])
     # abrir; se nao montar (sem FUSE), correr extraido
     p = subprocess.Popen([final], start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                          env=dict(os.environ, APPIMAGE_EXTRACT_AND_RUN='0'))

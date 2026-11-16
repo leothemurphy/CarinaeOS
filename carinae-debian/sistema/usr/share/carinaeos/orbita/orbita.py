@@ -64,6 +64,14 @@ C = [
         ('org.blender.Blender', 'Blender', 'Modelagem e animação 3D.'),
         ('com.github.PintaProject.Pinta', 'Pinta', 'Desenho simples, como o Paint.'),
     ]),
+    ('impressao3d', 'Impressão 3D e CAD', 'printer', [
+        ('io.github.softfever.OrcaSlicer', 'OrcaSlicer', 'Prepara modelos para quase todas as impressoras 3D.'),
+        ('com.prusa3d.PrusaSlicer', 'PrusaSlicer', 'O fatiador da Prusa, para muitas impressoras.'),
+        ('com.bambulab.BambuStudio', 'Bambu Studio', 'Para as impressoras Bambu Lab.'),
+        ('com.ultimaker.cura', 'UltiMaker Cura', 'O fatiador da UltiMaker.'),
+        ('org.freecad.FreeCAD', 'FreeCAD', 'Projeto mecânico 3D (CAD).'),
+        ('deb:artcraft', 'ArtCraft Launcher', 'Instala e atualiza a Craft App Suite (ArtCraft, CADCraft…).'),
+    ]),
     ('dev', 'Programação', 'applications-development', [
         ('com.visualstudio.code', 'Visual Studio Code', 'Editor de código da Microsoft.'),
         ('io.podman_desktop.PodmanDesktop', 'Podman Desktop', 'Contêineres de forma visual.'),
@@ -79,6 +87,7 @@ C = [
         ('com.bitwarden.desktop', 'Bitwarden', 'Gerenciador de senhas.'),
     ]),
 ]
+EXTRAS = {'deb:artcraft': 'artcraft-launcher'}
 DESTAQUES = ['com.google.Chrome', 'org.libreoffice.LibreOffice', 'com.spotify.Client',
              'com.discordapp.Discord', 'com.valvesoftware.Steam', 'com.visualstudio.code']
 
@@ -133,6 +142,10 @@ class Orbita(QObject):
     def ler_instalados(self):
         c, s = correr(['flatpak', 'list', '--app', '--columns=application'])
         self._instalados = set(s.split()) if c == 0 else set()
+        # extras que não vêm do Flathub (pacote .deb de uma fonte fixa, por /usr/lib/carinaeos/instalar-extra)
+        for ident, pacote in EXTRAS.items():
+            if correr(['dpkg-query', '-W', '-f=${Status}', pacote])[1].endswith('installed'):
+                self._instalados.add(ident)
         self.mudou.emit()
 
     # ---- dados para a interface ----------------------------------------------
@@ -247,22 +260,44 @@ class Orbita(QObject):
         correr(['kbuildsycoca6'])           # o aplicativo aparece logo no Launchpad
         self.mudou.emit()
 
+    def _correr_extra(self, ident, acao):
+        tipo = 'instalando' if acao == 'instalar' else 'removendo'
+        self._fila[ident] = tipo
+        self._progresso[ident] = 0
+        self._detalhe[ident] = 'pede a senha…'
+        self.mudou.emit()
+        p = QProcess(self)
+        p.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+        p.finished.connect(lambda codigo, *a: self._terminou(ident, tipo, codigo, p))
+        self._proc[ident] = p
+        p.start('pkexec', ['/usr/lib/carinaeos/instalar-extra', acao, ident.split(':', 1)[1]])
+
     @Slot(str)
     def instalar(self, ident):
         if ident in self._fila:
             return
+        if ident in EXTRAS:
+            return self._correr_extra(ident, 'instalar')
         self._correr_flatpak(ident, ['install', '--user', '-y', '--noninteractive', 'flathub', ident], 'instalando')
 
     @Slot(str)
     def remover(self, ident):
         if ident in self._fila:
             return
+        if ident in EXTRAS:
+            return self._correr_extra(ident, 'remover')
         c, s = correr(['flatpak', 'list', '--user', '--app', '--columns=application'])
         onde = '--user' if ident in s.split() else '--system'
         self._correr_flatpak(ident, ['uninstall', onde, '-y', '--noninteractive', ident], 'removendo')
 
     @Slot(str)
     def abrir(self, ident):
+        if ident in EXTRAS:
+            c, s = correr(['dpkg', '-L', EXTRAS[ident]])
+            d = next((l for l in s.splitlines() if l.startswith('/usr/share/applications/') and l.endswith('.desktop')), '')
+            if d:
+                correr(['gtk-launch', os.path.basename(d)[:-8]], espera=False)
+            return
         correr(['flatpak', 'run', ident], espera=False)
 
     # carinaeos-orbita --procurar TEXTO (ex.: alternativa a um programa do Windows)
