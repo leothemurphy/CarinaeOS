@@ -4,11 +4,18 @@
 #   GPG_CHAVE + GPG_SENHA      -> SHA256SUMS.asc e .iso.asc (assinatura GPG)
 #   SF_CHAVE_SSH + vars SF_USUARIO, SF_PROJETO -> a ISO inteira no SourceForge e um .torrent
 # Correr: separador "Actions" -> "CarinaeOS ISO" -> "Run workflow",
-# ou alterar o ficheiro carinae-debian/VERSAO (a versao publicada e o que la estiver).
+# ou alterar o arquivo carinae-debian/VERSAO (a versao publicada e o que la estiver).
+# Com "publicar" desligado (ex.: no ramo testes), a ISO e gerada e conferida e fica so como
+# anexo da execucao, para testar numa maquina virtual; as versoes publicadas nao mudam.
 name: CarinaeOS ISO
 
 on:
   workflow_dispatch:
+    inputs:
+      publicar:
+        description: 'Publicar como versão (desligado: só gera e confere a ISO, para testar)'
+        type: boolean
+        default: true
   push:
     branches: [main]
     paths: ['carinae-debian/VERSAO']
@@ -66,7 +73,19 @@ jobs:
           split -b 1900M -d "$ISO" "$ISO.parte"
           ls -lh
 
+      - name: ISO de teste (anexo da execução, sem publicar)
+        if: github.event_name == 'workflow_dispatch' && !inputs.publicar
+        uses: actions/upload-artifact@v4
+        with:
+          name: CarinaeOS-teste-${{ github.sha }}
+          path: |
+            carinae-debian/CarinaeOS-1.0-amd64.iso
+            carinae-debian/SHA256SUMS
+          compression-level: 0
+          retention-days: 14
+
       - name: SourceForge (arquivo único) e torrent
+        if: github.event_name == 'push' || inputs.publicar
         env:
           SF_CHAVE_SSH: ${{ secrets.SF_CHAVE_SSH }}
           SF_USUARIO: ${{ vars.SF_USUARIO }}
@@ -98,6 +117,7 @@ jobs:
           rm -f ~/.ssh/sf
 
       - name: Publicar
+        if: github.event_name == 'push' || inputs.publicar
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -117,6 +137,7 @@ jobs:
             "$ISO".parte* SHA256SUMS "$ISO.sha256" $EXTRA
 
       - name: Deixar só a versão atual
+        if: github.event_name == 'push' || inputs.publicar
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
