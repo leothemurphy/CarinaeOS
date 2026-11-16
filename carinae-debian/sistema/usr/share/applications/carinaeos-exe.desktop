@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Programa do Windows
+Comment=Abrir programas do Windows (.exe, .msi) com o Bottles
+Exec=carinaeos-exe %f
+Icon=application-x-ms-dos-executable
+MimeType=application/x-ms-dos-executable;application/x-msdownload;application/x-msi;application/x-ms-shortcut;application/vnd.microsoft.portable-executable;application/x-ms-ne-executable;
+NoDisplay=true

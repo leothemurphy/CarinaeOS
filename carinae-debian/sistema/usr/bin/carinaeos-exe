@@ -1,0 +1,78 @@
+#!/usr/bin/python3
+"""CarinaeOS - abrir um programa do Windows (.exe / .msi) com duplo clique.
+
+Nada vem instalado: na primeira vez, oferece instalar o Bottles (Flathub, na conta do usuário)
+ou procurar uma alternativa para Linux na Órbita. Depois, abre direto no Bottles.
+  carinaeos-exe ARQUIVO.exe
+"""
+import os
+import re
+import subprocess
+import sys
+
+BOTTLES = 'com.usebottles.bottles'
+FLATHUB = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
+
+
+def tem_bottles():
+    return subprocess.run(['flatpak', 'info', BOTTLES], capture_output=True).returncode == 0
+
+
+def abrir_no_bottles(arquivo):
+    os.execvp('flatpak', ['flatpak', 'run', '--file-forwarding', BOTTLES, '@@', arquivo, '@@'])
+
+
+def nome_para_procurar(arquivo):
+    n = os.path.splitext(os.path.basename(arquivo))[0]
+    n = re.sub(r'[-_.]+', ' ', n)
+    n = re.sub(r'(?i)\b(setup|install(er)?|x64|x86|win(32|64)?|amd64|portable|full|v?\d+)\b', ' ', n)
+    n = re.sub(r'(?<=[A-Za-z])\d{3,}\b', '', n)          # 7z2301 -> 7z
+    n = re.sub(r'(?i)(setup|installer)$', '', n)              # ChromeSetup -> Chrome
+    n = re.sub(r'\s+', ' ', n).strip()
+    return n or 'windows'
+
+
+def instalar():
+    """Instala o Bottles mostrando uma barra de progresso (kdialog). Devolve True se ficou instalado."""
+    ref = subprocess.run(['kdialog', '--title', 'Bottles', '--progressbar',
+                          'Instalando o Bottles (pode levar alguns minutos)…', '0'],
+                         capture_output=True, text=True).stdout.split()
+    try:
+        subprocess.run(['flatpak', 'remote-add', '--user', '--if-not-exists', 'flathub', FLATHUB], capture_output=True)
+        p = subprocess.run(['flatpak', 'install', '--user', '-y', '--noninteractive', 'flathub', BOTTLES],
+                           capture_output=True, text=True)
+    finally:
+        if len(ref) == 2:
+            subprocess.run(['qdbus6', ref[0], ref[1], 'close'], capture_output=True)
+    if p.returncode != 0:
+        erro = (p.stderr or p.stdout).strip().splitlines()[-1:] or ['sem conexão com a internet?']
+        subprocess.run(['kdialog', '--title', 'Bottles', '--error', 'Não foi possível instalar o Bottles:\n' + erro[0]])
+        return False
+    return True
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(__doc__)
+        return 2
+    arquivo = os.path.abspath(sys.argv[1])
+    if tem_bottles():
+        abrir_no_bottles(arquivo)
+    nome = os.path.basename(arquivo)
+    r = subprocess.run([
+        'kdialog', '--title', 'Programa do Windows', '--yesnocancel',
+        '“%s” é um programa feito para o Windows.\n\n'
+        'O CarinaeOS pode abrir muitos deles com o Bottles (gratuito, cerca de 300 MB, instalado só para você).\n'
+        'Nem todos funcionam: muitas vezes há uma versão para Linux, ou uma alternativa, na Órbita.' % nome,
+        '--yes-label', 'Instalar o Bottles e abrir', '--no-label', 'Procurar na Órbita', '--cancel-label', 'Cancelar'])
+    if r.returncode == 0:
+        if instalar():
+            abrir_no_bottles(arquivo)
+        return 1
+    if r.returncode == 1:
+        os.execvp('carinaeos-orbita', ['carinaeos-orbita', '--procurar', nome_para_procurar(arquivo)])
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -1,4 +1,9 @@
 [Default Applications]
+application/x-ms-dos-executable=carinaeos-exe.desktop
+application/x-msdownload=carinaeos-exe.desktop
+application/x-msi=carinaeos-exe.desktop
+application/vnd.microsoft.portable-executable=carinaeos-exe.desktop
+application/x-ms-ne-executable=carinaeos-exe.desktop
 application/vnd.appimage=carinaeos-appimage.desktop
 application/x-iso9660-appimage=carinaeos-appimage.desktop
 application/x-appimage=carinaeos-appimage.desktop
@@ -6,4 +11,9 @@ application/x-carinaeos-pasta-trancada=carinaeos-desbloquear.desktop
 application/x-carinaeos-trancado=carinaeos-desbloquear.desktop
 
 [Added Associations]
+application/x-ms-dos-executable=carinaeos-exe.desktop
+application/x-msdownload=carinaeos-exe.desktop
+application/x-msi=carinaeos-exe.desktop
+application/vnd.microsoft.portable-executable=carinaeos-exe.desktop
+application/x-ms-ne-executable=carinaeos-exe.desktop
 application/vnd.appimage=carinaeos-appimage.desktop

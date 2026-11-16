@@ -226,6 +226,7 @@ ApplicationWindow {
             color: janela.texto
             background: Item {}
             onTextChanged: atraso.restart()
+            Component.onCompleted: if (orbita.pesquisaInicial) text = orbita.pesquisaInicial
             Timer { id: atraso; interval: 350; onTriggered: { janela.busca = campo.text.trim(); orbita.pesquisar(janela.busca) } }
         }
     }

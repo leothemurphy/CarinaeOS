@@ -265,6 +265,10 @@ class Orbita(QObject):
     def abrir(self, ident):
         correr(['flatpak', 'run', ident], espera=False)
 
+    # carinaeos-orbita --procurar TEXTO (ex.: alternativa a um programa do Windows)
+    pesquisaInicial = Property(str, lambda s: sys.argv[sys.argv.index('--procurar') + 1]
+                               if '--procurar' in sys.argv[:-1] else '', constant=True)
+
     @Slot(str)
     def pesquisar(self, texto):
         texto = texto.strip()
