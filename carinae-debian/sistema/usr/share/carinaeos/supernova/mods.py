@@ -345,7 +345,7 @@ MODS = [
              dict(id='supernova', nome='Supernova', desc='Zoom ao abrir e explosão em pedaços ao fechar.'),
              dict(id='nada', nome='Nenhuma', desc='Sem animação.'),
          ]),
-    dict(id='mesa', cat='mesa', nome='Clicar no papel de parede', icone='user-desktop', aplicar=a_mesa, padrao='afastar',
+    dict(id='mesa', cat='mesa', nome='Clicar no papel de parede', icone='user-desktop', aplicar=a_mesa, padrao='nao',
          inspirado='Click on empty taskbar space / Show desktop',
          desc='Clicar numa parte vazia do papel de parede mostra a área de trabalho.',
          modelos=[

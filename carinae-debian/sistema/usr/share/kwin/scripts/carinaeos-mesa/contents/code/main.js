@@ -1,6 +1,7 @@
 // CarinaeOS — mesa
 // 1) Clicar no papel de parede afasta as janelas para os lados, como no macOS
 //    ("clicar no papel de parede para mostrar a mesa"). Clicar numa janela ou na Dock traz tudo de volta.
+//    Desligado de origem; liga-se no Supernova › Clicar no papel de parede.
 
 function opcao(nome, padrao) {
     var v = readConfig(nome, padrao);
@@ -42,9 +43,9 @@ for (var k = 0; k < todasAbertas.length; k++) vigiar(todasAbertas[k]);
 var anterior = null;      // a última janela normal que teve o foco
 workspace.windowActivated.connect(function (w) {
     if (w && (w.normalWindow || w.dialog)) { mostrando = false; anterior = w; return; }
+    // (não se esquece a anterior: depois de minimizar, o foco passa primeiro para "nenhuma" e depois para a mesa)
     var antes = anterior;
-    anterior = null;
-    if (!opcao("mostrarMesaAoClicar", true) || mostrando) return;
+    if (!opcao("mostrarMesaAoClicar", false) || mostrando) return;
     if (Date.now() - ultimaSaida < 1500) return;
     // o KWin tira o foco antes de avisar que a janela foi minimizada ou fechada: se a janela que
     // tinha o foco está agora minimizada ou já não existe, foi isso, e não um clique no papel de parede
