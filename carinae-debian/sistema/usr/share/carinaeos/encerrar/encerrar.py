@@ -228,6 +228,15 @@ if __name__ == '__main__':
             threading.Thread(target=lambda: self._chegou.emit(janelas()), daemon=True).start()
 
         @Slot(str)
+        def acao(self, qual):
+            cmd = {'bloquear': ['loginctl', 'lock-session'],
+                   'sair': ['qdbus6', 'org.kde.LogoutPrompt', '/LogoutPrompt', 'org.kde.LogoutPrompt.promptLogout'],
+                   'desligar': ['qdbus6', 'org.kde.LogoutPrompt', '/LogoutPrompt', 'org.kde.LogoutPrompt.promptShutDown'],
+                   'monitor': ['plasma-systemmonitor']}.get(qual)
+            if cmd:
+                subprocess.Popen(cmd, start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        @Slot(str)
         def encerrar(self, chave):
             a = next((x for x in self._apps if x['chave'] == chave), None)
             if not a:

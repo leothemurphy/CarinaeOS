@@ -2,7 +2,7 @@
 Type=Application
 Name=Forçar o encerramento
 GenericName=Fechar um aplicativo travado
-Comment=Fechar à força um aplicativo que não responde (Ctrl+Shift+Esc)
+Comment=Fechar à força um aplicativo que não responde (Ctrl+Alt+Del)
 Exec=carinaeos-encerrar
 Icon=process-stop
 Categories=System;Utility;

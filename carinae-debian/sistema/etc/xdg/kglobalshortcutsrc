@@ -1,0 +1,7 @@
+# CarinaeOS: o Ctrl+Alt+Del abre "Forçar o encerramento" (como no Windows), onde também estão
+# Bloquear, Sair e Desligar; por isso deixa de abrir diretamente a tela de sair do KDE.
+[ksmserver]
+Log Out=none,Ctrl+Alt+Del,Mostrar a tela de sair
+
+[services][carinaeos-encerrar.desktop]
+_launch=Ctrl+Alt+Del\tCtrl+Shift+Esc

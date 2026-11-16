@@ -4,4 +4,4 @@ Name=Forçar o encerramento
 Comment=Fechar à força um aplicativo que não responde
 Exec=carinaeos-encerrar
 Icon=process-stop
-X-KDE-Shortcuts=Ctrl+Shift+Esc
+X-KDE-Shortcuts=Ctrl+Alt+Del,Ctrl+Shift+Esc

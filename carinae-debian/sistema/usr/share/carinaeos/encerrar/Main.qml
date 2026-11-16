@@ -5,8 +5,8 @@ import QtQuick.Layouts
 
 ApplicationWindow {
     id: janela
-    width: 440; height: 520
-    minimumWidth: 360; minimumHeight: 360
+    width: 540; height: 540
+    minimumWidth: 500; minimumHeight: 380
     visible: true
     title: "Forçar o encerramento"
     color: "#1e1d24"
@@ -54,7 +54,22 @@ ApplicationWindow {
         }
         Text { Layout.fillWidth: true; visible: encerrar.mensagem !== ""; text: encerrar.mensagem; color: janela.suave; font.pixelSize: 12; elide: Text.ElideRight }
         RowLayout {
-            Layout.alignment: Qt.AlignRight; spacing: 8
+            Layout.fillWidth: true; spacing: 8
+            // como a tela do Ctrl+Alt+Del do Windows
+            Repeater {
+                model: [["bloquear", "system-lock-screen", "Bloquear"], ["sair", "system-log-out", "Sair"],
+                        ["desligar", "system-shutdown", "Desligar"], ["monitor", "utilities-system-monitor", "Monitor do sistema"]]
+                delegate: Rectangle {
+                    required property var modelData
+                    implicitWidth: 36; implicitHeight: 36; radius: 8
+                    color: ma2.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.06)
+                    Image { anchors.centerIn: parent; width: 20; height: 20; sourceSize: Qt.size(40, 40); source: "image://icone/" + modelData[1] }
+                    MouseArea { id: ma2; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: { encerrar.acao(modelData[0]); if (modelData[0] !== "monitor") Qt.quit() } }
+                    ToolTip.visible: ma2.containsMouse; ToolTip.text: modelData[2]; ToolTip.delay: 300
+                }
+            }
+            Item { Layout.fillWidth: true }
             Rectangle {
                 implicitWidth: t1.implicitWidth + 28; implicitHeight: 36; radius: 8; color: m1.containsMouse ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.08)
                 Text { id: t1; anchors.centerIn: parent; text: "Fechar"; color: janela.texto; font.pixelSize: 13; font.weight: Font.DemiBold }
