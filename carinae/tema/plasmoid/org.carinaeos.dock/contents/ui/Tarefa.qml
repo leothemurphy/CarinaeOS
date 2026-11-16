@@ -55,7 +55,7 @@ Item {
         rotation: -dock.angulo
         width: dock.base * tarefa.s
         height: width
-        x: (tarefa.larguraIcone - width) / 2
+        x: (tarefa.larguraIcone - width) / 2 + dock.desvio(tarefa.slot)
         opacity: tarefa.arrastando ? 0.75 : 1
         y: dock.yIcone(parent.height, height, tarefa.pulo)
         Kirigami.Icon {
@@ -113,7 +113,7 @@ Item {
         width: tipo === "barra" ? Math.round(dock.base * (ativa ? 0.36 : 0.16)) : Math.max(4, Math.round(dock.base / 11))
         height: tipo === "barra" ? 3 : Math.max(4, Math.round(dock.base / 11))
         radius: height / 2
-        x: (tarefa.larguraIcone - width) / 2
+        x: (tarefa.larguraIcone - width) / 2 + dock.desvio(tarefa.slot)
         anchors.bottom: parent.bottom
         anchors.bottomMargin: dock.baixo + Math.max(2, dock.margem * 0.25)
         color: tipo === "brilho" ? (ativa ? "#8fd0ff" : Qt.rgba(0.55, 0.8, 1, 0.75))

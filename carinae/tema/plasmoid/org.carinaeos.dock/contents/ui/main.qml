@@ -72,7 +72,7 @@ PlasmoidItem {
     readonly property bool dentro: ampliacao !== "onda"
     readonly property real zoomDentro: 1.2
     // espaço reservado para a ampliação (o painel não muda de tamanho)
-    readonly property real folga: dentro ? 0 : base * (zoom - 1) * 2.6
+    readonly property real folga: dentro ? base * (e.afastar || 0) * 2 : base * (zoom - 1) * 2.6
     // largura de cada lugar e altura do ícone (no modo "dentro" o lugar não muda: o ícone cresce no sítio)
     function larguraSlot(s: real): real {
         return base * (dentro ? 1 : s);
@@ -80,6 +80,15 @@ PlasmoidItem {
     function yIcone(alturaFila: real, h: real, pulo: real): real {
         return dentro ? alturaFila - baixo - margem - base / 2 - h / 2 - pulo
                       : alturaFila - baixo - margem - h - pulo;
+    }
+    // Hexagonal: os ícones ficam encostados; ao passar o rato, os vizinhos afastam-se do ícone ampliado
+    function desvio(slot: int): real {
+        const a = e.afastar || 0;
+        if (!a || forca < 0.01) {
+            return 0;
+        }
+        const d = (centroRepouso(slot) - ratoX) / base;
+        return base * a * forca * Math.tanh(d * 1.6) * Math.exp(-d * d / 40);
     }
     readonly property real alturaPulo: dentro ? margem * 0.7 : base * 0.55
 
@@ -165,6 +174,9 @@ PlasmoidItem {
     onAlturaRepousoChanged: ajustarPainel()
     onAlturaAmpliadaChanged: ajustarPainel()
     onDentroChanged: ajustarPainel()
+    // o painel-espaçador (reserva o espaço das janelas) lê esta altura ao entrar na sessão
+    onAlturaVidroChanged: if (Plasmoid.configuration.glassHeight !== alturaVidro) Plasmoid.configuration.glassHeight = alturaVidro
+    Component.onCompleted: if (Plasmoid.configuration.glassHeight !== alturaVidro) Plasmoid.configuration.glassHeight = alturaVidro
     onPainelChanged: ajustarPainel()
     function ajustarPainel(): void {
         if (!painel || painel.thickness === undefined) {
@@ -296,7 +308,7 @@ PlasmoidItem {
 
     // ---- estilos da Dock (escolhidos no Supernova) -----------------------------
     // inspirados nos temas do "Windows 11 Taskbar Styler" do Windhawk e no macOS
-    property string estilo: "mac"
+    property string estilo: "fluent"          // padrão do CarinaeOS (os outros ficam no Supernova)
     property bool rodaVolume: true          // roda do rato sobre a Dock muda o volume
     property int passoVolume: 5
     property string cliqueMeio: "nova"      // "nova" janela ou "fechar"
@@ -316,16 +328,16 @@ PlasmoidItem {
         neon:         { c1: Qt.rgba(0.07, 0.04, 0.12, 0.78), c2: Qt.rgba(0.10, 0.04, 0.12, 0.78), borda: "#ff6f91", raio: 0.34, sombra: 0.0, brilho: true },
         // ---- modelos novos (fundo: barra|nenhum; item: por trás de cada ícone; ind: indicador das apps abertas)
         vidro:        { c1: Qt.rgba(1, 1, 1, 0.22), c2: Qt.rgba(0.75, 0.82, 1, 0.12), borda: Qt.rgba(1, 1, 1, 0.48), raio: 0.42, sombra: 0.16,
-                        reflexo: true, ind: "barra", margem: 0.2 },
+                        reflexo: true, ind: "barra" },
         fluent:       { c1: Qt.rgba(0.10, 0.10, 0.13, 0.84), c2: Qt.rgba(0.07, 0.07, 0.10, 0.88), borda: Qt.rgba(1, 1, 1, 0.10), raio: 0.26, sombra: 0.25,
-                        item: "tile", ind: "barra", margem: 0.22 },
+                        item: "tile", ind: "barra" },
         minimalista:  { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum", linha: true, ind: "barra", margem: 0.2 },
         colorida:     { c1: Qt.rgba(0.05, 0.07, 0.20, 0.86), c2: Qt.rgba(0.09, 0.06, 0.24, 0.90), borda: "transparent", raio: 0.5, sombra: 0.2,
                         bordaGrad: ["#4f8bff", "#a66bff", "#ff6f91", "#ffb46e"], item: "circulo", ind: "ponto", margem: 0.22 },
         orbital:      { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
-                        item: "bolha", anel: true, ind: "brilho", espaco: 0.34, margem: 0.24 },
+                        item: "bolha", ind: "brilho", espaco: 0.34, margem: 0.24 },
         hexagonal:    { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
-                        item: "hex", ind: "brilho", espaco: 0.06, margem: 0.24 },
+                        item: "hex", ind: "brilho", espaco: 0.06, margem: 0.24, afastar: 0.5 },
         aereo:        { c1: Qt.rgba(0.60, 0.70, 1, 0.18), c2: Qt.rgba(0.35, 0.45, 0.95, 0.12), borda: Qt.rgba(0.78, 0.86, 1, 0.55), raio: 0.5, sombra: 0.1,
                         brilhoBase: true, ind: "brilho", margem: 0.22 }
     })
@@ -643,6 +655,7 @@ PlasmoidItem {
                 width: dock.base * estrela.s
                 height: width
                 anchors.horizontalCenter: parent.horizontalCenter
+                anchors.horizontalCenterOffset: dock.desvio(dock.meio)
                 y: dock.yIcone(parent.height, height, estrela.pulo)
                 Kirigami.Icon {
                     source: "carinaeos-estrela"
@@ -715,6 +728,7 @@ PlasmoidItem {
                 width: dock.base * lixo.s
                 height: width
                 anchors.horizontalCenter: parent.horizontalCenter
+                anchors.horizontalCenterOffset: dock.desvio(dock.slots - 1)
                 y: dock.yIcone(parent.height, height, 0)
                 Kirigami.Icon {
                     source: "user-trash"

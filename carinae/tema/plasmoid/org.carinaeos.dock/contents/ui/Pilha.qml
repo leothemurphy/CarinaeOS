@@ -63,6 +63,7 @@ Item {
         width: dock.base * pilha.s
         height: width
         anchors.horizontalCenter: parent.horizontalCenter
+        anchors.horizontalCenterOffset: dock.desvio(pilha.slot)
         y: dock.yIcone(parent.height, height, 0)
         Kirigami.Icon {
             source: "folder-downloads"

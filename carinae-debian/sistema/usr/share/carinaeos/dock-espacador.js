@@ -17,7 +17,8 @@ for (var i = 0; i < ps.length; i++) {
 if (dock) {
     dock.w.currentConfigGroup = ["General"];
     var b = Number(dock.w.readConfig("iconSize", 48));
-    var h = Math.round(b * 0.14) + b + 2 * Math.round(b * 0.16);   // = altura do vidro da Dock
+    var h = Number(dock.w.readConfig("glassHeight", 0));             // a Dock guarda a altura do vidro do estilo atual
+    if (!(h > 0)) h = Math.round(b * 0.14) + b + 2 * Math.round(b * 0.16);
     if (dock.p.hiding == "autohide") {
         for (var k = 0; k < esp.length; k++) esp[k].remove();
         print("dock escondida: sem espacador");

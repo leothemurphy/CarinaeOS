@@ -281,7 +281,7 @@ def a_gelatina(m):
 # ---- catalogo ---------------------------------------------------------------------------------
 # "inspirado": o mod do Windhawk (Windows) em que o modelo se baseia
 MODS = [
-    dict(id='estilo_dock', cat='dock', nome='Estilo da Dock', icone='carinaeos-estrela', aplicar=a_estilo_dock, padrao='mac',
+    dict(id='estilo_dock', cat='dock', nome='Estilo da Dock', icone='carinaeos-estrela', aplicar=a_estilo_dock, padrao='fluent',
          inspirado='Windows 11 Taskbar Styler',
          desc='O vidro por trás dos ícones da Dock. Os modelos vêm dos temas mais usados do Windhawk.',
          modelos=[

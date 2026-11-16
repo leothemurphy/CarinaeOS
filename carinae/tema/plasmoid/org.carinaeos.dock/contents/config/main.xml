@@ -25,6 +25,9 @@
     <entry name="separatorWidth" type="Int">
       <default>1</default>
     </entry>
+    <entry name="glassHeight" type="Int">
+      <default>0</default>
+    </entry>
     <entry name="showTrash" type="Bool">
       <default>true</default>
     </entry>

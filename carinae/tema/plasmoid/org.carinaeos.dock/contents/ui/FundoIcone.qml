@@ -20,11 +20,12 @@ Item {
 
     visible: tipo !== "nenhum"
     z: -1
-    readonly property real lado: dock.base * (tipo === "bolha" ? 1.18 : tipo === "hex" ? 1.3 : 1.3)
+    readonly property real lado: dock.base * (tipo === "bolha" ? 1.18 : tipo === "tile" ? 1.12 : 1.3)
     width: lado; height: lado
     x: alvo.x + alvo.width / 2 - width / 2
     y: alvo.y + alvo.height / 2 - height / 2
-    scale: alvo.width / dock.base
+    // o destaque do Fluent não cresce com o ícone (fica sempre dentro da barra)
+    scale: tipo === "tile" ? 1 : alvo.width / dock.base
 
     // ---- Orbital: bolha de vidro
     Rectangle {
@@ -76,7 +77,7 @@ Item {
     Rectangle {
         visible: fundo.tipo === "tile"
         anchors.centerIn: parent
-        width: parent.width * 0.96; height: width; radius: width * 0.24
+        width: parent.width; height: width; radius: width * 0.24
         color: Qt.rgba(1, 1, 1, fundo.ativo ? 0.13 : fundo.aberto ? 0.05 : 0)
         border.width: 1
         border.color: Qt.rgba(1, 1, 1, fundo.ativo ? 0.16 : 0)
