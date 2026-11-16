@@ -2049,7 +2049,7 @@ Kicker.DashboardWindow {
                                 }
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: (lp.favoritos.navegador ? "Favoritos do " + lp.favoritos.navegador : "Favoritos")
+                                    text: (lp.favoritos.titulo || (lp.favoritos.navegador ? "Favoritos do " + lp.favoritos.navegador : "Favoritos"))
                                           + lp.favPilha.map(p => "  ›  " + p.nome).join("")
                                     color: lp.texto; font.pixelSize: Math.round(15 * palco.u); font.weight: Font.DemiBold
                                 }
@@ -2058,7 +2058,7 @@ Kicker.DashboardWindow {
                         Text {
                             visible: lp.favoritos.navegador !== "" && lp.favAtuais.length === 0
                             x: Math.round(8 * palco.u); width: parent.width - x * 2; wrapMode: Text.Wrap
-                            text: "A barra de favoritos está vazia. No navegador, clique na estrela ☆ da barra de endereço e escolha a pasta “Barra de favoritos”."
+                            text: "Ainda sem favoritos nem histórico. No navegador, clique na estrela ☆ da barra de endereço e escolha a pasta “Barra de favoritos”: eles aparecem aqui."
                             color: lp.suave; font.pixelSize: Math.round(12 * palco.u)
                         }
                         Flow {

@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 """CarinaeOS - os favoritos do navegador principal, para o Deck (Launchpad).
 
-  carinaeos-favoritos        JSON: {"navegador": "...", "itens": [{tipo: site|pasta, nome, url, icone, itens}]}
+  carinaeos-favoritos        JSON: {"navegador": "...", "titulo": "...", "itens": [{tipo: site|pasta, nome, url, icone, itens}]}
 
 Lê a barra de favoritos do navegador padrão (Chrome, Brave, Chromium, Edge, Vivaldi — instalados ou
-Flatpak — e Firefox). Os ícones dos sites vêm do cache do próprio navegador (sem ir à internet) e
+Flatpak — e Firefox); sem favoritos, os sites mais visitados (do histórico do navegador). Os ícones dos sites vêm do cache do próprio navegador (sem ir à internet) e
 ficam em ~/.cache/carinaeos/favicons. Só lê: nunca mexe nos favoritos.
 """
 import glob
@@ -106,13 +106,67 @@ def _icones_chromium(perfil, urls):
     return r
 
 
+def _nome_site(titulo, url, site):
+    """O nome do site, não o da página: "Vídeo - YouTube" -> YouTube; github.com/leo -> Github."""
+    import re
+    partes = [p.strip() for p in re.split(r'\s+[-–—|·]\s+', titulo or '') if p.strip()]
+    if len(partes) > 1:
+        return partes[-1]
+    caminho = url.split('/', 3)[3] if url.count('/') >= 3 else ''
+    if titulo and not caminho.strip('/'):
+        return titulo
+    nome = site.split(':')[0]
+    if re.fullmatch(r'[\d.]+', nome):
+        return titulo or nome
+    partes = nome.split('.')
+    return (partes[-3] if len(partes) > 2 and partes[-2] in ('com', 'co', 'org', 'gov') else partes[-2] if len(partes) > 1 else nome).capitalize()
+
+
+def mais_visitados_chromium(perfil, n=12):
+    """Sem favoritos: os sites mais visitados (um por site), do histórico do navegador."""
+    db = os.path.join(perfil, 'History')
+    if not os.path.isfile(db):
+        return []
+    d = None
+    try:
+        d, c = _copia(db)
+        con = sqlite3.connect('file:%s?mode=ro' % c, uri=True)
+        vistos, r = set(), []
+        for url, titulo in con.execute("SELECT url, title FROM urls WHERE hidden = 0 AND url LIKE 'http%' "
+                                       'ORDER BY visit_count DESC, last_visit_time DESC LIMIT 300'):
+            site = url.split('/', 3)[2].lower().removeprefix('www.')
+            if site in vistos or site.startswith(('accounts.', 'login.')):
+                continue
+            vistos.add(site)
+            base = '/'.join(url.split('/', 3)[:3]) + '/'
+            nome = _nome_site(titulo, url, site)
+            r.append(dict(tipo='site', nome=nome or site, url=base, icone='', _pagina=url))
+            if len(r) >= n:
+                break
+        con.close()
+        return r
+    except Exception:
+        return []
+    finally:
+        if d:
+            shutil.rmtree(d, ignore_errors=True)
+
+
 def chromium(nome, base):
     perfil = _perfil_chromium(base)
     try:
         with open(os.path.join(perfil, 'Bookmarks'), encoding='utf-8') as f:
             raiz = json.load(f)['roots']
     except (OSError, ValueError, KeyError):
-        return None
+        raiz = None
+    if not raiz or not (raiz.get('bookmark_bar', {}).get('children') or raiz.get('other', {}).get('children')):
+        if not os.path.isdir(perfil):
+            return None
+        topo = mais_visitados_chromium(perfil)
+        ic = _icones_chromium(perfil, [x['_pagina'] for x in topo])
+        for x in topo:
+            x['icone'] = ic.get(x.pop('_pagina'), '')
+        return dict(navegador=nome, titulo='Mais visitados no ' + nome, itens=topo)
     urls = []
 
     def conv(n, nivel=0):
@@ -136,7 +190,7 @@ def chromium(nome, base):
             else:
                 por_icone(x['itens'])
     por_icone(itens)
-    return dict(navegador=nome, itens=itens)
+    return dict(navegador=nome, titulo='Favoritos do ' + nome, itens=itens)
 
 
 def firefox():
@@ -189,7 +243,7 @@ def firefox():
                     por_icone(itens)
                 finally:
                     shutil.rmtree(d2, ignore_errors=True)
-            return dict(navegador='Firefox', itens=itens)
+            return dict(navegador='Firefox', titulo='Favoritos do Firefox', itens=itens)
         except Exception:
             continue
         finally:
