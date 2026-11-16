@@ -5,6 +5,7 @@ Nada vem instalado: na primeira vez, oferece instalar o Bottles (Flathub, na con
 ou procurar uma alternativa para Linux na Órbita. Depois, abre direto no Bottles.
   carinaeos-exe ARQUIVO.exe
 """
+import glob
 import json
 import os
 import re
@@ -157,11 +158,159 @@ def instalar():
     return True
 
 
+# ---- apps Electron: a versão nativa para Linux, sem Wine ---------------------------------------------
+# Muitos programas do Windows são feitos com Electron (JavaScript + Chromium). O instalador (NSIS) traz o
+# programa num app-64.7z; se o app.asar não tiver módulos nativos (.node, compilados para o Windows), corre
+# igual com o Electron oficial para Linux da mesma versão.
+TEMP = os.path.expanduser('~/.cache/carinaeos/exe')
+APLICATIVOS = os.path.expanduser('~/Aplicativos')
+
+
+def asar_ler(caminho):
+    """(cabeçalho JSON, início dos dados) de um app.asar."""
+    import struct
+    with open(caminho, 'rb') as f:
+        cab = f.read(16)
+        tam_pickle = struct.unpack('<I', cab[4:8])[0]
+        n = struct.unpack('<I', cab[12:16])[0]
+        return json.loads(f.read(n)), 8 + tam_pickle
+
+
+def asar_arquivos(h, c=''):
+    for k, v in h.get('files', {}).items():
+        if 'files' in v:
+            yield from asar_arquivos(v, c + '/' + k)
+        else:
+            yield c + '/' + k, v
+
+
+def electron_nativo(arquivo):
+    """Se o .exe for o instalador de um app Electron que corre no Linux: dict com nome, versão e pastas."""
+    import shutil
+    if not shutil.which('7z'):
+        return None
+    lista = subprocess.run(['7z', 'l', '-ba', arquivo], capture_output=True, text=True, timeout=60).stdout
+    pacote = next((l.split()[-1] for l in lista.splitlines() if l.rstrip().endswith('app-64.7z')), '')
+    if not pacote:
+        return None
+    t = os.path.join(TEMP, re.sub(r'[^A-Za-z0-9._-]', '_', os.path.basename(arquivo)))
+    shutil.rmtree(t, ignore_errors=True)
+    os.makedirs(t)
+    subprocess.run(['7z', 'x', '-y', '-o' + t, arquivo, pacote], capture_output=True, timeout=300)
+    app = os.path.join(t, 'app')
+    subprocess.run(['7z', 'x', '-y', '-o' + app, os.path.join(t, pacote)], capture_output=True, timeout=600)
+    asar = os.path.join(app, 'resources', 'app.asar')
+    if not os.path.exists(asar):
+        return None
+    try:
+        h, base = asar_ler(asar)
+    except (OSError, ValueError):
+        return None
+    arquivos = dict(asar_arquivos(h))
+    if any(k.endswith('.node') for k in arquivos) or os.path.isdir(asar + '.unpacked'):
+        return None                     # tem partes compiladas para o Windows: fica para o Bottles
+    exes = [x for x in os.listdir(app) if x.lower().endswith('.exe') and not x.lower().startswith(('uninstall', 'elevate'))]
+    if not exes:
+        return None
+    m = re.search(rb'Electron/(\d+\.\d+\.\d+)', open(os.path.join(app, exes[0]), 'rb').read())
+    if not m:
+        return None
+    nome = os.path.splitext(exes[0])[0]
+    desc = ''
+    pj = arquivos.get('/package.json')
+    if pj and 'offset' in pj:
+        try:
+            with open(asar, 'rb') as f:
+                f.seek(base + int(pj['offset']))
+                j = json.loads(f.read(int(pj['size'])))
+            nome = j.get('productName') or nome
+            desc = j.get('description') or ''
+        except (OSError, ValueError):
+            pass
+    return dict(nome=nome, desc=desc, versao=m.group(1).decode(), app=app, temp=t)
+
+
+def instalar_nativo(info):
+    """~/Aplicativos/<Nome>: o Electron oficial para Linux (verificado pela soma SHA-256 publicada) + o app.asar."""
+    import hashlib
+    import shutil
+    import urllib.request
+    v = info['versao']
+    base = 'https://github.com/electron/electron/releases/download/v%s/' % v
+    zipn = 'electron-v%s-linux-x64.zip' % v
+    ref = progresso('Instalando %s para Linux… (baixa o Electron %s, uns 100 MB)' % (info['nome'], v))
+    try:
+        somas = urllib.request.urlopen(base + 'SHASUMS256.txt', timeout=60).read().decode()
+        esperado = next((l.split()[0] for l in somas.splitlines() if l.strip().endswith(zipn)), '')
+        z = os.path.join(info['temp'], zipn)
+        urllib.request.urlretrieve(base + zipn, z)
+        h = hashlib.sha256(open(z, 'rb').read()).hexdigest()
+        if not esperado or h != esperado:
+            raise RuntimeError('o Electron baixado não confere com a soma publicada')
+        pasta = os.path.join(APLICATIVOS, re.sub(r'[^A-Za-z0-9 ._-]', '', info['nome']).strip() or 'App')
+        shutil.rmtree(pasta, ignore_errors=True)
+        os.makedirs(pasta)
+        subprocess.run(['7z', 'x', '-y', '-o' + pasta, z], check=True, capture_output=True)
+        shutil.copy2(os.path.join(info['app'], 'resources', 'app.asar'), os.path.join(pasta, 'resources', 'app.asar'))
+        try:
+            os.remove(os.path.join(pasta, 'resources', 'default_app.asar'))
+        except OSError:
+            pass
+        ident = re.sub(r'[^a-z0-9]+', '-', info['nome'].lower()).strip('-') or 'app'
+        binario = os.path.join(pasta, ident)
+        os.rename(os.path.join(pasta, 'electron'), binario)
+        icone = 'application-x-executable'
+        for ico in glob.glob(os.path.join(info['app'], 'resources', '*.ico')) + glob.glob(os.path.join(info['app'], '*.ico')):
+            try:
+                from PIL import Image
+                im = Image.open(ico)
+                im.size = max(im.info.get('sizes', [im.size]))
+                im.save(os.path.join(pasta, ident + '.png'))
+                icone = os.path.join(pasta, ident + '.png')
+                break
+            except Exception:
+                pass
+        apps = os.path.expanduser('~/.local/share/applications')
+        os.makedirs(apps, exist_ok=True)
+        with open(os.path.join(apps, 'carinaeos-electron-%s.desktop' % ident), 'w', encoding='utf-8') as f:
+            f.write('[Desktop Entry]\nType=Application\nName=%s\nComment=%s\nExec="%s" %%U\nIcon=%s\n'
+                    'Categories=Utility;\nStartupWMClass=%s\nX-CarinaeOS-Electron=%s\n'
+                    % (info['nome'], info['desc'] or 'Versão para Linux, instalada pelo CarinaeOS', binario, icone,
+                       info['nome'], v))
+        subprocess.run(['kbuildsycoca6'], capture_output=True)
+        return binario
+    finally:
+        fechar(ref)
+        shutil.rmtree(info['temp'], ignore_errors=True)
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         return 2
     arquivo = os.path.abspath(sys.argv[1])
+    # primeiro: é um app Electron que corre no Linux? então a versão nativa, sem Wine
+    ref = progresso('Vendo que programa é…')
+    try:
+        info = electron_nativo(arquivo)
+    except Exception:
+        info = None
+    finally:
+        fechar(ref)
+    if info:
+        r = subprocess.run(['kdialog', '--title', info['nome'], '--yesno',
+                            '“%s” é feito com Electron e pode correr direto no Linux, sem o Wine: '
+                            'mais rápido e integrado no CarinaeOS.\n\nInstalar a versão para Linux?' % info['nome'],
+                            '--yes-label', 'Instalar para Linux', '--no-label', 'Usar o Bottles'])
+        if r.returncode == 0:
+            try:
+                binario = instalar_nativo(info)
+            except Exception as e:
+                subprocess.run(['kdialog', '--title', info['nome'], '--error', 'Não foi possível: %s' % e])
+                return 1
+            subprocess.Popen(['notify-send', '-a', 'CarinaeOS', '-i', 'emblem-ok-symbolic', '%s instalado ✓' % info['nome'],
+                              'Versão para Linux, já no Launchpad.'], start_new_session=True)
+            os.execv(binario, [binario])
     if tem_bottles():
         abrir_no_bottles(arquivo)
     nome = os.path.basename(arquivo)
