@@ -54,8 +54,21 @@ ApplicationWindow {
         if (d === "person") return s === "home" ? "#4caf50" : ""
         if (["scene", "script", "button", "input_button", "automation", "camera", "input_number", "number", "select", "input_select"].indexOf(d) !== -1) return "#03a9f4"
         if (!ligadoE(e)) return ""
+        if (d === "light" && e.rgb && e.rgb.length === 3) return rgbHex(e.rgb)     // a cor real da lâmpada, como no HA
         return ({ light: "#ffc107", switch: "#ffc107", input_boolean: "#ffc107", fan: "#00bcd4", cover: "#ab47bc", media_player: "#03a9f4",
                   binary_sensor: "#ffc107", vacuum: "#4caf50", humidifier: "#29b6f6", water_heater: "#ff7043" })[d] || "#03a9f4"
+    }
+    function rgbHex(r) { return "#" + r.map(v => ("0" + Math.round(v).toString(16)).slice(-2)).join("") }
+    function temCor(e) { return !!e && !!e.modos && e.modos.some(m => ["hs", "rgb", "rgbw", "rgbww", "xy"].indexOf(m) !== -1) }
+    function temBranco(e) { return !!e && !!e.modos && e.modos.indexOf("color_temp") !== -1 }
+    function pctBranco(e) {      // quente (à esquerda) → frio (à direita)
+        if (!e || !e.kelvin || e.kmax <= e.kmin) return 50
+        return Math.max(0, Math.min(100, (e.kelvin - e.kmin) / (e.kmax - e.kmin) * 100))
+    }
+    function kelvinDe(e, pct) { return Math.round(e.kmin + pct / 100 * (e.kmax - e.kmin)) }
+    function abrirLuz(eid) { dlgLuz.eid = eid; dlgLuz.open() }
+    function escolher(titulo, opcoes, atual, feito) {
+        dlgEscolha.titulo = titulo; dlgEscolha.opcoes = opcoes; dlgEscolha.atual = atual; dlgEscolha.feito = feito; dlgEscolha.open()
     }
     function tempoIcone(cond) {
         return "weather-" + (({ sunny: "sunny", "clear-night": "night", partlycloudy: "partly-cloudy", cloudy: "cloudy", rainy: "rainy",
@@ -426,6 +439,124 @@ ApplicationWindow {
                 anchors.right: parent.right; spacing: 8
                 Botao { texto: "Cancelar"; plano: true; onClicado: dlgPainel.close() }
                 Botao { texto: "Salvar"; plano: true; onClicado: dlgPainel.salvar() }
+            }
+        }
+    }
+
+    // ---- os ajustes de uma luz (a janela "mais informações" do Home Assistant) ------------------------------------
+    Popup {
+        id: dlgLuz
+        objectName: "dlgLuz"
+        property string eid: ""
+        readonly property var e: janela.est[eid] || null
+        readonly property bool on: janela.ligadoE(e)
+        readonly property string cor: janela.tinta(e) !== "" ? janela.tinta(e) : "#ffc107"
+        modal: true; anchors.centerIn: parent
+        width: 420; height: Math.min(parent.height - 40, lcol.implicitHeight + 48); padding: 24
+        Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.55) }
+        background: Rectangle { radius: 24; color: "#262626" }
+        contentItem: Flickable {
+            contentHeight: lcol.implicitHeight; clip: true; boundsBehavior: Flickable.StopAtBounds
+            Column {
+                id: lcol
+                width: parent.width; spacing: 16
+                Item {
+                    width: parent.width; height: 44
+                    Forma { anchors.verticalCenter: parent.verticalCenter; tamanho: 44; icone: janela.ic(janela.iconeDe(dlgLuz.e)); tinta: janela.tinta(dlgLuz.e) }
+                    Column {
+                        x: 58; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 58 - 56
+                        Text { text: dlgLuz.e ? dlgLuz.e.nome : ""; color: janela.texto; font.pixelSize: 18; width: parent.width; elide: Text.ElideRight }
+                        Text { text: dlgLuz.e ? (dlgLuz.on && dlgLuz.e.brilho > 0 ? dlgLuz.e.brilho + "%" : janela.estadoTexto(dlgLuz.e)) : ""; color: janela.textoSuave; font.pixelSize: 13 }
+                    }
+                    Interruptor { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; ligado: dlgLuz.on; onAlternado: casa.alternar(dlgLuz.eid) }
+                }
+                Barra {
+                    width: parent.width; implicitHeight: 56; radius: 16; tinta: dlgLuz.cor; ativa: dlgLuz.e !== null
+                    valor: dlgLuz.e && dlgLuz.on ? Math.max(1, dlgLuz.e.brilho) : 0
+                    rotulo: "Brilho"
+                    onSoltou: (v) => { if (v < 1) { if (dlgLuz.on) casa.alternar(dlgLuz.eid) } else casa.brilho(dlgLuz.eid, v) }
+                }
+                Barra {
+                    visible: janela.temBranco(dlgLuz.e)
+                    width: parent.width; implicitHeight: 56; radius: 16; paleta: "branco"; ativa: dlgLuz.on
+                    valor: janela.pctBranco(dlgLuz.e)
+                    rotulo: dlgLuz.e && dlgLuz.e.kelvin ? "Branco · " + dlgLuz.e.kelvin + " K" : "Branco"
+                    onSoltou: (v) => casa.brancoLuz(dlgLuz.eid, janela.kelvinDe(dlgLuz.e, v))
+                }
+                Roda {
+                    visible: janela.temCor(dlgLuz.e)
+                    anchors.horizontalCenter: parent.horizontalCenter; width: 240; height: 240; ativa: dlgLuz.e !== null
+                    h: dlgLuz.e && dlgLuz.e.hs.length ? dlgLuz.e.hs[0] : 0
+                    s: dlgLuz.e && dlgLuz.e.hs.length && dlgLuz.e.modo_cor !== "color_temp" ? dlgLuz.e.hs[1] : 0
+                    onEscolheu: (h, sat) => casa.corLuz(dlgLuz.eid, h, sat)
+                }
+                Flow {    // as cores favoritas, como no Home Assistant
+                    visible: janela.temCor(dlgLuz.e) || janela.temBranco(dlgLuz.e)
+                    width: parent.width; spacing: 10
+                    Repeater {
+                        model: (janela.temBranco(dlgLuz.e) ? [{ k: 2700, c: "#ffb46b" }, { k: 4000, c: "#ffe2c0" }, { k: 6500, c: "#e6efff" }] : [])
+                               .concat(janela.temCor(dlgLuz.e) ? [{ h: 0, s: 100 }, { h: 30, s: 100 }, { h: 55, s: 100 }, { h: 120, s: 100 },
+                                                                   { h: 185, s: 100 }, { h: 230, s: 100 }, { h: 275, s: 100 }, { h: 320, s: 80 }] : [])
+                        delegate: Rectangle {
+                            required property var modelData
+                            width: 34; height: 34; radius: 17
+                            color: modelData.c ? modelData.c : Qt.hsla(modelData.h / 360, modelData.s / 100, 0.5, 1)
+                            border.width: 2; border.color: fv.containsMouse ? "white" : Qt.rgba(1, 1, 1, 0.2)
+                            MouseArea {
+                                id: fv; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: modelData.k ? casa.brancoLuz(dlgLuz.eid, Math.max(dlgLuz.e.kmin, Math.min(dlgLuz.e.kmax, modelData.k)))
+                                                       : casa.corLuz(dlgLuz.eid, modelData.h, modelData.s)
+                            }
+                            ToolTip.visible: fv.containsMouse; ToolTip.text: modelData.k ? modelData.k + " K" : "Cor"
+                        }
+                    }
+                }
+                Text { visible: dlgLuz.e !== null && (dlgLuz.e.efeitos || []).length > 0; text: "Efeitos"; color: janela.textoSuave; font.pixelSize: 13 }
+                Flow {
+                    visible: dlgLuz.e !== null && (dlgLuz.e.efeitos || []).length > 0
+                    width: parent.width; spacing: 8
+                    Repeater {
+                        model: dlgLuz.e ? (dlgLuz.e.efeitos || []).slice(0, 40) : []
+                        delegate: BotaoM {
+                            required property string modelData
+                            implicitHeight: 36; texto: modelData; tinta: dlgLuz.e && dlgLuz.e.efeito === modelData ? dlgLuz.cor : ""
+                            onClicado: casa.efeitoLuz(dlgLuz.eid, modelData)
+                        }
+                    }
+                }
+                Botao { anchors.right: parent.right; texto: "Fechar"; plano: true; onClicado: dlgLuz.close() }
+            }
+        }
+    }
+
+    // ---- escolher uma opção (a fonte do som e TV) ------------------------------------------------------------------
+    Popup {
+        id: dlgEscolha
+        property string titulo: ""
+        property var opcoes: []
+        property string atual: ""
+        property var feito: null
+        modal: true; anchors.centerIn: parent
+        width: 360; height: Math.min(parent.height - 60, 120 + opcoes.length * 48); padding: 0
+        Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.55) }
+        background: Rectangle { radius: 24; color: "#262626" }
+        contentItem: Item {
+            Text { x: 24; y: 22; width: parent.width - 48; elide: Text.ElideRight; text: dlgEscolha.titulo; color: janela.texto; font.pixelSize: 20 }
+            ListView {
+                x: 8; y: 64; width: parent.width - 16; height: parent.height - 64 - 12; clip: true
+                model: dlgEscolha.opcoes
+                ScrollBar.vertical: ScrollBar {}
+                delegate: Rectangle {
+                    required property string modelData
+                    readonly property bool sel: dlgEscolha.atual === modelData
+                    width: ListView.view.width; height: 48; radius: 12
+                    color: sel ? Qt.rgba(0.012, 0.663, 0.957, 0.16) : eo.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent"
+                    Text { x: 16; anchors.verticalCenter: parent.verticalCenter; text: janela.ic(parent.sel ? "radiobox-marked" : "radiobox-blank")
+                           font.family: "Material Design Icons"; font.pixelSize: 22; color: parent.sel ? janela.primaria : janela.textoSuave }
+                    Text { x: 52; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 64; elide: Text.ElideRight; text: modelData; color: janela.texto }
+                    MouseArea { id: eo; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: { if (dlgEscolha.feito) dlgEscolha.feito(modelData); dlgEscolha.close() } }
+                }
             }
         }
     }

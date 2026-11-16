@@ -99,6 +99,13 @@ def entidades(cfg=None):
                  passo=at.get('step', 1), opcoes=at.get('options', []), posicao=at.get('current_position', -1),
                  previsao=[dict(t=f.get('temperature'), m=f.get('templow'), c=f.get('condition', ''), d=f.get('datetime', ''))
                            for f in (at.get('forecast') or [])[:5]])
+        if dom == 'light':   # cor, branco e efeitos, como no Home Assistant
+            e.update(modos=at.get('supported_color_modes') or [], rgb=at.get('rgb_color') or [], hs=at.get('hs_color') or [],
+                     kelvin=at.get('color_temp_kelvin') or 0, kmin=at.get('min_color_temp_kelvin') or 2000,
+                     kmax=at.get('max_color_temp_kelvin') or 6500, modo_cor=at.get('color_mode') or '',
+                     efeitos=at.get('effect_list') or [], efeito=at.get('effect') or '')
+        elif dom == 'media_player':
+            e.update(fonte=at.get('source') or '', fontes=at.get('source_list') or [])
         res.append(e)
     res.sort(key=lambda e: (list(DOMINIOS).index(e['dominio']), e['nome'].lower()))
     return res
@@ -129,6 +136,22 @@ def alternar(eid, ligar=None, cfg=None):
 
 def brilho(eid, pct, cfg=None):
     return servico('light', 'turn_on', {'entity_id': eid, 'brightness_pct': int(pct)}, cfg)
+
+
+def cor_luz(eid, h, sat, cfg=None):
+    return servico('light', 'turn_on', {'entity_id': eid, 'hs_color': [float(h), float(sat)]}, cfg)
+
+
+def branco_luz(eid, kelvin, cfg=None):
+    return servico('light', 'turn_on', {'entity_id': eid, 'color_temp_kelvin': int(kelvin)}, cfg)
+
+
+def efeito_luz(eid, efeito, cfg=None):
+    return servico('light', 'turn_on', {'entity_id': eid, 'effect': efeito}, cfg)
+
+
+def fonte(eid, nome, cfg=None):
+    return servico('media_player', 'select_source', {'entity_id': eid, 'source': nome}, cfg)
 
 
 def temperatura(eid, graus, cfg=None):

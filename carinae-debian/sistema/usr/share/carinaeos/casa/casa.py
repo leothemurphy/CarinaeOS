@@ -280,6 +280,22 @@ class Casa(QObject):
     def brilho(self, eid, pct):
         self._acao(lambda: HA.brilho(eid, pct, self._cfg))
 
+    @Slot(str, float, float)
+    def corLuz(self, eid, h, sat):
+        self._acao(lambda: HA.cor_luz(eid, h, sat, self._cfg))
+
+    @Slot(str, int)
+    def brancoLuz(self, eid, kelvin):
+        self._acao(lambda: HA.branco_luz(eid, kelvin, self._cfg))
+
+    @Slot(str, str)
+    def efeitoLuz(self, eid, efeito):
+        self._acao(lambda: HA.efeito_luz(eid, efeito, self._cfg))
+
+    @Slot(str, str)
+    def fonte(self, eid, nome):
+        self._acao(lambda: HA.fonte(eid, nome, self._cfg))
+
     @Slot(str, float)
     def temperatura(self, eid, graus):
         self._acao(lambda: HA.temperatura(eid, graus, self._cfg))

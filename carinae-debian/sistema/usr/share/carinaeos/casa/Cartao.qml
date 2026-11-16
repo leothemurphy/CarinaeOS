@@ -66,25 +66,53 @@ Rectangle {
             }
         }
     }
-    // ---- luz (Mushroom light card) -------------------------------------------------------------------
+    // ---- luz (Mushroom light card): brilho, branco e cor na mesma barra; ⋮ abre os ajustes ---------------
     Component {
         id: luz
         Column {
+            id: cl
             spacing: 12
             readonly property bool on: c.ligado(c.e0)
-            Cabeca {
-                width: parent.width; icone: c.icE(c.e0); tinta: c.t0; primario: c.nome0
-                secundario: c.e0 ? (parent.on ? (c.e0.brilho > 0 ? c.e0.brilho + "%" : "Acesa") : janela.estadoTexto(c.e0)) : ""
-                formaClicavel: !c.editar && c.e0 !== null; onClicouForma: casa.alternar(c.e0.id)
+            property string modo: "brilho"
+            readonly property var modos: ["brilho"].concat(janela.temBranco(c.e0) ? ["branco"] : []).concat(janela.temCor(c.e0) ? ["cor"] : [])
+            readonly property int nBotoes: (modos.length > 1 ? modos.length : 0) + 1
+            Item {
+                width: parent.width; height: 40
+                Cabeca {
+                    anchors.fill: parent; icone: c.icE(c.e0); tinta: c.t0; primario: c.nome0
+                    secundario: c.e0 ? (cl.on ? (c.e0.brilho > 0 ? c.e0.brilho + "%" : "Acesa") : janela.estadoTexto(c.e0)) : ""
+                    formaClicavel: !c.editar && c.e0 !== null; onClicouForma: casa.alternar(c.e0.id)
+                }
+                MouseArea { x: 52; width: parent.width - 52; height: parent.height; enabled: !c.editar && c.e0 !== null
+                            cursorShape: Qt.PointingHandCursor; onClicked: janela.abrirLuz(c.e0.id) }
             }
             Row {
-                width: parent.width; spacing: 12
+                width: parent.width; spacing: 8
                 Barra {
-                    width: parent.width - 54; tinta: "#ffc107"; ativa: !c.editar && c.e0 !== null
-                    valor: c.e0 && parent.parent.on ? Math.max(1, c.e0.brilho) : 0
-                    onSoltou: (v) => { if (v < 1) { if (c.ligado(c.e0)) casa.alternar(c.e0.id) } else casa.brilho(c.e0.id, v) }
+                    width: parent.width - cl.nBotoes * 50
+                    ativa: !c.editar && c.e0 !== null && (cl.modo === "brilho" || cl.on)
+                    paleta: cl.modo === "brilho" ? "" : cl.modo
+                    tinta: c.t0 !== "" ? c.t0 : "#ffc107"
+                    valor: !c.e0 ? 0 : cl.modo === "branco" ? janela.pctBranco(c.e0)
+                         : cl.modo === "cor" ? (c.e0.hs.length ? c.e0.hs[0] / 3.6 : 0)
+                         : (cl.on ? Math.max(1, c.e0.brilho) : 0)
+                    onSoltou: (v) => {
+                        if (cl.modo === "branco") casa.brancoLuz(c.e0.id, janela.kelvinDe(c.e0, v))
+                        else if (cl.modo === "cor") casa.corLuz(c.e0.id, v * 3.6, c.e0.hs.length && c.e0.hs[1] > 30 ? c.e0.hs[1] : 100)
+                        else if (v < 1) { if (cl.on) casa.alternar(c.e0.id) }
+                        else casa.brilho(c.e0.id, v)
+                    }
                 }
-                BotaoM { icone: c.ic("power"); tinta: parent.parent.on ? "#ffc107" : ""; ativo: !c.editar && c.e0 !== null; onClicado: casa.alternar(c.e0.id) }
+                Repeater {
+                    model: cl.modos.length > 1 ? cl.modos : []
+                    delegate: BotaoM {
+                        required property string modelData
+                        icone: c.ic(({ brilho: "brightness-6", branco: "thermometer", cor: "palette" })[modelData])
+                        tinta: cl.modo === modelData ? (c.t0 !== "" ? c.t0 : "#ffc107") : ""
+                        ativo: !c.editar; onClicado: cl.modo = modelData
+                    }
+                }
+                BotaoM { icone: c.ic("dots-vertical"); ativo: !c.editar && c.e0 !== null; onClicado: janela.abrirLuz(c.e0.id) }
             }
         }
     }
@@ -105,7 +133,8 @@ Rectangle {
                     Text { width: 40; anchors.verticalCenter: parent.verticalCenter; text: c.icE(e); font.family: "Material Design Icons"; font.pixelSize: 24
                            color: janela.tinta(e) !== "" && !acao ? janela.tinta(e) : "#9e9e9e" }
                     Text { x: 40; width: parent.width - 40 - dir.width - 8; anchors.verticalCenter: parent.verticalCenter; elide: Text.ElideRight
-                           text: e ? e.nome : modelData; color: c.texto; font.pixelSize: 14 }
+                           text: e ? e.nome : modelData; color: c.texto; font.pixelSize: 14
+                           MouseArea { anchors.fill: parent; enabled: d === "light" && !c.editar; cursorShape: Qt.PointingHandCursor; onClicked: janela.abrirLuz(e.id) } }
                     Item {
                         id: dir
                         anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
@@ -250,6 +279,12 @@ Rectangle {
                     valor: c.e0 ? c.e0.volume : 0
                     onSoltou: (v) => casa.valor(c.e0.id, String(Math.round(v)))
                 }
+            }
+            BotaoM {     // a fonte: HDMI, Spotify, TV, rádio…
+                visible: c.e0 !== null && (c.e0.fontes || []).length > 0
+                width: parent.width; icone: c.ic("import"); texto: c.e0 && c.e0.fonte ? c.e0.fonte : "Escolher a fonte"
+                ativo: !c.editar
+                onClicado: janela.escolher("Fonte de " + c.e0.nome, c.e0.fontes, c.e0.fonte, (v) => casa.fonte(c.e0.id, v))
             }
         }
     }
