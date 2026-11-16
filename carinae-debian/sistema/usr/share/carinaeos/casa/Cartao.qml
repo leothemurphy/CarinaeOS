@@ -12,14 +12,18 @@ Rectangle {
     signal pedirEditar()
     signal pedirApagar()
     signal pedirMover(int para)
+    signal pedirDuplicar()
+    property bool alvo: false            // ao arrastar outro cartão por cima deste
 
     readonly property int largura: dados.largura || 1
     readonly property var est: janela.est
     readonly property var e0: dados.ents.length ? (est[dados.ents[0]] || null) : null
     readonly property string t0: janela.tinta(e0)
     readonly property string nome0: dados.titulo !== "" ? dados.titulo : (e0 ? e0.nome : "Não encontrado")
+    readonly property string estilo: dados.estilo || ""
     readonly property bool semFundo: dados.tipo === "texto" || dados.tipo === "chips"
-    readonly property int pad: semFundo || dados.tipo === "camera" ? 0 : 12
+    readonly property int pad: semFundo || dados.tipo === "camera" || dados.tipo === "imagem" ? 0 : 12
+    readonly property int alinhar: dados.alinhar === "centro" ? Text.AlignHCenter : dados.alinhar === "direita" ? Text.AlignRight : Text.AlignLeft
     readonly property color texto: "#e1e1e1"
     readonly property color suave: "#9b9b9b"
     function ic(n) { return janela.ic(n) }
@@ -37,15 +41,22 @@ Rectangle {
         x: c.pad; y: c.pad; width: parent.width - 2 * c.pad
         sourceComponent: ({ botao: botao, luz: luz, entidades: lista, sensor: sensor, grafico: grafico, clima: clima,
                             cenas: cenas, media: media, camera: camera, estores: estores, tempo: tempo, numero: numero,
-                            texto: titulo, chips: chips, pessoa: pessoa })[c.dados.tipo] || lista
+                            texto: titulo, chips: chips, pessoa: pessoa, botao_grande: botaoGrande, medidor: medidor,
+                            relogio: relogio, imagem: imagem })[c.dados.tipo] || lista
     }
 
     // ---- entidade (Mushroom entity card) -----------------------------------------------------------
     Component {
         id: botao
         Item {
-            implicitHeight: 40
-            Cabeca { anchors.fill: parent; icone: c.icE(c.e0); tinta: c.t0; primario: c.nome0; secundario: janela.estadoTexto(c.e0) }
+            implicitHeight: c.estilo === "vertical" ? 92 : 40
+            Cabeca { visible: c.estilo !== "vertical"; anchors.fill: parent; icone: c.icE(c.e0); tinta: c.t0; primario: c.nome0; secundario: janela.estadoTexto(c.e0) }
+            Column {
+                visible: c.estilo === "vertical"; width: parent.width; spacing: 6
+                Forma { anchors.horizontalCenter: parent.horizontalCenter; icone: c.icE(c.e0); tinta: c.t0 }
+                Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; text: c.nome0; color: c.texto; font.pixelSize: 14; font.weight: Font.DemiBold }
+                Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; text: janela.estadoTexto(c.e0); color: c.suave; font.pixelSize: 12 }
+            }
             MouseArea {
                 anchors.fill: parent; anchors.margins: -12
                 enabled: !c.editar && c.e0 !== null && janela.alternavel(c.e0); cursorShape: Qt.PointingHandCursor
@@ -53,17 +64,101 @@ Rectangle {
             }
         }
     }
-    // ---- pessoa (Mushroom person card) ---------------------------------------------------------------
+    // ---- pessoa (Mushroom person card), com a foto do Home Assistant ----------------------------------------
     Component {
         id: pessoa
         Item {
-            implicitHeight: 40
-            Cabeca { anchors.fill: parent; icone: c.icE(c.e0); tinta: c.t0; primario: c.nome0; secundario: janela.estadoTexto(c.e0) }
-            Rectangle {       // o selo: em casa / fora
-                x: 26; y: 26; width: 16; height: 16; radius: 8; color: c.t0 !== "" ? "#4caf50" : "#616161"
-                border.width: 2; border.color: "#1c1c1c"
-                Text { anchors.centerIn: parent; text: c.ic(c.t0 !== "" ? "home" : "walk"); font.family: "Material Design Icons"; font.pixelSize: 9; color: "white" }
+            readonly property string foto: c.e0 ? (janela.extras.fotos[c.e0.id] || "") : ""
+            readonly property bool vert: c.estilo === "vertical"
+            implicitHeight: vert ? 112 : 40
+            Item {
+                id: av
+                width: parent.vert ? 64 : 40; height: width
+                x: parent.vert ? (parent.width - width) / 2 : 0
+                Forma { anchors.fill: parent; tamanho: parent.width; icone: c.icE(c.e0); tinta: c.t0; visible: parent.parent.foto === "" }
+                Foto { anchors.fill: parent; fonte: parent.parent.foto; visible: parent.parent.foto !== "" }
+                Rectangle {       // o selo: em casa / fora
+                    x: parent.width - 16; y: parent.height - 16; width: 18; height: 18; radius: 9; color: c.t0 !== "" ? "#4caf50" : "#616161"
+                    border.width: 2; border.color: "#1c1c1c"
+                    Text { anchors.centerIn: parent; text: c.ic(c.t0 !== "" ? "home" : "walk"); font.family: "Material Design Icons"; font.pixelSize: 10; color: "white" }
+                }
             }
+            Column {
+                x: parent.vert ? 0 : 52; y: parent.vert ? 72 : (40 - height) / 2; width: parent.width - x
+                Text { width: parent.width; horizontalAlignment: parent.parent.vert ? Text.AlignHCenter : Text.AlignLeft; elide: Text.ElideRight
+                       text: c.nome0; color: c.texto; font.pixelSize: 14; font.weight: Font.DemiBold }
+                Text { width: parent.width; horizontalAlignment: parent.parent.vert ? Text.AlignHCenter : Text.AlignLeft; elide: Text.ElideRight
+                       text: janela.estadoTexto(c.e0); color: c.suave; font.pixelSize: 12 }
+            }
+        }
+    }
+    // ---- botão grande (o cartão "Botão" do Home Assistant) ----------------------------------------------------
+    Component {
+        id: botaoGrande
+        Item {
+            implicitHeight: 112
+            Column {
+                anchors.centerIn: parent; width: parent.width; spacing: 8
+                Text { anchors.horizontalCenter: parent.horizontalCenter; text: c.icE(c.e0); font.family: "Material Design Icons"; font.pixelSize: 56
+                       color: c.t0 !== "" ? c.t0 : "#9e9e9e"; Behavior on color { ColorAnimation { duration: 200 } } }
+                Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; text: c.nome0; color: c.texto; font.pixelSize: 15 }
+            }
+            MouseArea { anchors.fill: parent; anchors.margins: -12; enabled: !c.editar && c.e0 !== null && janela.alternavel(c.e0)
+                        cursorShape: Qt.PointingHandCursor; onClicked: casa.alternar(c.e0.id) }
+        }
+    }
+    // ---- medidor (o cartão "Medidor" do Home Assistant) -------------------------------------------------------
+    Component {
+        id: medidor
+        Column {
+            spacing: 2
+            readonly property real lo: c.dados.minimo !== undefined ? Number(c.dados.minimo) : 0
+            readonly property real hi: c.dados.maximo !== undefined ? Number(c.dados.maximo)
+                                      : (c.e0 && c.e0.unidade === "%" ? 100 : c.e0 && /°/.test(c.e0.unidade) ? 40 : Math.max(100, (parseFloat(c.e0 ? c.e0.estado : 0) || 0) * 1.5))
+            readonly property real v: c.e0 ? parseFloat(c.e0.estado) : NaN
+            readonly property real frac: isNaN(v) || hi <= lo ? 0 : Math.max(0, Math.min(1, (v - lo) / (hi - lo)))
+            Canvas {
+                id: arco
+                width: parent.width; height: Math.min(width / 2 + 14, 130)
+                readonly property real f: parent.frac
+                readonly property string cor: f < 0.6 ? "#43a047" : f < 0.85 ? "#ffa600" : "#db4437"
+                onFChanged: requestPaint()
+                onWidthChanged: requestPaint()
+                onPaint: {
+                    const g = getContext("2d"); g.reset()
+                    const R = Math.min(width / 2, height - 14) - 12, cx = width / 2, cy = height - 8
+                    g.lineWidth = 22; g.lineCap = "butt"
+                    g.beginPath(); g.arc(cx, cy, R, Math.PI, 2 * Math.PI); g.strokeStyle = "rgba(255,255,255,0.1)"; g.stroke()
+                    if (f > 0) { g.beginPath(); g.arc(cx, cy, R, Math.PI, Math.PI + f * Math.PI); g.strokeStyle = cor; g.stroke() }
+                }
+                Text { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 8
+                       text: c.e0 ? janela.num(c.e0.estado) + (c.e0.unidade ? " " + c.e0.unidade : "") : "—"; color: c.texto; font.pixelSize: 22 }
+            }
+            Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight; text: c.nome0; color: c.suave; font.pixelSize: 14 }
+        }
+    }
+    // ---- relógio ------------------------------------------------------------------------------------------
+    Component {
+        id: relogio
+        Column {
+            spacing: 0
+            property date agora: new Date()
+            Timer { interval: 5000; running: true; repeat: true; triggeredOnStart: true; onTriggered: parent.agora = new Date() }
+            Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: c.dados.titulo; visible: text !== ""; color: c.suave; font.pixelSize: 13 }
+            Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; text: Qt.formatTime(parent.agora, "HH:mm"); color: c.texto; font.pixelSize: 52; font.weight: Font.Light }
+            Text { width: parent.width; horizontalAlignment: Text.AlignHCenter; color: c.suave; font.pixelSize: 14
+                   text: { const t = parent.agora.toLocaleDateString(Qt.locale("pt_BR"), "dddd, d 'de' MMMM"); return t.charAt(0).toUpperCase() + t.slice(1) } }
+        }
+    }
+    // ---- imagem ---------------------------------------------------------------------------------------------
+    Component {
+        id: imagem
+        Item {
+            readonly property string url: !c.dados.titulo ? "" : c.dados.titulo.startsWith("/") && !c.dados.titulo.startsWith("//") ? casa.url + c.dados.titulo : c.dados.titulo
+            implicitHeight: ft.imagem.status === Image.Ready && ft.imagem.implicitWidth > 0
+                            ? Math.min(width * 1.5, width * ft.imagem.implicitHeight / ft.imagem.implicitWidth) : width * 9 / 16
+            Foto { id: ft; anchors.fill: parent; raio: c.radius; fonte: parent.url }
+            Text { anchors.centerIn: parent; visible: ft.imagem.status !== Image.Ready; text: ft.imagem.status === Image.Error ? "Não consegui abrir a imagem" : "Carregando…"; color: c.suave }
         }
     }
     // ---- luz (Mushroom light card): brilho, branco e cor na mesma barra; ⋮ abre os ajustes ---------------
@@ -296,7 +391,7 @@ Rectangle {
             Item {
                 id: quadro
                 anchors.fill: parent
-                layer.enabled: true
+                layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software
                 layer.effect: MultiEffect { maskEnabled: true; maskSource: mascara }
                 Rectangle { anchors.fill: parent; color: "#000" }
                 Image { anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true; cache: false
@@ -310,7 +405,7 @@ Rectangle {
             }
             Item {
                 id: mascara
-                anchors.fill: parent; visible: false; layer.enabled: true
+                anchors.fill: parent; visible: false; layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software
                 Rectangle { anchors.fill: parent; radius: c.radius; color: "black" }
             }
         }
@@ -414,43 +509,67 @@ Rectangle {
             }
         }
     }
-    // ---- titulo (Mushroom title card): sem fundo; {saudacao} vira "Bom dia"/"Boa tarde"/"Boa noite" ---------
+    // ---- titulo (Mushroom title card) e texto (markdown do HA), sem fundo --------------------------------------
+    // {saudacao} e {nome} são do Casa; {{ … }} e {% … %} são modelos que o próprio Home Assistant calcula
     Component {
         id: titulo
         Column {
             spacing: 2; topPadding: 6; bottomPadding: 4
-            readonly property var linhas: janela.saudar(c.dados.titulo || "Título").split("\n")
-            Text { width: parent.width; wrapMode: Text.WordWrap; text: parent.linhas[0]; color: c.texto; font.pixelSize: 24; font.weight: Font.Bold }
-            Text { width: parent.width; wrapMode: Text.WordWrap; text: parent.linhas.slice(1).join("\n"); color: c.suave; font.pixelSize: 14; visible: text !== "" }
+            readonly property bool modelo: /\{\{|\{%/.test(c.dados.titulo || "")
+            readonly property string bruto: modelo ? (janela.extras.tpl[c.dados.titulo] !== undefined ? janela.extras.tpl[c.dados.titulo] : "…") : (c.dados.titulo || "Título")
+            readonly property string limpo: janela.saudar(bruto).replace(/<br\s*\/?>/gi, "\n").replace(/<\/?(center|div|span|font|p|b|i|big|small|ha-icon)[^>]*>/gi, "").trim()
+            readonly property var linhas: limpo.split("\n").filter(l => l.trim() !== "").map(l => l.replace(/^#+\s*/, ""))
+            Text { visible: c.estilo !== "markdown"; width: parent.width; wrapMode: Text.WordWrap; horizontalAlignment: c.alinhar
+                   text: parent.linhas[0]; color: c.texto; font.pixelSize: 24; font.weight: Font.Bold }
+            Text { visible: c.estilo !== "markdown" && text !== ""; width: parent.width; wrapMode: Text.WordWrap; horizontalAlignment: c.alinhar
+                   text: parent.linhas.slice(1).join("\n"); color: c.suave; font.pixelSize: 14 }
+            Text { visible: c.estilo === "markdown"; width: parent.width; wrapMode: Text.WordWrap; horizontalAlignment: c.alinhar
+                   text: parent.limpo; textFormat: Text.MarkdownText; color: c.texto; font.pixelSize: 15; lineHeight: 1.15
+                   onLinkActivated: (l) => Qt.openUrlExternally(l) }
         }
     }
-    // ---- chips (Mushroom chips card): sem fundo, uma fila de pílulas ----------------------------------------
+    // ---- chips (Mushroom chips card): sem fundo, uma fila de pílulas; "duas" = nome por cima do estado -------------
     Component {
         id: chips
-        Flow {
-            spacing: 8
-            Repeater {
-                model: c.dados.ents
-                delegate: Rectangle {
-                    required property string modelData
-                    readonly property var e: c.est[modelData] || null
-                    readonly property bool valor: e !== null && ["sensor", "weather", "climate", "person", "binary_sensor"].indexOf(e.dominio) !== -1
-                    width: lin.implicitWidth + 24; height: 36; radius: 18
-                    color: mc.containsMouse && mc.enabled ? "#262626" : "#1c1c1c"; border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.07)
-                    Row {
-                        id: lin
-                        anchors.centerIn: parent; spacing: 6
-                        Text { text: c.icE(e); font.family: "Material Design Icons"; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter
-                               color: janela.tinta(e) !== "" ? janela.tinta(e) : "#9e9e9e" }
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter; color: c.texto; font.pixelSize: 13; font.weight: Font.DemiBold
-                            text: !e ? modelData : e.dominio === "sensor" ? janela.num(e.estado) + (e.unidade ? " " + e.unidade : "")
-                                 : e.dominio === "weather" ? (e.temperatura !== "" ? janela.num(e.temperatura) + " °C" : janela.condicao(e.estado))
-                                 : e.dominio === "climate" ? (e.temperatura !== "" ? janela.num(e.temperatura) + " °C" : janela.estadoTexto(e))
-                                 : valor ? janela.estadoTexto(e) : e.nome
+        Item {
+            id: ch
+            implicitHeight: fc.height
+            property real usado: 0
+            function medir() { let w = 0; for (let i = 0; i < rch.count; i++) { const it = rch.itemAt(i); if (it) w += it.width + 8 } usado = Math.max(0, w - 8) }
+            Flow {
+                id: fc
+                spacing: 8
+                width: c.alinhar === Text.AlignLeft || ch.usado > ch.width ? ch.width : ch.usado + 1
+                x: c.alinhar === Text.AlignHCenter ? (ch.width - width) / 2 : c.alinhar === Text.AlignRight ? ch.width - width : 0
+                Repeater {
+                    id: rch
+                    model: c.dados.ents
+                    onItemAdded: Qt.callLater(ch.medir)
+                    delegate: Rectangle {
+                        required property string modelData
+                        readonly property var e: c.est[modelData] || null
+                        readonly property bool duas: c.estilo === "duas"
+                        readonly property bool valor: e !== null && ["sensor", "weather", "climate", "person", "binary_sensor", "device_tracker"].indexOf(e.dominio) !== -1
+                        readonly property string estado: !e ? modelData : e.dominio === "sensor" ? janela.num(e.estado) + (e.unidade ? " " + e.unidade : "")
+                             : e.dominio === "weather" ? (e.temperatura !== "" ? janela.num(e.temperatura) + " °C" : janela.condicao(e.estado))
+                             : e.dominio === "climate" ? (e.temperatura !== "" ? janela.num(e.temperatura) + " °C" : janela.estadoTexto(e))
+                             : (valor || duas) ? janela.estadoTexto(e) : e.nome
+                        width: lin.implicitWidth + 24; height: duas ? 42 : 36; radius: height / 2
+                        onWidthChanged: Qt.callLater(ch.medir)
+                        color: mc.containsMouse && mc.enabled ? "#262626" : "#1c1c1c"; border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.07)
+                        Row {
+                            id: lin
+                            anchors.centerIn: parent; spacing: 6
+                            Text { text: c.icE(e); font.family: "Material Design Icons"; font.pixelSize: 18; anchors.verticalCenter: parent.verticalCenter
+                                   color: janela.tinta(e) !== "" ? janela.tinta(e) : "#9e9e9e" }
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                Text { visible: duas; text: e ? e.nome : ""; color: c.suave; font.pixelSize: 10; anchors.horizontalCenter: parent.horizontalCenter }
+                                Text { text: estado; color: c.texto; font.pixelSize: duas ? 12 : 13; font.weight: Font.DemiBold; anchors.horizontalCenter: parent.horizontalCenter }
+                            }
                         }
+                        MouseArea { id: mc; anchors.fill: parent; hoverEnabled: true; enabled: !c.editar && e !== null && janela.alternavel(e); cursorShape: Qt.PointingHandCursor; onClicked: casa.alternar(e.id) }
                     }
-                    MouseArea { id: mc; anchors.fill: parent; hoverEnabled: true; enabled: !c.editar && e !== null && janela.alternavel(e); cursorShape: Qt.PointingHandCursor; onClicked: casa.alternar(e.id) }
                 }
             }
         }
@@ -459,11 +578,12 @@ Rectangle {
     // ---- modo de edição (como no Home Assistant: o cartão ganha uma barra de botões) ----------------------------
     Rectangle {
         visible: c.editar
-        anchors.fill: parent; radius: c.radius; color: "transparent"
-        border.width: 1; border.color: Qt.rgba(0.012, 0.663, 0.957, 0.6)
+        anchors.fill: parent; radius: c.radius; z: 9
+        color: c.alvo ? Qt.rgba(0.012, 0.663, 0.957, 0.18) : "transparent"
+        border.width: c.alvo ? 2 : 1; border.color: Qt.rgba(0.012, 0.663, 0.957, c.alvo ? 1 : 0.6)
     }
     Rectangle {
-        visible: c.editar
+        visible: c.editar; z: 11
         anchors.right: parent.right; anchors.top: parent.top; anchors.margins: -6
         width: barraEd.implicitWidth + 8; height: 36; radius: 18; color: "#2b2b2b"
         border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.1)
@@ -471,7 +591,7 @@ Rectangle {
             id: barraEd
             anchors.centerIn: parent; spacing: 0
             Repeater {
-                model: [["arrow-left", "m-"], ["arrow-right", "m+"], ["pencil", "e"], ["delete", "x"]]
+                model: [["drag", "a"], ["content-copy", "d"], ["pencil", "e"], ["delete", "x"]]
                 delegate: Rectangle {
                     required property var modelData
                     width: 32; height: 32; radius: 16; color: be.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
@@ -480,7 +600,8 @@ Rectangle {
                     MouseArea {
                         id: be
                         anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                        onClicked: modelData[1] === "x" ? c.pedirApagar() : modelData[1] === "e" ? c.pedirEditar() : c.pedirMover(modelData[1] === "m+" ? 1 : -1)
+                        enabled: modelData[1] !== "a"
+                        onClicked: modelData[1] === "x" ? c.pedirApagar() : modelData[1] === "e" ? c.pedirEditar() : c.pedirDuplicar()
                     }
                 }
             }

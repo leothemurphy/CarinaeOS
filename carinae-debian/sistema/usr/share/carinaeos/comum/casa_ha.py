@@ -10,14 +10,19 @@ import urllib.request
 CFG = os.path.join(os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config')), 'carinaeos', 'casa.json')
 DOMINIOS = ('light', 'switch', 'scene', 'script', 'fan', 'cover', 'climate', 'media_player', 'input_boolean',
             'automation', 'lock', 'vacuum', 'sensor', 'binary_sensor', 'button', 'weather', 'camera', 'input_number',
-            'number', 'input_button', 'alarm_control_panel', 'humidifier', 'water_heater', 'person', 'select', 'input_select')
+            'number', 'input_button', 'alarm_control_panel', 'humidifier', 'water_heater', 'person', 'select', 'input_select',
+            'device_tracker', 'sun', 'update', 'counter', 'timer', 'siren', 'valve', 'input_text', 'text',
+            'input_datetime', 'calendar', 'todo', 'event', 'image', 'zone')
 NOMES_DOMINIO = {'light': 'Luzes', 'switch': 'Interruptores', 'scene': 'Cenas', 'script': 'Rotinas', 'fan': 'Ventiladores',
                  'cover': 'Persianas e portões', 'climate': 'Clima', 'media_player': 'Som e TV', 'input_boolean': 'Interruptores',
                  'automation': 'Automações', 'lock': 'Fechaduras', 'vacuum': 'Aspiradores', 'sensor': 'Sensores',
                  'binary_sensor': 'Sensores', 'button': 'Botões', 'weather': 'Tempo', 'camera': 'Câmeras',
                  'input_number': 'Números', 'number': 'Números', 'input_button': 'Botões', 'alarm_control_panel': 'Alarme',
                  'humidifier': 'Umidificadores', 'water_heater': 'Aquecedores', 'person': 'Pessoas',
-                 'select': 'Escolhas', 'input_select': 'Escolhas'}
+                 'select': 'Escolhas', 'input_select': 'Escolhas', 'device_tracker': 'Localização', 'sun': 'Sol',
+                 'update': 'Atualizações', 'counter': 'Contadores', 'timer': 'Temporizadores', 'siren': 'Sirenes',
+                 'valve': 'Válvulas', 'input_text': 'Textos', 'text': 'Textos', 'input_datetime': 'Datas',
+                 'calendar': 'Calendários', 'todo': 'Listas', 'event': 'Eventos', 'image': 'Imagens', 'zone': 'Zonas'}
 
 
 def ler():
@@ -93,7 +98,7 @@ def entidades(cfg=None):
                  brilho=round((at.get('brightness') or 0) * 100 / 255) if dom == 'light' else -1,
                  temperatura=at.get('current_temperature', at.get('temperature', '') if dom == 'weather' else ''),
                  alvo=at.get('temperature', '') if dom != 'weather' else '',
-                 icone=at.get('icon', ''), humidade=at.get('humidity', at.get('current_humidity', '')),
+                 icone=at.get('icon', ''), foto=at.get('entity_picture', '') if dom == 'person' else '', humidade=at.get('humidity', at.get('current_humidity', '')),
                  titulo_media=at.get('media_title', ''), artista=at.get('media_artist', ''),
                  volume=round((at.get('volume_level') or 0) * 100), minimo=at.get('min', 0), maximo=at.get('max', 100),
                  passo=at.get('step', 1), opcoes=at.get('options', []), posicao=at.get('current_position', -1),
@@ -240,3 +245,131 @@ def media(eid, acao, cfg=None):
 
 def parar_estore(eid, cfg=None):
     return servico('cover', 'stop_cover', {'entity_id': eid}, cfg)
+
+
+# ---- WebSocket do Home Assistant (os painéis só existem por aqui) ----------------------------------------
+# Um cliente mínimo (RFC 6455) só com a biblioteca padrão: liga, autentica, faz os pedidos e fecha.
+def _ws(cfg, pedidos, timeout=15):
+    import base64
+    import socket
+    import ssl
+    import struct
+    from urllib.parse import urlparse
+    u = urlparse(cfg['url'])
+    seguro = u.scheme == 'https'
+    porta = u.port or (443 if seguro else 80)
+    s = socket.create_connection((u.hostname, porta), timeout=timeout)
+    if seguro:
+        s = ssl.create_default_context().wrap_socket(s, server_hostname=u.hostname)
+    chave = base64.b64encode(os.urandom(16)).decode()
+    s.sendall(('GET /api/websocket HTTP/1.1\r\nHost: %s:%d\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n'
+               'Sec-WebSocket-Key: %s\r\nSec-WebSocket-Version: 13\r\n\r\n' % (u.hostname, porta, chave)).encode())
+    buf = b''
+    while b'\r\n\r\n' not in buf:
+        d = s.recv(4096)
+        if not d:
+            raise ConnectionError('o Home Assistant fechou a conexão')
+        buf += d
+    cab, buf = buf.split(b'\r\n\r\n', 1)
+    if b' 101 ' not in cab.split(b'\r\n')[0]:
+        raise ConnectionError('o Home Assistant recusou o WebSocket')
+
+    def ler(n):
+        nonlocal buf
+        while len(buf) < n:
+            d = s.recv(65536)
+            if not d:
+                raise ConnectionError('conexão fechada')
+            buf += d
+        r, buf = buf[:n], buf[n:]
+        return r
+
+    def receber():
+        partes = b''
+        while True:
+            b1, b2 = ler(2)
+            n = b2 & 0x7f
+            if n == 126:
+                n = struct.unpack('>H', ler(2))[0]
+            elif n == 127:
+                n = struct.unpack('>Q', ler(8))[0]
+            mascara = ler(4) if b2 & 0x80 else None
+            dados = ler(n)
+            if mascara:
+                dados = bytes(c ^ mascara[i % 4] for i, c in enumerate(dados))
+            op = b1 & 0x0f
+            if op == 9:          # ping -> pong
+                enviar(dados, 10)
+                continue
+            if op == 8:
+                raise ConnectionError('conexão fechada')
+            partes += dados
+            if b1 & 0x80:
+                return json.loads(partes)
+
+    def enviar(dados, op=1):
+        if isinstance(dados, dict):
+            dados = json.dumps(dados).encode()
+        m = os.urandom(4)
+        n = len(dados)
+        cab = bytes([0x80 | op]) + (bytes([0x80 | n]) if n < 126 else bytes([0x80 | 126]) + struct.pack('>H', n)
+                                     if n < 65536 else bytes([0x80 | 127]) + struct.pack('>Q', n))
+        s.sendall(cab + m + bytes(c ^ m[i % 4] for i, c in enumerate(dados)))
+
+    try:
+        receber()                                    # auth_required
+        enviar({'type': 'auth', 'access_token': cfg['token']})
+        if receber().get('type') != 'auth_ok':
+            raise PermissionError('O Home Assistant recusou o token.')
+        res = []
+        for i, p in enumerate(pedidos, 1):
+            enviar(dict(p, id=i))
+            while True:
+                r = receber()
+                if r.get('id') == i and r.get('type') == 'result':
+                    break
+            res.append(r.get('result') if r.get('success') else None)
+        return res
+    finally:
+        try:
+            enviar(b'', 8)          # fecho educado
+        except OSError:
+            pass
+        try:
+            s.close()
+        except OSError:
+            pass
+
+
+def paineis_ha(cfg=None):
+    """Os painéis (dashboards) do Home Assistant: [{titulo, url}] (url None = o painel principal)."""
+    cfg = cfg if cfg is not None else ler()
+    lst = _ws(cfg, [{'type': 'lovelace/dashboards/list'}])[0] or []
+    return [{'titulo': 'Visão geral', 'url': None}] + [
+        {'titulo': d.get('title') or d.get('url_path'), 'url': d.get('url_path')} for d in lst]
+
+
+def config_painel(url_path, cfg=None):
+    cfg = cfg if cfg is not None else ler()
+    return _ws(cfg, [{'type': 'lovelace/config', 'url_path': url_path, 'force': False}])[0]
+
+
+def modelo(texto, cfg=None):
+    """Calcula um modelo (Jinja) no próprio Home Assistant: "Olá {{ user }}" -> texto."""
+    cfg = cfg if cfg is not None else ler()
+    req = urllib.request.Request(cfg['url'].rstrip('/') + '/api/template', data=json.dumps({'template': texto}).encode(),
+                                 headers={'Authorization': 'Bearer ' + cfg['token'], 'Content-Type': 'application/json'},
+                                 method='POST')
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return r.read().decode('utf-8', 'replace')
+
+
+def baixar(caminho, destino, cfg=None):
+    """Uma imagem do Home Assistant (fotos das pessoas, /local/...)."""
+    cfg = cfg if cfg is not None else ler()
+    url = caminho if caminho.startswith('http') else cfg['url'].rstrip('/') + caminho
+    req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + cfg['token']})
+    with urllib.request.urlopen(req, timeout=10) as r, open(destino + '.parte', 'wb') as f:
+        f.write(r.read())
+    os.replace(destino + '.parte', destino)
+    return destino

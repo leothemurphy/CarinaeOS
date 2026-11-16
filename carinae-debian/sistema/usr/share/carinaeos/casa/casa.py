@@ -16,6 +16,7 @@ import time
 sys.path.insert(0, '/usr/share/carinaeos/comum')
 from base import correr, iniciar  # noqa: E402
 import casa_ha as HA  # noqa: E402
+import importar  # noqa: E402
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot  # noqa: E402
 
@@ -23,10 +24,15 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 ICONES = os.path.join(AQUI, 'mdi.json')   # os ícones do Home Assistant (Material Design Icons)
 PAINEIS = os.path.join(os.path.dirname(HA.CFG), 'casa-paineis.json')
 CAMERAS = os.path.join(tempfile.gettempdir(), 'carinaeos-casa-%d' % os.getuid())
+EXTRAS = ('estilo', 'alinhar', 'minimo', 'maximo')     # opções de cada cartão, além do tipo, título e aparelhos
 
 TIPOS = [
-    dict(id='botao', nome='Entidade', icone='gesture-tap-button', desc='Um aparelho: toque para ligar e desligar', dominios=['light', 'switch', 'fan', 'input_boolean', 'lock', 'cover', 'scene', 'script', 'button', 'input_button', 'automation', 'vacuum', 'humidifier', 'alarm_control_panel', 'sensor', 'binary_sensor'], max=1),
-    dict(id='chips', nome='Chips', icone='dots-horizontal-circle', desc='Pílulas pequenas no topo: temperatura, luzes…', dominios=[], max=10),
+    dict(id='botao', nome='Entidade', icone='gesture-tap-button', desc='Um aparelho: toque para ligar e desligar', dominios=['light', 'switch', 'fan', 'input_boolean', 'lock', 'cover', 'scene', 'script', 'button', 'input_button', 'automation', 'vacuum', 'humidifier', 'alarm_control_panel', 'sensor', 'binary_sensor', 'person'], max=1,
+         estilos=[['', 'Deitado'], ['vertical', 'Em pé']]),
+    dict(id='botao_grande', nome='Botão grande', icone='gesture-tap-hold', desc='Ícone grande ao centro, como o botão do HA', dominios=['light', 'switch', 'fan', 'input_boolean', 'lock', 'cover', 'scene', 'script', 'button', 'input_button', 'automation', 'media_player', 'vacuum'], max=1),
+    dict(id='chips', nome='Chips', icone='dots-horizontal-circle', desc='Pílulas pequenas no topo: temperatura, luzes…', dominios=[], max=16,
+         estilos=[['', 'Simples'], ['duas', 'Nome e estado']]),
+    dict(id='medidor', nome='Medidor', icone='gauge', desc='Um ponteiro em meia-lua (CPU, umidade, bateria…)', dominios=['sensor', 'input_number', 'number'], max=1),
     dict(id='luz', nome='Luz', icone='lightbulb', desc='Luz com barra de brilho', dominios=['light'], max=1),
     dict(id='entidades', nome='Entidades', icone='format-list-bulleted', desc='Vários aparelhos ou sensores numa lista', dominios=[], max=12),
     dict(id='sensor', nome='Sensor', icone='eye', desc='Um valor em grande (temperatura, consumo…)', dominios=['sensor', 'binary_sensor'], max=1),
@@ -38,8 +44,12 @@ TIPOS = [
     dict(id='estores', nome='Persianas e portões', icone='window-shutter', desc='Abrir, parar, fechar e posição', dominios=['cover'], max=1),
     dict(id='tempo', nome='Previsão do tempo', icone='weather-partly-cloudy', desc='Tempo agora e nos próximos dias', dominios=['weather'], max=1),
     dict(id='numero', nome='Número ou escolha', icone='ray-vertex', desc='Barra deslizante ou botões de opção', dominios=['input_number', 'number', 'select', 'input_select'], max=1),
-    dict(id='pessoa', nome='Pessoa', icone='account', desc='Quem está em casa', dominios=['person'], max=1),
-    dict(id='texto', nome='Título', icone='format-title', desc='Título e saudação, sem fundo', dominios=[], max=0),
+    dict(id='pessoa', nome='Pessoa', icone='account', desc='Quem está em casa, com a foto', dominios=['person'], max=1,
+         estilos=[['', 'Deitado'], ['vertical', 'Em pé']]),
+    dict(id='relogio', nome='Relógio', icone='clock-outline', desc='Hora e data', dominios=[], max=0, semTexto=True),
+    dict(id='imagem', nome='Imagem', icone='image', desc='Uma foto ou imagem (endereço da web ou do HA)', dominios=[], max=0),
+    dict(id='texto', nome='Título', icone='format-title', desc='Título, saudação ou texto (aceita modelos do HA)', dominios=[], max=0,
+         estilos=[['titulo', 'Título'], ['markdown', 'Texto']]),
 ]
 
 
@@ -100,6 +110,11 @@ class Casa(QObject):
         self._json_todas = '[]'
         self._hist = {}
         self._cams = {}
+        self._tpl = {}
+        self._fotos = {}
+        self._t_tpl = 0
+        self._ha_paineis = []
+        self._ha_msg = ''
         self._erro = ''
         self._ocupado = False
         self._a_buscar = False
@@ -140,7 +155,9 @@ class Casa(QObject):
     # com centenas de aparelhos, a conversao repetida de dicionarios travava a janela
     estadosJson = Property(str, lambda s: s._json_estados, notify=mudouEstados)
     extrasJson = Property(str, lambda s: json.dumps(dict(hist={k: v for k, v in s._hist.items() if not k.startswith('_t_')},
-                                                         cams=s._cams)), notify=mudouEstados)
+                                                         cams=s._cams, tpl=s._tpl, fotos=s._fotos)), notify=mudouEstados)
+    haPaineis = Property('QVariantList', lambda s: s._ha_paineis, notify=mudou)
+    haMsg = Property(str, lambda s: s._ha_msg, notify=mudou)
     todasJson = Property(str, lambda s: s._json_todas, notify=mudouEstados)
     total = Property(int, lambda s: len(s._todas), notify=mudouEstados)
     paineis = Property('QVariantList', lambda s: s._p['paineis'], notify=mudouPaineis)
@@ -225,14 +242,20 @@ class Casa(QObject):
         return {eid for p in self._p['paineis'] for c in p['cartoes'] if c['tipo'] in tipos for eid in c['ents']}
 
     def _atualizar_extras(self):
-        """Graficos (a cada 5 min) e camaras (a cada 10 s), so dos cartoes que existem."""
+        """Gráficos (a cada 5 min), câmeras (10 s), textos com modelos do HA (1 min) e fotos das pessoas."""
         graf = [e for e in self._ids_do_tipo('grafico') if time.time() - self._hist.get('_t_' + e, 0) > 300]
         cams = list(self._ids_do_tipo('camera'))
-        if not graf and not cams:
+        modelos = []
+        if time.time() - self._t_tpl > 55:
+            modelos = sorted({c['titulo'] for p in self._p['paineis'] for c in p['cartoes']
+                              if c['tipo'] == 'texto' and ('{{' in c['titulo'] or '{%' in c['titulo'])})
+        fotos = {eid: self._estados[eid]['foto'] for eid in self._ids_do_tipo('pessoa', 'botao')
+                 if eid in self._estados and self._estados[eid].get('foto') and eid not in self._fotos}
+        if not graf and not cams and not modelos and not fotos:
             return
 
         def trabalho():
-            h, c = {}, {}
+            h, c, t, f = {}, {}, {}, {}
             for eid in graf:
                 try:
                     pts = HA.historico(eid, 24, self._cfg)
@@ -242,20 +265,34 @@ class Casa(QObject):
             os.makedirs(CAMERAS, mode=0o700, exist_ok=True)
             for eid in cams:
                 try:
-                    f = HA.imagem_camera(eid, os.path.join(CAMERAS, eid + '.jpg'), self._cfg)
-                    c[eid] = 'file://%s?%d' % (f, int(time.time()))
+                    arq = HA.imagem_camera(eid, os.path.join(CAMERAS, eid + '.jpg'), self._cfg)
+                    c[eid] = 'file://%s?%d' % (arq, int(time.time()))
                 except Exception:
                     pass
-            return h, c
+            for m in modelos:
+                try:
+                    t[m] = HA.modelo(m, self._cfg)
+                except Exception:
+                    pass
+            for eid, cam in fotos.items():
+                try:
+                    f[eid] = 'file://' + HA.baixar(cam, os.path.join(CAMERAS, eid + '.foto'), self._cfg)
+                except Exception:
+                    pass
+            return h, c, t, f
 
         def depois(r):
             if isinstance(r, Exception):
                 return
-            h, c = r
+            h, c, t, f = r
             for k, v in h.items():
                 self._hist[k] = v
                 self._hist['_t_' + k] = time.time()
             self._cams.update(c)
+            if modelos:
+                self._t_tpl = time.time()
+                self._tpl.update(t)
+            self._fotos.update(f)
             self.mudouEstados.emit()
         self._fundo(trabalho, depois)
 
@@ -345,18 +382,101 @@ class Casa(QObject):
             self._p['paineis'].pop(i)
             self._gravar()
 
-    @Slot(int, str, str, 'QVariantList', int)
-    def adicionarCartao(self, painel, tipo, titulo, ents, largura):
-        self._p['paineis'][painel]['cartoes'].append(
-            dict(tipo=tipo, titulo=titulo, ents=[str(e) for e in ents], largura=max(1, min(4, largura))))
+    @staticmethod
+    def _cartao(tipo, titulo, ents, largura, opcoes):
+        c = dict(tipo=tipo, titulo=titulo, ents=[str(e) for e in ents], largura=max(1, min(4, largura)))
+        for k in EXTRAS:
+            if opcoes and opcoes.get(k) not in (None, ''):
+                c[k] = opcoes[k]
+        return c
+
+    @Slot(int, str, str, 'QVariantList', int, 'QVariantMap')
+    def adicionarCartao(self, painel, tipo, titulo, ents, largura, opcoes):
+        self._p['paineis'][painel]['cartoes'].append(self._cartao(tipo, titulo, ents, largura, opcoes))
         self._gravar()
 
-    @Slot(int, int, str, str, 'QVariantList', int)
-    def editarCartao(self, painel, i, tipo, titulo, ents, largura):
+    @Slot(int, int, str, str, 'QVariantList', int, 'QVariantMap')
+    def editarCartao(self, painel, i, tipo, titulo, ents, largura, opcoes):
         c = self._p['paineis'][painel]['cartoes']
         if 0 <= i < len(c):
-            c[i] = dict(tipo=tipo, titulo=titulo, ents=[str(e) for e in ents], largura=max(1, min(4, largura)))
+            novo = self._cartao(tipo, titulo, ents, largura, opcoes)
+            if tipo == c[i]['tipo']:            # o que veio do HA e o diálogo não mostra (mín./máx.) fica
+                for k in ('minimo', 'maximo'):
+                    if k in c[i] and k not in novo:
+                        novo[k] = c[i][k]
+            c[i] = novo
             self._gravar()
+
+    @Slot(int, int, int)
+    def moverPara(self, painel, i, j):
+        """Arrastar: o cartão i passa a ficar na posição j."""
+        c = self._p['paineis'][painel]['cartoes']
+        if 0 <= i < len(c) and 0 <= j < len(c) and i != j:
+            c.insert(j, c.pop(i))
+            self._gravar()
+
+    @Slot(int, int, int)
+    def moverParaPainel(self, painel, i, destino):
+        p = self._p['paineis']
+        if 0 <= painel < len(p) and 0 <= destino < len(p) and painel != destino and 0 <= i < len(p[painel]['cartoes']):
+            p[destino]['cartoes'].append(p[painel]['cartoes'].pop(i))
+            self._gravar()
+
+    @Slot(int, int)
+    def duplicarCartao(self, painel, i):
+        c = self._p['paineis'][painel]['cartoes']
+        if 0 <= i < len(c):
+            c.insert(i + 1, json.loads(json.dumps(c[i])))
+            self._gravar()
+
+    # ---- clonar os painéis do Home Assistant (só o visual) ---------------------------------------
+    @Slot()
+    def listarHA(self):
+        self._ha_msg = 'Procurando os painéis do Home Assistant…'
+        self._ha_paineis = []
+        self.mudou.emit()
+
+        def depois(r):
+            if isinstance(r, Exception):
+                self._ha_msg = 'Não consegui ler os painéis (%s).' % r
+            else:
+                self._ha_paineis, self._ha_msg = r, ''
+            self.mudou.emit()
+        self._fundo(lambda: HA.paineis_ha(self._cfg), depois)
+
+    @Slot(str, bool)
+    def importarHA(self, url, substituir):
+        self._ha_msg = 'Copiando o painel…'
+        self.mudou.emit()
+
+        def depois(r):
+            if isinstance(r, Exception):
+                self._ha_msg = 'Não consegui copiar o painel (%s).' % r
+                self.mudou.emit()
+                return
+            novos, ign = importar.painel(r)
+            if not novos:
+                self._ha_msg = 'Esse painel não tem cartões que o Casa saiba mostrar.'
+                self.mudou.emit()
+                return
+            if substituir:
+                self._p['paineis'] = novos
+            else:
+                nomes = {p['nome'] for p in self._p['paineis']}
+                for p in novos:
+                    while p['nome'] in nomes:
+                        p['nome'] += ' (HA)'
+                    nomes.add(p['nome'])
+                self._p['paineis'] += novos
+            n = sum(len(p['cartoes']) for p in novos)
+            self._ha_msg = '✓ %d %s e %d cartões copiados.' % (len(novos), 'separador' if len(novos) == 1 else 'separadores', n)
+            if ign:
+                tipos = sorted(set(ign))
+                self._ha_msg += ' Ficaram de fora %d (%s).' % (len(ign), ', '.join(tipos[:6]) + ('…' if len(tipos) > 6 else ''))
+            self._t_tpl = 0
+            self._gravar()
+            self.mudou.emit()
+        self._fundo(lambda: HA.config_painel(url or None, self._cfg), depois)
 
     @Slot(int, int)
     def apagarCartao(self, painel, i):

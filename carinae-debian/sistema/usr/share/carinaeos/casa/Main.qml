@@ -51,7 +51,10 @@ ApplicationWindow {
         if (d === "lock") return s === "locked" ? "#4caf50" : s === "unlocked" ? "#f44336" : ""
         if (d === "climate") return ({ heat: "#ff7043", cool: "#29b6f6", heat_cool: "#4caf50", auto: "#4caf50", dry: "#ff9800", fan_only: "#00bcd4" })[s] || ""
         if (d === "alarm_control_panel") return s === "disarmed" ? "" : s === "triggered" ? "#f44336" : "#4caf50"
-        if (d === "person") return s === "home" ? "#4caf50" : ""
+        if (d === "person" || d === "device_tracker") return s === "home" ? "#4caf50" : ""
+        if (d === "sun") return s === "above_horizon" ? "#ffb300" : "#7e57c2"
+        if (d === "update") return s === "on" ? "#ff9800" : ""
+        if (d === "timer") return s === "active" ? "#03a9f4" : ""
         if (["scene", "script", "button", "input_button", "automation", "camera", "input_number", "number", "select", "input_select"].indexOf(d) !== -1) return "#03a9f4"
         if (!ligadoE(e)) return ""
         if (d === "light" && e.rgb && e.rgb.length === 3) return rgbHex(e.rgb)     // a cor real da lâmpada, como no HA
@@ -114,6 +117,20 @@ ApplicationWindow {
         case "water_heater": return "water-boiler"
         case "input_number": case "number": return "ray-vertex"
         case "select": case "input_select": return "format-list-bulleted"
+        case "device_tracker": return on ? "cellphone" : "cellphone-off"
+        case "sun": return s === "above_horizon" ? "white-balance-sunny" : "weather-night"
+        case "update": return on ? "package-up" : "package"
+        case "counter": return "counter"
+        case "timer": return "timer-outline"
+        case "siren": return "bullhorn"
+        case "valve": return "valve"
+        case "input_text": case "text": return "form-textbox"
+        case "input_datetime": return "calendar-clock"
+        case "calendar": return "calendar"
+        case "todo": return "clipboard-list"
+        case "event": return "gesture-tap"
+        case "image": return "image"
+        case "zone": return "map-marker-radius"
         }
         return "help-circle-outline"
     }
@@ -134,8 +151,11 @@ ApplicationWindow {
                      heat: "Aquecendo", cool: "Resfriando", heat_cool: "Automático", auto: "Automático", dry: "Desumidificando",
                      fan_only: "Só ventilação", cleaning: "Limpando", docked: "Na base", returning: "Voltando à base",
                      disarmed: "Desarmado", armed_home: "Armado em casa", armed_away: "Armado fora", armed_night: "Armado à noite",
-                     triggered: "Disparado" })[e.estado]
+                     triggered: "Disparado", above_horizon: "Acima do horizonte", below_horizon: "Abaixo do horizonte",
+                     active: "Ativo" })[e.estado]
+        if (e.dominio === "update") return e.estado === "on" ? "Atualização disponível" : "Atualizado"
         if (t) {
+            if (e.dominio === "timer" && e.estado === "idle") return "Parado"
             if (e.dominio === "light" && e.estado === "on") return "Acesa"
             if (e.dominio === "light" && e.estado === "off") return "Apagada"
             if (e.dominio === "cover") return ({ open: "Aberta", closed: "Fechada" })[e.estado] || t
@@ -203,6 +223,7 @@ ApplicationWindow {
                 Repeater {
                     model: [{ id: "casa", i: "view-dashboard", n: "Visão geral" },
                             { id: "pc", i: "monitor", n: "Este computador" },
+                            { id: "copiar", i: "content-copy", n: "Copiar do Home Assistant" },
                             { id: "web", i: "open-in-new", n: "Home Assistant" }]
                     delegate: Item {
                         required property var modelData
@@ -217,7 +238,7 @@ ApplicationWindow {
                         Text { x: 64; anchors.verticalCenter: parent.verticalCenter; visible: !lado.estreita; text: modelData.n; font.pixelSize: 14; font.weight: Font.DemiBold
                                color: parent.ativo ? janela.primaria : janela.texto; width: parent.width - 76; elide: Text.ElideRight }
                         MouseArea { id: ml; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                    onClicked: modelData.id === "web" ? casa.abrirNoNavegador() : janela.separador = modelData.id }
+                                    onClicked: modelData.id === "web" ? casa.abrirNoNavegador() : modelData.id === "copiar" ? dlgImportar.abrir() : janela.separador = modelData.id }
                         ToolTip.visible: lado.estreita && ml.containsMouse; ToolTip.text: modelData.n
                     }
                 }
@@ -299,6 +320,20 @@ ApplicationWindow {
                 id: grade
                 x: 16; y: 16; width: rolar.width - 32; height: altura
                 property real altura: 0
+                property int arrastado: -1
+                property int alvo: -1
+                // o cartão que fica por baixo de um ponto (para largar o que se arrasta)
+                function indiceEm(px, py, fora) {
+                    let melhor = -1, dist = Infinity
+                    for (let i = 0; i < rep.count; i++) {
+                        const it = rep.itemAt(i)
+                        if (!it || i === fora) continue
+                        if (px >= it.x && px <= it.x + it.width && py >= it.y && py <= it.y + it.height) return i
+                        const dx = px - (it.x + it.width / 2), dy = py - (it.y + it.height / 2), d = dx * dx + dy * dy
+                        if (d < dist) { dist = d; melhor = i }
+                    }
+                    return melhor
+                }
                 readonly property int colunas: Math.max(1, Math.min(4, Math.floor((width + 8) / 318)))
                 readonly property real col: (width - (colunas - 1) * 8) / colunas
                 onColunasChanged: Qt.callLater(arrumar)
@@ -309,7 +344,7 @@ ApplicationWindow {
                     for (let j = 0; j < colunas; j++) h.push(0)
                     for (let i = 0; i < rep.count; i++) {
                         const it = rep.itemAt(i)
-                        if (!it) continue
+                        if (!it || i === arrastado) continue
                         const w = Math.min(colunas, it.largura)
                         let melhor = 0, melhorY = Infinity
                         for (let j = 0; j + w <= colunas; j++) {
@@ -327,14 +362,33 @@ ApplicationWindow {
                     onItemAdded: Qt.callLater(grade.arrumar)
                     onItemRemoved: Qt.callLater(grade.arrumar)
                     delegate: Cartao {
+                        id: ct
                         required property var modelData
                         required property int index
                         dados: modelData; indice: index; editar: janela.editar
+                        alvo: grade.alvo === index && grade.arrastado !== index
                         height: implicitHeight
                         onHeightChanged: Qt.callLater(grade.arrumar)
                         onPedirApagar: casa.apagarCartao(janela.painel, index)
                         onPedirMover: (para) => casa.moverCartao(janela.painel, index, para)
+                        onPedirDuplicar: casa.duplicarCartao(janela.painel, index)
                         onPedirEditar: dlgCartao.abrir(index)
+                        // no modo de edição, arrasta-se o cartão para onde se quiser
+                        MouseArea {
+                            anchors.fill: parent; z: 10
+                            enabled: janela.editar
+                            cursorShape: drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                            drag.target: ct; drag.threshold: 6
+                            onPressed: { ct.z = 100; ct.opacity = 0.85; grade.arrastado = ct.index }
+                            onPositionChanged: if (drag.active) grade.alvo = grade.indiceEm(ct.x + ct.width / 2, ct.y + Math.min(ct.height / 2, 60), ct.index)
+                            onReleased: {
+                                const de = ct.index, para = grade.alvo
+                                ct.z = 0; ct.opacity = 1; grade.arrastado = -1; grade.alvo = -1
+                                if (para >= 0 && para !== de) casa.moverPara(janela.painel, de, para)
+                                else grade.arrumar()
+                            }
+                            onCanceled: { ct.z = 0; ct.opacity = 1; grade.arrastado = -1; grade.alvo = -1; grade.arrumar() }
+                        }
                     }
                 }
             }
@@ -569,15 +623,27 @@ ApplicationWindow {
         property string tipo: "botao"
         property var escolhidas: []
         property int largura: 1
+        property string estilo: ""
+        property string alinhar: ""
         readonly property var info: casa.tipos.find(t => t.id === tipo) || casa.tipos[0]
         function abrir(i) {
             indice = i
             if (i >= 0) {
                 const c = casa.paineis[janela.painel].cartoes[i]
                 tipo = c.tipo; escolhidas = c.ents.slice(); largura = c.largura; tituloC.text = c.titulo
-            } else { tipo = "botao"; escolhidas = []; largura = 1; tituloC.text = "" }
+                estilo = c.estilo || ""; alinhar = c.alinhar || ""
+                minC.text = c.minimo !== undefined ? String(c.minimo) : ""; maxC.text = c.maximo !== undefined ? String(c.maximo) : ""
+            } else { tipo = "botao"; escolhidas = []; largura = 1; tituloC.text = ""; estilo = ""; alinhar = ""; minC.text = ""; maxC.text = "" }
             procura.text = ""
             open()
+        }
+        function opcoes() {
+            const o = { estilo: estilo, alinhar: alinhar }
+            if (tipo === "medidor") {
+                if (minC.text !== "" && !isNaN(parseFloat(minC.text))) o.minimo = parseFloat(minC.text.replace(",", "."))
+                if (maxC.text !== "" && !isNaN(parseFloat(maxC.text))) o.maximo = parseFloat(maxC.text.replace(",", "."))
+            }
+            return o
         }
         function alternarEnt(eid) {
             const l = escolhidas.slice(), k = l.indexOf(eid)
@@ -610,7 +676,11 @@ ApplicationWindow {
                         Text { text: modelData.desc; color: janela.textoSuave; font.pixelSize: 11; width: parent.width; elide: Text.ElideRight }
                     }
                     MouseArea { id: tm; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                onClicked: { dlgCartao.tipo = modelData.id; if (modelData.max === 1 && dlgCartao.escolhidas.length > 1) dlgCartao.escolhidas = dlgCartao.escolhidas.slice(0, 1) } }
+                                onClicked: {
+                                    if (dlgCartao.tipo !== modelData.id) dlgCartao.estilo = modelData.estilos ? modelData.estilos[0][0] : ""
+                                    dlgCartao.tipo = modelData.id
+                                    if (modelData.max === 1 && dlgCartao.escolhidas.length > 1) dlgCartao.escolhidas = dlgCartao.escolhidas.slice(0, 1)
+                                } }
                 }
             }
             Rectangle { x: 294; y: 66; width: 1; height: parent.height - 78; color: Qt.rgba(1, 1, 1, 0.08) }
@@ -621,7 +691,28 @@ ApplicationWindow {
                     id: opc
                     width: parent.width; spacing: 12
                     Campo { id: tituloC; width: parent.width
-                            placeholderText: dlgCartao.tipo === "texto" ? "Título (use {saudacao} e {nome}; uma 2.ª linha vira subtítulo)" : "Nome ou título (opcional)" }
+                            placeholderText: dlgCartao.tipo === "texto" ? "Texto: {saudacao}, {nome} ou modelos do HA como {{ states('sensor.x') }}"
+                                           : dlgCartao.tipo === "imagem" ? "Endereço da imagem (https://… ou /local/foto.jpg do HA)"
+                                           : dlgCartao.tipo === "relogio" ? "Legenda (opcional)" : "Nome ou título (opcional)" }
+                    Row {
+                        visible: !!dlgCartao.info.estilos || dlgCartao.tipo === "texto" || dlgCartao.tipo === "chips"
+                        spacing: 8
+                        Text { text: "Modelo"; color: janela.textoSuave; anchors.verticalCenter: parent.verticalCenter; rightPadding: 4 }
+                        Repeater {
+                            model: dlgCartao.info.estilos || []
+                            delegate: Pilula { required property var modelData; texto: modelData[1]; sel: dlgCartao.estilo === modelData[0]; onClicado: dlgCartao.estilo = modelData[0] }
+                        }
+                        Item { width: 12; height: 1; visible: dlgCartao.tipo === "texto" || dlgCartao.tipo === "chips" }
+                        Repeater {
+                            model: dlgCartao.tipo === "texto" || dlgCartao.tipo === "chips" ? [["", "format-align-left"], ["centro", "format-align-center"], ["direita", "format-align-right"]] : []
+                            delegate: Pilula { required property var modelData; icone: modelData[1]; sel: dlgCartao.alinhar === modelData[0]; onClicado: dlgCartao.alinhar = modelData[0] }
+                        }
+                    }
+                    Row {
+                        visible: dlgCartao.tipo === "medidor"; spacing: 8; width: parent.width
+                        Campo { id: minC; width: (parent.width - 8) / 2; placeholderText: "Mínimo (0)" }
+                        Campo { id: maxC; width: (parent.width - 8) / 2; placeholderText: "Máximo (automático)" }
+                    }
                     Row {
                         spacing: 8
                         Text { text: "Largura"; color: janela.textoSuave; anchors.verticalCenter: parent.verticalCenter; rightPadding: 4 }
@@ -672,10 +763,10 @@ ApplicationWindow {
                     Botao { texto: "Cancelar"; plano: true; onClicado: dlgCartao.close() }
                     Botao {
                         texto: dlgCartao.indice >= 0 ? "Salvar" : "Adicionar"; principal: true
-                        ativo: dlgCartao.info.max === 0 ? tituloC.text !== "" : dlgCartao.escolhidas.length > 0
+                        ativo: dlgCartao.info.semTexto || (dlgCartao.info.max === 0 ? tituloC.text !== "" : dlgCartao.escolhidas.length > 0)
                         onClicado: {
-                            if (dlgCartao.indice >= 0) casa.editarCartao(janela.painel, dlgCartao.indice, dlgCartao.tipo, tituloC.text, dlgCartao.escolhidas, dlgCartao.largura)
-                            else casa.adicionarCartao(janela.painel, dlgCartao.tipo, tituloC.text, dlgCartao.escolhidas, dlgCartao.largura)
+                            if (dlgCartao.indice >= 0) casa.editarCartao(janela.painel, dlgCartao.indice, dlgCartao.tipo, tituloC.text, dlgCartao.escolhidas, dlgCartao.largura, dlgCartao.opcoes())
+                            else casa.adicionarCartao(janela.painel, dlgCartao.tipo, tituloC.text, dlgCartao.escolhidas, dlgCartao.largura, dlgCartao.opcoes())
                             dlgCartao.close()
                         }
                     }
@@ -684,7 +775,61 @@ ApplicationWindow {
         }
     }
 
+    // ---- copiar um painel do Home Assistant (só o visual; o HA continua a mandar nos aparelhos) -------------------
+    Popup {
+        id: dlgImportar
+        objectName: "dlgImportar"
+        function abrir() { substituir.ligado = false; casa.listarHA(); open() }
+        modal: true; anchors.centerIn: parent
+        width: Math.min(parent.width - 60, 520); height: Math.min(parent.height - 60, impCol.implicitHeight + 48); padding: 24
+        Overlay.modal: Rectangle { color: Qt.rgba(0, 0, 0, 0.55) }
+        background: Rectangle { radius: 24; color: "#262626" }
+        contentItem: Column {
+            id: impCol
+            spacing: 14
+            Text { text: "Copiar do Home Assistant"; color: janela.texto; font.pixelSize: 22 }
+            Text {
+                width: parent.width; wrapMode: Text.WordWrap; color: janela.textoSuave; font.pixelSize: 13
+                text: "Traz os separadores e os cartões de um painel do Home Assistant para o Casa, onde pode mudá-los à vontade. Só a parte visual é copiada: aparelhos, automações e o painel original continuam iguais no Home Assistant."
+            }
+            Repeater {
+                model: casa.haPaineis
+                delegate: Rectangle {
+                    required property var modelData
+                    width: impCol.width; height: 56; radius: 12; color: Qt.rgba(1, 1, 1, 0.04)
+                    Text { x: 16; anchors.verticalCenter: parent.verticalCenter; text: janela.ic("view-dashboard"); font.family: "Material Design Icons"; font.pixelSize: 22; color: janela.primaria }
+                    Text { x: 50; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 50 - cp.width - 24; elide: Text.ElideRight
+                           text: modelData.titulo; color: janela.texto; font.pixelSize: 15 }
+                    Botao { id: cp; anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
+                            texto: "Copiar"; icone: "content-copy"; onClicado: casa.importarHA(modelData.url || "", substituir.ligado) }
+                }
+            }
+            Row {
+                spacing: 12
+                Interruptor { id: substituir; anchors.verticalCenter: parent.verticalCenter; onAlternado: ligado = !ligado }
+                Text { anchors.verticalCenter: parent.verticalCenter; text: "Substituir os painéis do Casa (em vez de acrescentar)"; color: janela.texto; font.pixelSize: 13 }
+            }
+            Text { visible: casa.haMsg !== ""; width: parent.width; wrapMode: Text.WordWrap; text: casa.haMsg; font.pixelSize: 13
+                   color: casa.haMsg.startsWith("✓") ? "#66bb6a" : casa.haMsg.startsWith("Não") ? "#ef5350" : janela.textoSuave }
+            Botao { anchors.right: parent.right; texto: "Fechar"; plano: true; onClicado: { dlgImportar.close(); janela.painel = Math.min(janela.painel, casa.paineis.length - 1) } }
+        }
+    }
+
     // ---- peças comuns ---------------------------------------------------------------------------------------
+    component Pilula: Rectangle {
+        id: pl
+        property string texto: ""
+        property string icone: ""
+        property bool sel: false
+        signal clicado()
+        width: (icone !== "" ? 44 : lp2.implicitWidth + 28); height: 32; radius: 16
+        color: sel ? Qt.rgba(0.012, 0.663, 0.957, 0.2) : Qt.rgba(1, 1, 1, 0.06)
+        border.width: sel ? 1 : 0; border.color: janela.primaria
+        Text { id: lp2; anchors.centerIn: parent; text: pl.icone !== "" ? janela.ic(pl.icone) : pl.texto
+               font.family: pl.icone !== "" ? "Material Design Icons" : "Inter"; font.pixelSize: pl.icone !== "" ? 18 : 13; font.weight: Font.DemiBold
+               color: pl.sel ? janela.primaria : janela.texto }
+        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: pl.clicado() }
+    }
     component Campo: TextField {
         color: janela.texto; placeholderTextColor: janela.textoSuave; selectByMouse: true
         leftPadding: 14; rightPadding: 14; topPadding: 14; bottomPadding: 14
