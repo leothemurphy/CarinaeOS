@@ -173,6 +173,7 @@ mpc
 python3-mpd
 python3-mutagen
 mpdris2
+systemd-zram-generator
 # AppImages com dois cliques (carinaeos-appimage); as bibliotecas dos fatiadores 3D (WebKitGTK,
 # GStreamer, GLU) instalam-se quando um deles é aberto pela primeira vez
 libfuse2t64

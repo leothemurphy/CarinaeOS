@@ -25,7 +25,8 @@ as Configurações, a Central, uma loja de aplicativos e o instalador, tudo feit
 - 🪟 **Fácil para quem vem do Windows**: traz os seus arquivos, mostra os programas equivalentes e abre os `.exe`,
   e muitos programas do Windows feitos com Electron passam a rodar **nativos**, sem Wine.
 - 🐢 **Leve em computadores antigos**: detecta placas e processadores mais fracos e liga o **modo leve** sozinho;
-  instala o driver certo para NVIDIA antigas (Kepler) com Secure Boot.
+  instala o driver certo para NVIDIA antigas (Kepler) com Secure Boot; **memória comprimida (zram)** e a proteção
+  do kernel contra travamentos ligadas de fábrica, e um disco mecânico (HD) é detectado e afinado sozinho.
 - ✦ **Identidade própria**: nada de imitar outro sistema à risca. A Dock tem vários modelos (Fluent por padrão),
   o Launchpad organiza por ambientes com cores e o Deck dá ações de um toque.
 
