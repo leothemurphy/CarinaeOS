@@ -4,6 +4,7 @@
 Nada vem instalado: na primeira vez, oferece instalar o Bottles (Flathub, na conta do usuário)
 ou procurar uma alternativa para Linux na Órbita. Depois, abre direto no Bottles.
   carinaeos-exe ARQUIVO.exe
+  carinaeos-exe --atalhos     põe no Launchpad os programas já instalados na garrafa
 """
 import glob
 import json
@@ -125,8 +126,110 @@ def abrir_no_bottles(arquivo):
     subprocess.Popen(['notify-send', '-a', 'Bottles', '-i', 'com.usebottles.bottles',
                       'Abrindo %s' % os.path.basename(arquivo), 'No Bottles, na garrafa “%s”. A primeira vez demora um pouco.' % nome],
                      start_new_session=True)
-    os.execvp('flatpak', ['flatpak', 'run', '--file-forwarding', '--command=bottles-cli', BOTTLES,
-                          'run', '-b', nome, '-e', '@@', arquivo, '@@'])
+    # se for um instalador: os programas que aparecerem na garrafa vão para o Launchpad no fim
+    c = drive_c(nome)
+    antes = exes_da_garrafa(c)
+    subprocess.run(['flatpak', 'run', '--file-forwarding', '--command=bottles-cli', BOTTLES,
+                    'run', '-b', nome, '-e', '@@', arquivo, '@@'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    novos = [e for e in exes_da_garrafa(c) - antes if not IGNORAR.search(os.path.basename(e))]
+    if novos:
+        feitos = [atalho(nome, c, e) for e in sorted(novos, key=lambda x: -os.path.getsize(x))[:3]]
+        subprocess.run(['kbuildsycoca6'], capture_output=True)
+        subprocess.Popen(['notify-send', '-a', 'CarinaeOS', '-i', 'emblem-ok-symbolic',
+                          'No Launchpad ✓', '%s: abre como os outros aplicativos (pelo Bottles).' % ', '.join(feitos)],
+                         start_new_session=True)
+    sys.exit(0)
+
+
+# ---- programas instalados numa garrafa -> Launchpad ----------------------------------------------------
+IGNORAR = re.compile(r'(?i)(unins|uninstall|update|updater|crash|helper|elevate|setup|install|squirrel|'
+                     r'redist|vcredist|dxsetup|notification|reporter)')
+
+
+def drive_c(garrafa):
+    return os.path.expanduser('~/.var/app/%s/data/bottles/bottles/%s/drive_c' % (BOTTLES, garrafa))
+
+
+def exes_da_garrafa(c):
+    """Os .exe nos sítios onde os instaladores põem os programas."""
+    r = set()
+    sitios = [os.path.join(c, 'Program Files'), os.path.join(c, 'Program Files (x86)')] + \
+        glob.glob(os.path.join(c, 'users', '*', 'AppData', 'Local', 'Programs')) + \
+        glob.glob(os.path.join(c, 'users', '*', 'AppData', 'Local', '*'))
+    for s in sitios:
+        if not os.path.isdir(s):
+            continue
+        for raiz, pastas, arquivos in os.walk(s):
+            if raiz.count(os.sep) - s.count(os.sep) > 3:
+                pastas[:] = []
+                continue
+            pastas[:] = [p for p in pastas if p.lower() not in ('windows', 'common files', 'internet explorer',
+                                                                  'windows nt', 'windows media player', 'temp', 'microsoft')]
+            for a in arquivos:
+                if a.lower().endswith('.exe'):
+                    r.add(os.path.join(raiz, a))
+    return r
+
+
+def normalizar(t):
+    return re.sub(r'[^a-z0-9]', '', t.lower())
+
+
+def nome_do_menu(c, exe):
+    """O nome do atalho que o instalador criou no Menu Iniciar (o .lnk), se combinar com o .exe."""
+    alvo = normalizar(os.path.splitext(os.path.basename(exe))[0])
+    pasta = normalizar(os.path.basename(os.path.dirname(exe)))
+    for lnk in glob.glob(os.path.join(c, '**', 'Start Menu', '**', '*.lnk'), recursive=True):
+        n = os.path.splitext(os.path.basename(lnk))[0]
+        if IGNORAR.search(n):
+            continue
+        k = normalizar(n)
+        if k and (k in alvo or alvo in k or k in pasta or pasta in k):
+            return n
+    return os.path.splitext(os.path.basename(exe))[0]
+
+
+def icone_do_exe(exe, destino):
+    """O maior ícone guardado no .exe (recursos do Windows), em PNG."""
+    import struct
+    try:
+        lista = subprocess.run(['7z', 'l', '-ba', exe], capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ''
+    icones = [(int(l.split()[-2]) if l.split()[-2].isdigit() else 0, l.split()[-1]) for l in lista.splitlines()
+              if '.rsrc' in l and '/ICON/' in l.replace('\\', '/')]
+    for _, nome in sorted(icones, reverse=True):
+        try:
+            dados = subprocess.run(['7z', 'e', '-so', exe, nome], capture_output=True, timeout=30).stdout
+            if dados[:8] == b'\x89PNG\r\n\x1a\n':
+                open(destino, 'wb').write(dados)
+                return destino
+            # bitmap do Windows sem cabeçalho: embrulha-se num .ico para o PIL o ler
+            larg, alt2, _, bits = struct.unpack('<iiHH', dados[4:16])
+            ico = struct.pack('<HHH', 0, 1, 1) + struct.pack('<BBBBHHII', larg % 256, (alt2 // 2) % 256, 0, 0, 1, bits,
+                                                             len(dados), 22) + dados
+            import io
+            from PIL import Image
+            Image.open(io.BytesIO(ico)).save(destino)
+            return destino
+        except Exception:
+            continue
+    return ''
+
+
+def atalho(garrafa, c, exe):
+    nome = nome_do_menu(c, exe)
+    ident = re.sub(r'[^a-z0-9]+', '-', nome.lower()).strip('-') or 'programa'
+    pasta_ic = os.path.expanduser('~/.local/share/icons/carinaeos-windows')
+    os.makedirs(pasta_ic, exist_ok=True)
+    icone = icone_do_exe(exe, os.path.join(pasta_ic, ident + '.png')) or 'application-x-ms-dos-executable'
+    apps = os.path.expanduser('~/.local/share/applications')
+    os.makedirs(apps, exist_ok=True)
+    with open(os.path.join(apps, 'carinaeos-windows-%s.desktop' % ident), 'w', encoding='utf-8') as f:
+        f.write('[Desktop Entry]\nType=Application\nName=%s\nComment=Programa do Windows (Bottles · %s)\n'
+                'Exec=flatpak run --command=bottles-cli %s run -b "%s" -e "%s"\nIcon=%s\nCategories=Utility;Wine;\n'
+                'StartupWMClass=%s\n' % (nome, garrafa, BOTTLES, garrafa, exe, icone, os.path.basename(exe).lower()))
+    return nome
 
 
 def nome_para_procurar(arquivo):
@@ -288,6 +391,13 @@ def main():
     if len(sys.argv) < 2:
         print(__doc__)
         return 2
+    if sys.argv[1] == '--atalhos':
+        # programas já instalados na garrafa que ainda não estão no Launchpad
+        c = drive_c(GARRAFA)
+        feitos = [atalho(GARRAFA, c, e) for e in sorted(exes_da_garrafa(c)) if not IGNORAR.search(os.path.basename(e))]
+        subprocess.run(['kbuildsycoca6'], capture_output=True)
+        print('No Launchpad: ' + (', '.join(feitos) or 'nada'))
+        return 0
     arquivo = os.path.abspath(sys.argv[1])
     # primeiro: é um app Electron que corre no Linux? então a versão nativa, sem Wine
     ref = progresso('Vendo que programa é…')
