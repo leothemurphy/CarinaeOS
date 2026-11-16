@@ -119,13 +119,18 @@ def partilhas():
     for l in out.splitlines():
         m = re.match(r'^\[(.+)\]$', l.strip())
         if m:
-            atual = dict(nome=m.group(1), caminho='', escrita=False)
+            atual = dict(nome=m.group(1), caminho='', escrita=False, livre=False)
             r.append(atual)
         elif atual and l.startswith('path='):
             atual['caminho'] = l[5:]
         elif atual and l.startswith('usershare_acl='):
             atual['escrita'] = ':F' in l
+        elif atual and l.startswith('guest_ok='):
+            atual['livre'] = l.strip().lower().endswith('y')
     return r
+
+
+SENHA_REDE = os.path.join(HOME, '.config/carinaeos/senha-rede-definida')
 
 
 def sobre():
@@ -269,6 +274,8 @@ class Config(QObject):
                 e['sambaInstalado'] = os.path.exists('/usr/sbin/smbd')
                 e['samba'] = e['sambaInstalado'] and cmd(['systemctl', 'is-active', 'smbd']) == 'active'
                 e['partilhas'] = partilhas() if e['sambaInstalado'] else []
+                e['senhaRede'] = os.path.exists(SENHA_REDE)
+                e['usuario'] = os.environ.get('USER') or os.path.basename(HOME)
                 e['nomePc'] = socket.gethostname()
                 e['ssh'] = -1 if not os.path.exists('/usr/sbin/sshd') else (1 if cmd(['systemctl', 'is-active', 'ssh']) == 'active' else 0)
                 e['ip'] = cmd(['hostname', '-I']).split()[:2]
@@ -538,24 +545,49 @@ class Config(QObject):
     def ativarPartilha(self):
         self.definirPartilha(True)
 
-    @Slot(str, bool)
-    def partilharPasta(self, caminho, escrita):
+    @Slot(str, str)
+    def partilharPasta(self, caminho, modo):
+        """modo: 'ro' / 'rw' (com a senha da rede) ou 'livre' (sem senha, só leitura)."""
         if caminho.startswith('file://'):
             from urllib.parse import unquote
             caminho = unquote(caminho[7:])
+        if modo not in ('ro', 'rw', 'livre'):
+            modo = 'ro'
         nome = re.sub(r'[^A-Za-z0-9_-]', '_', os.path.basename(caminho.rstrip('/')) or 'pasta')[:40]
-        acl = 'Everyone:F' if escrita else 'Everyone:R'
-        r = subprocess.run(['net', 'usershare', 'add', nome, caminho, 'Compartilhada pelo CarinaeOS', acl, 'guest_ok=y'],
+        acl = 'Everyone:F' if modo == 'rw' else 'Everyone:R'
+        guest = 'guest_ok=y' if modo == 'livre' else 'guest_ok=n'
+        r = subprocess.run(['net', 'usershare', 'add', nome, caminho, 'Compartilhada pelo CarinaeOS', acl, guest],
                            capture_output=True, text=True)
         if r.returncode != 0:
             # ainda sem permissao na sessao atual (grupo novo): faz-se como administrador
-            r = subprocess.run(['pkexec', '/usr/lib/carinaeos/partilha', 'pasta', nome, caminho, 'rw' if escrita else 'ro',
+            r = subprocess.run(['pkexec', '/usr/lib/carinaeos/partilha', 'pasta', nome, caminho, modo,
                                 os.environ.get('USER') or ''], capture_output=True, text=True)
-        if r.returncode == 0 and escrita:
-            subprocess.run(['chmod', 'o+rwx', caminho])
-        self._aviso(('“%s” está compartilhada na rede ✓' % nome) if r.returncode == 0
-                    else 'Não foi possível compartilhar: ' + (r.stderr.strip() or r.stdout.strip())[:120])
+        if r.returncode == 0 and modo != 'livre' and not os.path.exists(SENHA_REDE):
+            self._aviso('“%s” está compartilhada ✓ Falta escolher a senha da rede (abaixo) para os outros entrarem.' % nome)
+        else:
+            self._aviso(('“%s” está compartilhada na rede ✓' % nome) if r.returncode == 0
+                        else 'Não foi possível compartilhar: ' + (r.stderr.strip() or r.stdout.strip())[:120])
         self.ler('partilha')
+
+    @Slot(str)
+    def definirSenhaRede(self, senha):
+        if len(senha) < 4:
+            self._aviso('A senha tem de ter pelo menos 4 caracteres.')
+            return
+        u = os.environ.get('USER') or os.path.basename(HOME)
+
+        def depois(r):
+            if not isinstance(r, Exception) and r.returncode == 0:
+                os.makedirs(os.path.dirname(SENHA_REDE), exist_ok=True)
+                open(SENHA_REDE, 'w').close()
+                self._aviso('Senha da rede definida ✓ Nos outros computadores, entre com “%s” e essa senha.' % u)
+            else:
+                erro = '' if isinstance(r, Exception) else (r.stderr or b'').decode(errors='ignore').strip()
+                self._aviso('Não foi possível: ' + (erro[-120:] or 'autorização recusada'))
+            self.ler('partilha')
+        # a senha vai pela entrada do processo (nunca na linha de comando, que outros podem ver)
+        self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/partilha', 'senha', u],
+                                           input=(senha + '\n').encode(), capture_output=True, timeout=600), depois)
 
     @Slot(str)
     def deixarDePartilhar(self, nome):
@@ -564,13 +596,13 @@ class Config(QObject):
 
     pastaEscolhida = Signal(str, bool)
 
-    @Slot(bool)
-    def escolherPastaPartilhar(self, escrita):
+    @Slot(str)
+    def escolherPastaPartilhar(self, modo):
         def t():
             r = subprocess.run(['kdialog', '--title', 'Escolha a pasta a compartilhar', '--getexistingdirectory', HOME],
                                capture_output=True, text=True)
             if r.returncode == 0 and r.stdout.strip():
-                self._chegou.emit(lambda c: self.partilharPasta(c, escrita), r.stdout.strip())
+                self._chegou.emit(lambda c: self.partilharPasta(c, modo), r.stdout.strip())
         threading.Thread(target=t, daemon=True).start()
 
     # ---- Dock -----------------------------------------------------------------------------------------

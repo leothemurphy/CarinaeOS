@@ -2,7 +2,10 @@
 # CarinaeOS - partilha de pastas com a rede (Samba). Corre como root (pkexec).
 #   partilha ligar UTILIZADOR                      -> instala/liga o Samba e deixa o utilizador partilhar
 #   partilha desligar                              -> desliga o Samba
-#   partilha pasta NOME CAMINHO ro|rw UTILIZADOR   -> partilha uma pasta (quando o utilizador ainda nao pode)
+#   partilha pasta NOME CAMINHO ro|rw|livre UTILIZADOR -> partilha uma pasta (quando o utilizador ainda nao pode)
+#   partilha senha UTILIZADOR                      -> senha da rede (Samba) do utilizador, lida da entrada
+# Por segurança: com senha (só o dono da pasta, com a senha da rede) por omissão; sem senha só em
+# leitura ("livre"). Nunca se mudam as permissões das pastas.
 set -e
 preparar() {
   if [ ! -x /usr/sbin/smbd ]; then
@@ -14,8 +17,10 @@ preparar() {
   mkdir -p /var/lib/samba/usershares
   chgrp sambashare /var/lib/samba/usershares && chmod 1770 /var/lib/samba/usershares
   if ! grep -q 'usershare allow guests' /etc/samba/smb.conf; then
-    sed -i 's/^\[global\]$/[global]\n   usershare path = \/var\/lib\/samba\/usershares\n   usershare max shares = 100\n   usershare allow guests = yes\n   usershare owner only = no\n   map to guest = bad user/' /etc/samba/smb.conf
+    sed -i 's/^\[global\]$/[global]\n   usershare path = \/var\/lib\/samba\/usershares\n   usershare max shares = 100\n   usershare allow guests = yes\n   usershare owner only = yes\n   map to guest = bad user/' /etc/samba/smb.conf
   fi
+  # versões antigas: só o dono de cada pasta a pode compartilhar
+  sed -i 's/^\(\s*usershare owner only\s*=\s*\)no/\1yes/' /etc/samba/smb.conf
   # firewall, se estiver ligada
   /usr/lib/carinaeos/firewall abrir partilha 2>/dev/null || true
 }
@@ -35,11 +40,30 @@ case "$1" in
   pasta)
     preparar
     NOME="$2"; CAM="$3"; MODO="$4"; U="$5"
-    ACL="Everyone:R"; [ "$MODO" = rw ] && ACL="Everyone:F"
-    net usershare add "$NOME" "$CAM" "Compartilhada pelo CarinaeOS" "$ACL" guest_ok=y
-    [ -n "$U" ] && chown "$U" "/var/lib/samba/usershares/$(echo "$NOME" | tr 'A-Z' 'a-z')" 2>/dev/null || true
-    [ "$MODO" = rw ] && chmod o+rwx "$CAM" || true
+    case "$NOME" in *[!A-Za-z0-9_-]*|"") echo "nome inválido" >&2; exit 2 ;; esac
+    [ -d "$CAM" ] && [ "$CAM" != / ] || { echo "pasta inválida" >&2; exit 2; }
+    case "$MODO" in
+      rw) ACL="Everyone:F"; G=guest_ok=n ;;
+      ro) ACL="Everyone:R"; G=guest_ok=n ;;
+      livre) ACL="Everyone:R"; G=guest_ok=y ;;
+      *) echo "modo inválido" >&2; exit 2 ;;
+    esac
+    if [ -n "$U" ] && id "$U" >/dev/null 2>&1; then
+      su -s /bin/sh "$U" -c 'net usershare add "$1" "$2" "Compartilhada pelo CarinaeOS" "$3" "$4"' -- sh "$NOME" "$CAM" "$ACL" "$G" \
+        || net usershare add "$NOME" "$CAM" "Compartilhada pelo CarinaeOS" "$ACL" "$G"
+    else
+      net usershare add "$NOME" "$CAM" "Compartilhada pelo CarinaeOS" "$ACL" "$G"
+    fi
     systemctl enable --now smbd >/dev/null 2>&1 || true
     ;;
-  *) echo "uso: $0 ligar USUÁRIO | desligar | pasta NOME CAMINHO ro|rw USUÁRIO" >&2; exit 2 ;;
+  senha)
+    U="$2"
+    id "$U" >/dev/null 2>&1 && [ "$(id -u "$U")" -ge 1000 ] || { echo "usuário inválido" >&2; exit 2; }
+    command -v smbpasswd >/dev/null || preparar
+    IFS= read -r S || true
+    [ ${#S} -ge 4 ] || { echo "senha curta demais" >&2; exit 2; }
+    printf '%s\n%s\n' "$S" "$S" | smbpasswd -s -a "$U" >/dev/null
+    smbpasswd -e "$U" >/dev/null
+    ;;
+  *) echo "uso: $0 ligar USUÁRIO | desligar | pasta NOME CAMINHO ro|rw|livre USUÁRIO | senha USUÁRIO" >&2; exit 2 ;;
 esac

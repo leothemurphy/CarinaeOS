@@ -513,10 +513,10 @@ class Central(QObject):
         it = next((h for h in self._hw if h['id'] == ident), None)
         if not it or not it['falta']:
             return
-        pacs = ' '.join(it['falta'])
-        cmd = ('pkexec bash -c "apt-get update -q; DEBIAN_FRONTEND=noninteractive apt-get install -y %s"' % pacs)
+        # cada ação com o seu próprio ajudante e mensagem (nunca um "bash como administrador" genérico)
+        cmd = ['pkexec', '/usr/lib/carinaeos/instalar-pacotes'] + list(it['falta'])
         if it.get('script'):
-            cmd = 'pkexec /usr/lib/carinaeos/placa-video %s' % it['script']
+            cmd = ['pkexec', '/usr/lib/carinaeos/placa-video', it['script']]
 
         def depois(r):
             self._fim(lambda _: '%s: instalado ✓%s' % (it['nome'], ' Reinicie o computador.' if ident.startswith('nvidia') else ''))(r)
@@ -527,7 +527,7 @@ class Central(QObject):
             self.lerHardware()
 
         def trabalho():
-            p = subprocess.run(['bash', '-c', cmd], capture_output=True, text=True)
+            p = subprocess.run(cmd, capture_output=True, text=True)
             if p.returncode != 0:
                 raise RuntimeError((p.stdout + p.stderr).strip().splitlines()[-1] if (p.stdout + p.stderr).strip() else 'cancelado')
             return p.stdout

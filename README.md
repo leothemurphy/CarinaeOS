@@ -227,6 +227,62 @@ Vem dentro do sistema como o aplicativo *Manual*, com pesquisa.
 
 **Requisitos:** processador de 64 bits (x86-64), 4 GB de memória e 30 GB de disco. Funciona com e sem UEFI.
 
+## 🔒 Segurança e privacidade
+
+**Sem telemetria.** Nenhum app do CarinaeOS envia dados de uso, nem há conta obrigatória.
+O CarinaeOS só se conecta à internet quando você usa algo que precisa dela:
+
+| Quando | Para onde | O quê |
+|---|---|---|
+| Atualizações (app e correções automáticas) | `deb.debian.org`, `security.debian.org` | Os repositórios oficiais do Debian |
+| Instalador | `geoip.kde.org` | Sugerir o fuso horário (pode mudar à mão) |
+| Pesquisa: “tempo em …” | `wttr.in` | O nome da cidade que escreveu |
+| Pesquisa na web | `duckduckgo.com` | Só quando escolhe pesquisar na web |
+| Música: letras e capas | `lrclib.net`, `musicbrainz.org`, `coverartarchive.org` | Artista e título da música |
+| Órbita (loja) | `dl.flathub.org` | Lista e downloads de aplicativos |
+| Contas online (se ligar) | Google (`accounts.google.com`, `googleapis.com`), Nextcloud, iCloud | Login, Drive e calendários da sua conta |
+
+**Ligado de origem**
+- **Firewall** (ufw): bloqueia tudo o que chega de fora. SSH, pastas compartilhadas e a Música para o
+  Home Assistant só abrem quando os liga, e só para a rede de casa, nunca para a internet. Fica em *Central › Firewall*.
+- **Correções de segurança automáticas**: as do Debian são instaladas sozinhas todos os dias. O sistema nunca reinicia sozinho
+  e avisa quando é preciso reiniciar. O resto passa pelo app **Atualizações**, que cria antes um **ponto de restauro** (Timeshift).
+- **Secure Boot**: inicia com o shim e o núcleo assinados pelo Debian. Os drivers NVIDIA são assinados com uma chave
+  própria do computador (MOK), que a Central ajuda a registrar.
+
+**Ações de administrador.** Nunca se corre um “terminal como administrador” genérico. Cada ação tem um
+ajudante próprio em `/usr/lib/carinaeos/`, com mensagem própria no pedido de senha (polkit, `auth_admin_keep`).
+Cada ajudante só aceita os argumentos que conhece, e os valida:
+
+| Ajudante | Faz | Aceita |
+|---|---|---|
+| `atualizar` | Ponto de restauro, atualizar, voltar a um ponto | `ponto`, `sistema`, `restaurar`/`apagar` + nome de ponto (data) |
+| `instalar-pacotes` | Drivers e firmware da Central | Nomes de pacotes válidos que existam no Debian |
+| `placa-video` | Driver NVIDIA (atual ou 470) e chave do Secure Boot | `atual`, `kepler`, `mok` |
+| `firewall` | Ligar/desligar, abrir/fechar serviços | Serviços fixos: `ssh`, `partilha`, `musica` |
+| `partilha` | Samba e pastas compartilhadas | Nome `[A-Za-z0-9_-]`, pasta existente, `ro`/`rw`/`livre`; senha pela entrada, nunca na linha de comando |
+| `ssh` | Ligar/desligar o SSH | `ligar`, `desligar` |
+| `convidado` | Sessão de convidado sem rastro | `ligar`, `desligar` |
+| `fundo-entrada` | Imagem da tela de entrada | Uma imagem (é aberta e convertida, não copiada tal como está) |
+
+**Os seus dados**
+- **Pastas compartilhadas**: com senha por padrão (usuário + senha da rede). Sem senha só em leitura, e as permissões das
+  pastas nunca são alteradas.
+- **Cadeado**: pastas e arquivos trancados ficam **cifrados** (GnuPG, AES-256). Aplicativos e ambientes trancados pedem a
+  senha para abrir, mas não são cifrados. Para proteger o disco todo, marque **Criptografar o sistema** no instalador.
+- **Contas Google**: login próprio no seu computador (OAuth com PKCE, resposta em `127.0.0.1`). Os tokens ficam só em
+  `~/.local/share/carinaeos/contas`, legíveis só por você, e são revogados ao desligar a conta.
+- **Sessão de convidado**: pasta pessoal só na memória, apagada ao sair.
+
+**ISO assinada.** Cada versão publica `SHA256SUMS` e `SHA256SUMS.asc`, assinado com a chave do CarinaeOS
+([`carinaeos-chave.asc`](carinaeos-chave.asc)). A impressão digital é:
+
+```
+94E2 2F7D 9EF1 1315 1B87  CB4E 180C FE53 9CF1 308F
+```
+
+**Encontrou uma falha de segurança?** Veja [SECURITY.md](SECURITY.md). Por favor, não a publique numa issue aberta.
+
 ## 🛠 Como é feito
 
 O CarinaeOS é montado com o [live-build](https://live-team.pages.debian.net/live-manual/) do

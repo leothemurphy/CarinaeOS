@@ -84,13 +84,15 @@ sistema)
     echo "@feito"
     ;;
 restaurar)
-    [ -n "$2" ] || exit 2
+    # só nomes de pontos de restauro do Timeshift (AAAA-MM-DD_HH-MM-SS)
+    echo "$2" | grep -Eqx '[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}' || exit 2
     configurar
     passo "Voltando o sistema ao ponto de restauro… (não desligue o computador)"
     timeshift --restore --snapshot "$2" --scripted --yes --skip-grub 2>&1 | tail -5
     ;;
 apagar)
-    [ -n "$2" ] || exit 2
+    # só nomes de pontos de restauro do Timeshift (AAAA-MM-DD_HH-MM-SS)
+    echo "$2" | grep -Eqx '[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}' || exit 2
     timeshift --delete --snapshot "$2" --scripted 2>&1 | tail -2 && echo "@feito"
     ;;
 *)

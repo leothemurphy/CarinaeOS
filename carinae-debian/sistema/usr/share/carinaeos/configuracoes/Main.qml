@@ -6,7 +6,7 @@ import QtQuick.Window
 
 ApplicationWindow {
     id: janela
-    Connections { target: ajustes; function onEscolherPastaPedida() { ajustes.escolherPastaPartilhar(false) } }
+    Connections { target: ajustes; function onEscolherPastaPedida() { ajustes.escolherPastaPartilhar("ro") } }
     width: 1040
     height: 700
     minimumWidth: 760
@@ -524,7 +524,7 @@ ApplicationWindow {
                         delegate: Linha {
                             required property var modelData
                             titulo: modelData.nome
-                            sub: modelData.caminho + (modelData.escrita ? " · todos podem alterar" : " · só leitura")
+                            sub: modelData.caminho + (modelData.livre ? " · sem senha, só leitura" : modelData.escrita ? " · com senha, podem alterar" : " · com senha, só leitura")
                             icone: "folder-publicshare"
                             Botao { texto: "Deixar de compartilhar"; onCarregado: ajustes.deixarDePartilhar(modelData.nome) }
                         }
@@ -532,10 +532,21 @@ ApplicationWindow {
                     Linha {
                         visible: !!janela.e.samba
                         titulo: "Compartilhar uma pasta…"
-                        sub: "Os outros entram sem senha. Escolha se também podem alterar."
+                        sub: livrePart.checked ? "Qualquer pessoa da rede vê os arquivos, sem senha (só leitura)."
+                                               : "Os outros entram com o seu usuário e a senha da rede."
                         icone: "list-add"
-                        CheckBox { id: escritaPart; text: "Podem alterar" }
-                        Botao { texto: "Escolher pasta"; principal: true; onCarregado: ajustes.escolherPastaPartilhar(escritaPart.checked) }
+                        CheckBox { id: livrePart; text: "Sem senha"; palette.windowText: janela.texto; onToggled: if (checked) escritaPart.checked = false }
+                        CheckBox { id: escritaPart; text: "Podem alterar"; palette.windowText: janela.texto; enabled: !livrePart.checked }
+                        Botao { texto: "Escolher pasta"; principal: true
+                                onCarregado: ajustes.escolherPastaPartilhar(livrePart.checked ? "livre" : escritaPart.checked ? "rw" : "ro") }
+                    }
+                    Linha {
+                        visible: !!janela.e.samba
+                        titulo: "Senha da rede"
+                        sub: janela.e.senhaRede ? ("Definida · nos outros computadores entre com “" + (janela.e.usuario || "") + "” e essa senha")
+                                                : "Ainda não definida: escolha uma para os outros entrarem nas pastas com senha"
+                        icone: "dialog-password"
+                        Botao { texto: janela.e.senhaRede ? "Mudar…" : "Definir…"; principal: !janela.e.senhaRede; onCarregado: senhaRede.open() }
                     }
                 }
                 Grupo {
@@ -844,6 +855,23 @@ ApplicationWindow {
                 }
                 Item { Layout.preferredHeight: 40 }
             }
+        }
+    }
+
+    // senha da rede (pastas compartilhadas)
+    Dialog {
+        id: senhaRede
+        anchors.centerIn: parent
+        modal: true
+        title: "Senha da rede"
+        standardButtons: Dialog.Cancel | Dialog.Ok
+        onOpened: { sr1.text = ""; sr2.text = ""; sr1.forceActiveFocus(); }
+        onAccepted: if (sr1.text.length >= 4 && sr1.text === sr2.text) ajustes.definirSenhaRede(sr1.text)
+        ColumnLayout {
+            Text { text: "Os outros computadores pedem o seu usuário (" + (janela.e.usuario || "") + ") e esta senha.\nPode ser diferente da senha com que entra no CarinaeOS."; color: janela.suave }
+            TextField { id: sr1; echoMode: TextInput.Password; placeholderText: "Senha"; Layout.preferredWidth: 300 }
+            TextField { id: sr2; echoMode: TextInput.Password; placeholderText: "Repita a senha"; Layout.preferredWidth: 300; onAccepted: senhaRede.accept() }
+            Text { visible: sr2.text.length > 0 && sr1.text !== sr2.text; text: "As senhas não são iguais."; color: "#ff7a9a" }
         }
     }
 
