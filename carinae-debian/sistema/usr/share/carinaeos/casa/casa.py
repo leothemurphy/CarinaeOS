@@ -38,7 +38,7 @@ TIPOS = [
     dict(id='sensor', nome='Sensor', icone='eye', desc='Um valor em grande (temperatura, consumo…)', dominios=['sensor', 'binary_sensor'], max=1),
     dict(id='grafico', nome='Gráfico', icone='chart-line', desc='Valor e histórico das últimas 24 horas', dominios=['sensor'], max=1),
     dict(id='clima', nome='Termostato', icone='thermostat', desc='Ar condicionado ou aquecimento', dominios=['climate', 'water_heater', 'humidifier'], max=1),
-    dict(id='cenas', nome='Cenas', icone='palette', desc='Grade de botões para cenas e rotinas', dominios=['scene', 'script', 'button', 'input_button', 'automation'], max=8),
+    dict(id='cenas', nome='Cenas', icone='palette', desc='Grade de botões para cenas e scripts', dominios=['scene', 'script', 'button', 'input_button', 'automation'], max=8),
     dict(id='media', nome='Som e TV', icone='play-circle', desc='Música ou TV com controles e volume', dominios=['media_player'], max=1),
     dict(id='camera', nome='Câmera', icone='cctv', desc='Imagem ao vivo (a cada 10 s)', dominios=['camera'], max=1),
     dict(id='estores', nome='Persianas e portões', icone='window-shutter', desc='Abrir, parar, fechar e posição', dominios=['cover'], max=1),

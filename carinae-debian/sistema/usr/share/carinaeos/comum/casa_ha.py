@@ -13,7 +13,7 @@ DOMINIOS = ('light', 'switch', 'scene', 'script', 'fan', 'cover', 'climate', 'me
             'number', 'input_button', 'alarm_control_panel', 'humidifier', 'water_heater', 'person', 'select', 'input_select',
             'device_tracker', 'sun', 'update', 'counter', 'timer', 'siren', 'valve', 'input_text', 'text',
             'input_datetime', 'calendar', 'todo', 'event', 'image', 'zone')
-NOMES_DOMINIO = {'light': 'Luzes', 'switch': 'Interruptores', 'scene': 'Cenas', 'script': 'Rotinas', 'fan': 'Ventiladores',
+NOMES_DOMINIO = {'light': 'Luzes', 'switch': 'Interruptores', 'scene': 'Cenas', 'script': 'Scripts', 'fan': 'Ventiladores',
                  'cover': 'Persianas e portões', 'climate': 'Clima', 'media_player': 'Som e TV', 'input_boolean': 'Interruptores',
                  'automation': 'Automações', 'lock': 'Fechaduras', 'vacuum': 'Aspiradores', 'sensor': 'Sensores',
                  'binary_sensor': 'Sensores', 'button': 'Botões', 'weather': 'Tempo', 'camera': 'Câmeras',

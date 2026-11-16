@@ -356,12 +356,12 @@ Kicker.DashboardWindow {
     // ---- Deck: ler e gravar ~/.config/carinaeos-deck.json -------------------------
     // as teclas do Deck são ações (carinaeos-deck): { id, nome, icone }; continuam a valer
     // as antigas { nome, icone, cmd } (comando ou site) e { app } (de versões anteriores)
-    // o Deck é o lugar das rotinas (vários passos num só toque; app Rotinas): começa com os exemplos
+    // os atalhos com que o Deck começa (os sites vêm do navegador, na secção de cima)
     readonly property var deckPadrao: [
-        { id: "rot:modo-foco", nome: "Modo foco", icone: "chronometer" },
-        { id: "rot:modo-filme", nome: "Modo filme", icone: "video-television" },
-        { id: "rot:fim-do-dia", nome: "Fim do dia", icone: "weather-clear-night" },
-        { id: "sis:captura", nome: "Captura de tela", icone: "spectacle" }
+        { id: "sis:captura", nome: "Captura de tela", icone: "spectacle" },
+        { id: "sis:janelas", nome: "Todas as janelas", icone: "view-grid" },
+        { id: "sis:mesa", nome: "Mostrar a área de trabalho", icone: "user-desktop" },
+        { id: "mus:tocar", nome: "Tocar / pausar", icone: "media-playback-start" }
     ]
     // os comandos do Deck antigo: um Deck só com estes é o de origem e passa ao novo
     readonly property var deckAntigo: ["spectacle", "konsole", "plasma-systemmonitor", "carinaeos-central", "carinaeos-supernova",
@@ -391,9 +391,10 @@ Kicker.DashboardWindow {
             if (Array.isArray(d) && d.length > 0 && d.every(t => t.cmd && (lp.deckAntigo.indexOf(t.cmd) !== -1 || /qdbus6|xdg-user-dir/.test(t.cmd))))
                 d = null;       // ainda era o Deck de origem: passa às ações novas
             // nomes de versões antigas, ainda em português de Portugal
-            const novosNomes = { "Captura de ecrã": "Captura de tela", "Transferências": "Downloads", "Mostrar a mesa": "Mostrar a área de trabalho",
-                                 "Ecrã": "Tela", "Definições": "Configurações" };
+            const novosNomes = { "Captura de ecrã": "Captura de tela", "Transferências": "Downloads", "Mostrar a mesa": "Mostrar a área de trabalho",   // ptbr-ok (de pt-PT para pt-BR)
+                                 "Ecrã": "Tela", "Definições": "Configurações" };   // ptbr-ok
             if (Array.isArray(d)) for (const t of d) if (novosNomes[t.nome]) t.nome = novosNomes[t.nome];
+            if (Array.isArray(d)) d = d.filter(t => !String(t.id || "").startsWith("rot:"));   // as Rotinas saíram do CarinaeOS
             lp.deck = Array.isArray(d) ? d : lp.deckPadrao;
             lp.lerEstadosDeck();
         }
@@ -1226,16 +1227,7 @@ Kicker.DashboardWindow {
         QQC2.Menu {
             id: menuDeck
             property int i: -1
-            QQC2.MenuItem {
-                readonly property string rot: menuDeck.i >= 0 && lp.deck[menuDeck.i] && String(lp.deck[menuDeck.i].id || "").startsWith("rot:") ? lp.deck[menuDeck.i].id.slice(4) : ""
-                visible: rot !== ""
-                height: visible ? implicitHeight : 0
-                text: "Editar rotina…"
-                icon.name: "document-edit"
-                onTriggered: { lp.correr("carinaeos-rotinas --editar " + lp.aspas(rot)); lp.toggle(); }
-            }
             QQC2.MenuItem { text: "Tirar do Deck"; onTriggered: lp.tirarDoDeck(menuDeck.i) }
-            QQC2.MenuItem { text: "Criar rotina…"; icon.name: "list-add"; onTriggered: { lp.correr("carinaeos-rotinas --nova"); lp.toggle(); } }
             QQC2.MenuItem {
                 readonly property var app: menuDeck.i >= 0 && lp.deck[menuDeck.i] && lp.deck[menuDeck.i].app ? lp.porChave(lp.deck[menuDeck.i].app) : null
                 visible: app !== null
@@ -2403,10 +2395,7 @@ Kicker.DashboardWindow {
                                                         anchors.fill: parent
                                                         hoverEnabled: true
                                                         cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            if (chipA.modelData.id === "rot:+nova") { formAcoes.visible = false; lp.correr("carinaeos-rotinas --nova"); lp.toggle(); }
-                                                            else if (!chipA.ja) lp.adicionarAcao(chipA.modelData);
-                                                        }
+                                                        onClicked: if (!chipA.ja) lp.adicionarAcao(chipA.modelData)
                                                     }
                                                 }
                                             }

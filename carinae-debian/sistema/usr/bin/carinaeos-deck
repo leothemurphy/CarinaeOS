@@ -4,14 +4,13 @@
   carinaeos-deck catalogo          JSON: todas as ações que se podem pôr no Deck, por grupos
   carinaeos-deck estado <id>...    JSON: {id: {"ligado": true|false|null, "texto": "..."}}
   carinaeos-deck tocar <id>        faz a ação; escreve o estado novo (JSON)
-  carinaeos-deck definir <id> ligar|desligar|tocar   como tocar, mas só se não estiver já assim (rotinas)
+  carinaeos-deck definir <id> ligar|desligar|tocar   como tocar, mas só se não estiver já assim
 
 Ids:
   sis:dnd  sis:luz  sis:wifi  sis:bt  sis:energia:<perfil>  sis:som:<saída>
   sis:captura  sis:janelas  sis:mesa  sis:bloquear  sis:suspender
   mus:tocar  mus:pausar  mus:seguinte  mus:lista:<nome>
-  rot:<id>                         uma rotina (app Rotinas): vários passos de seguida
-  ha:<entity_id>                   (Home Assistant, pela ligação da app Casa)
+  ha:<entity_id>                   (Home Assistant, pela conexão do app Casa)
 """
 import datetime
 import json
@@ -25,16 +24,13 @@ try:
     import casa_ha as HA
 except Exception:       # sem a app Casa não há Home Assistant, o resto funciona
     HA = None
-try:
-    import rotinas as ROT
-except Exception:
-    ROT = None
+
 
 ENERGIA = [('power-saver', 'Poupança', 'battery-profile-powersave'),
            ('balanced', 'Equilibrado', 'battery-profile-balanced'),
            ('performance', 'Desempenho', 'battery-profile-performance')]
 HA_DOMINIOS = {'light': 'Luzes', 'switch': 'Interruptores', 'input_boolean': 'Interruptores', 'fan': 'Ventiladores',
-               'scene': 'Cenas', 'script': 'Rotinas', 'cover': 'Persianas e portões', 'lock': 'Fechaduras',
+               'scene': 'Cenas', 'script': 'Scripts', 'cover': 'Persianas e portões', 'lock': 'Fechaduras',
                'media_player': 'Som e TV', 'button': 'Botões', 'input_button': 'Botões', 'automation': 'Automações',
                'climate': 'Clima', 'vacuum': 'Aspiradores'}
 HA_ICONES = {'light': 'lightbulb', 'switch': 'system-switch-user', 'input_boolean': 'checkbox', 'fan': 'weather-windy',
@@ -155,8 +151,6 @@ def estados(ids):
             r[i] = estado_sis(i)
         elif i.startswith('mus:'):
             r[i] = estado_mus(i)
-        elif i.startswith('rot:'):
-            r[i] = {'ligado': None, 'texto': 'Rodando…' if ROT and ROT.correndo(i[4:]) else ''}
     return r
 
 
@@ -214,14 +208,11 @@ def tocar(i):
         sh(['mpc', 'play'])
     elif i.startswith('ha:') and HA:
         HA.alternar(i[3:])
-    elif i.startswith('rot:') and ROT:
-        ROT.lancar(i[4:])
-        return {'ligado': None, 'texto': 'Rodando…'}
     return estados([i]).get(i, {'ligado': None, 'texto': ''})
 
 
 def definir(i, modo):
-    """Para as rotinas: ligar/desligar só mexe se ainda não estiver assim; tocar faz sempre."""
+    """ligar/desligar só mexe se ainda não estiver assim; tocar faz sempre."""
     if modo in ('ligar', 'desligar'):
         e = estados([i]).get(i, {})
         if e.get('ligado') is not None and e['ligado'] == (modo == 'ligar'):
@@ -249,10 +240,6 @@ def catalogo():
     som = [dict(id='sis:som:' + n, nome=d, icone='audio-card') for n, d in saidas()]
     if som:
         g.append(dict(grupo='Saída de som', itens=som))
-    if ROT:
-        rots = [dict(id='rot:' + r['id'], nome=r['nome'], icone=r.get('icone') or 'media-playlist-play') for r in ROT.ler()]
-        g.insert(0, dict(grupo='Rotinas', itens=rots + [dict(id='rot:+nova', nome='Criar rotina…', icone='list-add')],
-                         aviso='Um toque faz várias coisas de seguida: abrir apps, Não incomodar, som, música, luzes da casa…'))
     mus = [dict(id='mus:tocar', nome='Tocar / pausar', icone='media-playback-start'),
            dict(id='mus:pausar', nome='Pausar a música', icone='media-playback-pause'),
            dict(id='mus:seguinte', nome='Música seguinte', icone='media-skip-forward')]
