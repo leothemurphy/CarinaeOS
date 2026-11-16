@@ -55,6 +55,13 @@ def fechar(ref):
 def abrir_no_bottles(arquivo):
     """Corre o .exe numa garrafa (o ambiente Windows do Bottles). Na primeira vez cria a garrafa
     "Programas do Windows"; o Bottles sozinho, com um arquivo e sem garrafas, não fazia nada."""
+    dados = os.path.expanduser('~/.var/app/%s/data/bottles' % BOTTLES)
+    if not os.path.isdir(os.path.join(dados, 'runners')) or not os.listdir(os.path.join(dados, 'runners')):
+        # o Bottles nunca foi aberto: primeiro a configuração inicial dele (baixa os componentes do Windows)
+        subprocess.run(['kdialog', '--title', 'Bottles', '--msgbox',
+                        'Na primeira vez, o Bottles precisa de baixar os componentes do Windows.\n\n'
+                        'Ele vai abrir agora: siga os passos até ao fim e depois dê de novo dois cliques no .exe.'])
+        os.execvp('flatpak', ['flatpak', 'run', BOTTLES])
     lista = garrafas()
     if not lista:
         ref = progresso('Preparando o ambiente para programas do Windows… (só da primeira vez; pode levar alguns minutos)')
