@@ -299,7 +299,7 @@ def main():
         fechar(ref)
     if info:
         r = subprocess.run(['kdialog', '--title', info['nome'], '--yesno',
-                            '“%s” é feito com Electron e pode correr direto no Linux, sem o Wine: '
+                            '“%s” é feito com Electron e pode rodar direto no Linux, sem o Wine: '
                             'mais rápido e integrado no CarinaeOS.\n\nInstalar a versão para Linux?' % info['nome'],
                             '--yes-label', 'Instalar para Linux', '--no-label', 'Usar o Bottles'])
         if r.returncode == 0:
