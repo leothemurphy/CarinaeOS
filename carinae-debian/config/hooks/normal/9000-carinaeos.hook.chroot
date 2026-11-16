@@ -170,7 +170,7 @@ renomear() {   # renomear <arquivo.desktop> <Nome> <Descricao>
 sed -i 's/^Icon=.*/Icon=carinaeos-arquivos/' /usr/local/share/applications/org.kde.dolphin.desktop
 renomear org.kde.marble.desktop "Mapas" "Mapas e globo terrestre"
 renomear org.kde.merkuro.calendar.desktop "Calendário" "Agenda, com a conta Google"
-renomear org.kde.merkuro.contact.desktop "Contatos" "Os seus contatos"
+renomear org.kde.merkuro.contact.desktop "Contatos" "Seus contatos"
 # nenhum nome "KDE"/"K…" no menu: cada aplicativo pelo que faz
 renomear org.kde.dolphin.desktop "Meus documentos" "Pastas e arquivos"
 sed -i 's/^Icon=.*/Icon=carinaeos-arquivos/' /usr/local/share/applications/org.kde.dolphin.desktop
