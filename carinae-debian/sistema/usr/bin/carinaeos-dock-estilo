@@ -1,0 +1,25 @@
+#!/usr/bin/python3
+"""CarinaeOS - mudar o estilo da Dock na hora (o mesmo que o Supernova › Estilo da Dock).
+  carinaeos-dock-estilo                    lista os estilos
+  carinaeos-dock-estilo NOME [dentro|onda] muda (a Dock aplica em até 4 segundos)
+"""
+import json, os, sys
+ESTILOS = ['vidro', 'fluent', 'minimalista', 'colorida', 'orbital', 'hexagonal', 'aereo',
+           'mac', 'escuro', 'transparente', 'bolhas', 'squircle', 'rosepine', 'xp', 'vista',
+           'translucido', 'docklike', 'matter', 'lucent', 'neon']
+F = os.path.expanduser('~/.config/carinaeos-dock.json')
+a = sys.argv[1:]
+if not a or a[0] not in ESTILOS:
+    print('Estilos: ' + ', '.join(ESTILOS))
+    print('Ampliação: dentro (só o ícone cresce, sem sair da Dock) ou onda (como no macOS)')
+    sys.exit(0 if not a else 2)
+try:
+    c = json.load(open(F))
+except (OSError, ValueError):
+    c = {}
+c['estilo'] = a[0]
+if len(a) > 1 and a[1] in ('dentro', 'onda'):
+    c['ampliacao'] = a[1]
+os.makedirs(os.path.dirname(F), exist_ok=True)
+json.dump(c, open(F, 'w'))
+print('Dock: %s (%s) — aplica em até 4 segundos' % (a[0], c.get('ampliacao', 'dentro')))

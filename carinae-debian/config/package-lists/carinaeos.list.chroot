@@ -15,6 +15,7 @@ kwin-wayland
 sddm
 sddm-theme-breeze
 qml6-module-qtquick-effects
+qml6-module-qtquick-shapes
 qml6-module-qtquick-controls
 qml6-module-qtquick-layouts
 plasma-nm

@@ -2,7 +2,7 @@
     CarinaeOS — Dock
     Como no macOS: os ícones crescem numa onda suave à volta do rato e sobem
     acima do fundo de vidro, o nome da app aparece por cima, as apps abertas
-    têm um ponto, os ícones saltam ao abrir. A estrela no centro abre o
+    têm um ponto, os ícones saltam ao abrir. A estrela (sempre em primeiro) abre o
     Launchpad (ecrã de aplicativos). Lixeira no fim.
 
     SPDX-License-Identifier: GPL-2.0-or-later
@@ -27,8 +27,8 @@ PlasmoidItem {
     // ---- medidas -----------------------------------------------------------
     readonly property int base: Plasmoid.configuration.iconSize
     readonly property real zoom: Plasmoid.configuration.zoom
-    readonly property int espaco: Math.round(base * 0.16)
-    readonly property int margem: Math.round(base * 0.16)        // dentro do vidro
+    readonly property int espaco: Math.round(base * (e.espaco !== undefined ? e.espaco : 0.16))
+    readonly property int margem: Math.round(base * (e.margem !== undefined ? e.margem : 0.16))        // dentro do vidro
     readonly property int baixo: Math.round(base * 0.14)         // vidro -> fundo do ecrã
     readonly property real sigma: base * 1.35                    // largura da onda
     readonly property int separador: Math.round(base * 0.5)
@@ -62,12 +62,26 @@ PlasmoidItem {
         if (i === -1) l.push(lancador); else l.splice(i, 1);
         Plasmoid.configuration.separators = l;
     }
-    readonly property int meio: Math.ceil(fixadas / 2)           // a estrela fica aqui
+    readonly property int meio: 0
     // apps + estrela + [Downloads + lixeira]
     readonly property int slots: tasksModel.count + 1 + (lixeira ? 2 : 0)
     readonly property real larguraRepouso: slots * (base + espaco) + espaco + (lixeira ? separador : 0) + slotsComSep.length * largSep
+    // ampliação: "dentro" (padrão) = só o ícone debaixo do rato cresce um pouco, sem sair da Dock;
+    // "onda" = como no macOS, os ícones crescem numa onda e sobem acima do vidro
+    property string ampliacao: "dentro"
+    readonly property bool dentro: ampliacao !== "onda"
+    readonly property real zoomDentro: 1.2
     // espaço reservado para a ampliação (o painel não muda de tamanho)
-    readonly property real folga: base * (zoom - 1) * 2.6
+    readonly property real folga: dentro ? 0 : base * (zoom - 1) * 2.6
+    // largura de cada lugar e altura do ícone (no modo "dentro" o lugar não muda: o ícone cresce no sítio)
+    function larguraSlot(s: real): real {
+        return base * (dentro ? 1 : s);
+    }
+    function yIcone(alturaFila: real, h: real, pulo: real): real {
+        return dentro ? alturaFila - baixo - margem - base / 2 - h / 2 - pulo
+                      : alturaFila - baixo - margem - h - pulo;
+    }
+    readonly property real alturaPulo: dentro ? margem * 0.7 : base * 0.55
 
     // a Dock pode ficar em baixo, em cima, à esquerda ou à direita: desenha-se sempre "deitada"
     // dentro de "palco", que roda para o lado certo (e os ícones rodam ao contrário)
@@ -150,6 +164,7 @@ PlasmoidItem {
     }
     onAlturaRepousoChanged: ajustarPainel()
     onAlturaAmpliadaChanged: ajustarPainel()
+    onDentroChanged: ajustarPainel()
     onPainelChanged: ajustarPainel()
     function ajustarPainel(): void {
         if (!painel || painel.thickness === undefined) {
@@ -157,7 +172,8 @@ PlasmoidItem {
         }
         // modo fixo (X11): o painel fica sempre com a altura da lupa e não muda de tamanho
         // (era isso que engasgava ao entrar e sair); só o vidro aceita cliques em repouso.
-        const t = (modoFixo || ampliado) ? alturaAmpliada : alturaRepouso;
+        // "dentro": nada sai do vidro, o painel tem sempre só a altura dele
+        const t = dentro ? alturaVidro : (modoFixo || ampliado) ? alturaAmpliada : alturaRepouso;
         if (painel.thickness !== t) {
             painel.thickness = t;
         }
@@ -201,7 +217,7 @@ PlasmoidItem {
         }
         const c = pontoNaDock();
         let cmd;
-        if (ampliado) {
+        if (ampliado || dentro) {
             cmd = "carinaeos-dock-cliques tudo " + Math.round(c.x) + " " + Math.round(c.y);
         } else {
             const a = vidro.mapToGlobal(0, 0);
@@ -233,6 +249,14 @@ PlasmoidItem {
     }
 
     function escala(slot: int): real {
+        if (dentro) {
+            // "planalto": o ícone debaixo do rato cresce quase todo, os vizinhos não
+            const q = (ratoX - centroRepouso(slot)) / (base * 0.75);
+            if (Math.abs(q) > 2) {
+                return 1;
+            }
+            return 1 + (zoomDentro - 1) * forca * Math.exp(-Math.pow(q, 6));
+        }
         const d = (ratoX - centroRepouso(slot)) / sigma;
         if (Math.abs(d) > 3) {
             return 1;
@@ -289,7 +313,21 @@ PlasmoidItem {
         docklike:     { c1: Qt.rgba(0.14, 0.14, 0.14, 0.72), c2: Qt.rgba(0.10, 0.10, 0.10, 0.72), borda: Qt.rgba(1, 1, 1, 0.18), raio: 0.26, sombra: 0.2 },
         matter:       { c1: "#2b2930", c2: "#25232a", borda: "transparent", raio: 0.5, sombra: 0.3 },
         lucent:       { c1: Qt.rgba(1, 1, 1, 0.50), c2: Qt.rgba(1, 1, 1, 0.36), borda: Qt.rgba(1, 1, 1, 0.85), raio: 0.34, sombra: 0.1 },
-        neon:         { c1: Qt.rgba(0.07, 0.04, 0.12, 0.78), c2: Qt.rgba(0.10, 0.04, 0.12, 0.78), borda: "#ff6f91", raio: 0.34, sombra: 0.0, brilho: true }
+        neon:         { c1: Qt.rgba(0.07, 0.04, 0.12, 0.78), c2: Qt.rgba(0.10, 0.04, 0.12, 0.78), borda: "#ff6f91", raio: 0.34, sombra: 0.0, brilho: true },
+        // ---- modelos novos (fundo: barra|nenhum; item: por trás de cada ícone; ind: indicador das apps abertas)
+        vidro:        { c1: Qt.rgba(1, 1, 1, 0.22), c2: Qt.rgba(0.75, 0.82, 1, 0.12), borda: Qt.rgba(1, 1, 1, 0.48), raio: 0.42, sombra: 0.16,
+                        reflexo: true, ind: "barra", margem: 0.2 },
+        fluent:       { c1: Qt.rgba(0.10, 0.10, 0.13, 0.84), c2: Qt.rgba(0.07, 0.07, 0.10, 0.88), borda: Qt.rgba(1, 1, 1, 0.10), raio: 0.26, sombra: 0.25,
+                        item: "tile", ind: "barra", margem: 0.22 },
+        minimalista:  { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum", linha: true, ind: "barra", margem: 0.2 },
+        colorida:     { c1: Qt.rgba(0.05, 0.07, 0.20, 0.86), c2: Qt.rgba(0.09, 0.06, 0.24, 0.90), borda: "transparent", raio: 0.5, sombra: 0.2,
+                        bordaGrad: ["#4f8bff", "#a66bff", "#ff6f91", "#ffb46e"], item: "circulo", ind: "ponto", margem: 0.22 },
+        orbital:      { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
+                        item: "bolha", anel: true, ind: "brilho", espaco: 0.34, margem: 0.24 },
+        hexagonal:    { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
+                        item: "hex", ind: "brilho", espaco: 0.06, margem: 0.24 },
+        aereo:        { c1: Qt.rgba(0.60, 0.70, 1, 0.18), c2: Qt.rgba(0.35, 0.45, 0.95, 0.12), borda: Qt.rgba(0.78, 0.86, 1, 0.55), raio: 0.5, sombra: 0.1,
+                        brilhoBase: true, ind: "brilho", margem: 0.22 }
     })
     readonly property var e: estilos[estilo] || estilos.mac
 
@@ -319,6 +357,7 @@ PlasmoidItem {
                 if (c.bounce !== undefined && conf.bounce !== c.bounce) conf.bounce = c.bounce;
                 if (c.showTrash !== undefined && conf.showTrash !== c.showTrash) conf.showTrash = c.showTrash;
                 if (c.estilo !== undefined) dock.estilo = c.estilo;
+                if (c.ampliacao !== undefined) dock.ampliacao = c.ampliacao;
                 if (c.rodaVolume !== undefined) dock.rodaVolume = c.rodaVolume;
                 if (c.passoVolume !== undefined) dock.passoVolume = c.passoVolume;
                 if (c.cliqueMeio !== undefined) dock.cliqueMeio = c.cliqueMeio;
@@ -387,8 +426,44 @@ PlasmoidItem {
     }
 
     // ---- vidro por baixo dos ícones -------------------------------------------
+    // Colorida: contorno em degradê (fica por trás do vidro, 2 px maior)
+    Rectangle {
+        visible: !!dock.e.bordaGrad && dock.e.fundo !== "nenhum"
+        anchors.fill: vidro; anchors.margins: -2
+        radius: vidro.radius + 2
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0.0; color: dock.e.bordaGrad ? dock.e.bordaGrad[0] : "transparent" }
+            GradientStop { position: 0.35; color: dock.e.bordaGrad ? dock.e.bordaGrad[1] : "transparent" }
+            GradientStop { position: 0.7; color: dock.e.bordaGrad ? dock.e.bordaGrad[2] : "transparent" }
+            GradientStop { position: 1.0; color: dock.e.bordaGrad ? dock.e.bordaGrad[3] : "transparent" }
+        }
+    }
+    // Orbital: anel de luz por baixo das bolhas
+    Rectangle {
+        visible: dock.e.anel === true
+        anchors.horizontalCenter: fila.horizontalCenter
+        anchors.bottom: parent.bottom; anchors.bottomMargin: dock.baixo
+        width: fila.width + dock.base * 0.3; height: dock.base * 0.42
+        radius: height / 2
+        color: Qt.rgba(0.35, 0.6, 1, 0.07)
+        border.width: 2; border.color: Qt.rgba(0.45, 0.72, 1, 0.75)
+        Rectangle {
+            anchors.fill: parent; anchors.margins: -3; radius: height / 2
+            color: "transparent"; border.width: 3; border.color: Qt.rgba(0.45, 0.72, 1, 0.18)
+        }
+    }
+    // Minimalista: só uma linha fina por baixo dos ícones
+    Rectangle {
+        visible: dock.e.linha === true
+        anchors.horizontalCenter: fila.horizontalCenter
+        anchors.bottom: parent.bottom; anchors.bottomMargin: dock.baixo + Math.max(2, dock.margem * 0.25) - 1
+        width: fila.width; height: 2; radius: 1
+        color: Qt.rgba(1, 1, 1, 0.35)
+    }
     Rectangle {
         id: vidro
+        visible: dock.e.fundo !== "nenhum"
         anchors.horizontalCenter: fila.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: dock.baixo
@@ -420,6 +495,30 @@ PlasmoidItem {
                 running: dock.e.brilho === true; loops: Animation.Infinite
                 NumberAnimation { to: 0.15; duration: 1600; easing.type: Easing.InOutSine }
                 NumberAnimation { to: 0.55; duration: 1600; easing.type: Easing.InOutSine }
+            }
+        }
+        // Vidro: reflexo na metade de cima
+        Rectangle {
+            visible: dock.e.reflexo === true
+            anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
+            anchors.margins: 1
+            height: parent.height * 0.5; radius: parent.radius
+            gradient: Gradient {
+                GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0.20) }
+                GradientStop { position: 1; color: Qt.rgba(1, 1, 1, 0.0) }
+            }
+        }
+        // Aéreo: linha de luz azul por baixo, dentro do vidro
+        Rectangle {
+            visible: dock.e.brilhoBase === true
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom; anchors.bottomMargin: 2
+            width: parent.width - parent.radius * 2; height: 2; radius: 1
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: Qt.rgba(0.4, 0.7, 1, 0) }
+                GradientStop { position: 0.5; color: Qt.rgba(0.5, 0.8, 1, 0.9) }
+                GradientStop { position: 1.0; color: Qt.rgba(0.4, 0.7, 1, 0) }
             }
         }
         // brilho do topo (XP e Vista)
@@ -535,7 +634,7 @@ PlasmoidItem {
             id: estrela
             readonly property real s: dock.escala(dock.meio)
             property real pulo: 0
-            width: dock.base * s
+            width: dock.larguraSlot(s)
             height: fila.height
 
             Item {      // os ícones desenham-se uma vez no tamanho máximo e só mudam de escala (sem redesenhar a cada movimento do rato)
@@ -544,11 +643,11 @@ PlasmoidItem {
                 width: dock.base * estrela.s
                 height: width
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: parent.height - dock.baixo - dock.margem - height - estrela.pulo
+                y: dock.yIcone(parent.height, height, estrela.pulo)
                 Kirigami.Icon {
                     source: "carinaeos-estrela"
                     active: estrelaRato.containsMouse
-                    width: Math.round(dock.base * Math.max(1, dock.zoom))
+                    width: Math.round(dock.base * Math.max(1, dock.dentro ? dock.zoomDentro : dock.zoom))
                     height: width
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.bottom: parent.bottom
@@ -557,6 +656,7 @@ PlasmoidItem {
                     smooth: true
                 }
             }
+            FundoIcone { dock: dock; alvo: estrelaIcone; ativo: estrelaRato.containsMouse }
             Rotulo {
                 alvo: estrelaIcone
                 texto: "Aplicativos"
@@ -607,7 +707,7 @@ PlasmoidItem {
             id: lixo
             visible: dock.lixeira
             readonly property real s: dock.escala(dock.slots - 1)
-            width: dock.base * s
+            width: dock.larguraSlot(s)
             height: fila.height
             Item {      // os ícones desenham-se uma vez no tamanho máximo e só mudam de escala (sem redesenhar a cada movimento do rato)
                 id: lixoIcone
@@ -615,11 +715,11 @@ PlasmoidItem {
                 width: dock.base * lixo.s
                 height: width
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: parent.height - dock.baixo - dock.margem - height
+                y: dock.yIcone(parent.height, height, 0)
                 Kirigami.Icon {
                     source: "user-trash"
                     active: lixoRato.containsMouse
-                    width: Math.round(dock.base * Math.max(1, dock.zoom))
+                    width: Math.round(dock.base * Math.max(1, dock.dentro ? dock.zoomDentro : dock.zoom))
                     height: width
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.bottom: parent.bottom
@@ -628,6 +728,7 @@ PlasmoidItem {
                     smooth: true
                 }
             }
+            FundoIcone { dock: dock; alvo: lixoIcone; ativo: lixoRato.containsMouse }
             Rotulo {
                 alvo: lixoIcone
                 texto: "Lixeira"

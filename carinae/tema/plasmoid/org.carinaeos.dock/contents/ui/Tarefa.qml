@@ -32,7 +32,8 @@ Item {
     property bool arrastando: false
 
     visible: mostrar
-    width: mostrar ? dock.base * s + (separadorDepois ? dock.largSep + dock.espaco : 0) : 0
+    readonly property real larguraIcone: dock.larguraSlot(s)
+    width: mostrar ? larguraIcone + (separadorDepois ? dock.largSep + dock.espaco : 0) : 0
     z: arrastando ? 10 : 0
     height: parent ? parent.height : 0
 
@@ -54,13 +55,13 @@ Item {
         rotation: -dock.angulo
         width: dock.base * tarefa.s
         height: width
-        x: (dock.base * tarefa.s - width) / 2
+        x: (tarefa.larguraIcone - width) / 2
         opacity: tarefa.arrastando ? 0.75 : 1
-        y: parent.height - dock.baixo - dock.margem - height - tarefa.pulo
+        y: dock.yIcone(parent.height, height, tarefa.pulo)
         Kirigami.Icon {
             source: tarefa.model.decoration
             active: rato.containsMouse
-            width: Math.round(dock.base * Math.max(1, dock.zoom))
+            width: Math.round(dock.base * Math.max(1, dock.dentro ? dock.zoomDentro : dock.zoom))
             height: width
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
@@ -72,7 +73,7 @@ Item {
     // separador escolhido pela pessoa, à direita do ícone
     Rectangle {
         visible: tarefa.separadorDepois
-        x: dock.base * tarefa.s + (dock.largSep + dock.espaco) / 2
+        x: tarefa.larguraIcone + (dock.largSep + dock.espaco) / 2
         anchors.bottom: parent.bottom
         anchors.bottomMargin: dock.baixo + dock.margem * 1.3
         width: dock.grossuraSeparador
@@ -96,23 +97,42 @@ Item {
                 && !tarefa.model.IsLauncher && !tarefa.model.IsStartup
     }
 
-    // ponto das apps abertas
+    FundoIcone {
+        dock: tarefa.dock
+        alvo: icone
+        ativo: rato.containsMouse
+        aberto: !tarefa.model.IsLauncher && !tarefa.model.IsStartup
+    }
+
+    // indicador das apps abertas, conforme o estilo: ponto, barra (Fluent) ou ponto aceso (Orbital, Aéreo)
     Rectangle {
+        id: indicador
+        readonly property string tipo: dock.e.ind || "ponto"
+        readonly property bool ativa: tarefa.model.IsActive === true
         visible: !tarefa.model.IsLauncher && !tarefa.model.IsStartup
-        width: Math.max(4, Math.round(dock.base / 11))
-        height: width
-        radius: width / 2
-        x: (dock.base * tarefa.s - width) / 2
+        width: tipo === "barra" ? Math.round(dock.base * (ativa ? 0.36 : 0.16)) : Math.max(4, Math.round(dock.base / 11))
+        height: tipo === "barra" ? 3 : Math.max(4, Math.round(dock.base / 11))
+        radius: height / 2
+        x: (tarefa.larguraIcone - width) / 2
         anchors.bottom: parent.bottom
         anchors.bottomMargin: dock.baixo + Math.max(2, dock.margem * 0.25)
-        color: tarefa.model.IsActive ? "#FFB46E" : Qt.rgba(1, 1, 1, 0.7)
+        color: tipo === "brilho" ? (ativa ? "#8fd0ff" : Qt.rgba(0.55, 0.8, 1, 0.75))
+                                 : ativa ? "#FFB46E" : Qt.rgba(1, 1, 1, 0.7)
+        Behavior on width { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+        Rectangle {     // halo
+            visible: indicador.tipo === "brilho"
+            anchors.centerIn: parent
+            width: parent.width * 3.2; height: width; radius: width / 2
+            color: Qt.rgba(0.45, 0.75, 1, indicador.ativa ? 0.32 : 0.18)
+            z: -1
+        }
     }
 
     // salto ao abrir (como no macOS): sobe e desce suave, enquanto a app abre
     SequentialAnimation {
         id: salto
         loops: 3
-        NumberAnimation { target: tarefa; property: "pulo"; to: dock.base * 0.55; duration: 300; easing.type: Easing.OutCubic }
+        NumberAnimation { target: tarefa; property: "pulo"; to: dock.alturaPulo; duration: 300; easing.type: Easing.OutCubic }
         NumberAnimation { target: tarefa; property: "pulo"; to: 0; duration: 300; easing.type: Easing.InCubic }
     }
     Connections {
@@ -134,7 +154,7 @@ Item {
 
     Item {
         anchors.left: parent.left
-        width: dock.base * tarefa.s
+        width: tarefa.larguraIcone
         anchors.bottom: parent.bottom
         height: dock.baixo + dock.margem * 2 + icone.height
 

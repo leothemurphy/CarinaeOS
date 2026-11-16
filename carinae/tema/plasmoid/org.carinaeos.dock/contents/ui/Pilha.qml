@@ -22,7 +22,7 @@ Item {
     readonly property real s: dock.escala(slot)
     readonly property url pasta: StandardPaths.writableLocation(StandardPaths.DownloadLocation)
 
-    width: dock.base * s
+    width: dock.larguraSlot(s)
     height: parent ? parent.height : 0
 
     FolderListModel {
@@ -63,11 +63,11 @@ Item {
         width: dock.base * pilha.s
         height: width
         anchors.horizontalCenter: parent.horizontalCenter
-        y: parent.height - dock.baixo - dock.margem - height
+        y: dock.yIcone(parent.height, height, 0)
         Kirigami.Icon {
             source: "folder-downloads"
             active: rato.containsMouse
-            width: Math.round(dock.base * Math.max(1, dock.zoom))
+            width: Math.round(dock.base * Math.max(1, dock.dentro ? dock.zoomDentro : dock.zoom))
             height: width
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
@@ -76,6 +76,7 @@ Item {
             smooth: true
         }
     }
+    FundoIcone { dock: pilha.dock; alvo: icone; ativo: rato.containsMouse }
     Rotulo {
         alvo: icone
         texto: "Downloads"
