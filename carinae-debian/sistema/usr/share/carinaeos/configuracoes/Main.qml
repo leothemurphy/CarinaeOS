@@ -20,6 +20,7 @@ ApplicationWindow {
     readonly property color texto: "#f2f0f6"
     readonly property color suave: "#a8a3b6"
     readonly property color realce: "#7aa7ff"
+    property bool maisModelos: false        // Configurações › Dock: mostrar os modelos clássicos
     readonly property color linha: Qt.rgba(1, 1, 1, 0.07)
     property string pagina: ajustes.inicio
     readonly property var e: ajustes.estado
@@ -781,7 +782,7 @@ ApplicationWindow {
                     titulo: "Modelo"
                     Item {
                         width: parent.width
-                        height: gradeModelos.implicitHeight + 28
+                        height: gradeModelos.implicitHeight + 28 + 44
                         Flow {
                             id: gradeModelos
                             x: 14; y: 14; width: parent.width - 28
@@ -792,13 +793,14 @@ ApplicationWindow {
                                     ["minimalista", "Minimalista", "Só uma linha fina"], ["colorida", "Colorida", "Borda em degradê"],
                                     ["orbital", "Orbital", "Bolhas de vidro"], ["hexagonal", "Hexagonal", "Afastam-se ao passar o mouse"],
                                     ["icones", "Só ícones", "Sem fundo, afastam-se"], ["redondos", "Redondos", "Círculos, afastam-se"],
-                                    ["aereo", "Aéreo", "Vidro azulado com luzes"],
-                                    ["mac", "Mac claro", "Clássico"], ["escuro", "Mac escuro", "Clássico"], ["transparente", "Transparente", "Clássico"],
+                                    ["aereo", "Aéreo", "Vidro azulado com luzes"], ["mac", "Mac", "Vidro claro, como no macOS"]
+                                ].concat(janela.maisModelos ? [
+                                    ["escuro", "Mac escuro", "Clássico"], ["transparente", "Transparente", "Clássico"],
                                     ["bolhas", "Bubbles", "Clássico"], ["squircle", "Squircle", "Clássico"], ["rosepine", "Rosé Pine", "Clássico"],
                                     ["xp", "Windows XP", "Clássico"], ["vista", "Vista", "Clássico"], ["translucido", "Translúcido", "Clássico"],
                                     ["docklike", "DockLike", "Clássico"], ["matter", "Matter", "Clássico"], ["lucent", "Lucent", "Clássico"],
                                     ["neon", "Neon", "Clássico"]
-                                ]
+                                ] : [])
                                 delegate: Rectangle {
                                     id: cartaoModelo
                                     required property var modelData
@@ -827,6 +829,12 @@ ApplicationWindow {
                                     }
                                 }
                             }
+                        }
+                        Botao {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.bottom: parent.bottom; anchors.bottomMargin: 12
+                            texto: janela.maisModelos ? "Menos modelos" : "Mais modelos (clássicos)…"
+                            onCarregado: janela.maisModelos = !janela.maisModelos
                         }
                     }
                 }
