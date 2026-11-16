@@ -5,6 +5,7 @@ Nada vem instalado: na primeira vez, oferece instalar o Bottles (Flathub, na con
 ou procurar uma alternativa para Linux na Órbita. Depois, abre direto no Bottles.
   carinaeos-exe ARQUIVO.exe
 """
+import json
 import os
 import re
 import subprocess
@@ -18,8 +19,63 @@ def tem_bottles():
     return subprocess.run(['flatpak', 'info', BOTTLES], capture_output=True).returncode == 0
 
 
+GARRAFA = 'Programas do Windows'
+
+
+def cli(*args, timeout=900):
+    try:
+        return subprocess.run(['flatpak', 'run', '--command=bottles-cli', BOTTLES] + list(args),
+                              capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def garrafas():
+    p = cli('--json', 'list', 'bottles', timeout=120)
+    if not p or p.returncode != 0:
+        return []
+    try:
+        j = json.loads(p.stdout)
+        return list(j.keys()) if isinstance(j, dict) else [b.get('Name', b) if isinstance(b, dict) else b for b in j]
+    except ValueError:
+        return [l.strip()[2:] for l in p.stdout.splitlines() if l.strip().startswith('- ')]
+
+
+def progresso(texto):
+    ref = subprocess.run(['kdialog', '--title', 'Bottles', '--progressbar', texto, '0'],
+                         capture_output=True, text=True).stdout.split()
+    return ref
+
+
+def fechar(ref):
+    if len(ref) == 2:
+        subprocess.run(['qdbus6', ref[0], ref[1], 'close'], capture_output=True)
+
+
 def abrir_no_bottles(arquivo):
-    os.execvp('flatpak', ['flatpak', 'run', '--file-forwarding', BOTTLES, '@@', arquivo, '@@'])
+    """Corre o .exe numa garrafa (o ambiente Windows do Bottles). Na primeira vez cria a garrafa
+    "Programas do Windows"; o Bottles sozinho, com um arquivo e sem garrafas, não fazia nada."""
+    lista = garrafas()
+    if not lista:
+        ref = progresso('Preparando o ambiente para programas do Windows… (só da primeira vez; pode levar alguns minutos)')
+        try:
+            p = cli('new', '--bottle-name', GARRAFA, '--environment', 'application')
+        finally:
+            fechar(ref)
+        lista = garrafas()
+        if not lista:
+            erro = ((p.stderr or p.stdout).strip().splitlines()[-1:] if p else []) or ['']
+            subprocess.run(['kdialog', '--title', 'Bottles', '--msgbox',
+                            'O Bottles ainda precisa de terminar a configuração inicial.\n\n'
+                            'Ele vai abrir agora: siga os passos (baixa os componentes) e depois dê de novo dois cliques no .exe.'
+                            + ('\n\n' + erro[0] if erro[0] else '')])
+            os.execvp('flatpak', ['flatpak', 'run', BOTTLES])
+    nome = GARRAFA if GARRAFA in lista else lista[0]
+    subprocess.Popen(['notify-send', '-a', 'Bottles', '-i', 'com.usebottles.bottles',
+                      'Abrindo %s' % os.path.basename(arquivo), 'No Bottles, na garrafa “%s”. A primeira vez demora um pouco.' % nome],
+                     start_new_session=True)
+    os.execvp('flatpak', ['flatpak', 'run', '--file-forwarding', '--command=bottles-cli', BOTTLES,
+                          'run', '-b', nome, '-e', '@@', arquivo, '@@'])
 
 
 def nome_para_procurar(arquivo):
