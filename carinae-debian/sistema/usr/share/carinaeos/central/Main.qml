@@ -20,6 +20,7 @@ ApplicationWindow {
         if (pagina === "calendarios") central.lerCalendarios()
         if (pagina === "drivers") central.lerHardware()
         if (pagina === "ssh" || pagina === "firewall") central.lerSSH()
+        if (pagina === "jogos") central.lerJogos()
     }
     onPaginaChanged: carregar()
     Component.onCompleted: carregar()
@@ -430,6 +431,80 @@ ApplicationWindow {
                         width: 210; height: 38; radius: 19; color: Qt.rgba(1, 1, 1, 0.08)
                         Text { anchors.centerIn: parent; text: "Voltar ao céu do CarinaeOS"; color: janela.texto }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: central.reporFundoEntrada() }
+                    }
+                }
+            }
+
+            // ===== jogos =====
+            Column {
+                visible: janela.pagina === "jogos"
+                width: conteudo.largura; spacing: 16
+                Text { text: "Jogos"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
+                Rectangle {
+                    width: parent.width; height: jCol1.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: jCol1
+                        x: 18; y: 16; width: parent.width - 36; spacing: 10
+                        Text { text: (central.jogos || {}).steam ? "Pronto para jogar" : "Preparar este computador para jogos"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: (central.jogos || {}).steam
+                                     ? "O Steam está instalado, com o Proton para os jogos do Windows. No Steam, em Configurações › Compatibilidade, ative o Steam Play para todos os títulos."
+                                     : "O CarinaeOS não traz nada de jogos: só instala se pedir. Um clique instala o Steam (com o Proton para os jogos do Windows), o GameMode e o MangoHud. O Steam fica isolado (Flatpak) e sai por inteiro se o remover." }
+                        Row {
+                            visible: !(central.jogos || {}).steam
+                            spacing: 18
+                            CheckBox { id: jHeroic; text: "Heroic (Epic e GOG)"; palette.windowText: janela.texto }
+                            CheckBox { id: jProton; text: "ProtonUp-Qt (Proton GE)"; palette.windowText: janela.texto }
+                        }
+                        Row {
+                            spacing: 10
+                            Rectangle {
+                                width: 230; height: 40; radius: 20; color: janela.ambar
+                                opacity: central.ocupado ? 0.5 : 1
+                                Text { anchors.centerIn: parent; color: "#1a0f14"; font.weight: Font.Bold
+                                       text: (central.jogos || {}).steam ? "Abrir o Steam" : "Preparar para jogos" }
+                                MouseArea { anchors.fill: parent; enabled: !central.ocupado; cursorShape: Qt.PointingHandCursor
+                                            onClicked: (central.jogos || {}).steam ? central.abrir("flatpak run com.valvesoftware.Steam")
+                                                                                  : central.prepararJogos(jHeroic.checked, jProton.checked) }
+                            }
+                            Rectangle {
+                                visible: !!(central.jogos || {}).steam
+                                width: 190; height: 40; radius: 20; color: Qt.rgba(1, 1, 1, 0.08)
+                                Text { anchors.centerIn: parent; text: "Remover tudo"; color: janela.texto }
+                                MouseArea { anchors.fill: parent; enabled: !central.ocupado; cursorShape: Qt.PointingHandCursor; onClicked: central.removerJogos() }
+                            }
+                        }
+                    }
+                }
+                Rectangle {
+                    visible: !!(central.jogos || {}).steam
+                    width: parent.width; height: jCol2.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: jCol2
+                        x: 18; y: 16; width: parent.width - 36; spacing: 14
+                        Repeater {
+                            model: [
+                                { chave: "mangohud", titulo: "Mostrar FPS e temperaturas nos jogos", sub: "MangoHud (Shift direito + F12 esconde e mostra)", ver: true },
+                                { chave: "desempenho", titulo: "Processador no máximo com o Steam aberto", sub: "GameMode: mais desempenho, mais consumo (desligue num notebook na bateria)", ver: true },
+                                { chave: "wined3d", titulo: "Modo para placas antigas", sub: "A sua placa não tem Vulkan 1.3: os jogos do Windows usam OpenGL (WineD3D)", ver: !!(central.jogos || {}).kepler }
+                            ]
+                            delegate: Item {
+                                required property var modelData
+                                visible: modelData.ver
+                                width: jCol2.width; height: visible ? 44 : 0
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter; width: parent.width - 80
+                                    Text { text: modelData.titulo; color: janela.texto; font.pixelSize: 15 }
+                                    Text { text: modelData.sub; color: janela.suave; font.pixelSize: 12; width: parent.width; elide: Text.ElideRight }
+                                }
+                                Switch {
+                                    anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                                    enabled: !central.ocupado
+                                    checked: !!(central.jogos || {})[modelData.chave]
+                                    onToggled: central.definirJogos(modelData.chave, checked)
+                                }
+                            }
+                        }
                     }
                 }
             }

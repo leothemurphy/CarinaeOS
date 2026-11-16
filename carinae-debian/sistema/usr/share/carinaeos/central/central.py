@@ -24,6 +24,7 @@ FERRAMENTAS = [
     dict(id='orbita', nome='Órbita', desc='Loja de aplicativos', icone='carinaeos-orbita', cmd='carinaeos-orbita'),
     dict(id='atualizacoes', nome='Atualizações', desc='Atualizar com ponto de restauro e voltar atrás', icone='system-software-update', cmd='carinaeos-atualizacoes'),
     dict(id='casa', nome='Carinae Casa', desc='Ligado ao Home Assistant', icone='carinaeos-casa', cmd='carinaeos-casa'),
+    dict(id='jogos', nome='Jogos', desc='Steam, Proton e desempenho, só se quiser', icone='applications-games', pagina='jogos'),
     dict(id='calendarios', nome='Calendários', desc='Google, iCloud e endereços iCal', icone='view-calendar', pagina='calendarios'),
     dict(id='janelas', nome='Janelas em zonas', desc='Encaixar janelas lado a lado e áreas de trabalho', icone='view-grid', pagina='janelas'),
     dict(id='cadeado', nome='Cadeado', desc='Pastas, arquivos e aplicativos com senha', icone='object-locked', pagina='cadeado'),
@@ -271,6 +272,56 @@ def hardware():
     return itens
 
 
+# ---- jogos (nada vem instalado: só quem pedir) ---------------------------------------------------------
+STEAM = 'com.valvesoftware.Steam'
+EXTRAS_JOGOS = {'heroic': 'com.heroicgameslauncher.hgl', 'protonup': 'net.davidotek.pupgui2'}
+SOBREPOR_STEAM = os.path.join(HOME, '.local/share/flatpak/overrides', STEAM)
+
+
+def flatpaks():
+    try:
+        out = subprocess.run(['flatpak', 'list', '--columns=application,branch'], capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    r = set()
+    for l in out.splitlines():
+        a = l.split()
+        if a:
+            r.add(a[0])
+            if len(a) > 1:
+                r.add(a[0] + '//' + a[1])
+    return r
+
+
+def ambiente_steam():
+    import configparser
+    c = configparser.ConfigParser(interpolation=None)
+    c.optionxform = str
+    try:
+        c.read(SOBREPOR_STEAM)
+        return dict(c['Environment']) if c.has_section('Environment') else {}
+    except (configparser.Error, OSError):
+        return {}
+
+
+def placa_kepler():
+    try:
+        out = subprocess.run(['lspci'], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return any('NVIDIA' in l and geracao_nvidia(l) == 'kepler' for l in out.splitlines() if 'VGA' in l or '3D' in l)
+
+
+def jogos_estado():
+    f = flatpaks()
+    amb = ambiente_steam()
+    return dict(steam=STEAM in f, heroic=EXTRAS_JOGOS['heroic'] in f, protonup=EXTRAS_JOGOS['protonup'] in f,
+                gamemode=os.path.exists('/usr/bin/gamemoded'),
+                mangohudCamada=any(x.startswith('org.freedesktop.Platform.VulkanLayer.MangoHud') for x in f),
+                mangohud=amb.get('MANGOHUD') == '1', desempenho='libgamemodeauto' in amb.get('LD_PRELOAD', ''),
+                wined3d=amb.get('PROTON_USE_WINED3D') == '1', kepler=placa_kepler())
+
+
 # ---- firewall (ufw) ------------------------------------------------------------------------------------
 NOMES_FIREWALL = {'descoberta': 'Encontrar impressoras e computadores da rede', 'kdeconnect': 'KDE Connect (celular)',
                   'ssh': 'Acesso remoto (SSH)', 'partilha': 'Pastas compartilhadas', 'musica': 'Música para a rede (Home Assistant)'}
@@ -402,6 +453,8 @@ class Central(QObject):
         self._msg = ''
         self._ocupado = False
         self._chegou.connect(lambda f, r: f(r))
+        self._jogos = {}
+        self._passo.connect(self._mostrar_passo)
 
     ferramentas = Property('QVariantList', lambda s: FERRAMENTAS, constant=True)
     paginaInicial = Property(str, lambda s: s._pagina, constant=True)
@@ -412,6 +465,7 @@ class Central(QObject):
     zonas = Property('QVariantList', lambda s: [dict(id=k, nome=v['nome'], tiles=json.dumps(v['tiles'])) for k, v in ZONAS.items()], constant=True)
     escuroForcado = Property(bool, lambda s: escuro_forcado(), notify=mudou)
     convidado = Property(int, lambda s: {None: -1, False: 0, True: 1}[convidado_ativo()], notify=mudou)
+    jogos = Property('QVariantMap', lambda s: s._jogos, notify=mudou)
     firewall = Property(int, lambda s: firewall_estado(), notify=mudou)
     firewallAbertos = Property('QVariantList', lambda s: firewall_abertos(), notify=mudou)
     ssh = Property(int, lambda s: ssh_estado(), notify=mudou)
@@ -617,6 +671,96 @@ class Central(QObject):
         self._fundo(lambda: subprocess.run(cmd, check=True), self._fim(
             'Acesso remoto %s ✓' % ('ligado' if ligar else 'desligado')),
             'Instalando e ligando o servidor SSH…' if ligar and ssh_estado() < 0 else '')
+
+    # jogos
+    _passo = Signal(str)
+
+    def _mostrar_passo(self, texto):
+        self._msg = texto
+        self.mudou.emit()
+
+    @Slot()
+    def lerJogos(self):
+        def depois(r):
+            self._ocupado = False
+            self._jogos = r if isinstance(r, dict) else {}
+            self.mudou.emit()
+        self._fundo(jogos_estado, depois)
+
+    @Slot(bool, bool)
+    def prepararJogos(self, heroic, protonup):
+        def trabalho():
+            def corre(args, texto):
+                self._passo.emit(texto)
+                p = subprocess.run(args, capture_output=True, text=True)
+                if p.returncode != 0:
+                    raise RuntimeError((p.stderr or p.stdout).strip().splitlines()[-1:] or ['falhou'])
+                return p.stdout
+            # do sistema, só o pequeno: GameMode (desempenho) e as regras dos comandos (steam-devices)
+            if not os.path.exists('/usr/bin/gamemoded') or not os.path.exists('/usr/lib/udev/rules.d/60-steam-input.rules'):
+                corre(['pkexec', '/usr/lib/carinaeos/instalar-pacotes', 'gamemode', 'steam-devices'],
+                      'Instalando o GameMode e o suporte a comandos (pede a senha)…')
+            corre(['flatpak', 'remote-add', '--user', '--if-not-exists', 'flathub',
+                   'https://dl.flathub.org/repo/flathub.flatpakrepo'], 'Ligando ao Flathub…')
+            # o Steam vem isolado (Flatpak): não mexe nas bibliotecas do sistema e sai por inteiro ao remover
+            corre(['flatpak', 'install', '--user', '-y', '--noninteractive', 'flathub', STEAM],
+                  'Baixando o Steam (pode levar alguns minutos)…')
+            rt = corre(['flatpak', 'info', '--show-runtime', STEAM], 'Preparando o MangoHud…').strip()
+            ramo = rt.split('/')[-1] if rt else ''
+            if ramo:
+                corre(['flatpak', 'install', '--user', '-y', '--noninteractive', 'flathub',
+                       'org.freedesktop.Platform.VulkanLayer.MangoHud//' + ramo], 'Instalando o MangoHud…')
+            if heroic:
+                corre(['flatpak', 'install', '--user', '-y', '--noninteractive', 'flathub', EXTRAS_JOGOS['heroic']],
+                      'Baixando o Heroic (Epic e GOG)…')
+            if protonup:
+                corre(['flatpak', 'install', '--user', '-y', '--noninteractive', 'flathub', EXTRAS_JOGOS['protonup']],
+                      'Baixando o ProtonUp-Qt…')
+            if placa_kepler():
+                # placa sem Vulkan 1.3: os jogos do Windows vão pelo WineD3D (OpenGL) em vez do DXVK
+                subprocess.run(['flatpak', 'override', '--user', '--env=PROTON_USE_WINED3D=1', STEAM])
+            return jogos_estado()
+
+        def depois(r):
+            self._ocupado = False
+            if isinstance(r, Exception):
+                self._msg = 'Não funcionou: %s' % r
+            else:
+                self._jogos = r
+                self._msg = 'Pronto para jogar ✓ Abra o Steam e entre na sua conta.'
+            self.mudou.emit()
+        self._fundo(trabalho, depois, 'Começando…')
+
+    @Slot(str, bool)
+    def definirJogos(self, chave, ligar):
+        var = {'mangohud': 'MANGOHUD=1', 'desempenho': 'LD_PRELOAD=libgamemodeauto.so.0',
+               'wined3d': 'PROTON_USE_WINED3D=1'}.get(chave)
+        if not var:
+            return
+        nome = var.split('=')[0]
+        args = ['--env=' + var] if ligar else ['--unset-env=' + nome]
+        subprocess.run(['flatpak', 'override', '--user'] + args + [STEAM], capture_output=True)
+        self._jogos = jogos_estado()
+        self.mudou.emit()
+
+    @Slot()
+    def removerJogos(self):
+        def trabalho():
+            f = flatpaks()
+            apps = [a for a in [STEAM] + list(EXTRAS_JOGOS.values()) if a in f]
+            if apps:
+                subprocess.run(['flatpak', 'uninstall', '--user', '-y', '--noninteractive'] + apps, capture_output=True)
+            subprocess.run(['flatpak', 'override', '--user', '--reset', STEAM], capture_output=True)
+            subprocess.run(['flatpak', 'uninstall', '--user', '-y', '--noninteractive', '--unused'], capture_output=True)
+            return jogos_estado()
+
+        def depois(r):
+            self._ocupado = False
+            self._jogos = r if isinstance(r, dict) else self._jogos
+            self._msg = 'Não funcionou: %s' % r if isinstance(r, Exception) else \
+                'Steam e extras removidos ✓ Os jogos baixados ficam em ~/.var/app/com.valvesoftware.Steam (apague se quiser o espaço).'
+            self.mudou.emit()
+        self._fundo(trabalho, depois, 'Removendo…')
 
     @Slot(bool)
     def definirFirewall(self, ligar):
