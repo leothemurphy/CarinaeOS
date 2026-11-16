@@ -24,6 +24,7 @@ FERRAMENTAS = [
     dict(id='orbita', nome='Órbita', desc='Loja de aplicativos', icone='carinaeos-orbita', cmd='carinaeos-orbita'),
     dict(id='atualizacoes', nome='Atualizações', desc='Atualizar com ponto de restauro e voltar atrás', icone='system-software-update', cmd='carinaeos-atualizacoes'),
     dict(id='casa', nome='Carinae Casa', desc='Ligado ao Home Assistant', icone='carinaeos-casa', cmd='carinaeos-casa'),
+    dict(id='windows', nome='Vindo do Windows', desc='Trazer os seus arquivos e achar os seus programas', icone='windows', pagina='windows'),
     dict(id='celular', nome='Celular', desc='KDE Connect: arquivos, encontrar o celular, texto copiado', icone='smartphone', pagina='celular'),
     dict(id='jogos', nome='Jogos', desc='Steam, Proton e desempenho, só se quiser', icone='applications-games', pagina='jogos'),
     dict(id='calendarios', nome='Calendários', desc='Google, iCloud e endereços iCal', icone='view-calendar', pagina='calendarios'),
@@ -363,6 +364,90 @@ def enderecos():
     return [ip for ip in r if ':' not in ip] or r[:2]
 
 
+# ---- vindo do Windows ---------------------------------------------------------------------------------
+# programa do Windows -> alternativa: (nome, descrição, flatpak ou '', .desktop do sistema que já a dá)
+PROGRAMAS_WINDOWS = [
+    ('Microsoft Office', 'OnlyOffice', 'Abre e grava .docx, .xlsx e .pptx com o mesmo visual', 'org.onlyoffice.desktopeditors', ''),
+    ('Word, Excel (gratuito)', 'LibreOffice', 'Pacote de escritório completo', 'org.libreoffice.LibreOffice', 'libreoffice-startcenter.desktop'),
+    ('Outlook', 'Thunderbird', 'E-mail, calendário e contatos', 'org.mozilla.Thunderbird', 'thunderbird.desktop'),
+    ('Google Chrome', 'Google Chrome', 'O mesmo navegador, com a sua conta', 'com.google.Chrome', 'google-chrome.desktop'),
+    ('Photoshop', 'GIMP', 'Editar fotos e imagens', 'org.gimp.GIMP', 'gimp.desktop'),
+    ('Paint', 'KolourPaint', 'Desenho simples, como o Paint', 'org.kde.kolourpaint', 'org.kde.kolourpaint.desktop'),
+    ('Illustrator', 'Inkscape', 'Desenho vetorial', 'org.inkscape.Inkscape', 'org.inkscape.Inkscape.desktop'),
+    ('Premiere / CapCut', 'Kdenlive', 'Editar vídeos', 'org.kde.kdenlive', 'org.kde.kdenlive.desktop'),
+    ('Lightroom', 'darktable', 'Revelar e organizar fotos', 'org.darktable.Darktable', 'org.darktable.darktable.desktop'),
+    ('AutoCAD / SolidWorks', 'FreeCAD', 'Projeto mecânico 3D', 'org.freecad.FreeCAD', 'org.freecad.FreeCAD.desktop'),
+    ('WhatsApp', 'ZapZap', 'O WhatsApp numa janela própria', 'com.rtosta.zapzap', ''),
+    ('Spotify', 'Spotify', 'O mesmo Spotify', 'com.spotify.Client', ''),
+    ('Discord', 'Discord', 'O mesmo Discord', 'com.discordapp.Discord', ''),
+    ('Zoom', 'Zoom', 'O mesmo Zoom', 'us.zoom.Zoom', ''),
+    ('OBS Studio', 'OBS Studio', 'Gravar a tela e transmitir', 'com.obsproject.Studio', ''),
+    ('VS Code', 'Visual Studio Code', 'O mesmo editor de código', 'com.visualstudio.code', 'code.desktop'),
+    ('Bloco de Notas, Notepad++', 'Kate', 'Já vem no CarinaeOS', '', 'org.kde.kate.desktop'),
+    ('WinRAR, 7-Zip', 'Ark', 'Já vem no CarinaeOS: abre .zip, .rar, .7z', '', 'org.kde.ark.desktop'),
+    ('Windows Media Player', 'VLC', 'Já vem no CarinaeOS: toca qualquer vídeo', '', 'vlc.desktop'),
+    ('Explorador de Arquivos', 'Arquivos (Dolphin)', 'Já vem no CarinaeOS', '', 'org.kde.dolphin.desktop'),
+    ('Programas .exe', 'Bottles', 'Dois cliques num .exe e o CarinaeOS oferece', 'com.usebottles.bottles', ''),
+]
+# pastas do Windows (C:\Users\nome\...) -> pastas do usuário aqui (xdg-user-dir)
+PASTAS_WINDOWS = [('Desktop', 'DESKTOP', 'Área de Trabalho'), ('Documents', 'DOCUMENTS', 'Documentos'),
+                  ('Pictures', 'PICTURES', 'Imagens'), ('Music', 'MUSIC', 'Músicas'), ('Videos', 'VIDEOS', 'Vídeos'),
+                  ('Downloads', 'DOWNLOAD', 'Downloads')]
+
+
+def programas_windows():
+    f = flatpaks()
+    r = []
+    for win, alt, desc, fp, nativo in PROGRAMAS_WINDOWS:
+        tem = (fp and fp in f) or (nativo and any(os.path.exists(os.path.join(p, nativo)) for p in
+              ('/usr/share/applications', os.path.join(HOME, '.local/share/applications'))))
+        r.append(dict(windows=win, nome=alt, desc=desc, flatpak=fp, instalado=bool(tem)))
+    return r
+
+
+def contas_windows():
+    """Pastas de usuário do Windows em discos NTFS (o disco do Windows ou um disco externo).
+    Monta só para leitura, com o udisks (pode pedir a senha num disco interno)."""
+    try:
+        j = json.loads(subprocess.run(['lsblk', '-J', '-o', 'PATH,FSTYPE,LABEL,SIZE,MOUNTPOINT'],
+                                      capture_output=True, text=True, timeout=10).stdout)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return [], ''
+    r, aviso = [], ''
+
+    def todas(ds):
+        for d in ds:
+            yield d
+            yield from todas(d.get('children') or [])
+    for d in todas(j.get('blockdevices') or []):
+        if (d.get('fstype') or '') not in ('ntfs', 'ntfs3', 'exfat', 'vfat'):
+            continue
+        mp = d.get('mountpoint')
+        if not mp:
+            p = subprocess.run(['udisksctl', 'mount', '-b', d['path'], '-o', 'ro', '--no-user-interaction'],
+                               capture_output=True, text=True, timeout=30)
+            if p.returncode != 0:
+                p = subprocess.run(['udisksctl', 'mount', '-b', d['path'], '-o', 'ro'], capture_output=True, text=True, timeout=120)
+            m = re.search(r' at (/\S+)', p.stdout)
+            if not m:
+                if 'hibernat' in (p.stderr or '').lower() or 'unclean' in (p.stderr or '').lower():
+                    aviso = ('O disco do Windows está em hibernação (Início rápido). No Windows, desligue com Shift + Desligar, '
+                             'ou desative o Início rápido, e volte aqui.')
+                continue
+            mp = m.group(1).rstrip('.')
+        users = os.path.join(mp, 'Users')
+        if not os.path.isdir(users):
+            continue
+        for u in sorted(os.listdir(users)):
+            c = os.path.join(users, u)
+            if u in ('Public', 'Default', 'Default User', 'All Users', 'defaultuser0') or not os.path.isdir(c) or os.path.islink(c):
+                continue
+            if not any(os.path.isdir(os.path.join(c, x[0])) for x in PASTAS_WINDOWS):
+                continue
+            r.append(dict(caminho=c, nome=u, disco=(d.get('label') or d['path']) + ' · ' + (d.get('size') or '')))
+    return r, aviso
+
+
 # ---- celular (KDE Connect) -------------------------------------------------------------------------------
 KDC = 'org.kde.kdeconnect'
 
@@ -506,6 +591,7 @@ class Central(QObject):
         self._chegou.connect(lambda f, r: f(r))
         self._jogos = {}
         self._celular = {}
+        self._windows = {}
         self._passo.connect(self._mostrar_passo)
 
     ferramentas = Property('QVariantList', lambda s: FERRAMENTAS, constant=True)
@@ -519,6 +605,7 @@ class Central(QObject):
     convidado = Property(int, lambda s: {None: -1, False: 0, True: 1}[convidado_ativo()], notify=mudou)
     jogos = Property('QVariantMap', lambda s: s._jogos, notify=mudou)
     celular = Property('QVariantMap', lambda s: s._celular, notify=mudou)
+    windows = Property('QVariantMap', lambda s: s._windows, notify=mudou)
     firewall = Property(int, lambda s: firewall_estado(), notify=mudou)
     firewallAbertos = Property('QVariantList', lambda s: firewall_abertos(), notify=mudou)
     ssh = Property(int, lambda s: ssh_estado(), notify=mudou)
@@ -820,6 +907,80 @@ class Central(QObject):
         cmd = ['pkexec', '/usr/lib/carinaeos/firewall', 'ligar' if ligar else 'desligar']
         self._fundo(lambda: subprocess.run(cmd, check=True, capture_output=True), self._fim(
             'Firewall %s ✓' % ('ligado' if ligar else 'desligado')))
+
+    # vindo do Windows
+    @Slot()
+    def lerWindows(self):
+        def depois(r):
+            self._ocupado = False
+            self._windows = dict(self._windows, programas=r if isinstance(r, list) else [])
+            self.mudou.emit()
+        self._fundo(programas_windows, depois)
+
+    @Slot()
+    def procurarWindows(self):
+        def depois(r):
+            self._ocupado = False
+            contas, aviso = r if isinstance(r, tuple) else ([], '')
+            self._windows = dict(self._windows, contas=contas, procurado=True)
+            self._msg = aviso or ('' if contas else 'Não encontrei nenhum Windows nem disco com pastas do Windows. '
+                                  'Ligue o disco externo onde fez a cópia e procure de novo.')
+            self.mudou.emit()
+        self._fundo(contas_windows, depois, 'Procurando o Windows nos discos…')
+
+    @Slot(str)
+    def trazerWindows(self, origem):
+        if not os.path.isdir(origem) or '/Users/' not in origem:
+            return
+
+        def trabalho():
+            feitas = []
+            for win, xdg, nome in PASTAS_WINDOWS:
+                o = os.path.join(origem, win)
+                if not os.path.isdir(o):
+                    continue
+                dest = subprocess.run(['xdg-user-dir', xdg], capture_output=True, text=True).stdout.strip() or os.path.join(HOME, nome)
+                os.makedirs(dest, exist_ok=True)
+                self._passo.emit('Copiando %s… (os arquivos que já existem aqui ficam como estão)' % nome)
+                # cópia sem apagar nem substituir nada; sem os atalhos e lixo do Windows
+                subprocess.run(['rsync', '-rt', '--ignore-existing', '--no-perms', '--exclude=desktop.ini',
+                                '--exclude=Thumbs.db', '--exclude=*.lnk', '--exclude=$RECYCLE.BIN',
+                                '--exclude=My Music', '--exclude=My Pictures', '--exclude=My Videos',
+                                o + '/', dest + '/'], capture_output=True)
+                feitas.append(nome)
+            return feitas
+
+        def depois(r):
+            self._ocupado = False
+            self._msg = ('Não funcionou: %s' % r) if isinstance(r, Exception) else \
+                ('Pronto ✓ Trouxe: %s. Nada foi apagado do Windows.' % ', '.join(r) if r else 'Não havia pastas para trazer.')
+            self.mudou.emit()
+        self._fundo(trabalho, depois, 'Começando a cópia…')
+
+    @Slot(str)
+    def instalarPrograma(self, fp):
+        if not re.fullmatch(r'[A-Za-z0-9._-]+', fp):
+            return
+
+        def trabalho():
+            self._passo.emit('Baixando… (pode levar alguns minutos)')
+            subprocess.run(['flatpak', 'remote-add', '--user', '--if-not-exists', 'flathub',
+                            'https://dl.flathub.org/repo/flathub.flatpakrepo'], capture_output=True)
+            p = subprocess.run(['flatpak', 'install', '--user', '-y', '--noninteractive', 'flathub', fp],
+                               capture_output=True, text=True)
+            if p.returncode != 0:
+                raise RuntimeError(((p.stderr or p.stdout).strip().splitlines() or ['sem internet?'])[-1])
+            return programas_windows()
+
+        def depois(r):
+            self._ocupado = False
+            if isinstance(r, Exception):
+                self._msg = 'Não funcionou: %s' % r
+            else:
+                self._windows = dict(self._windows, programas=r)
+                self._msg = 'Instalado ✓ Já aparece no Launchpad.'
+            self.mudou.emit()
+        self._fundo(trabalho, depois, 'Começando…')
 
     # celular (KDE Connect)
     @Slot()

@@ -34,6 +34,7 @@ ApplicationWindow {
         if (pagina === "ssh" || pagina === "firewall") central.lerSSH()
         if (pagina === "jogos") central.lerJogos()
         if (pagina === "celular") central.lerCelular()
+        if (pagina === "windows") central.lerWindows()
     }
     onPaginaChanged: carregar()
     Component.onCompleted: carregar()
@@ -444,6 +445,122 @@ ApplicationWindow {
                         width: 210; height: 38; radius: 19; color: Qt.rgba(1, 1, 1, 0.08)
                         Text { anchors.centerIn: parent; text: "Voltar ao céu do CarinaeOS"; color: janela.texto }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: central.reporFundoEntrada() }
+                    }
+                }
+            }
+
+            // ===== vindo do Windows =====
+            Column {
+                visible: janela.pagina === "windows"
+                width: conteudo.largura; spacing: 16
+                Text { text: "Vindo do Windows"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                    text: "Três coisas para se sentir em casa: trazer os seus arquivos, achar os programas equivalentes e os atalhos que mudam."
+                }
+                // 1. arquivos
+                Rectangle {
+                    width: parent.width; height: colW1.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: colW1
+                        x: 18; y: 16; width: parent.width - 36; spacing: 10
+                        Text { text: "1. Trazer os seus arquivos"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: "Do disco do Windows (se ele está neste computador) ou de um disco externo com a cópia. Copia a Área de Trabalho, Documentos, Imagens, Músicas, Vídeos e Downloads para as pastas daqui. O Windows só é lido: nada lá é apagado nem mudado, e o que já existe aqui fica como está." }
+                        Pilula {
+                            visible: !((central.windows || {}).contas || []).length
+                            texto: (central.windows || {}).procurado ? "Procurar de novo" : "Procurar o Windows nos discos"
+                            principal: true
+                            onCarregado: central.procurarWindows()
+                        }
+                        Repeater {
+                            model: (central.windows || {}).contas || []
+                            delegate: Rectangle {
+                                id: contaW
+                                required property var modelData
+                                width: colW1.width; height: 58; radius: 14
+                                color: Qt.rgba(1, 1, 1, 0.05)
+                                Image { x: 12; anchors.verticalCenter: parent.verticalCenter; width: 30; height: 30; source: "image://icone/user-identity"; sourceSize: Qt.size(60, 60) }
+                                Column {
+                                    x: 54; anchors.verticalCenter: parent.verticalCenter
+                                    Text { text: contaW.modelData.nome; color: janela.texto; font.pixelSize: 15; font.weight: Font.DemiBold }
+                                    Text { text: contaW.modelData.disco; color: janela.suave; font.pixelSize: 12 }
+                                }
+                                Pilula {
+                                    anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
+                                    texto: "Trazer para aqui"; principal: true
+                                    onCarregado: central.trazerWindows(contaW.modelData.caminho)
+                                }
+                            }
+                        }
+                    }
+                }
+                // 2. programas
+                Rectangle {
+                    width: parent.width; height: colW2.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: colW2
+                        x: 18; y: 16; width: parent.width - 36; spacing: 6
+                        Text { text: "2. Os programas que você usava"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold; bottomPadding: 6 }
+                        Repeater {
+                            model: (central.windows || {}).programas || []
+                            delegate: Item {
+                                id: progW
+                                required property var modelData
+                                width: colW2.width; height: 46
+                                Text { width: parent.width * 0.3; anchors.verticalCenter: parent.verticalCenter; text: progW.modelData.windows; color: janela.suave; font.pixelSize: 13; elide: Text.ElideRight }
+                                Text { x: parent.width * 0.3; anchors.verticalCenter: parent.verticalCenter; text: "→"; color: janela.ambar }
+                                Column {
+                                    x: parent.width * 0.3 + 22; anchors.verticalCenter: parent.verticalCenter; width: parent.width * 0.7 - 170
+                                    Text { text: progW.modelData.nome; color: janela.texto; font.pixelSize: 14; font.weight: Font.DemiBold }
+                                    Text { width: parent.width; text: progW.modelData.desc; color: janela.suave; font.pixelSize: 11; elide: Text.ElideRight }
+                                }
+                                Text {
+                                    visible: progW.modelData.instalado
+                                    anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
+                                    text: "Instalado ✓"; color: janela.ambar; font.pixelSize: 13
+                                }
+                                Pilula {
+                                    visible: !progW.modelData.instalado && progW.modelData.flatpak !== ""
+                                    anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                                    texto: "Instalar"
+                                    onCarregado: central.instalarPrograma(progW.modelData.flatpak)
+                                }
+                            }
+                        }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 12; topPadding: 6
+                               text: "Outros programas: procure na Órbita. Um .exe que não tenha versão para Linux: dois cliques nele e o CarinaeOS oferece o Bottles." }
+                    }
+                }
+                // 3. atalhos
+                Rectangle {
+                    width: parent.width; height: colW3.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: colW3
+                        x: 18; y: 16; width: parent.width - 36; spacing: 8
+                        Text { text: "3. Os atalhos que mudam"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold; bottomPadding: 4 }
+                        Repeater {
+                            model: [
+                                ["Tecla Windows", "Abre o Launchpad (todos os aplicativos, como o menu Iniciar)"],
+                                ["Ctrl + Espaço", "Pesquisa: aplicativos, arquivos, contas e configurações"],
+                                ["Alt + Tab", "Trocar de janela, como no Windows"],
+                                ["Windows + W", "Ver todas as janelas e áreas de trabalho"],
+                                ["Windows + T", "Encaixar as janelas em zonas (como o Snap Layouts)"],
+                                ["Print", "Captura de tela"],
+                                ["Windows + V", "Histórico do Ctrl+C"],
+                                ["Windows + L", "Bloquear a tela"],
+                                ["Ctrl + Alt + Esc", "Fechar à força uma janela que travou (clique nela)"]
+                            ]
+                            delegate: Row {
+                                required property var modelData
+                                spacing: 14
+                                Rectangle {
+                                    width: 150; height: 28; radius: 8; color: Qt.rgba(1, 1, 1, 0.08); border.color: Qt.rgba(1, 1, 1, 0.14)
+                                    Text { anchors.centerIn: parent; text: modelData[0]; color: janela.texto; font.pixelSize: 12; font.weight: Font.DemiBold }
+                                }
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: modelData[1]; color: janela.suave; font.pixelSize: 13 }
+                            }
+                        }
                     }
                 }
             }

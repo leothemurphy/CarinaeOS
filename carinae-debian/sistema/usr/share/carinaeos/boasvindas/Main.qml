@@ -252,6 +252,8 @@ ApplicationWindow {
                     Linha { titulo: "Launchpad"; sub: "A estrela da Dock ou a tecla ⊞: todos os aplicativos por categoria, e o Deck."; icone: "carinaeos-estrela" }
                     Linha { titulo: "Configurações"; sub: "Wi-Fi, som, telas, aparência e tudo o resto."; icone: "preferences-system" }
                     Linha { titulo: "Manual do CarinaeOS"; sub: "Tudo explicado, passo a passo."; icone: "help-contents" }
+                    Linha { titulo: "Vindo do Windows?"; sub: "Traga os seus arquivos e ache os programas equivalentes."; icone: "windows"; clicavel: true
+                            onCarregado: bv.abrir("carinaeos-central windows"); Text { text: "›"; color: janela.suave; font.pixelSize: 20 } }
                 }
                 Rectangle {
                     Layout.alignment: Qt.AlignHCenter
