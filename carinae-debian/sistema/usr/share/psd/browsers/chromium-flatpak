@@ -1,5 +1,0 @@
-# CarinaeOS: Chromium em Flatpak (o profile-sync-daemon só conhece os navegadores instalados como pacote)
-if [[ -d "$HOME/.var/app/org.chromium.Chromium/config/chromium" ]]; then
-    DIRArr[0]="$HOME/.var/app/org.chromium.Chromium/config/chromium"
-    PSNAME="chromium"
-fi
