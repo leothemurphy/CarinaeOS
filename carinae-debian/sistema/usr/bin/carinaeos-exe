@@ -41,6 +41,48 @@ def garrafas():
         return [l.strip()[2:] for l in p.stdout.splitlines() if l.strip().startswith('- ')]
 
 
+def sem_vulkan13():
+    """Placas sem Vulkan 1.3 (o DXVK 2+ e o VKD3D precisam dele): Intel até à 8.ª geração (Ivy Bridge,
+    Haswell, Broadwell, Bay Trail, Cherry View) e NVIDIA Kepler (driver 470) ou mais antiga."""
+    import glob
+    tem_gpu, todas_antigas = False, True
+    for d in glob.glob('/sys/bus/pci/devices/*'):
+        try:
+            classe = open(d + '/class').read().strip()
+            if not classe.startswith('0x03'):
+                continue
+            fab = open(d + '/vendor').read().strip().lower()
+            disp = int(open(d + '/device').read().strip(), 16)
+        except (OSError, ValueError):
+            continue
+        tem_gpu = True
+        if fab == '0x8086':
+            antiga = (disp >> 8) in (0x01, 0x04, 0x0a, 0x0c, 0x0d, 0x16, 0x0f, 0x22)
+        elif fab == '0x10de':
+            # Kepler e anteriores: o driver 470 (ou nenhum) — o CarinaeOS instala o 470 só para estas
+            antiga = os.path.exists('/etc/apt/apt.conf.d/53carinaeos-nvidia-antiga') or disp < 0x1300
+        else:
+            antiga = False
+        todas_antigas = todas_antigas and antiga
+    return tem_gpu and todas_antigas
+
+
+def ajustar_garrafa(nome):
+    """Uma vez por garrafa: sem Vulkan 1.3, os programas usam OpenGL (WineD3D) em vez do DXVK."""
+    marca = os.path.expanduser('~/.config/carinaeos/bottles-wined3d')
+    try:
+        feitas = open(marca).read().splitlines()
+    except OSError:
+        feitas = []
+    if nome in feitas or not sem_vulkan13():
+        return
+    p = cli('edit', '-b', nome, '--params', 'dxvk:false,vkd3d:false', timeout=120)
+    if p and p.returncode == 0:
+        os.makedirs(os.path.dirname(marca), exist_ok=True)
+        with open(marca, 'a') as f:
+            f.write(nome + '\n')
+
+
 def progresso(texto):
     ref = subprocess.run(['kdialog', '--title', 'Bottles', '--progressbar', texto, '0'],
                          capture_output=True, text=True).stdout.split()
@@ -78,6 +120,7 @@ def abrir_no_bottles(arquivo):
                             + ('\n\n' + erro[0] if erro[0] else '')])
             os.execvp('flatpak', ['flatpak', 'run', BOTTLES])
     nome = GARRAFA if GARRAFA in lista else lista[0]
+    ajustar_garrafa(nome)
     subprocess.Popen(['notify-send', '-a', 'Bottles', '-i', 'com.usebottles.bottles',
                       'Abrindo %s' % os.path.basename(arquivo), 'No Bottles, na garrafa “%s”. A primeira vez demora um pouco.' % nome],
                      start_new_session=True)
