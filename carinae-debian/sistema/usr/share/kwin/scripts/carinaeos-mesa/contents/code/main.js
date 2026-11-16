@@ -39,10 +39,16 @@ workspace.windowRemoved.connect(function () { ultimaSaida = Date.now(); });
 var todasAbertas = workspace.windowList();
 for (var k = 0; k < todasAbertas.length; k++) vigiar(todasAbertas[k]);
 
+var anterior = null;      // a última janela normal que teve o foco
 workspace.windowActivated.connect(function (w) {
-    if (w && (w.normalWindow || w.dialog)) { mostrando = false; return; }
+    if (w && (w.normalWindow || w.dialog)) { mostrando = false; anterior = w; return; }
+    var antes = anterior;
+    anterior = null;
     if (!opcao("mostrarMesaAoClicar", true) || mostrando) return;
     if (Date.now() - ultimaSaida < 1500) return;
+    // o KWin tira o foco antes de avisar que a janela foi minimizada ou fechada: se a janela que
+    // tinha o foco está agora minimizada ou já não existe, foi isso, e não um clique no papel de parede
+    if (antes && (antes.minimized || workspace.windowList().indexOf(antes) === -1)) return;
     if (w && !w.desktopWindow) return;
     var tem = false;
     var lista = workspace.stackingOrder;
