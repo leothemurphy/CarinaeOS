@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/imagens/banner.jpg" alt="CarinaeOS — um Linux bonito, simples e com alma de Mac" width="100%">
+  <img src="docs/imagens/banner.jpg" alt="CarinaeOS — um Linux bonito, simples e seu" width="100%">
 </p>
 
 <p align="center">
@@ -13,9 +13,21 @@
 
 **CarinaeOS** é um sistema operacional para computadores, feito para quem quer um Linux
 **bonito e fácil desde o primeiro minuto**, sem precisar abrir o terminal.
-Ele junta a solidez do **Debian 13** com o **KDE Plasma 6** e dá-lhe uma cara nova: Dock com lupa,
-barra no topo, um Launchpad em vidro fosco com categorias e Deck, a **Pesquisa** com ações
-(<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>), Configurações e instalador no estilo do Fedora, uma loja de aplicativos própria e um painel de efeitos.
+Por baixo, a solidez do **Debian 13** e do **KDE Plasma 6**; por cima, uma cara e ferramentas próprias:
+a Dock com a estrela, o Launchpad com ambientes, a **Pesquisa** (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>),
+as Configurações, a Central, uma loja de aplicativos e o instalador, tudo feito para o CarinaeOS.
+
+**O que o torna diferente**
+
+- 💬 **Em português de ponta a ponta**: do menu de inicialização ao manual, sem frases pela metade em inglês.
+- 🔒 **Seu e seguro de origem**: sem telemetria nem conta obrigatória; firewall ligado, correções de segurança
+  automáticas e um ponto de restauro antes de cada atualização.
+- 🪟 **Fácil para quem vem do Windows**: traz os seus arquivos, mostra os programas equivalentes e abre os `.exe`,
+  e muitos programas do Windows feitos com Electron passam a rodar **nativos**, sem Wine.
+- 🐢 **Leve em computadores antigos**: detecta placas e processadores mais fracos e liga o **modo leve** sozinho;
+  instala o driver certo para NVIDIA antigas (Kepler) com Secure Boot.
+- ✦ **Identidade própria**: nada de imitar outro sistema à risca. A Dock tem vários modelos (Fluent por padrão),
+  o Launchpad organiza por ambientes com cores e o Deck dá ações de um toque.
 
 O nome vem de **Eta Carinae**, uma das estrelas mais brilhantes e instáveis da nossa galáxia.
 A estrela de quatro pontas é o símbolo do sistema; o papel de parede é uma nebulosa violeta
@@ -86,7 +98,7 @@ sobre um lago espelhado.
 - **Placas de vídeo**: a Central escolhe o controlador certo para cada placa NVIDIA — o atual (GTX 750 em diante, RTX),
   o **470 para as Kepler** (GT 710/730, GTX 600/700, com a sessão X11 e as afinações que tiram os solavancos) ou o livre
   (nouveau) nas muito antigas —, e os de AMD e Intel.
-- **Dock como no Mac**: só o vidro em repouso, cresce com o mouse por cima das janelas, que param na borda dela;
+- **Dock**: o ícone debaixo do mouse cresce sem sair dela (ou em onda, se preferir), as janelas param na borda dela;
   pré-visualização das janelas ao passar o mouse e os nomes numa janelinha.
 - **AppImages de impressão 3D** (OrcaSlicer, ElegooSlicer, Bambu Studio, Cura): ao abrir o primeiro, o CarinaeOS
   oferece as bibliotecas que faltam; e os navegadores em Flatpak já criam aplicativos (PWA) com ícone.
