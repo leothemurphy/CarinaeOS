@@ -1,7 +1,11 @@
 #!/usr/bin/python3
 """CarinaeOS - os favoritos do navegador principal, para o Deck (Launchpad).
 
-  carinaeos-favoritos        JSON: {"navegador": "...", "titulo": "...", "itens": [{tipo: site|pasta, nome, url, icone, itens}]}
+  carinaeos-favoritos        JSON: {"navegador", "titulo", "itens": [{tipo: site|pasta, nome, url, icone, itens, meu}], "ocultos": n}
+  carinaeos-favoritos adicionar NOME URL      um site só do Deck (os favoritos do navegador não mudam)
+  carinaeos-favoritos editar URL NOME NOVA_URL
+  carinaeos-favoritos remover URL             tira um site do Deck (os do navegador ficam só ocultos)
+  carinaeos-favoritos mostrar-todos           volta a mostrar os que foram ocultos
 
 Lê a barra de favoritos do navegador padrão (Chrome, Brave, Chromium, Edge, Vivaldi — instalados ou
 Flatpak — e Firefox); sem favoritos, os sites mais visitados (do histórico do navegador). Os ícones dos sites vêm do cache do próprio navegador (sem ir à internet) e
@@ -11,6 +15,7 @@ import glob
 import hashlib
 import json
 import os
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -18,6 +23,7 @@ import sys
 import tempfile
 
 HOME = os.path.expanduser('~')
+DECK = os.path.join(os.environ.get('XDG_CONFIG_HOME', os.path.join(HOME, '.config')), 'carinaeos', 'deck-sites.json')
 CACHE = os.path.join(os.environ.get('XDG_CACHE_HOME', os.path.join(HOME, '.cache')), 'carinaeos', 'favicons')
 MAX = 80
 
@@ -45,7 +51,7 @@ def _perfil_chromium(base):
     try:
         with open(os.path.join(base, 'Local State'), encoding='utf-8') as f:
             p = json.load(f).get('profile', {}).get('last_used')
-        if p and os.path.isfile(os.path.join(base, p, 'Bookmarks')):
+        if p and os.path.isdir(os.path.join(base, p)):
             return os.path.join(base, p)
     except (OSError, ValueError):
         pass
@@ -152,13 +158,29 @@ def mais_visitados_chromium(perfil, n=12):
             shutil.rmtree(d, ignore_errors=True)
 
 
+def _raizes(perfil):
+    """Os favoritos do perfil e, se a sessão Google estiver ligada, os da conta (AccountBookmarks,
+    Chrome 2025+): as barras juntam-se, sem repetidos."""
+    raiz = None
+    for arq in ('Bookmarks', 'AccountBookmarks'):
+        try:
+            with open(os.path.join(perfil, arq), encoding='utf-8') as f:
+                r = json.load(f)['roots']
+        except (OSError, ValueError, KeyError):
+            continue
+        if raiz is None:
+            raiz = r
+            continue
+        for k in ('bookmark_bar', 'other'):
+            urls = {c.get('url') for c in raiz.get(k, {}).get('children', []) if c.get('url')}
+            raiz.setdefault(k, {}).setdefault('children', []).extend(
+                c for c in r.get(k, {}).get('children', []) if not c.get('url') or c.get('url') not in urls)
+    return raiz
+
+
 def chromium(nome, base):
     perfil = _perfil_chromium(base)
-    try:
-        with open(os.path.join(perfil, 'Bookmarks'), encoding='utf-8') as f:
-            raiz = json.load(f)['roots']
-    except (OSError, ValueError, KeyError):
-        raiz = None
+    raiz = _raizes(perfil)
     if not raiz or not (raiz.get('bookmark_bar', {}).get('children') or raiz.get('other', {}).get('children')):
         if not os.path.isdir(perfil):
             return None
@@ -166,7 +188,7 @@ def chromium(nome, base):
         ic = _icones_chromium(perfil, [x['_pagina'] for x in topo])
         for x in topo:
             x['icone'] = ic.get(x.pop('_pagina'), '')
-        return dict(navegador=nome, titulo='Mais visitados no ' + nome, itens=topo)
+        return dict(navegador=nome, titulo='Mais visitados no ' + nome, itens=topo, _perfil=perfil)
     urls = []
 
     def conv(n, nivel=0):
@@ -190,7 +212,7 @@ def chromium(nome, base):
             else:
                 por_icone(x['itens'])
     por_icone(itens)
-    return dict(navegador=nome, titulo='Favoritos do ' + nome, itens=itens)
+    return dict(navegador=nome, titulo='Favoritos do ' + nome, itens=itens, _perfil=perfil)
 
 
 def firefox():
@@ -269,6 +291,99 @@ def favoritos():
     return firefox() or dict(navegador='', itens=[])
 
 
+# ---- os sites do próprio Deck e os ocultos -------------------------------------------------------
+def ler_deck():
+    try:
+        with open(DECK, encoding='utf-8') as f:
+            d = json.load(f)
+            return dict(sites=d.get('sites', []), ocultos=d.get('ocultos', []))
+    except (OSError, ValueError):
+        return dict(sites=[], ocultos=[])
+
+
+def gravar_deck(d):
+    os.makedirs(os.path.dirname(DECK), exist_ok=True)
+    with open(DECK + '.tmp', 'w', encoding='utf-8') as f:
+        json.dump(d, f, ensure_ascii=False, indent=1)
+    os.replace(DECK + '.tmp', DECK)
+
+
+def _url(u):
+    u = (u or '').strip()
+    if u and not re.match(r'^[a-z][a-z0-9+.-]*://', u, re.I):
+        local = re.match(r'^(localhost|\d{1,3}(\.\d{1,3}){3}|[^/:]+\.local)([:/]|$)', u, re.I)
+        u = ('http://' if local else 'https://') + u      # na rede de casa quase nunca há HTTPS
+    m = re.match(r'^https?://([^\s/?#]+)[^\s]*$', u, re.I)
+    host = m.group(1).split('@')[-1].split(':')[0].lower() if m else ''
+    return u if host and ('.' in host or host == 'localhost') else ''
+
+
+def tudo():
+    r = favoritos()
+    perfil = r.pop('_perfil', None)
+    d = ler_deck()
+    ocultos = set(d['ocultos'])
+
+    def filtrar(l):
+        out = []
+        for x in l:
+            if x['tipo'] == 'site' and x['url'] in ocultos:
+                continue
+            if x['tipo'] == 'pasta':
+                x['itens'] = filtrar(x['itens'])
+            out.append(x)
+        return out
+    r['itens'] = filtrar(r.get('itens', []))
+    meus = [dict(tipo='site', nome=s['nome'], url=s['url'], icone='', meu=True) for s in d['sites']]
+    if meus:
+        ic = _icones_chromium(perfil, [m['url'] for m in meus]) if perfil else {}
+        for m in meus:
+            m['icone'] = ic.get(m['url'], '')
+        urls = {m['url'] for m in meus}
+        r['itens'] = meus + [x for x in r['itens'] if x.get('url') not in urls]
+    r['ocultos'] = len(d['ocultos'])
+    if not r.get('titulo'):
+        r['titulo'] = 'Sites'
+    return r
+
+
+def main(a):
+    if not a:
+        print(json.dumps(tudo(), ensure_ascii=False))
+        return 0
+    d = ler_deck()
+    if a[0] == 'adicionar' and len(a) >= 3:
+        u = _url(a[2])
+        if not u:
+            print('endereço inválido', file=sys.stderr)
+            return 2
+        d['sites'] = [s for s in d['sites'] if s['url'] != u] + [dict(nome=a[1].strip() or u, url=u)]
+        d['ocultos'] = [o for o in d['ocultos'] if o != u]
+    elif a[0] == 'editar' and len(a) >= 4:
+        u = _url(a[3])
+        if not u:
+            return 2
+        for s in d['sites']:
+            if s['url'] == a[1]:
+                s['nome'], s['url'] = a[2].strip() or u, u
+                break
+        else:       # um favorito do navegador: passa a ser um site do Deck (e o original fica oculto)
+            d['sites'].append(dict(nome=a[2].strip() or u, url=u))
+            if a[1] not in d['ocultos'] and a[1] != u:
+                d['ocultos'].append(a[1])
+    elif a[0] == 'remover' and len(a) >= 2:
+        antes = len(d['sites'])
+        d['sites'] = [s for s in d['sites'] if s['url'] != a[1]]
+        if len(d['sites']) == antes and a[1] not in d['ocultos']:
+            d['ocultos'].append(a[1])
+    elif a[0] == 'mostrar-todos':
+        d['ocultos'] = []
+    else:
+        print(__doc__)
+        return 1
+    gravar_deck(d)
+    return 0
+
+
 if __name__ == '__main__':
-    print(json.dumps(favoritos(), ensure_ascii=False))
-    sys.exit(0)
+    sys.exit(main(sys.argv[1:]))

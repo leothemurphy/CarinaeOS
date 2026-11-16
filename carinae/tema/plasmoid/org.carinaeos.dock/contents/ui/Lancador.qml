@@ -31,6 +31,7 @@ Kicker.DashboardWindow {
     keyEventProxy: formSenha.visible ? (confSenha.activeFocus ? confSenha : campoSenha)
         : formCartao.visible ? nomeCartao
         : formDeck.visible ? (cmdDeck.activeFocus ? cmdDeck : nomeDeck)
+        : formSite.visible ? (urlSite.activeFocus ? urlSite : nomeSite)
         : busca
 
     // ---- cores ----------------------------------------------------------------
@@ -232,7 +233,7 @@ Kicker.DashboardWindow {
     readonly property string subtitulo: filtro !== "" ? contagem(lista.length)
         : vista === "inicio" ? (editando ? "Arraste os ambientes para os mudar de lugar · cor e imagem em cada um" : "Os seus ambientes, de um relance")
         : vista === "favoritos" ? "Os aplicativos que estão na Dock"
-        : vista === "deck" ? "Seus favoritos e atalhos · botão direito num atalho para editar ou tirar"
+        : vista === "deck" ? "Seus sites e atalhos · botão direito para editar, ocultar ou tirar"
         : vista === "semamb" ? contagem(lista.length) + " por arrumar · botão direito › Mover para"
         : contagem(lista.length)
 
@@ -294,6 +295,7 @@ Kicker.DashboardWindow {
     onKeyEscapePressed: {
         if (busca.text !== "") busca.text = "";
         else if (formDeck.visible) formDeck.visible = false;
+        else if (formSite.visible) formSite.visible = false;
         else if (formAcoes.visible) formAcoes.visible = false;
         else if (formSenha.visible) formSenha.fechar();
         else if (formCartao.visible) formCartao.visible = false;
@@ -388,6 +390,10 @@ Kicker.DashboardWindow {
             try { d = JSON.parse(t); } catch (e) { d = null; }
             if (Array.isArray(d) && d.length > 0 && d.every(t => t.cmd && (lp.deckAntigo.indexOf(t.cmd) !== -1 || /qdbus6|xdg-user-dir/.test(t.cmd))))
                 d = null;       // ainda era o Deck de origem: passa às ações novas
+            // nomes de versões antigas, ainda em português de Portugal
+            const novosNomes = { "Captura de ecrã": "Captura de tela", "Transferências": "Downloads", "Mostrar a mesa": "Mostrar a área de trabalho",
+                                 "Ecrã": "Tela", "Definições": "Configurações" };
+            if (Array.isArray(d)) for (const t of d) if (novosNomes[t.nome]) t.nome = novosNomes[t.nome];
             lp.deck = Array.isArray(d) ? d : lp.deckPadrao;
             lp.lerEstadosDeck();
         }
@@ -754,6 +760,15 @@ Kicker.DashboardWindow {
         }
     }
     function atualizarFavoritos(): void { lerFavoritos.connectSource("carinaeos-favoritos #" + Date.now()); }
+    // acrescentar / editar / tirar um site do Deck (os favoritos do navegador nunca mudam: só ficam ocultos)
+    readonly property P5Support.DataSource mexerFavoritos: P5Support.DataSource {
+        engine: "executable"
+        connectedSources: []
+        onNewData: (fonte, dados) => { disconnectSource(fonte); lp.atualizarFavoritos(); }
+    }
+    function sites(args: var): void {
+        mexerFavoritos.connectSource("carinaeos-favoritos " + args.map(a => aspas(a)).join(" ") + " #" + Date.now());
+    }
     function abrirFavorito(f: var): void {
         if (f.tipo === "pasta") { favPilha = favPilha.concat([f]); return; }
         correr("xdg-open " + aspas(f.url));
@@ -1190,6 +1205,25 @@ Kicker.DashboardWindow {
             }
         }
         QQC2.Menu {
+            id: menuFav
+            property var f: null
+            readonly property bool site: f !== null && f.tipo === "site"
+            QQC2.MenuItem { visible: menuFav.site; height: visible ? implicitHeight : 0; text: "Abrir"; icon.name: "internet-web-browser"
+                            onTriggered: lp.abrirFavorito(menuFav.f) }
+            QQC2.MenuItem { visible: menuFav.site; height: visible ? implicitHeight : 0; text: "Editar…"; icon.name: "document-edit"
+                            onTriggered: formSite.abrir(menuFav.f) }
+            QQC2.MenuItem { visible: menuFav.site && !menuFav.f.meu; height: visible ? implicitHeight : 0; text: "Manter no Deck"; icon.name: "window-pin"
+                            onTriggered: lp.sites(["adicionar", menuFav.f.nome, menuFav.f.url]) }
+            QQC2.MenuItem { visible: menuFav.site; height: visible ? implicitHeight : 0
+                            text: menuFav.f && menuFav.f.meu ? "Tirar do Deck" : "Ocultar do Deck"; icon.name: "list-remove"
+                            onTriggered: lp.sites(["remover", menuFav.f.url]) }
+            QQC2.MenuSeparator {}
+            QQC2.MenuItem { text: "Adicionar site…"; icon.name: "list-add"; onTriggered: formSite.abrir(null) }
+            QQC2.MenuItem { visible: (lp.favoritos.ocultos || 0) > 0; height: visible ? implicitHeight : 0
+                            text: "Mostrar os ocultos (" + (lp.favoritos.ocultos || 0) + ")"; icon.name: "view-visible"
+                            onTriggered: lp.sites(["mostrar-todos"]) }
+        }
+        QQC2.Menu {
             id: menuDeck
             property int i: -1
             QQC2.MenuItem {
@@ -1494,7 +1528,7 @@ Kicker.DashboardWindow {
                         focus: true
                         // com um formulário aberto, a pesquisa não aceita letras (desligá-la de todo faz o
                         // Plasma tentar dar-lhe o teclado sem fim e fechar-se: nunca usar "enabled" aqui)
-                        readOnly: formSenha.visible || formCartao.visible || formDeck.visible || formAcoes.visible
+                        readOnly: formSenha.visible || formCartao.visible || formDeck.visible || formAcoes.visible || formSite.visible
                         onTextChanged: lp.filtro = text
                         onAccepted: {
                             if (lp.emGrelha && lp.selecionado) lp.abrir(lp.selecionado);
@@ -2036,7 +2070,6 @@ Kicker.DashboardWindow {
                         // ---- Favoritos do navegador ----
                         Item {
                             width: parent.width; height: Math.round(40 * palco.u)
-                            visible: (lp.favoritos.itens || []).length > 0 || lp.favoritos.navegador !== ""
                             Row {
                                 x: Math.round(8 * palco.u); anchors.verticalCenter: parent.verticalCenter
                                 spacing: Math.round(8 * palco.u)
@@ -2056,14 +2089,13 @@ Kicker.DashboardWindow {
                             }
                         }
                         Text {
-                            visible: lp.favoritos.navegador !== "" && lp.favAtuais.length === 0
+                            visible: lp.favoritos.navegador !== "" && lp.favAtuais.length === 0 && lp.favPilha.length > 0
                             x: Math.round(8 * palco.u); width: parent.width - x * 2; wrapMode: Text.Wrap
                             text: "Ainda sem favoritos nem histórico. No navegador, clique na estrela ☆ da barra de endereço e escolha a pasta “Barra de favoritos”: eles aparecem aqui."
                             color: lp.suave; font.pixelSize: Math.round(12 * palco.u)
                         }
                         Flow {
                             id: fluxoFav
-                            visible: lp.favAtuais.length > 0
                             width: parent.width
                             spacing: 0
                             readonly property int colunas: Math.max(4, Math.floor(width / Math.round(132 * palco.u)))
@@ -2121,12 +2153,32 @@ Kicker.DashboardWindow {
                                     MouseArea {
                                         id: mf
                                         anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                                        onClicked: lp.abrirFavorito(fav.modelData)
+                                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                        onClicked: ev => {
+                                            if (ev.button === Qt.RightButton) { menuFav.f = fav.modelData; menuFav.popup(); }
+                                            else lp.abrirFavorito(fav.modelData);
+                                        }
+                                        onPressAndHold: { menuFav.f = fav.modelData; menuFav.popup(); }
                                     }
                                     QQC2.ToolTip.visible: mf.containsMouse && !fav.pasta
                                     QQC2.ToolTip.text: fav.pasta ? "" : fav.modelData.url
                                     QQC2.ToolTip.delay: 600
                                 }
+                            }
+                            Item {      // + Adicionar site
+                                visible: lp.favPilha.length === 0
+                                width: fluxoFav.lado; height: Math.round(104 * palco.u)
+                                Rectangle {
+                                    anchors.fill: parent; anchors.margins: Math.round(6 * palco.u)
+                                    radius: Math.round(18 * palco.u)
+                                    color: mAd.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent"
+                                    border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.25)
+                                    Kirigami.Icon { anchors.horizontalCenter: parent.horizontalCenter; y: Math.round(18 * palco.u)
+                                                    width: Math.round(30 * palco.u); height: width; source: "list-add"; isMask: true; color: lp.texto }
+                                    Text { anchors.bottom: parent.bottom; anchors.bottomMargin: Math.round(16 * palco.u); width: parent.width
+                                           horizontalAlignment: Text.AlignHCenter; text: "Adicionar site"; color: lp.texto; font.pixelSize: Math.round(12 * palco.u) }
+                                }
+                                MouseArea { id: mAd; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: formSite.abrir(null) }
                             }
                         }
 
@@ -2537,6 +2589,57 @@ Kicker.DashboardWindow {
                             }
                         }
                     }
+                    // acrescentar ou editar um site do Deck
+                    Rectangle {
+                        id: formSite
+                        visible: false
+                        z: 60
+                        anchors.centerIn: parent
+                        width: Math.min(parent.width - 40, Math.round(460 * palco.u))
+                        height: colSite.height + Math.round(40 * palco.u)
+                        radius: Math.round(22 * palco.u)
+                        color: Qt.rgba(0.09, 0.07, 0.2, 0.96)
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.2)
+                        property var f: null
+                        function abrir(fav: var): void {
+                            f = fav;
+                            nomeSite.text = fav ? fav.nome : "";
+                            urlSite.text = fav ? fav.url : "";
+                            visible = true;
+                            (fav ? nomeSite : urlSite).forceActiveFocus();
+                        }
+                        function guardar(): void {
+                            const u = urlSite.text.trim();
+                            if (u === "") return;
+                            if (f) lp.sites(["editar", f.url, nomeSite.text.trim(), u]);
+                            else lp.sites(["adicionar", nomeSite.text.trim(), u]);
+                            visible = false;
+                            busca.forceActiveFocus();
+                        }
+                        MouseArea { anchors.fill: parent }
+                        Column {
+                            id: colSite
+                            x: Math.round(20 * palco.u); y: Math.round(20 * palco.u)
+                            width: parent.width - Math.round(40 * palco.u)
+                            spacing: Math.round(10 * palco.u)
+                            Text { text: formSite.f ? "Editar site" : "Adicionar site"; color: lp.texto; font.pixelSize: Math.round(18 * palco.u); font.weight: Font.DemiBold }
+                            Text {
+                                width: parent.width; wrapMode: Text.Wrap; color: lp.suave; font.pixelSize: Math.round(12 * palco.u)
+                                text: formSite.f && !formSite.f.meu ? "É um favorito do navegador: aqui muda só no Deck (no navegador fica como está)."
+                                    : "Fica só no Deck. Ex.: <i>youtube.com</i> ou <i>192.168.1.193:8123</i>."
+                            }
+                            QQC2.TextField { id: urlSite; width: parent.width; placeholderText: "Endereço (ex.: youtube.com)"; onAccepted: formSite.guardar() }
+                            QQC2.TextField { id: nomeSite; width: parent.width; placeholderText: "Nome (opcional)"; onAccepted: formSite.guardar() }
+                            Row {
+                                spacing: 10
+                                anchors.right: parent.right
+                                QQC2.Button { text: "Cancelar"; onClicked: { formSite.visible = false; busca.forceActiveFocus(); } }
+                                QQC2.Button { text: formSite.f ? "Salvar" : "Adicionar"; highlighted: true; onClicked: formSite.guardar() }
+                            }
+                        }
+                    }
+
                     Rectangle {
                         id: formDeck
                         visible: false
