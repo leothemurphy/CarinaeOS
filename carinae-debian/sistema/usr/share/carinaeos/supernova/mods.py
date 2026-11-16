@@ -75,7 +75,7 @@ DTD_ESTILOS = {   # cor de fundo, opacidade (0..1)
     'xp': ('#2f6fe6', 0.95), 'vista': ('#1b2633', 0.70), 'translucido': ('#ffffff', 0.08),
     'docklike': ('#232323', 0.72), 'matter': ('#2b2930', 1.0), 'lucent': ('#f2f2f2', 0.55), 'neon': ('#14091e', 0.80),
     'vidro': ('#cfd8ff', 0.20), 'fluent': ('#18181f', 0.85), 'minimalista': ('#000000', 0.0), 'colorida': ('#0e0f33', 0.88),
-    'orbital': ('#000000', 0.0), 'hexagonal': ('#000000', 0.0), 'aereo': ('#9db4ff', 0.18)}
+    'orbital': ('#000000', 0.0), 'hexagonal': ('#000000', 0.0), 'aereo': ('#9db4ff', 0.18), 'icones': ('#000000', 0.0), 'redondos': ('#000000', 0.0)}
 
 
 def a_estilo_dock(m):
@@ -291,6 +291,8 @@ MODS = [
              dict(id='colorida', nome='Colorida', desc='Azul-noite com borda em degradê e anel no ícone.', cor='#a66bff'),
              dict(id='orbital', nome='Orbital', desc='Cada ícone numa bolha de vidro, sobre um anel de luz.', cor='#73b8ff'),
              dict(id='hexagonal', nome='Hexagonal', desc='Ícones em hexágonos escuros com borda acesa.', cor='#8f6bff'),
+             dict(id='icones', nome='Só ícones', desc='Sem fundo; ao passar o rato, os vizinhos afastam-se do ícone.', cor='#00000000'),
+             dict(id='redondos', nome='Redondos', desc='Ícones em círculos escuros, sem fundo; os vizinhos afastam-se.', cor='#2a2638'),
              dict(id='aereo', nome='Aéreo', desc='Vidro azulado a flutuar, com luzes nas apps abertas.', cor='#9db4ff'),
              dict(id='mac', nome='Mac claro', desc='Vidro fosco claro, como no macOS.', cor='#d9d4de'),
              dict(id='escuro', nome='Mac escuro', desc='Vidro fumado, para fundos claros.', cor='#29252f'),

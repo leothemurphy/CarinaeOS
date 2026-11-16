@@ -4,7 +4,7 @@
   carinaeos-dock-estilo NOME [dentro|onda] muda (a Dock aplica em até 4 segundos)
 """
 import json, os, sys
-ESTILOS = ['vidro', 'fluent', 'minimalista', 'colorida', 'orbital', 'hexagonal', 'aereo',
+ESTILOS = ['vidro', 'fluent', 'minimalista', 'colorida', 'orbital', 'hexagonal', 'icones', 'redondos', 'aereo',
            'mac', 'escuro', 'transparente', 'bolhas', 'squircle', 'rosepine', 'xp', 'vista',
            'translucido', 'docklike', 'matter', 'lucent', 'neon']
 F = os.path.expanduser('~/.config/carinaeos-dock.json')

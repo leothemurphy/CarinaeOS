@@ -20,7 +20,7 @@ Item {
 
     visible: tipo !== "nenhum"
     z: -1
-    readonly property real lado: dock.base * (tipo === "bolha" ? 1.18 : tipo === "tile" ? 1.12 : 1.3)
+    readonly property real lado: dock.base * (tipo === "bolha" ? 1.18 : tipo === "tile" ? 1.12 : tipo === "disco" ? 1.04 : 1.3)
     width: lado; height: lado
     x: alvo.x + alvo.width / 2 - width / 2
     y: alvo.y + alvo.height / 2 - height / 2
@@ -44,6 +44,19 @@ Item {
             width: parent.width * 0.42; height: parent.height * 0.2; radius: height / 2
             color: Qt.rgba(1, 1, 1, 0.28)
         }
+    }
+
+    // ---- Redondos: disco de vidro escuro (o ícone fica mais pequeno dentro dele)
+    Rectangle {
+        visible: fundo.tipo === "disco"
+        anchors.centerIn: parent
+        width: parent.width; height: width; radius: width / 2
+        gradient: Gradient {
+            GradientStop { position: 0; color: Qt.rgba(0.20, 0.19, 0.27, 0.90) }
+            GradientStop { position: 1; color: Qt.rgba(0.09, 0.08, 0.13, 0.92) }
+        }
+        border.width: 1
+        border.color: fundo.ativo ? Qt.rgba(1, 0.75, 0.5, 0.9) : Qt.rgba(1, 1, 1, 0.16)
     }
 
     // ---- Hexagonal

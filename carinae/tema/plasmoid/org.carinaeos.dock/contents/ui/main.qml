@@ -338,6 +338,10 @@ PlasmoidItem {
                         item: "bolha", ind: "brilho", espaco: 0.34, margem: 0.24 },
         hexagonal:    { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
                         item: "hex", ind: "brilho", espaco: 0.06, margem: 0.24, afastar: 0.5 },
+        icones:       { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
+                        ind: "brilho", espaco: 0.08, margem: 0.2, afastar: 0.45 },
+        redondos:     { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
+                        item: "disco", icone: 0.72, ind: "brilho", espaco: 0.1, margem: 0.2, afastar: 0.45 },
         aereo:        { c1: Qt.rgba(0.60, 0.70, 1, 0.18), c2: Qt.rgba(0.35, 0.45, 0.95, 0.12), borda: Qt.rgba(0.78, 0.86, 1, 0.55), raio: 0.5, sombra: 0.1,
                         brilhoBase: true, ind: "brilho", margem: 0.22 }
     })
@@ -404,6 +408,27 @@ PlasmoidItem {
         function onActivated(): void {
             lancador.toggle();
         }
+    }
+
+    // cadeado: aplicativos trancados com senha (carinaeos-cadeado)
+    property var trancados: []
+    P5Support.DataSource {
+        id: lerTrancados
+        engine: "executable"
+        connectedSources: []
+        onNewData: (f, d) => {
+            disconnectSource(f);
+            try { dock.trancados = JSON.parse((d["stdout"] || "").trim()).apps || []; } catch (e) {}
+        }
+    }
+    P5Support.DataSource { id: cadeadoDock; engine: "executable"; connectedSources: []; onNewData: (f) => { disconnectSource(f); dock.lerCadeado(); } }
+    function lerCadeado(): void {
+        lerTrancados.connectSource("carinaeos-cadeado estado #" + Date.now());
+    }
+    function alternarTranca(appId: string): void {
+        if (appId === "") return;
+        const acao = trancados.indexOf(appId) !== -1 ? "destrancar-app" : "trancar-app";
+        cadeadoDock.connectSource("carinaeos-cadeado " + acao + " '" + appId.replace(/'/g, "") + "' #" + Date.now());
     }
 
     Item {
@@ -587,27 +612,6 @@ PlasmoidItem {
         border.color: "#ffb46e"; border.width: 2
     }
 
-    // cadeado: aplicativos trancados com senha (carinaeos-cadeado)
-    property var trancados: []
-    P5Support.DataSource {
-        id: lerTrancados
-        engine: "executable"
-        connectedSources: []
-        onNewData: (f, d) => {
-            disconnectSource(f);
-            try { dock.trancados = JSON.parse((d["stdout"] || "").trim()).apps || []; } catch (e) {}
-        }
-    }
-    P5Support.DataSource { id: cadeadoDock; engine: "executable"; connectedSources: []; onNewData: (f) => { disconnectSource(f); dock.lerCadeado(); } }
-    function lerCadeado(): void {
-        lerTrancados.connectSource("carinaeos-cadeado estado #" + Date.now());
-    }
-    function alternarTranca(appId: string): void {
-        if (appId === "") return;
-        const acao = trancados.indexOf(appId) !== -1 ? "destrancar-app" : "trancar-app";
-        cadeadoDock.connectSource("carinaeos-cadeado " + acao + " '" + appId.replace(/'/g, "") + "' #" + Date.now());
-    }
-
     // roda do rato sobre a Dock: volume (como o mod "Taskbar Volume Control" do Windhawk)
     P5Support.DataSource { id: som; engine: "executable"; connectedSources: []; onNewData: (f) => disconnectSource(f) }
     WheelHandler {
@@ -664,8 +668,9 @@ PlasmoidItem {
                     height: width
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.bottom: parent.bottom
+                    anchors.bottomMargin: parent.height * (1 - (dock.e.icone || 1)) / 2
                     transformOrigin: Item.Bottom
-                    scale: parent.width / width
+                    scale: parent.width / width * (dock.e.icone || 1)
                     smooth: true
                 }
             }
@@ -737,8 +742,9 @@ PlasmoidItem {
                     height: width
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.bottom: parent.bottom
+                    anchors.bottomMargin: parent.height * (1 - (dock.e.icone || 1)) / 2
                     transformOrigin: Item.Bottom
-                    scale: parent.width / width
+                    scale: parent.width / width * (dock.e.icone || 1)
                     smooth: true
                 }
             }

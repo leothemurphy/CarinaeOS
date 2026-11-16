@@ -778,10 +778,75 @@ ApplicationWindow {
                 // ===== Dock =====
                 Grupo {
                     visible: janela.pagina === "dock"
-                    titulo: "Tamanho"
+                    titulo: "Modelo"
+                    Item {
+                        width: parent.width
+                        height: gradeModelos.implicitHeight + 28
+                        Flow {
+                            id: gradeModelos
+                            x: 14; y: 14; width: parent.width - 28
+                            spacing: 12
+                            Repeater {
+                                model: [
+                                    ["fluent", "Fluent", "Padrão do CarinaeOS"], ["vidro", "Vidro", "Transparente com reflexo"],
+                                    ["minimalista", "Minimalista", "Só uma linha fina"], ["colorida", "Colorida", "Borda em degradê"],
+                                    ["orbital", "Orbital", "Bolhas de vidro"], ["hexagonal", "Hexagonal", "Afastam-se ao passar o mouse"],
+                                    ["icones", "Só ícones", "Sem fundo, afastam-se"], ["redondos", "Redondos", "Círculos, afastam-se"],
+                                    ["aereo", "Aéreo", "Vidro azulado com luzes"],
+                                    ["mac", "Mac claro", "Clássico"], ["escuro", "Mac escuro", "Clássico"], ["transparente", "Transparente", "Clássico"],
+                                    ["bolhas", "Bubbles", "Clássico"], ["squircle", "Squircle", "Clássico"], ["rosepine", "Rosé Pine", "Clássico"],
+                                    ["xp", "Windows XP", "Clássico"], ["vista", "Vista", "Clássico"], ["translucido", "Translúcido", "Clássico"],
+                                    ["docklike", "DockLike", "Clássico"], ["matter", "Matter", "Clássico"], ["lucent", "Lucent", "Clássico"],
+                                    ["neon", "Neon", "Clássico"]
+                                ]
+                                delegate: Rectangle {
+                                    id: cartaoModelo
+                                    required property var modelData
+                                    readonly property bool escolhido: (janela.e.estilo || "fluent") === modelData[0]
+                                    width: Math.floor((gradeModelos.width - 24) / 3); height: width * 0.24 + 50
+                                    radius: 14
+                                    color: escolhido ? Qt.rgba(1, 0.7, 0.43, 0.12) : Qt.rgba(1, 1, 1, ratoModelo.containsMouse ? 0.07 : 0.03)
+                                    border.width: escolhido ? 2 : 1
+                                    border.color: escolhido ? janela.realce : Qt.rgba(1, 1, 1, 0.10)
+                                    Image {
+                                        x: 8; y: 8; width: parent.width - 16; height: parent.width * 0.24 - 4
+                                        source: "file://" + (janela.e.pastaEstilos || "") + "/" + cartaoModelo.modelData[0] + ".png"
+                                        fillMode: Image.PreserveAspectFit
+                                        asynchronous: true
+                                        smooth: true
+                                    }
+                                    Column {
+                                        x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 8
+                                        Text { text: cartaoModelo.modelData[1]; color: janela.texto; font.pixelSize: 14; font.weight: Font.DemiBold }
+                                        Text { text: cartaoModelo.modelData[2]; color: janela.suave; font.pixelSize: 11 }
+                                    }
+                                    MouseArea {
+                                        id: ratoModelo
+                                        anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: ajustes.definirModeloDock("estilo", cartaoModelo.modelData[0])
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Grupo {
+                    visible: janela.pagina === "dock"
+                    titulo: "Tamanho e efeito"
                     Linha { titulo: "Tamanho dos ícones"; sub: Math.round(janela.e.iconSize || 56) + " px"
                             Deslizante { from: 32; to: 96; stepSize: 2; alvo: janela.e.iconSize || 56; onMoved: ajustes.definirDock("iconSize", Math.round(value)) } }
-                    Linha { titulo: "Ampliação ao passar o mouse"; sub: (janela.e.zoom || 1.6) <= 1.01 ? "Desligada" : Math.round(((janela.e.zoom || 1.6) - 1) * 100) + "%"
+                    Linha {
+                        titulo: "Ao passar o mouse"
+                        sub: (janela.e.ampliacao || "dentro") === "onda" ? "Os ícones crescem numa onda e sobem acima da Dock (como no Mac)"
+                                                                       : "Só o ícone cresce um pouco, sem sair da Dock"
+                        Row {
+                            spacing: 8
+                            Botao { texto: "Dentro da Dock"; principal: (janela.e.ampliacao || "dentro") !== "onda"; onCarregado: ajustes.definirModeloDock("ampliacao", "dentro") }
+                            Botao { texto: "Onda"; principal: (janela.e.ampliacao || "dentro") === "onda"; onCarregado: ajustes.definirModeloDock("ampliacao", "onda") }
+                        }
+                    }
+                    Linha { visible: janela.e.ampliacao === "onda"
+                            titulo: "Tamanho da onda"; sub: (janela.e.zoom || 1.6) <= 1.01 ? "Desligada" : Math.round(((janela.e.zoom || 1.6) - 1) * 100) + "%"
                             Deslizante { from: 1; to: 2.2; stepSize: 0.1; alvo: janela.e.zoom || 1.6; onMoved: ajustes.definirDock("zoom", value) } }
                 }
                 Grupo {

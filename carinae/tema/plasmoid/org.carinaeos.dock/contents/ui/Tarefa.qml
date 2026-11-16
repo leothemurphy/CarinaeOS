@@ -65,8 +65,9 @@ Item {
             height: width
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
+            anchors.bottomMargin: parent.height * (1 - (dock.e.icone || 1)) / 2
             transformOrigin: Item.Bottom
-            scale: parent.width / width
+            scale: parent.width / width * (dock.e.icone || 1)
             smooth: true
         }
     }

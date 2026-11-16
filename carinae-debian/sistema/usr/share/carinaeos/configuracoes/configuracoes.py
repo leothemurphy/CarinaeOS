@@ -17,6 +17,7 @@ from base import correr, iniciar  # noqa: E402
 from PySide6.QtCore import Property, QObject, Signal, Slot  # noqa: E402
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
+DOCK_JSON = os.path.expanduser('~/.config/carinaeos-dock.json')
 HOME = os.path.expanduser('~')
 
 # (id, nome, icone, modulo completo, palavras para a pesquisa)
@@ -312,6 +313,14 @@ class Config(QObject):
                     d['esconder'] = bool(m and m.group(1) == '1')
                 except Exception:
                     pass
+                # modelo e efeito da Dock: ~/.config/carinaeos-dock.json (o mesmo que o Supernova usa)
+                try:
+                    j = json.load(open(DOCK_JSON, encoding='utf-8'))
+                except (OSError, ValueError):
+                    j = {}
+                d['estilo'] = j.get('estilo', 'fluent')
+                d['ampliacao'] = j.get('ampliacao', 'dentro')
+                d['pastaEstilos'] = os.path.join(AQUI, 'dock-estilos')
                 e.update(d)
             elif pagina == 'datahora':
                 e['auto'] = 'NTP=yes' in cmd(['timedatectl', 'show', '-p', 'NTP'])
@@ -606,6 +615,23 @@ class Config(QObject):
         threading.Thread(target=t, daemon=True).start()
 
     # ---- Dock -----------------------------------------------------------------------------------------
+    @Slot(str, str)
+    def definirModeloDock(self, chave, valor):
+        """estilo (fluent, vidro, …) ou ampliacao (dentro/onda): a Dock aplica em até 4 segundos."""
+        if chave not in ('estilo', 'ampliacao'):
+            return
+        try:
+            j = json.load(open(DOCK_JSON, encoding='utf-8'))
+        except (OSError, ValueError):
+            j = {}
+        j[chave] = valor
+        os.makedirs(os.path.dirname(DOCK_JSON), exist_ok=True)
+        tmp = DOCK_JSON + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(j, f)
+        os.replace(tmp, DOCK_JSON)
+        self.ler('dock')
+
     @Slot(str, 'QVariant')
     def definirDock(self, chave, valor):
         if chave == 'posicao':
