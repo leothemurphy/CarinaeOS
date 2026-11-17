@@ -339,6 +339,19 @@ Kicker.DashboardWindow {
         }
     }
 
+    // ---- cor do Launchpad: "" = vidro sobre o papel de parede; ou uma cor lisa, sem transparência
+    // (guardada em ~/.config/carinaeos/launchpad.ini)
+    readonly property var coresLp: [
+        ["", "Vidro"], ["#3b1537", "Ameixa"], ["#24262c", "Grafite"], ["#121215", "Preto"],
+        ["#172338", "Azul-noite"], ["#2a1f4d", "Violeta"], ["#15302a", "Verde-floresta"],
+        ["#3a1420", "Vinho"], ["#2e221b", "Café"], ["#1d3440", "Petróleo"]
+    ]
+    readonly property Settings prefs: Settings {
+        location: String(StandardPaths.writableLocation(StandardPaths.ConfigLocation)) + "/carinaeos/launchpad.ini"
+        property string cor: ""
+    }
+    readonly property string corLp: prefs.cor
+
     // ---- fundo: o papel de parede atual --------------------------------------------
     property string fundoAtual: ""
     readonly property P5Support.DataSource lerFundo: P5Support.DataSource {
@@ -1009,6 +1022,7 @@ Kicker.DashboardWindow {
         MultiEffect {
             id: fundoForte
             anchors.fill: parent
+            visible: lp.corLp === ""
             source: fundo
             autoPaddingEnabled: false
             blurEnabled: true
@@ -1020,6 +1034,7 @@ Kicker.DashboardWindow {
         // por cima, o papel de parede quase nítido (nota-se a paisagem entre os painéis)
         MultiEffect {
             anchors.fill: parent
+            visible: lp.corLp === ""
             source: fundo
             autoPaddingEnabled: false
             blurEnabled: true
@@ -1030,11 +1045,20 @@ Kicker.DashboardWindow {
         }
         Rectangle {   // véu escuro em baixo, para ler os nomes
             anchors.fill: parent
+            visible: lp.corLp === ""
             opacity: conteudo.opacity
             gradient: Gradient {
                 GradientStop { position: 0; color: Qt.rgba(0.04, 0.02, 0.1, 0.18) }
                 GradientStop { position: 1; color: Qt.rgba(0.04, 0.02, 0.1, 0.42) }
             }
+        }
+
+        // cor lisa escolhida: a tela toda dessa cor, sem transparência
+        Rectangle {
+            anchors.fill: parent
+            visible: lp.corLp !== ""
+            color: lp.corLp !== "" ? lp.corLp : "black"
+            opacity: conteudo.opacity
         }
 
         // clique fora dos painéis fecha
@@ -1247,12 +1271,22 @@ Kicker.DashboardWindow {
             property Item fonte: null
             property real raio: 22 * v.u
             property real tinta: 0.40
+            property string cor: ""          // cor lisa (sem vidro)
+            Rectangle {
+                visible: v.cor !== ""
+                anchors.fill: parent
+                radius: v.raio
+                color: v.cor !== "" ? Qt.lighter(v.cor, 1.35) : "transparent"
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.10)
+            }
             ShaderEffectSource {
                 id: pedaco
-                anchors.fill: parent
-                sourceItem: v.fonte
-                sourceRect: Qt.rect(v.x, v.y, v.width, v.height)
                 visible: false
+                enabled: v.cor === ""
+                anchors.fill: parent
+                sourceItem: v.cor === "" ? v.fonte : null
+                sourceRect: Qt.rect(v.x, v.y, v.width, v.height)
             }
             Rectangle {
                 id: forma
@@ -1262,12 +1296,14 @@ Kicker.DashboardWindow {
                 layer.enabled: true
             }
             MultiEffect {
+                visible: v.cor === ""
                 anchors.fill: parent
                 source: pedaco
                 maskEnabled: true
                 maskSource: forma
             }
             Rectangle {
+                visible: v.cor === ""
                 anchors.fill: parent
                 radius: v.raio
                 gradient: Gradient {
@@ -1370,6 +1406,7 @@ Kicker.DashboardWindow {
             // ================= barra lateral =================================================
             Vidro {
                 fonte: fundoForte
+                cor: lp.corLp
                 u: palco.u
                 id: lado
                 x: palco.m
@@ -1463,6 +1500,7 @@ Kicker.DashboardWindow {
                     anchors.bottom: parent.bottom
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: Math.round(10 * palco.u)
+                    BotaoRedondo { id: btCor; u: palco.u; icone: "color-management"; dica: "Cor do Launchpad"; onCarregado: escolhaCor.open() }
                     BotaoRedondo { u: palco.u; icone: "system-lock-screen"; dica: "Bloquear"; onCarregado: { lp.correr("loginctl lock-session"); lp.toggle(); } }
                     BotaoRedondo { u: palco.u; icone: "system-suspend"; dica: "Suspender"; onCarregado: { lp.correr("systemctl suspend"); lp.toggle(); } }
                     BotaoRedondo { u: palco.u; icone: "system-reboot"; dica: "Reiniciar…"; onCarregado: { lp.correr("qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptReboot"); lp.toggle(); } }
@@ -1470,9 +1508,68 @@ Kicker.DashboardWindow {
                 }
             }
 
+            // escolha da cor do Launchpad
+            QQC2.Popup {
+                id: escolhaCor
+                parent: btCor
+                y: -height - Math.round(10 * palco.u)
+                x: -Math.round(12 * palco.u)
+                padding: Math.round(14 * palco.u)
+                background: Rectangle {
+                    radius: Math.round(16 * palco.u)
+                    color: "#1b1922"
+                    border.color: Qt.rgba(1, 1, 1, 0.14)
+                }
+                contentItem: Column {
+                    spacing: Math.round(10 * palco.u)
+                    Text { text: "Cor do Launchpad"; color: lp.texto; font.pixelSize: Math.round(14 * palco.u); font.weight: Font.DemiBold }
+                    Grid {
+                        columns: 5
+                        spacing: Math.round(10 * palco.u)
+                        Repeater {
+                            model: lp.coresLp
+                            delegate: Column {
+                                id: amostra
+                                required property var modelData
+                                readonly property bool escolhida: lp.corLp === modelData[0]
+                                spacing: Math.round(4 * palco.u)
+                                width: Math.round(64 * palco.u)
+                                Rectangle {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    width: Math.round(38 * palco.u); height: width; radius: width / 2
+                                    color: amostra.modelData[0] !== "" ? amostra.modelData[0] : Qt.rgba(1, 1, 1, 0.12)
+                                    border.width: amostra.escolhida ? 3 : 1
+                                    border.color: amostra.escolhida ? "#ffb46e" : Qt.rgba(1, 1, 1, maCor.containsMouse ? 0.6 : 0.2)
+                                    Kirigami.Icon {
+                                        visible: amostra.modelData[0] === ""
+                                        anchors.centerIn: parent
+                                        source: "blurfx"
+                                        width: parent.width * 0.5; height: width
+                                    }
+                                    MouseArea {
+                                        id: maCor
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: lp.prefs.cor = amostra.modelData[0]
+                                    }
+                                }
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: amostra.modelData[1]
+                                    color: lp.suave
+                                    font.pixelSize: Math.round(11 * palco.u)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // ================= centro =========================================================
             Vidro {
                 fonte: fundoForte
+                cor: lp.corLp
                 u: palco.u
                 id: centro
                 x: lado.x + lado.width + palco.folga
@@ -2686,6 +2783,7 @@ Kicker.DashboardWindow {
             // ================= detalhe =========================================================
             Vidro {
                 fonte: fundoForte
+                cor: lp.corLp
                 u: palco.u
                 id: detalhe
                 visible: palco.comDetalhe

@@ -102,6 +102,7 @@ secao "Limpeza"
 n=$(ls -d "$R"/usr/share/wallpapers/CarinaeOS-* 2>/dev/null | wc -l)
 [ "$n" -eq 4 ] && [ -f "$R/usr/share/wallpapers/CarinaeOS/contents/images/3840x2160.jpg" ] && ok "papéis de parede: os 4 e o padrão" || falha "papéis de parede: $n em vez de 4, ou falta o padrão"
 [ ! -d "$R/usr/share/plasma/wallpapers/org.carinaeos.vivo" ] && [ ! -e "$R/usr/bin/carinaeos-ceu-vivo" ] && ok "sem papel de parede animado" || falha "restos do papel de parede animado"
+grep -qx "translucent_windows=false" "$R/usr/share/Kvantum/CarinaeOS/CarinaeOS.kvconfig" 2>/dev/null && ok "janelas sem transparência (Kvantum)" || falha "janelas ainda translúcidas no Kvantum"
 if grep -rqsE 'ptrace_scope *= *0' "$R"/etc/sysctl.d "$R"/usr/lib/sysctl.d "$R"/etc/sysctl.conf; then
     falha 'ptrace_scope = 0 na ISO (depurar processos de outros sem permissão)'
 else

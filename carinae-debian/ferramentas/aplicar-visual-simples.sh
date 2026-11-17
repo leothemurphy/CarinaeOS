@@ -1,6 +1,7 @@
 #!/bin/bash
 # CarinaeOS - aplicar num PC já instalado: os 4 papéis de parede novos (cor única com a marca afundada),
-# sem papel de parede animado nem estrelas no arranque, e a Dock com 3 modelos.
+# sem papel de parede animado nem estrelas no arranque, a Dock com 3 modelos, janelas sem
+# transparência e a cor do Launchpad à escolha.
 # Uso (como o seu usuário, não como root):  bash aplicar-visual-simples.sh COMMIT
 set -e
 C="${1:?diga o commit}"
@@ -29,10 +30,19 @@ rm -f "$HOME/.config/carinaeos/fundo-modo"
 
 echo "== Dock: 3 modelos"
 D=carinae/tema/plasmoid/org.carinaeos.dock/contents/ui
-for f in main.qml Tarefa.qml FundoIcone.qml; do baixar "$D/$f" "/usr/share/plasma/plasmoids/org.carinaeos.dock/contents/ui/$f"; done
+for f in main.qml Tarefa.qml FundoIcone.qml Lancador.qml; do baixar "$D/$f" "/usr/share/plasma/plasmoids/org.carinaeos.dock/contents/ui/$f"; done
 P=/usr/share/carinaeos/configuracoes/dock-estilos
 sudo find "$P" -name '*.png' ! -name fluent.png ! -name icones.png -delete
 baixar carinae-debian/sistema$P/simples.png "$P/simples.png"
+
+echo "== Janelas de cor uniforme, sem transparência"
+K=/usr/share/Kvantum/CarinaeOS/CarinaeOS.kvconfig
+if [ -f "$K" ]; then
+    sudo sed -i -E -e 's/^translucent_windows=.*/translucent_windows=false/' -e 's/^blurring=.*/blurring=false/' \
+        -e 's/^popup_blurring=.*/popup_blurring=false/' -e 's/^blur_translucent=.*/blur_translucent=false/' \
+        -e 's/^reduce_window_opacity=.*/reduce_window_opacity=0/' -e 's/^reduce_menu_opacity=.*/reduce_menu_opacity=0/' \
+        -e 's/^comment=.*/comment=CarinaeOS: escuro, de cor uniforme e sem transparência (baseado no WhiteSur de Vince Liuice)/' "$K"
+fi
 
 echo "== Aplicativos (Configurações, Supernova, Central) e comandos"
 S=carinae-debian/sistema
@@ -62,3 +72,5 @@ systemctl --user restart plasma-plasmashell
 echo
 echo "Pronto. Papel de parede: Ameixa. Dock: Padrão (com efeito)."
 echo "Configurações › Dock tem os 3 modelos; Configurações › Aparência, os 4 papéis de parede."
+echo "Launchpad: o botão de cores (embaixo, à esquerda) troca a cor. Feche e abra os aplicativos para"
+echo "verem as janelas sem transparência (ou saia e entre na sessão)."

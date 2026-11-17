@@ -1,5 +1,5 @@
 #!/bin/bash
-# CarinaeOS - visual "Vidro": janelas translúcidas com desfoque (Kvantum), botões de janela
+# CarinaeOS - visual "Vidro": janelas escuras de cor uniforme, sem transparência (Kvantum), botões de janela
 # redondos à esquerda (Aurorae) e ícones coloridos (WhiteSur), recoloridos com as cores do
 # CarinaeOS (violeta-noite, âmbar e rosa da estrela).
 # Base: WhiteSur-kde e WhiteSur-icon-theme de Vince Liuice (GPL-3.0), baixados na construção.
@@ -34,12 +34,14 @@ cp "$K/Kvantum/WhiteSur/WhiteSurDark.svg" "$KV/CarinaeOS.svg"
 cp "$K/Kvantum/WhiteSur/WhiteSurDark.kvconfig" "$KV/CarinaeOS.kvconfig"
 recolorir "$KV/CarinaeOS.svg" "$KV/CarinaeOS.kvconfig"
 sed -i -E \
-  -e 's/^comment=.*/comment=CarinaeOS Vidro: escuro, translúcido e com desfoque (baseado no WhiteSur de Vince Liuice)/' \
+  -e 's/^comment=.*/comment=CarinaeOS: escuro, de cor uniforme e sem transparência (baseado no WhiteSur de Vince Liuice)/' \
   -e 's/^highlight\.color=.*/highlight.color=#e0785f/' -e 's/^inactive\.highlight\.color=.*/inactive.highlight.color=#a8566b/' \
   -e 's/^link\.color=.*/link.color=#ffb46e/' -e 's/^link\.visited\.color=.*/link.visited.color=#ff8fb0/' \
   -e 's/^text\.color=.*/text.color=#f2ecfa/' -e 's/^window\.text\.color=.*/window.text.color=#f2ecfa/' \
   -e 's/^button\.text\.color=.*/button.text.color=#f2ecfa/' \
-  -e 's/^reduce_window_opacity=.*/reduce_window_opacity=6/' -e 's/^reduce_menu_opacity=.*/reduce_menu_opacity=4/' \
+  -e 's/^translucent_windows=.*/translucent_windows=false/' -e 's/^blurring=.*/blurring=false/' \
+  -e 's/^popup_blurring=.*/popup_blurring=false/' -e 's/^blur_translucent=.*/blur_translucent=false/' \
+  -e 's/^reduce_window_opacity=.*/reduce_window_opacity=0/' -e 's/^reduce_menu_opacity=.*/reduce_menu_opacity=0/' \
   "$KV/CarinaeOS.kvconfig"
 mkdir -p "$R/etc/xdg/Kvantum"
 printf '[General]\ntheme=CarinaeOS\n' > "$R/etc/xdg/Kvantum/kvantum.kvconfig"
