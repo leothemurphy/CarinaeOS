@@ -6,7 +6,6 @@
   carinaeos-modo-leve auto               no login: na primeira vez, liga-o sozinho se o computador for fraco
 
 O que muda (tudo do usuário, nada do sistema):
-  - papel de parede: a mesma nebulosa, parada (sem a animação)
   - janelas: sem desfoque nem contraste por trás das transparências; animações mais curtas
   - arquivos: a indexação da pesquisa de conteúdo (Baloo) fica parada
 """
@@ -21,7 +20,7 @@ CFG = os.path.join(HOME, '.config/carinaeos')
 FLAG = os.path.join(CFG, 'modo-leve')
 GUARDADO = os.path.join(CFG, 'modo-leve-antes.json')
 DECIDIDO = os.path.join(CFG, 'modo-leve-decidido')
-FUNDO_FIXO = 'file:///usr/share/wallpapers/CarinaeOS-NebulosaSobreOLago/contents/images/2560x1440.jpg'
+FUNDO_FIXO = 'file:///usr/share/wallpapers/CarinaeOS/'
 EFEITOS = ['blurEnabled', 'contrastEnabled']
 
 
@@ -49,14 +48,13 @@ def plasma(js):
 
 
 def fundo_atual():
-    """O plugin do papel de parede e, se for o animado, a variante (lidos do arquivo do Plasma)."""
+    """O plugin do papel de parede (lido do arquivo do Plasma)."""
     try:
         txt = open(os.path.join(HOME, '.config/plasma-org.kde.plasma.desktop-appletsrc'), encoding='utf-8').read()
     except OSError:
-        return 'org.carinaeos.vivo', 1
+        return 'org.kde.image'
     m = re.search(r'^wallpaperplugin=(.+)$', txt, re.M)
-    v = re.search(r'\[Wallpaper\]\[org\.carinaeos\.vivo\]\[General\]\n(?:.*\n)*?Variante=(\d)', txt)
-    return (m.group(1).strip() if m else 'org.carinaeos.vivo'), int(v.group(1)) if v else 1
+    return m.group(1).strip() if m else 'org.kde.image'
 
 
 def recomendado():
@@ -85,8 +83,7 @@ def recomendado():
 def ligar():
     os.makedirs(CFG, exist_ok=True)
     if not os.path.exists(FLAG):
-        plugin, variante = fundo_atual()
-        antes = dict(plugin=plugin, variante=variante,
+        antes = dict(
                      efeitos={e: ler_cfg('kwinrc', 'Plugins', e) for e in EFEITOS},
                      animacao=ler_cfg('kdeglobals', 'KDE', 'AnimationDurationFactor'),
                      baloo=ler_cfg('baloofilerc', 'Basic Settings', 'Indexing-Enabled', 'true'))
@@ -97,7 +94,7 @@ def ligar():
     correr(['qdbus6', 'org.kde.KWin', '/KWin', 'reconfigure'])
     for e in ('blur', 'contrast'):
         correr(['qdbus6', 'org.kde.KWin', '/Effects', 'org.kde.kwin.Effects.unloadEffect', e])
-    if fundo_atual()[0] == 'org.carinaeos.vivo':
+    if fundo_atual() == 'org.carinaeos.vivo':      # o papel de parede animado antigo
         plasma('var d = desktops(); for (var i = 0; i < d.length; i++) { d[i].wallpaperPlugin = "org.kde.image"; '
                'd[i].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"]; d[i].writeConfig("Image", "%s"); }' % FUNDO_FIXO)
     correr(['balooctl6', 'disable'], timeout=30)
@@ -110,7 +107,7 @@ def desligar():
     try:
         antes = json.load(open(GUARDADO))
     except (OSError, ValueError):
-        antes = dict(plugin='org.carinaeos.vivo', variante=1, efeitos={}, animacao='', baloo='true')
+        antes = dict(efeitos={}, animacao='', baloo='true')
     for e in EFEITOS:
         escrever_cfg('kwinrc', 'Plugins', e, antes.get('efeitos', {}).get(e, ''))
     escrever_cfg('kdeglobals', 'KDE', 'AnimationDurationFactor', antes.get('animacao', ''))
@@ -118,10 +115,6 @@ def desligar():
     for e in ('blur', 'contrast'):
         if antes.get('efeitos', {}).get(e + 'Enabled', '') != 'false':
             correr(['qdbus6', 'org.kde.KWin', '/Effects', 'org.kde.kwin.Effects.loadEffect', e])
-    if antes.get('plugin') == 'org.carinaeos.vivo' and fundo_atual()[0] == 'org.kde.image':
-        plasma('var d = desktops(); for (var i = 0; i < d.length; i++) { d[i].wallpaperPlugin = "org.carinaeos.vivo"; '
-               'd[i].currentConfigGroup = ["Wallpaper", "org.carinaeos.vivo", "General"]; d[i].writeConfig("Variante", %d); }'
-               % int(antes.get('variante', 1)))
     if antes.get('baloo', 'true') != 'false':
         correr(['balooctl6', 'enable'], timeout=30)
     for f in (FLAG, GUARDADO):

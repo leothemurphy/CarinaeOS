@@ -37,7 +37,7 @@ FERRAMENTAS = [
     dict(id='firewall', nome='Firewall', desc='Ninguém da internet entra neste computador', icone='security-high', pagina='firewall'),
     dict(id='ssh', nome='Acesso remoto (SSH)', desc='Entrar neste computador a partir de outro', icone='network-server', pagina='ssh'),
     dict(id='privacidade', nome='Privacidade', desc='Sessão sem rastro e modo escuro em todo o lado', icone='preferences-system-privacy', pagina='privacidade'),
-    dict(id='fundos', nome='Papéis de parede', desc='Fotos do céu em 8K e o Céu vivo', icone='preferences-desktop-wallpaper', cmd='carinaeos-ceu-vivo galeria'),
+    dict(id='fundos', nome='Papéis de parede', desc='Dois claros e dois escuros', icone='preferences-desktop-wallpaper', cmd='carinaeos-configuracoes aparencia'),
     dict(id='boasvindas', nome='Boas-vindas', desc='Tudo o que o CarinaeOS tem, num passeio', icone='carinaeos', cmd='carinaeos-boasvindas'),
     dict(id='manual', nome='Manual do CarinaeOS', desc='Tudo: rede, discos, programas, música, terminal', icone='help-contents', cmd='carinaeos-manual'),
     dict(id='sobre', nome='Sobre este computador', desc='Processador, memória, sistema', icone='carinaeos', cmd='kinfocenter'),
@@ -797,7 +797,7 @@ class Central(QObject):
     @Slot()
     def reporFundoEntrada(self):
         self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/fundo-entrada', '--repor'], check=True),
-                    self._fim('A tela de entrada voltou ao céu do CarinaeOS ✓'))
+                    self._fim('A tela de entrada voltou ao fundo do CarinaeOS ✓'))
 
     # privacidade
     @Slot(bool)

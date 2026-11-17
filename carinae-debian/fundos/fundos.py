@@ -1,229 +1,145 @@
 #!/usr/bin/python3
-# CarinaeOS - gera a colecao de papeis de parede (8K, 7680x4320) para a ISO:
-#  - fotografias reais dos telescopios James Webb e Hubble (ESA/Webb e ESA/Hubble, licenca CC BY 4.0),
-#    baixadas na construcao, recortadas em 16:9 e reduzidas a 8K;
-#  - desenhos originais do CarinaeOS (arte.py), gerados por codigo.
-# Uso: fundos.py PASTA_RAIZ_DO_SISTEMA PASTA_CACHE
-# Cria /usr/share/wallpapers/CarinaeOS-*/ (Plasma), /usr/share/backgrounds/carinaeos/ (GNOME/XFCE)
-# e /usr/share/gnome-background-properties/carinaeos.xml.
+# CarinaeOS - os papeis de parede (4K), no estilo do Ubuntu: uma cor so, em degradê com profundidade,
+# e a estrela e o nome CarinaeOS afundados no meio. Gerados por codigo (a marca vem de marca-mascara.png).
+#   2 escuros (Ameixa, Grafite) e 2 claros (Pessego, Nevoa). O padrao e o "Ameixa".
+# Uso: fundos.py PASTA_RAIZ_DO_SISTEMA
+# Cria /usr/share/wallpapers/CarinaeOS-*/ (Plasma), /usr/share/wallpapers/CarinaeOS (o padrao, usado tambem
+# na entrada, no arranque e no GRUB), /usr/share/backgrounds/carinaeos/ e o XML do GNOME.
 import json
 import os
 import sys
-import urllib.request
 
-from PIL import Image
+import numpy as np
+from PIL import Image, ImageFilter
 
-import arte
+W, H = 3840, 2160
+PADRAO = 'Ameixa'
+AQUI = os.path.dirname(os.path.abspath(__file__))
 
-Image.MAX_IMAGE_PIXELS = None
-W, H = 7680, 4320
-CREDITO_WEBB = 'NASA, ESA, CSA, STScI (ESA/Webb, CC BY 4.0)'
-CREDITO_HUBBLE = 'NASA, ESA, N. Smith (University of California, Berkeley) e The Hubble Heritage Team (STScI/AURA) (ESA/Hubble, CC BY 4.0)'
-
-# (pasta, nome, url, foco x, foco y, credito)
-FOTOS = [
-    ('PenhascosCosmicos', 'Penhascos Cósmicos (Nebulosa de Carina)', 'https://cdn.esawebb.org/archives/images/large/weic2205a.jpg', 0.5, 0.55, CREDITO_WEBB),
-    ('NebulosaDeCarina', 'Nebulosa de Carina, onde vive a Eta Carinae', 'https://cdn.esahubble.org/archives/images/large/heic0707a.jpg', 0.5, 0.5, CREDITO_HUBBLE),
-    ('PilaresDaCriacao', 'Pilares da Criação', 'https://cdn.esawebb.org/archives/images/large/weic2216b.jpg', 0.5, 0.42, CREDITO_WEBB),
-    ('QuintetoDeStephan', 'Quinteto de Stephan', 'https://cdn.esawebb.org/archives/images/large/weic2208a.jpg', 0.5, 0.5, CREDITO_WEBB),
-    ('RhoOphiuchi', 'Rho Ophiuchi', 'https://cdn.esawebb.org/archives/images/large/weic2316a.jpg', 0.5, 0.45, CREDITO_WEBB),
-    ('AglomeradoDePandora', 'Aglomerado de Pandora', 'https://cdn.esawebb.org/archives/images/large/weic2305a.jpg', 0.5, 0.5, CREDITO_WEBB),
-    ('NGC602', 'NGC 602', 'https://cdn.esawebb.org/archives/images/large/weic2425a.jpg', 0.5, 0.5, CREDITO_WEBB),
-    ('NGC346', 'NGC 346', 'https://cdn.esawebb.org/archives/images/large/weic2301a.jpg', 0.5, 0.45, CREDITO_WEBB),
+# (pasta, nome, descricao, cor, escuro)
+FUNDOS = [
+    ('Ameixa', 'Ameixa', 'Escuro: ameixa.', '#4a1a45', True),
+    ('Grafite', 'Grafite', 'Escuro: grafite.', '#2a2c33', True),
+    ('Pessego', 'Pêssego', 'Claro: pêssego.', '#f2c9a6', False),
+    ('Nevoa', 'Névoa', 'Claro: cinza-azulado.', '#dde1ea', False),
 ]
 
 
-def baixar(url, cache):
-    os.makedirs(cache, exist_ok=True)
-    destino = os.path.join(cache, os.path.basename(url))
-    if not os.path.exists(destino):
-        tmp = destino + '.parte'
-        req = urllib.request.Request(url, headers={'User-Agent': 'CarinaeOS-build'})
-        with urllib.request.urlopen(req, timeout=300) as r, open(tmp, 'wb') as f:
-            while True:
-                b = r.read(1 << 20)
-                if not b:
-                    break
-                f.write(b)
-        os.replace(tmp, destino)
-    return destino
+def _cor(h):
+    h = h.lstrip('#')
+    return np.array([int(h[i:i + 2], 16) for i in (0, 2, 4)], dtype=np.float32) / 255
 
 
-def recortar_8k(caminho, fx, fy):
-    im = Image.open(caminho)
-    im.draft('RGB', (W, H))                      # JPEG: descodificar ja reduzido (poupa memoria)
-    im = im.convert('RGB')
-    w, h = im.size
-    if w / h > W / H:
-        cw, ch = int(h * W / H), h
-    else:
-        cw, ch = w, int(w * H / W)
-    x = int(min(max(0, fx * w - cw / 2), w - cw))
-    y = int(min(max(0, fy * h - ch / 2), h - ch))
-    im = im.crop((x, y, x + cw, y + ch))
-    if im.size != (W, H):
-        im = im.resize((W, H), Image.LANCZOS)
-    return im
+def _caixa(a, k, eixo):
+    """media movel de largura 2k+1 ao longo de um eixo (com cumsum: rapido para qualquer k)."""
+    p = [(0, 0), (0, 0)]
+    p[eixo] = (k + 1, k)
+    c = np.cumsum(np.pad(a, p, mode='edge'), axis=eixo, dtype=np.float64)
+    n = a.shape[eixo]
+    fim = np.take(c, np.arange(2 * k + 1, 2 * k + 1 + n), axis=eixo)
+    ini = np.take(c, np.arange(0, n), axis=eixo)
+    return ((fim - ini) / (2 * k + 1)).astype(np.float32)
 
 
-def pacote(raiz, pasta, nome, im, autor, licenca, descricao):
-    base = os.path.join(raiz, 'usr/share/wallpapers', 'CarinaeOS-' + pasta)
+def _borrar(a, r):
+    """desfoque quase gaussiano (tres caixas) de raio r, em ponto flutuante (sem degraus no relevo)."""
+    k = max(1, int(round(r * 0.9)))
+    for _ in range(3):
+        a = _caixa(_caixa(a, k, 0), k, 1)
+    return a
+
+
+def desenhar(cor, escuro, w=W, h=H):
+    """uma cor so, em degradê, com a estrela e o nome CarinaeOS afundados no meio (como os fundos do Ubuntu)."""
+    c = _cor(cor)
+    # degradê da mesma cor, com profundidade: mais clara no centro (um pouco acima), escurecendo
+    # para os cantos e para baixo, e um véu diagonal suave (dá a sensação de superfície curva)
+    q = 4
+    y, x = np.mgrid[0:h // q, 0:w // q].astype(np.float32)
+    x /= w // q
+    y /= h // q
+    r = np.sqrt(((x - 0.5) * 1.25) ** 2 + (y - 0.40) ** 2)
+    prof = 1.16 - 0.55 * np.clip(r, 0, 1) ** 1.4 - 0.10 * y
+    prof += 0.06 * np.exp(-((x - y * 0.9 - 0.15) / 0.22) ** 2)
+    if not escuro:
+        prof = 1 + (prof - 1) * 0.45          # nos claros, o degradê é mais leve
+    prof = np.asarray(Image.fromarray(prof.astype(np.float32), 'F').resize((w, h), Image.BICUBIC), dtype=np.float32)
+    img = np.clip(c[None, None, :] * prof[..., None], 0, 1)
+    mk = Image.open(os.path.join(AQUI, 'marca-mascara.png'))
+    lw = int(w * 0.30)
+    lh = int(mk.size[1] * lw / mk.size[0])
+    m = np.asarray(mk.resize((lw, lh), Image.LANCZOS), dtype=np.float32) / 255
+    pad = lh // 2
+    M = np.zeros((lh + 2 * pad, lw + 2 * pad), np.float32)
+    M[pad:pad + lh, pad:pad + lw] = m
+    x0 = w // 2 - M.shape[1] // 2
+    y0 = h // 2 - M.shape[0] // 2
+    reg = img[y0:y0 + M.shape[0], x0:x0 + M.shape[1]]
+    # afundado: a face um pouco mais escura; por dentro, sombra na borda de cima/esquerda
+    # e um fio claro na de baixo/direita (sem brilho nem luz no resto do fundo)
+    alt = _borrar(M, lh * 0.020)
+    gy, gx = np.gradient(alt)
+    borda = np.clip((gx + gy) * lh * 0.05, -1, 1) * M
+    sombra = np.clip(borda, 0, 1)[..., None]
+    fio = np.clip(-borda, 0, 1)[..., None]
+    face = reg * (0.86 if escuro else 0.93)
+    reg = reg * (1 - M[..., None]) + face * M[..., None]
+    reg = reg * (1 - sombra * (0.60 if escuro else 0.30))
+    reg = reg + (1 - reg) * fio * (0.16 if escuro else 0.45)
+    img[y0:y0 + M.shape[0], x0:x0 + M.shape[1]] = reg
+    img = np.clip(img, 0, 1) * 255
+    grao = np.random.default_rng(7).normal(0, 1.2, (h, w, 1)).astype(np.float32)   # sem faixas no degradê
+    return Image.fromarray(np.clip(img + grao, 0, 255).round().astype(np.uint8))
+
+
+def _gravar(base, im, ident, nome, desc):
     imgs = os.path.join(base, 'contents/images')
     os.makedirs(imgs, exist_ok=True)
-    im.save(os.path.join(imgs, '%dx%d.jpg' % (W, H)), quality=90, optimize=True, progressive=True)
-    im.resize((3840, 2160), Image.LANCZOS).save(os.path.join(imgs, '3840x2160.jpg'), quality=90, optimize=True)
-    im.resize((1920, 1080), Image.LANCZOS).save(os.path.join(imgs, '1920x1080.jpg'), quality=90, optimize=True)
-    im.resize((400, 225), Image.LANCZOS).save(os.path.join(base, 'contents/screenshot.jpg'), quality=85)
-    meta = {'KPlugin': {'Id': 'CarinaeOS-' + pasta, 'Name': nome, 'Description': descricao,
-                        'Authors': [{'Name': autor}], 'License': licenca}}
-    with open(os.path.join(base, 'metadata.json'), 'w', encoding='utf-8') as f:
-        json.dump(meta, f, ensure_ascii=False, indent=2)
-    # GNOME e XFCE: a mesma imagem 8K
-    bg = os.path.join(raiz, 'usr/share/backgrounds/carinaeos')
-    os.makedirs(bg, exist_ok=True)
-    ligacao = os.path.join(bg, pasta + '.jpg')
-    if os.path.lexists(ligacao):
-        os.remove(ligacao)
-    os.symlink('/usr/share/wallpapers/CarinaeOS-%s/contents/images/%dx%d.jpg' % (pasta, W, H), ligacao)
-    return nome, '/usr/share/backgrounds/carinaeos/%s.jpg' % pasta
-
-
-# ---- "Nebulosa sobre o lago": o papel de parede padrao do CarinaeOS (desde a 1.0-rc12) -----------
-AQUI = os.path.dirname(os.path.abspath(__file__))
-NEBULOSAS = [('nebulosa-lago-1.jpg', 'NebulosaSobreOLago', 'Nebulosa sobre o lago'),
-             ('nebulosa-lago-2.jpg', 'NebulosaSobreOLago2', 'Nebulosa sobre o lago II')]
-
-
-def _em_16_9(im, w, h):
-    iw, ih = im.size
-    if iw / ih > w / h:
-        cw = int(ih * w / h)
-        im = im.crop(((iw - cw) // 2, 0, (iw - cw) // 2 + cw, ih))
-    else:
-        ch = int(iw * h / w)
-        im = im.crop((0, (ih - ch) // 2, iw, (ih - ch) // 2 + ch))
-    from PIL import ImageFilter
-    return im.resize((w, h), Image.LANCZOS).filter(ImageFilter.UnsharpMask(radius=2, percent=40, threshold=2))
-
-
-def _gravar(pasta_imgs, im):
-    os.makedirs(pasta_imgs, exist_ok=True)
-    for n in os.listdir(pasta_imgs):
-        os.remove(os.path.join(pasta_imgs, n))
+    for n in os.listdir(imgs):
+        os.remove(os.path.join(imgs, n))
     for (lw, lh) in ((3840, 2160), (2560, 1440), (1920, 1080)):
-        (im if lw == 3840 else im.resize((lw, lh), Image.LANCZOS)).save(
-            os.path.join(pasta_imgs, '%dx%d.jpg' % (lw, lh)), quality=92, optimize=True)
+        (im if lw == W else im.resize((lw, lh), Image.LANCZOS)).save(
+            os.path.join(imgs, '%dx%d.jpg' % (lw, lh)), quality=93, optimize=True)
+    im.resize((400, 225), Image.LANCZOS).save(os.path.join(base, 'contents/screenshot.jpg'), quality=88)
+    with open(os.path.join(base, 'metadata.json'), 'w', encoding='utf-8') as f:
+        json.dump({'KPackageStructure': 'Wallpaper/Images',
+                   'KPlugin': {'Id': ident, 'Name': nome, 'Description': desc, 'License': 'CC-BY-SA-4.0',
+                               'Authors': [{'Name': 'CarinaeOS'}]}}, f, ensure_ascii=False, indent=2)
 
 
-def nebulosas(raiz, lista):
-    from PIL import ImageFilter
-    for i, (arq, pasta, nome) in enumerate(NEBULOSAS):
-        im = _em_16_9(Image.open(os.path.join(AQUI, arq)).convert('RGB'), 3840, 2160)
-        base = os.path.join(raiz, 'usr/share/wallpapers', 'CarinaeOS-' + pasta)
-        _gravar(os.path.join(base, 'contents/images'), im)
-        im.resize((400, 225), Image.LANCZOS).save(os.path.join(base, 'contents/screenshot.jpg'), quality=85)
-        with open(os.path.join(base, 'metadata.json'), 'w', encoding='utf-8') as f:
-            json.dump({'KPlugin': {'Id': 'CarinaeOS-' + pasta, 'Name': nome, 'License': 'CC-BY-SA-4.0',
-                                   'Authors': [{'Name': 'CarinaeOS'}],
-                                   'Description': 'Nebulosa violeta sobre um lago espelhado.'}}, f, ensure_ascii=False, indent=2)
-        bg = os.path.join(raiz, 'usr/share/backgrounds/carinaeos')
-        os.makedirs(bg, exist_ok=True)
+def main():
+    raiz = sys.argv[1]
+    papeis = os.path.join(raiz, 'usr/share/wallpapers')
+    bg = os.path.join(raiz, 'usr/share/backgrounds/carinaeos')
+    marca = os.path.join(raiz, 'usr/share/carinaeos/marca')
+    os.makedirs(bg, exist_ok=True)
+    os.makedirs(marca, exist_ok=True)
+    lista = []
+    for pasta, nome, desc, cor, escuro in FUNDOS:
+        im = desenhar(cor, escuro)
+        _gravar(os.path.join(papeis, 'CarinaeOS-' + pasta), im, 'CarinaeOS-' + pasta, nome, desc)
         lig = os.path.join(bg, pasta + '.jpg')
         if os.path.lexists(lig):
             os.remove(lig)
         os.symlink('/usr/share/wallpapers/CarinaeOS-%s/contents/images/3840x2160.jpg' % pasta, lig)
-        lista.insert(i, (nome, '/usr/share/backgrounds/carinaeos/%s.jpg' % pasta))
-        if i == 0:
-            # passa a ser o fundo padrao (Plasma, ecra de bloqueio, entrada, arranque, GNOME, XFCE)
-            orig = os.path.join(raiz, 'usr/share/wallpapers/CarinaeOS')
-            _gravar(os.path.join(orig, 'contents/images'), im)
-            im.resize((400, 225), Image.LANCZOS).save(os.path.join(orig, 'contents/screenshot.jpg'), quality=85)
-            with open(os.path.join(orig, 'metadata.json'), 'w', encoding='utf-8') as f:
-                json.dump({'KPackageStructure': 'Wallpaper/Images',
-                           'KPlugin': {'Id': 'CarinaeOS', 'Name': 'CarinaeOS — ' + nome, 'License': 'CC-BY-SA-4.0',
-                                       'Authors': [{'Name': 'CarinaeOS'}]}}, f, ensure_ascii=False, indent=4)
-            marca = os.path.join(raiz, 'usr/share/carinaeos/marca')
-            os.makedirs(marca, exist_ok=True)
-            # banner das janelas de senha: a faixa da nebulosa (terco de cima)
-            im.crop((0, 420, 3840, 420 + 1102)).resize((920, 264), Image.LANCZOS).save(
-                os.path.join(marca, 'banner-senha.jpg'), quality=88)
-            im.resize((1920, 1080), Image.LANCZOS).filter(ImageFilter.GaussianBlur(28)).save(
-                os.path.join(marca, 'fundo-desfocado.jpg'), quality=85)
-        print('nebulosa', pasta, flush=True)
-
-
-def main():
-    raiz, cache = sys.argv[1], sys.argv[2]
-    lista = []
-    # 1) fotografias reais do Atacama com a estrela do CarinaeOS (as principais)
-    import fotos_estrela as FE
-    from PIL import ImageFilter
-    for f in FE.FOTOS:
-        try:
-            im = FE.compor(FE.baixar(cache, f['id']), f, W)
-        except Exception as e:
-            print('AVISO: sem a foto %s (%s)' % (f['id'], e), flush=True)
-            continue
-        pasta = 'Estrela-' + f['nome'].replace(' ', '')
-        lista.append(pacote(raiz, pasta, 'Estrela · ' + f['nome'], im, 'Foto: %s · Estrela: CarinaeOS' % f['credito'],
-                            'CC-BY-4.0', 'Céu real do deserto do Atacama com a estrela do CarinaeOS. Foto: ' + f['credito']))
-        print('estrela', pasta, flush=True)
-        if f['id'] == FE.FOTOS[0]['id']:
-            # o papel de parede padrao do CarinaeOS passa a ser este (o desenho antigo fica como "Original")
-            orig = os.path.join(raiz, 'usr/share/wallpapers/CarinaeOS')
-            velho = os.path.join(raiz, 'usr/share/wallpapers/CarinaeOS-Original')
-            if os.path.isdir(orig) and not os.path.isdir(velho):
-                import shutil
-                shutil.copytree(orig, velho)
-                with open(os.path.join(velho, 'metadata.json'), 'w', encoding='utf-8') as m:
-                    json.dump({'KPlugin': {'Id': 'CarinaeOS-Original', 'Name': 'Eta Carinae (original)',
-                                           'Authors': [{'Name': 'CarinaeOS'}], 'License': 'CC-BY-SA-4.0'}}, m)
-            if os.path.isdir(orig):
-                imgs = os.path.join(orig, 'contents/images')
-                for n in os.listdir(imgs):
-                    os.remove(os.path.join(imgs, n))
-                for (lw, lh) in ((W, H), (3840, 2160), (2560, 1440), (1920, 1080)):
-                    (im if lw == W else im.resize((lw, lh), Image.LANCZOS)).save(
-                        os.path.join(imgs, '%dx%d.jpg' % (lw, lh)), quality=90, optimize=True)
-                im.resize((400, 225), Image.LANCZOS).save(os.path.join(orig, 'contents/screenshot.jpg'), quality=85)
+        lista.append((nome, '/usr/share/backgrounds/carinaeos/%s.jpg' % pasta))
+        if pasta == PADRAO:
+            # o padrao do CarinaeOS (area de trabalho, bloqueio, entrada, arranque e GRUB)
+            _gravar(os.path.join(papeis, 'CarinaeOS'), im, 'CarinaeOS', 'CarinaeOS — ' + nome, desc)
+            im.resize((1920, 1080), Image.LANCZOS).save(os.path.join(marca, 'grub.png'), optimize=True)
             # banner das janelas de senha e fundo desfocado da tela de entrada
-            marca = os.path.join(raiz, 'usr/share/carinaeos/marca')
-            os.makedirs(marca, exist_ok=True)
-            cx, cy = int(f['pos'][0] * W), int(f['pos'][1] * H)
-            bw, bh = 3680, 1056
-            x0 = max(0, min(W - bw, cx - int(bw * 0.62)))
-            y0 = max(0, min(H - bh, cy - bh // 2))
-            im.crop((x0, y0, x0 + bw, y0 + bh)).resize((920, 264), Image.LANCZOS).save(
+            im.crop((0, int(H * 0.42), W, int(H * 0.42) + 1102)).resize((920, 264), Image.LANCZOS).save(
                 os.path.join(marca, 'banner-senha.jpg'), quality=88)
             im.resize((1920, 1080), Image.LANCZOS).filter(ImageFilter.GaussianBlur(28)).save(
                 os.path.join(marca, 'fundo-desfocado.jpg'), quality=85)
-    for nome_arte, (_, desc) in arte.DESENHOS.items():
-        im = arte.desenhar(nome_arte, W, H)
-        lista.append(pacote(raiz, nome_arte, nome_arte, im, 'CarinaeOS (Leonardo Mendes e Claude)', 'CC-BY-SA-4.0', desc))
-        print('desenho', nome_arte, flush=True)
-    for pasta, nome, url, fx, fy, credito in FOTOS:
-        try:
-            im = recortar_8k(baixar(url, cache), fx, fy)
-        except Exception as e:                       # sem internet: segue sem esta foto
-            print('AVISO: sem a foto %s (%s)' % (nome, e), flush=True)
-            continue
-        lista.append(pacote(raiz, pasta, nome, im, credito, 'CC-BY-4.0', 'Fotografia do espaço. Crédito: ' + credito))
-        print('foto', nome, flush=True)
-    # o fundo original do CarinaeOS (Eta Carinae) tambem para GNOME/XFCE
-    bg = os.path.join(raiz, 'usr/share/backgrounds/carinaeos')
-    os.makedirs(bg, exist_ok=True)
-    eta = os.path.join(bg, 'eta-carinae.jpg')
-    if not os.path.lexists(eta):
-        os.symlink('/usr/share/wallpapers/CarinaeOS/contents/images/3840x2160.jpg', eta)
-    nebulosas(raiz, lista)
+        print('fundo', pasta, flush=True)
     gbp = os.path.join(raiz, 'usr/share/gnome-background-properties')
     os.makedirs(gbp, exist_ok=True)
     with open(os.path.join(gbp, 'carinaeos.xml'), 'w', encoding='utf-8') as f:
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">\n<wallpapers>\n')
         for nome, cam in lista:
             f.write('  <wallpaper deleted="false">\n    <name>%s</name>\n    <filename>%s</filename>\n'
-                    '    <filename-dark>%s</filename-dark>\n    <options>zoom</options>\n    <shade_type>solid</shade_type>\n'
-                    '  </wallpaper>\n' % (nome.replace('&', '&amp;'), cam, cam))
+                    '    <options>zoom</options>\n    <shade_type>solid</shade_type>\n  </wallpaper>\n' % (nome, cam))
         f.write('</wallpapers>\n')
 
 

@@ -30,8 +30,6 @@ install -d $U/plasma/desktoptheme
 cp -a $T/plasmastyle/carinaeos               $U/plasma/desktoptheme/
 cp -a $T/lookandfeel/org.carinaeos.desktop    $U/plasma/look-and-feel/
 cp -a $T/wallpaper/CarinaeOS                  $U/wallpapers/
-install -d $U/plasma/wallpapers
-cp -a $T/wallpaper-vivo/org.carinaeos.vivo    $U/plasma/wallpapers/
 # marca CarinaeOS em PNG, para substituir os logotipos do Debian (desktop-base, emblemas)
 M=$U/carinaeos/marca
 install -d $M
@@ -63,19 +61,13 @@ bash tema-vidro.sh "$PWD/$I" "$PWD/cache/vidro" || echo "AVISO: tema Vidro nao i
 # ArtCraft Launcher: já não vem na ISO (está na Órbita › Impressão 3D e CAD, por /usr/lib/carinaeos/instalar-extra)
 rm -f config/packages.chroot/artcraft-launcher*
 
-# colecao de papeis de parede 8K (fotos do Webb/Hubble + desenhos do CarinaeOS) para Plasma, GNOME e XFCE
-python3 fundos/fundos.py "$PWD/$I" "$PWD/cache/fundos"
+# os 4 papeis de parede (cor lisa com a marca afundada, como no Ubuntu) para Plasma, GNOME e XFCE;
+# o padrao (Ameixa) serve tambem a entrada, o bloqueio e o GRUB
+python3 fundos/fundos.py "$PWD/$I"
 install -m644 $T/cores/CarinaeOS.colors       $U/color-schemes/
 cp -a $T/sddm/carinaeos                       $U/sddm/themes/
 cp -a $T/plymouth/carinaeos                   $U/plymouth/themes/
-# fundo do arranque: o ceu do papel de parede, escuro e desfocado (PNG pequeno para o initramfs)
-python3 -c "
-from PIL import Image, ImageFilter, ImageEnhance
-im = Image.open('$U/wallpapers/CarinaeOS/contents/images/1920x1080.jpg').resize((960, 540), Image.LANCZOS)
-im = ImageEnhance.Brightness(im.filter(ImageFilter.GaussianBlur(6))).enhance(0.55)
-im.convert('P', palette=Image.ADAPTIVE, colors=200).save('$U/plymouth/themes/carinaeos/fundo.png', optimize=True)
-" || cp $T/plymouth/carinaeos/barra-fundo.png $U/plymouth/themes/carinaeos/fundo.png
-install -m644 arte/grub.png                   $U/carinaeos/grub.png
+install -m644 $U/carinaeos/marca/grub.png     $U/carinaeos/grub.png
 install -m644 arte/calamares-*.png arte/calamares-*.jpg $I/etc/calamares/branding/carinaeos/
 
 # Dock: lancadores das aplicacoes que existem nesta edicao

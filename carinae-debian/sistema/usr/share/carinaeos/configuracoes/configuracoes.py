@@ -266,11 +266,14 @@ class Config(QObject):
                 fundos = []
                 base = '/usr/share/wallpapers'
                 for d in sorted(os.listdir(base)) if os.path.isdir(base) else []:
+                    if not d.startswith('CarinaeOS-'):      # só os quatro do CarinaeOS
+                        continue
                     sc = os.path.join(base, d, 'contents/screenshot.jpg')
                     img = os.path.join(base, d, 'contents/images')
                     if os.path.exists(sc) and os.path.isdir(img):
                         fundos.append(dict(id=d, miniatura='file://' + sc, caminho=os.path.join(base, d)))
-                fundos.sort(key=lambda x: (not x['id'].startswith('CarinaeOS-Nebulosa'), x['id'] != 'CarinaeOS', x['id']))
+                ordem = ['CarinaeOS-Ameixa', 'CarinaeOS-Grafite', 'CarinaeOS-Pessego', 'CarinaeOS-Nevoa']
+                fundos.sort(key=lambda x: (ordem.index(x['id']) if x['id'] in ordem else 9, x['id']))
                 e['fundos'] = fundos
             elif pagina == 'pesquisa':
                 try:
@@ -333,8 +336,7 @@ class Config(QObject):
                     j = json.load(open(DOCK_JSON, encoding='utf-8'))
                 except (OSError, ValueError):
                     j = {}
-                d['estilo'] = j.get('estilo', 'fluent')
-                d['ampliacao'] = j.get('ampliacao', 'dentro')
+                d['estilo'] = j.get('estilo') if j.get('estilo') in ('fluent', 'simples', 'icones') else 'fluent'
                 d['pastaEstilos'] = os.path.join(AQUI, 'dock-estilos')
                 e.update(d)
             elif pagina == 'datahora':
@@ -499,14 +501,6 @@ class Config(QObject):
         bg(['plasma-apply-wallpaperimage', caminho])
         self._aviso('Papel de parede aplicado ✓')
 
-    @Slot(int)
-    def definirAnimado(self, variante):
-        js = ('var d = desktops(); for (var i = 0; i < d.length; i++) { d[i].wallpaperPlugin = "org.carinaeos.vivo"; '
-              'd[i].currentConfigGroup = ["Wallpaper", "org.carinaeos.vivo", "General"]; d[i].writeConfig("Variante", %d); }'
-              % (2 if variante == 2 else 1))
-        bg(['qdbus6', 'org.kde.plasmashell', '/PlasmaShell', 'org.kde.PlasmaShell.evaluateScript', js])
-        self._aviso('Papel de parede animado aplicado ✓')
-
     @Slot(bool)
     def definirIndexacao(self, ligar):
         bg(['balooctl6', 'enable' if ligar else 'disable'])
@@ -656,8 +650,8 @@ class Config(QObject):
 
     @Slot(str, str)
     def definirModeloDock(self, chave, valor):
-        """estilo (fluent, vidro, …) ou ampliacao (dentro/onda): a Dock aplica em até 4 segundos."""
-        if chave not in ('estilo', 'ampliacao'):
+        """estilo da Dock (fluent, simples ou icones): a Dock aplica em até 4 segundos."""
+        if chave != 'estilo' or valor not in ('fluent', 'simples', 'icones'):
             return
         try:
             j = json.load(open(DOCK_JSON, encoding='utf-8'))

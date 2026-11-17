@@ -7,7 +7,7 @@ import org.kde.kirigami as Kirigami
 
 Rectangle {
     id: root
-    color: "#05060B"
+    color: "#4a1a45"        // a cor do papel de parede padrão (Ameixa)
 
     property int stage
 
@@ -15,14 +15,6 @@ Rectangle {
         if (stage == 2) {
             entrada.running = true;
         }
-    }
-
-    Image {
-        anchors.fill: parent
-        source: "/usr/share/wallpapers/CarinaeOS/contents/images/3840x2160.jpg"
-        fillMode: Image.PreserveAspectCrop
-        asynchronous: true
-        opacity: 0.35
     }
 
     Item {
@@ -37,14 +29,6 @@ Rectangle {
             source: "images/estrela.svg"
             sourceSize.width: tamanho
             sourceSize.height: tamanho
-
-            // a estrela "respira" enquanto a sessão carrega
-            SequentialAnimation on scale {
-                loops: Animation.Infinite
-                running: Kirigami.Units.longDuration > 1
-                NumberAnimation { from: 1.0; to: 1.08; duration: 1100; easing.type: Easing.InOutSine }
-                NumberAnimation { from: 1.08; to: 1.0; duration: 1100; easing.type: Easing.InOutSine }
-            }
         }
 
         Text {

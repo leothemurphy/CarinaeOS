@@ -68,8 +68,9 @@ PlasmoidItem {
     readonly property real larguraRepouso: slots * (base + espaco) + espaco + (lixeira ? separador : 0) + slotsComSep.length * largSep
     // ampliação: "dentro" (padrão) = só o ícone debaixo do rato cresce um pouco, sem sair da Dock;
     // "onda" = como no macOS, os ícones crescem numa onda e sobem acima do vidro
-    property string ampliacao: "dentro"
-    readonly property bool dentro: ampliacao !== "onda"
+    // (a "onda" saiu: só existe a ampliação dentro da Dock, e só no modelo com efeito)
+    readonly property string ampliacao: "dentro"
+    readonly property bool dentro: true
     readonly property real zoomDentro: 1.2
     // espaço reservado para a ampliação (o painel não muda de tamanho)
     readonly property real folga: dentro ? base * (e.afastar || 0) * 2 : base * (zoom - 1) * 2.6
@@ -271,6 +272,9 @@ PlasmoidItem {
     }
 
     function escala(slot: int): real {
+        if (!e.efeito) {
+            return 1;
+        }
         if (dentro) {
             // "planalto": o ícone debaixo do rato cresce quase todo, os vizinhos não
             const q = (ratoX - centroRepouso(slot)) / (base * 0.75);
@@ -322,40 +326,19 @@ PlasmoidItem {
     property bool rodaVolume: true          // roda do rato sobre a Dock muda o volume
     property int passoVolume: 5
     property string cliqueMeio: "nova"      // "nova" janela ou "fechar"
+    // três modelos (os antigos caem no "fluent"):
+    //   fluent  — escura; o ícone cresce um pouco e salta ao abrir (com efeito)
+    //   simples — igual, sem efeitos: só o quadrado que acende debaixo do mouse
+    //   icones  — sem fundo, só os ícones, com o mesmo quadrado ao passar o mouse
     readonly property var estilos: ({
-        mac:          { c1: Qt.rgba(1, 1, 1, 0.26), c2: Qt.rgba(1, 1, 1, 0.16), borda: Qt.rgba(1, 1, 1, 0.38), raio: 0.30, sombra: 0.12 },
-        escuro:       { c1: Qt.rgba(0.12, 0.11, 0.15, 0.62), c2: Qt.rgba(0.08, 0.07, 0.10, 0.70), borda: Qt.rgba(1, 1, 1, 0.14), raio: 0.30, sombra: 0.2 },
-        transparente: { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0.3, sombra: 0 },
-        bolhas:       { c1: Qt.rgba(1, 1, 1, 0.34), c2: Qt.rgba(0.85, 0.92, 1, 0.20), borda: Qt.rgba(1, 1, 1, 0.65), raio: 0.5, sombra: 0.15 },
-        squircle:     { c1: Qt.rgba(0.20, 0.20, 0.22, 0.80), c2: Qt.rgba(0.16, 0.16, 0.18, 0.85), borda: Qt.rgba(1, 1, 1, 0.10), raio: 0.38, sombra: 0.25 },
-        rosepine:     { c1: "#e6191724", c2: "#e61f1d2e", borda: "#ebbcba", raio: 0.32, sombra: 0.2 },
-        xp:           { c1: "#3a81f3", c2: "#245edb", borda: "#9ec2ff", raio: 0.14, sombra: 0.3 },
-        vista:        { c1: Qt.rgba(0.35, 0.45, 0.55, 0.45), c2: Qt.rgba(0.02, 0.03, 0.05, 0.75), borda: Qt.rgba(1, 1, 1, 0.45), raio: 0.16, sombra: 0.35 },
-        translucido:  { c1: Qt.rgba(1, 1, 1, 0.08), c2: Qt.rgba(1, 1, 1, 0.05), borda: Qt.rgba(1, 1, 1, 0.12), raio: 0.30, sombra: 0 },
-        docklike:     { c1: Qt.rgba(0.14, 0.14, 0.14, 0.72), c2: Qt.rgba(0.10, 0.10, 0.10, 0.72), borda: Qt.rgba(1, 1, 1, 0.18), raio: 0.26, sombra: 0.2 },
-        matter:       { c1: "#2b2930", c2: "#25232a", borda: "transparent", raio: 0.5, sombra: 0.3 },
-        lucent:       { c1: Qt.rgba(1, 1, 1, 0.50), c2: Qt.rgba(1, 1, 1, 0.36), borda: Qt.rgba(1, 1, 1, 0.85), raio: 0.34, sombra: 0.1 },
-        neon:         { c1: Qt.rgba(0.07, 0.04, 0.12, 0.78), c2: Qt.rgba(0.10, 0.04, 0.12, 0.78), borda: "#ff6f91", raio: 0.34, sombra: 0.0, brilho: true },
-        // ---- modelos novos (fundo: barra|nenhum; item: por trás de cada ícone; ind: indicador das apps abertas)
-        vidro:        { c1: Qt.rgba(1, 1, 1, 0.22), c2: Qt.rgba(0.75, 0.82, 1, 0.12), borda: Qt.rgba(1, 1, 1, 0.48), raio: 0.42, sombra: 0.16,
-                        reflexo: true, ind: "barra" },
-        fluent:       { c1: Qt.rgba(0.10, 0.10, 0.13, 0.84), c2: Qt.rgba(0.07, 0.07, 0.10, 0.88), borda: Qt.rgba(1, 1, 1, 0.10), raio: 0.26, sombra: 0.25,
-                        item: "tile", ind: "barra" },
-        minimalista:  { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum", linha: true, ind: "barra", margem: 0.2 },
-        colorida:     { c1: Qt.rgba(0.05, 0.07, 0.20, 0.86), c2: Qt.rgba(0.09, 0.06, 0.24, 0.90), borda: "transparent", raio: 0.5, sombra: 0.2,
-                        bordaGrad: ["#4f8bff", "#a66bff", "#ff6f91", "#ffb46e"], item: "circulo", ind: "ponto", margem: 0.22 },
-        orbital:      { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
-                        item: "bolha", ind: "brilho", espaco: 0.34, margem: 0.24 },
-        hexagonal:    { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
-                        item: "hex", ind: "brilho", espaco: 0.06, margem: 0.24, afastar: 0.5 },
-        icones:       { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
-                        ind: "brilho", espaco: 0.08, margem: 0.2, afastar: 0.45 },
-        redondos:     { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
-                        item: "disco", icone: 0.72, ind: "brilho", espaco: 0.1, margem: 0.2, afastar: 0.45 },
-        aereo:        { c1: Qt.rgba(0.60, 0.70, 1, 0.18), c2: Qt.rgba(0.35, 0.45, 0.95, 0.12), borda: Qt.rgba(0.78, 0.86, 1, 0.55), raio: 0.5, sombra: 0.1,
-                        brilhoBase: true, ind: "brilho", margem: 0.22 }
+        fluent:  { c1: Qt.rgba(0.10, 0.10, 0.13, 0.84), c2: Qt.rgba(0.07, 0.07, 0.10, 0.88), borda: Qt.rgba(1, 1, 1, 0.10), raio: 0.26, sombra: 0.25,
+                   item: "tile", ind: "barra", efeito: true },
+        simples: { c1: Qt.rgba(0.10, 0.10, 0.13, 0.84), c2: Qt.rgba(0.07, 0.07, 0.10, 0.88), borda: Qt.rgba(1, 1, 1, 0.10), raio: 0.26, sombra: 0.25,
+                   item: "tile", ind: "barra", efeito: false },
+        icones:  { c1: "transparent", c2: "transparent", borda: "transparent", raio: 0, sombra: 0, fundo: "nenhum",
+                   item: "tile", ind: "barra", margem: 0.2, efeito: false }
     })
-    readonly property var e: estilos[estilo] || estilos.mac
+    readonly property var e: estilos[estilo] || estilos.fluent
 
     // ---- definições vindas do Supernova -------------------------------------
     // o Supernova escreve ~/.config/carinaeos-dock.json; a Dock lê-o e aplica.
@@ -383,7 +366,6 @@ PlasmoidItem {
                 if (c.bounce !== undefined && conf.bounce !== c.bounce) conf.bounce = c.bounce;
                 if (c.showTrash !== undefined && conf.showTrash !== c.showTrash) conf.showTrash = c.showTrash;
                 if (c.estilo !== undefined) dock.estilo = c.estilo;
-                if (c.ampliacao !== undefined) dock.ampliacao = c.ampliacao;
                 if (c.rodaVolume !== undefined) dock.rodaVolume = c.rodaVolume;
                 if (c.passoVolume !== undefined) dock.passoVolume = c.passoVolume;
                 if (c.cliqueMeio !== undefined) dock.cliqueMeio = c.cliqueMeio;
@@ -484,41 +466,6 @@ PlasmoidItem {
     }
 
     // ---- vidro por baixo dos ícones -------------------------------------------
-    // Colorida: contorno em degradê (fica por trás do vidro, 2 px maior)
-    Rectangle {
-        visible: !!dock.e.bordaGrad && dock.e.fundo !== "nenhum"
-        anchors.fill: vidro; anchors.margins: -2
-        radius: vidro.radius + 2
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0.0; color: dock.e.bordaGrad ? dock.e.bordaGrad[0] : "transparent" }
-            GradientStop { position: 0.35; color: dock.e.bordaGrad ? dock.e.bordaGrad[1] : "transparent" }
-            GradientStop { position: 0.7; color: dock.e.bordaGrad ? dock.e.bordaGrad[2] : "transparent" }
-            GradientStop { position: 1.0; color: dock.e.bordaGrad ? dock.e.bordaGrad[3] : "transparent" }
-        }
-    }
-    // Orbital: anel de luz por baixo das bolhas
-    Rectangle {
-        visible: dock.e.anel === true
-        anchors.horizontalCenter: fila.horizontalCenter
-        anchors.bottom: parent.bottom; anchors.bottomMargin: dock.baixo
-        width: fila.width + dock.base * 0.3; height: dock.base * 0.42
-        radius: height / 2
-        color: Qt.rgba(0.35, 0.6, 1, 0.07)
-        border.width: 2; border.color: Qt.rgba(0.45, 0.72, 1, 0.75)
-        Rectangle {
-            anchors.fill: parent; anchors.margins: -3; radius: height / 2
-            color: "transparent"; border.width: 3; border.color: Qt.rgba(0.45, 0.72, 1, 0.18)
-        }
-    }
-    // Minimalista: só uma linha fina por baixo dos ícones
-    Rectangle {
-        visible: dock.e.linha === true
-        anchors.horizontalCenter: fila.horizontalCenter
-        anchors.bottom: parent.bottom; anchors.bottomMargin: dock.baixo + Math.max(2, dock.margem * 0.25) - 1
-        width: fila.width; height: 2; radius: 1
-        color: Qt.rgba(1, 1, 1, 0.35)
-    }
     Rectangle {
         id: vidro
         visible: dock.e.fundo !== "nenhum"
@@ -528,14 +475,12 @@ PlasmoidItem {
         width: fila.width + dock.espaco
         height: dock.base + dock.margem * 2
         radius: Math.round(height * dock.e.raio)
-        // o vidro muda com o estilo escolhido no Supernova (Mac claro por omissão)
         gradient: Gradient {
             GradientStop { position: 0; color: dock.e.c1 }
             GradientStop { position: 1; color: dock.e.c2 }
         }
         border.color: dock.e.borda
-        border.width: dock.e.brilho ? 2 : 1
-        Behavior on radius { NumberAnimation { duration: 200 } }
+        border.width: 1
         Rectangle {     // sombra suave por baixo do vidro
             z: -1
             anchors.fill: parent
@@ -543,49 +488,6 @@ PlasmoidItem {
             anchors.bottomMargin: -2
             radius: parent.radius
             color: Qt.rgba(0, 0, 0, dock.e.sombra)
-        }
-        Rectangle {     // neon: segunda borda a brilhar
-            visible: dock.e.brilho === true
-            anchors.fill: parent; anchors.margins: -3
-            radius: parent.radius + 3; color: "transparent"
-            border.width: 2; border.color: "#ffb46e"; opacity: 0.45
-            SequentialAnimation on opacity {
-                running: dock.e.brilho === true; loops: Animation.Infinite
-                NumberAnimation { to: 0.15; duration: 1600; easing.type: Easing.InOutSine }
-                NumberAnimation { to: 0.55; duration: 1600; easing.type: Easing.InOutSine }
-            }
-        }
-        // Vidro: reflexo na metade de cima
-        Rectangle {
-            visible: dock.e.reflexo === true
-            anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
-            anchors.margins: 1
-            height: parent.height * 0.5; radius: parent.radius
-            gradient: Gradient {
-                GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0.20) }
-                GradientStop { position: 1; color: Qt.rgba(1, 1, 1, 0.0) }
-            }
-        }
-        // Aéreo: linha de luz azul por baixo, dentro do vidro
-        Rectangle {
-            visible: dock.e.brilhoBase === true
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottom: parent.bottom; anchors.bottomMargin: 2
-            width: parent.width - parent.radius * 2; height: 2; radius: 1
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: Qt.rgba(0.4, 0.7, 1, 0) }
-                GradientStop { position: 0.5; color: Qt.rgba(0.5, 0.8, 1, 0.9) }
-                GradientStop { position: 1.0; color: Qt.rgba(0.4, 0.7, 1, 0) }
-            }
-        }
-        // brilho do topo (XP e Vista)
-        Rectangle {
-            visible: dock.estilo === "xp" || dock.estilo === "vista"
-            anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
-            anchors.margins: 2
-            height: parent.height * 0.45; radius: parent.radius
-            color: Qt.rgba(1, 1, 1, dock.estilo === "xp" ? 0.18 : 0.12)
         }
     }
 

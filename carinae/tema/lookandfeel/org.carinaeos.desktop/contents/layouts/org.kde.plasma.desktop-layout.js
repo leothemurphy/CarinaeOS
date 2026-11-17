@@ -2,19 +2,16 @@
 //   barra em cima: estrela (lançador em ecrã inteiro), menu global da app,
 //                  bandeja do sistema e relógio
 //   Dock em baixo: apps com ampliação, estrela no centro e lixeira
-//   mesa: ícones da pasta ~/Desktop e o fundo de Eta Carinae
+//   mesa: ícones da pasta ~/Desktop e o papel de parede Ameixa
 
 // ---- mesa ----------------------------------------------------------------
 var mesas = desktopsForActivity(currentActivity());
 for (var j = 0; j < mesas.length; j++) {
-    // a imagem fixa fica configurada (é a que se usa se escolher "estático" nas Configurações)
+    // o papel de parede padrão do CarinaeOS (Ameixa)
+    mesas[j].wallpaperPlugin = "org.kde.image";
     mesas[j].currentConfigGroup = ["Wallpaper", "org.kde.image", "General"];
     mesas[j].writeConfig("Image", "file:///usr/share/wallpapers/CarinaeOS/");
     mesas[j].writeConfig("FillMode", 2);   // recortar para preencher
-    // por omissão: a nebulosa em movimento
-    mesas[j].wallpaperPlugin = "org.carinaeos.vivo";
-    mesas[j].currentConfigGroup = ["Wallpaper", "org.carinaeos.vivo", "General"];
-    mesas[j].writeConfig("Variante", 1);
     // icones da mesa como no Mac: em colunas, encostados a direita
     mesas[j].currentConfigGroup = ["General"];
     mesas[j].writeConfig("arrangement", 1);

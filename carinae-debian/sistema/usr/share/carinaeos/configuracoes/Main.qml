@@ -20,7 +20,6 @@ ApplicationWindow {
     readonly property color texto: "#f2f0f6"
     readonly property color suave: "#a8a3b6"
     readonly property color realce: "#7aa7ff"
-    property bool maisModelos: false
     property string msgVista: ""             // a mensagem de baixo some sozinha passados uns segundos        // Configurações › Dock: mostrar os modelos clássicos
     readonly property color linha: Qt.rgba(1, 1, 1, 0.07)
     property string pagina: ajustes.inicio
@@ -480,10 +479,10 @@ ApplicationWindow {
                     Linha {
                         titulo: "Modo leve"
                         sub: (janela.e.leve || {}).ligado
-                             ? "Ligado: papel de parede parado, sem desfoque nas janelas, animações curtas e sem indexar o conteúdo dos arquivos."
+                             ? "Ligado: sem desfoque nas janelas, animações curtas e sem indexar o conteúdo dos arquivos."
                              : (janela.e.leve || {}).recomendado
                                ? "Recomendado para este computador (" + (janela.e.leve || {}).motivo + "). Deixa tudo mais rápido."
-                               : "Para computadores mais antigos: papel de parede parado, sem desfoque, animações curtas."
+                               : "Para computadores mais antigos: sem desfoque, animações curtas."
                         Switch { checked: !!(janela.e.leve || {}).ligado; onToggled: ajustes.definirModoLeve(checked) }
                     }
                 }
@@ -494,25 +493,6 @@ ApplicationWindow {
                         width: parent.width
                         padding: 14
                         spacing: 12
-                        // as duas cenas em movimento
-                        Repeater {
-                            model: [1, 2]
-                            delegate: Rectangle {
-                                required property int modelData
-                                width: 182; height: 104; radius: 10
-                                color: "transparent"
-                                border.width: ma1.containsMouse ? 2 : 0
-                                border.color: janela.realce
-                                Image { anchors.fill: parent; anchors.margins: 2; fillMode: Image.PreserveAspectCrop; asynchronous: true
-                                        source: "file:///usr/share/wallpapers/CarinaeOS-NebulosaSobreOLago" + (parent.modelData === 2 ? "2" : "") + "/contents/screenshot.jpg" }
-                                Rectangle {
-                                    x: 8; y: 8; height: 22; width: rotAn.implicitWidth + 16; radius: 11
-                                    color: Qt.rgba(0, 0, 0, 0.55)
-                                    Text { id: rotAn; anchors.centerIn: parent; text: "▶ Animado"; color: "white"; font.pixelSize: 11 }
-                                }
-                                MouseArea { id: ma1; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: ajustes.definirAnimado(parent.modelData) }
-                            }
-                        }
                         Repeater {
                             model: janela.e.fundos || []
                             delegate: Rectangle {
@@ -896,25 +876,17 @@ ApplicationWindow {
                     titulo: "Modelo"
                     Item {
                         width: parent.width
-                        height: gradeModelos.implicitHeight + 28 + 44
+                        height: gradeModelos.implicitHeight + 28
                         Flow {
                             id: gradeModelos
                             x: 14; y: 14; width: parent.width - 28
                             spacing: 12
                             Repeater {
                                 model: [
-                                    ["fluent", "Fluent", "Padrão do CarinaeOS"], ["vidro", "Vidro", "Transparente com reflexo"],
-                                    ["minimalista", "Minimalista", "Só uma linha fina"], ["colorida", "Colorida", "Borda em degradê"],
-                                    ["orbital", "Orbital", "Bolhas de vidro"], ["hexagonal", "Hexagonal", "Afastam-se ao passar o mouse"],
-                                    ["icones", "Só ícones", "Sem fundo, afastam-se"], ["redondos", "Redondos", "Círculos, afastam-se"],
-                                    ["aereo", "Aéreo", "Vidro azulado com luzes"], ["mac", "Mac", "Vidro claro, como no macOS"]
-                                ].concat(janela.maisModelos ? [
-                                    ["escuro", "Mac escuro", "Clássico"], ["transparente", "Transparente", "Clássico"],
-                                    ["bolhas", "Bubbles", "Clássico"], ["squircle", "Squircle", "Clássico"], ["rosepine", "Rosé Pine", "Clássico"],
-                                    ["xp", "Windows XP", "Clássico"], ["vista", "Vista", "Clássico"], ["translucido", "Translúcido", "Clássico"],
-                                    ["docklike", "DockLike", "Clássico"], ["matter", "Matter", "Clássico"], ["lucent", "Lucent", "Clássico"],
-                                    ["neon", "Neon", "Clássico"]
-                                ] : [])
+                                    ["fluent", "Padrão", "O ícone cresce e salta ao abrir"],
+                                    ["simples", "Sem efeitos", "O ícone só acende ao passar o mouse"],
+                                    ["icones", "Só ícones", "Sem o fundo da Dock"]
+                                ]
                                 delegate: Rectangle {
                                     id: cartaoModelo
                                     required property var modelData
@@ -944,32 +916,13 @@ ApplicationWindow {
                                 }
                             }
                         }
-                        Botao {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.bottom: parent.bottom; anchors.bottomMargin: 12
-                            texto: janela.maisModelos ? "Menos modelos" : "Mais modelos (clássicos)…"
-                            onCarregado: janela.maisModelos = !janela.maisModelos
-                        }
                     }
                 }
                 Grupo {
                     visible: janela.pagina === "dock"
-                    titulo: "Tamanho e efeito"
+                    titulo: "Tamanho"
                     Linha { titulo: "Tamanho dos ícones"; sub: Math.round(janela.e.iconSize || 56) + " px"
                             Deslizante { from: 32; to: 96; stepSize: 2; alvo: janela.e.iconSize || 56; onMoved: ajustes.definirDock("iconSize", Math.round(value)) } }
-                    Linha {
-                        titulo: "Ao passar o mouse"
-                        sub: (janela.e.ampliacao || "dentro") === "onda" ? "Os ícones crescem numa onda e sobem acima da Dock (como no Mac)"
-                                                                       : "Só o ícone cresce um pouco, sem sair da Dock"
-                        Row {
-                            spacing: 8
-                            Botao { texto: "Dentro da Dock"; principal: (janela.e.ampliacao || "dentro") !== "onda"; onCarregado: ajustes.definirModeloDock("ampliacao", "dentro") }
-                            Botao { texto: "Onda"; principal: (janela.e.ampliacao || "dentro") === "onda"; onCarregado: ajustes.definirModeloDock("ampliacao", "onda") }
-                        }
-                    }
-                    Linha { visible: janela.e.ampliacao === "onda"
-                            titulo: "Tamanho da onda"; sub: (janela.e.zoom || 1.6) <= 1.01 ? "Desligada" : Math.round(((janela.e.zoom || 1.6) - 1) * 100) + "%"
-                            Deslizante { from: 1; to: 2.2; stepSize: 0.1; alvo: janela.e.zoom || 1.6; onMoved: ajustes.definirDock("zoom", value) } }
                 }
                 Grupo {
                     visible: janela.pagina === "dock"

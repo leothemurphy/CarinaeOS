@@ -1,20 +1,14 @@
-# CarinaeOS - ecra de arranque: fundo preto, a estrela ao centro (aparece
-# devagar) e, por baixo, uma barra fina de progresso, como no Mac.
+# CarinaeOS - ecra de arranque: a cor do papel de parede padrao (Ameixa), a estrela ao centro
+# (aparece devagar) e, por baixo, uma barra fina de progresso, como no Mac.
 # Tudo e calculado a partir da resolucao do ecra (nitido em 4K).
 
-Window.SetBackgroundTopColor(0, 0, 0);
-Window.SetBackgroundBottomColor(0, 0, 0);
+Window.SetBackgroundTopColor(0.330, 0.118, 0.310);
+Window.SetBackgroundBottomColor(0.215, 0.075, 0.200);
 
 L = Window.GetWidth();
 A = Window.GetHeight();
 esc = A / 1080;
 if (esc < 0.5) esc = 0.5;
-
-# ceu do Atacama (escuro e desfocado) a aparecer devagar por tras de tudo
-ceu.imagem = Image("fundo.png");
-ceu.sprite = Sprite(ceu.imagem.Scale(L, A));
-ceu.sprite.SetPosition(Window.GetX(), Window.GetY(), 1);
-ceu.sprite.SetOpacity(0);
 
 # estrela
 tam = Math.Int(170 * esc);
@@ -26,11 +20,6 @@ estrela.sprite.SetPosition(estrela.x, estrela.y, 10);
 estrela.sprite.SetOpacity(0);
 estrela.opacidade = 0;
 
-# halo quente que "respira" a volta da estrela
-halo.tam = Math.Int(tam * 2.6);
-halo.sprite = Sprite(Image("brilho.png").Scale(halo.tam, halo.tam));
-halo.sprite.SetPosition(Window.GetX() + L / 2 - halo.tam / 2, estrela.y + tam / 2 - halo.tam / 2, 5);
-halo.sprite.SetOpacity(0);
 tempo = 0;
 
 # o nome por baixo
@@ -59,9 +48,6 @@ barra.frente.SetOpacity(0);
 fun ao_atualizar()
 {
   tempo += 1;
-  pulso = 0.55 + 0.35 * Math.Sin(tempo / 25);
-  halo.sprite.SetOpacity(pulso * estrela.opacidade);
-  ceu.sprite.SetOpacity(estrela.opacidade * 0.9);
   nome.sprite.SetOpacity(estrela.opacidade);
   if (estrela.opacidade < 1)
   {

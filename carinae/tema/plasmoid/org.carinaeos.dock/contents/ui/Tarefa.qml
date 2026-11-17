@@ -105,28 +105,21 @@ Item {
         aberto: !tarefa.model.IsLauncher && !tarefa.model.IsStartup
     }
 
-    // indicador das apps abertas, conforme o estilo: ponto, barra (Fluent) ou ponto aceso (Orbital, Aéreo)
+    // indicador das apps abertas: uma barra (maior e laranja na app ativa)
     Rectangle {
         id: indicador
-        readonly property string tipo: dock.e.ind || "ponto"
         readonly property bool ativa: tarefa.model.IsActive === true
         visible: !tarefa.model.IsLauncher && !tarefa.model.IsStartup
-        width: tipo === "barra" ? Math.round(dock.base * (ativa ? 0.36 : 0.16)) : Math.max(4, Math.round(dock.base / 11))
-        height: tipo === "barra" ? 3 : Math.max(4, Math.round(dock.base / 11))
+        width: Math.round(dock.base * (ativa ? 0.36 : 0.16))
+        height: 3
         radius: height / 2
-        x: (tarefa.larguraIcone - width) / 2 + dock.desvio(tarefa.slot)
+        x: (tarefa.larguraIcone - width) / 2
         anchors.bottom: parent.bottom
         anchors.bottomMargin: dock.baixo + Math.max(2, dock.margem * 0.25)
-        color: tipo === "brilho" ? (ativa ? "#8fd0ff" : Qt.rgba(0.55, 0.8, 1, 0.75))
-                                 : ativa ? "#FFB46E" : Qt.rgba(1, 1, 1, 0.7)
-        Behavior on width { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
-        Rectangle {     // halo
-            visible: indicador.tipo === "brilho"
-            anchors.centerIn: parent
-            width: parent.width * 3.2; height: width; radius: width / 2
-            color: Qt.rgba(0.45, 0.75, 1, indicador.ativa ? 0.32 : 0.18)
-            z: -1
-        }
+        color: ativa ? "#FFB46E" : Qt.rgba(1, 1, 1, 0.75)
+        // sem o fundo da Dock, um contorno escuro para se ver em papéis de parede claros
+        border.width: dock.e.fundo === "nenhum" ? 1 : 0
+        border.color: Qt.rgba(0, 0, 0, 0.35)
     }
 
     // salto ao abrir (como no macOS): sobe e desce suave, enquanto a app abre
@@ -139,7 +132,7 @@ Item {
     // (o "model" de um delegate não emite IsStartupChanged: vigia-se uma propriedade ligada a ele;
     // a Connections antiga só enchia o registo de avisos e o salto nunca acontecia)
     readonly property bool iniciando: tarefa.model.IsStartup === true
-    onIniciandoChanged: if (iniciando && tarefa.mostrar && Plasmoid.configuration.bounce) salto.restart()
+    onIniciandoChanged: if (iniciando && tarefa.mostrar && dock.e.efeito && Plasmoid.configuration.bounce) salto.restart()
 
     // às vezes o pedido para trazer a janela para a frente perde-se (a janela ficava "presa" atrás):
     // se meio segundo depois ela ainda não está ativa, pede-se de novo (até 2 vezes)
@@ -223,13 +216,13 @@ Item {
                         dock.modelo.requestClose(tarefa.indice());     // como o mod "Middle click to close" do Windhawk
                     } else {
                         dock.modelo.requestNewInstance(tarefa.indice());
-                        salto.restart();
+                        if (dock.e.efeito) salto.restart();
                     }
                     return;
                 }
                 if (tarefa.model.IsLauncher) {
                     dock.modelo.requestActivate(tarefa.indice());
-                    if (Plasmoid.configuration.bounce) salto.restart();
+                    if (dock.e.efeito && Plasmoid.configuration.bounce) salto.restart();
                 } else if (tarefa.model.IsMinimized) {
                     dock.modelo.requestToggleMinimized(tarefa.indice());
                     dock.modelo.requestActivate(tarefa.indice());
