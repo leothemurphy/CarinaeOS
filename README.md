@@ -81,29 +81,28 @@ sobre um lago espelhado.
   </tr>
 </table>
 
-### Novidades da rc17
+### Novidades da rc18
 
-- **Ambientes no Launchpad**: os cartões passam a ser *ambientes* que monta como quiser — crie, mude o nome e a cor,
-  coloque uma **imagem como marca de água**, arraste para mudar a ordem (botão **Editar**) e **tranque com senha**.
-  O ambiente **CarinaeOS** vem sempre com tudo o que é do sistema (Central, Música, Órbita, Carinae Casa…), e há a vista
-  *Sem ambiente* para arrumar o resto. Cada aplicativo fica num só ambiente (botão direito › *Mover para*).
-- **Deck de ações**: luzes e cenas do Home Assistant, Não incomodar, Luz noturna, Wi-Fi, Bluetooth, modo de energia,
-  saída de som, rádios e playlists — cada tecla mostra o estado e acende quando está ligada.
-- **Cadeado em todo o lado**: botão direito em qualquer ícone (Launchpad, Dock, Deck, Arquivos) › *Trancar com senha* /
-  *Destrancar*, também para aplicativos e ambientes. A senha é pedida dentro do próprio Launchpad.
-- **Contas online com login próprio do CarinaeOS**: entre com a conta **Google** no navegador e veja os emails ligados;
-  o **Google Drive** fica numa pasta dos Arquivos e os **calendários** aparecem no Merkuro. Também Nextcloud e ownCloud.
-- **Carinae Casa** é agora um aplicativo próprio (ligado ao Home Assistant), que pode colocar na Dock ou em qualquer ambiente.
-- **Música**: o que está tocando aparece na **barra de cima**, com controles e volume; listas novas (de uma pasta, com
-  músicas escolhidas, editar e mudar a ordem); rádios; e as listas, pastas e rádios novas chegam **sozinhas ao Home Assistant**.
-- **Placas de vídeo**: a Central escolhe o controlador certo para cada placa NVIDIA — o atual (GTX 750 em diante, RTX),
-  o **470 para as Kepler** (GT 710/730, GTX 600/700, com a sessão X11 e as afinações que tiram os solavancos) ou o livre
-  (nouveau) nas muito antigas —, e os de AMD e Intel.
-- **Dock**: o ícone debaixo do mouse cresce sem sair dela (ou em onda, se preferir), as janelas param na borda dela;
-  pré-visualização das janelas ao passar o mouse e os nomes numa janelinha.
-- **AppImages de impressão 3D** (OrcaSlicer, ElegooSlicer, Bambu Studio, Cura): ao abrir o primeiro, o CarinaeOS
-  oferece as bibliotecas que faltam; e os navegadores em Flatpak já criam aplicativos (PWA) com ícone.
-- **Janelas menos transparentes** e com os botões do Mac também nos navegadores instalados como Flatpak.
+- **Carinae Casa com o visual do Home Assistant**: barra lateral, separadores e cartões no estilo **Mushroom**
+  (entidade, luz e persiana com barra larga, termostato, som e TV, pessoa com foto, chips, título, medidor, botão grande,
+  relógio, imagem…), com os ícones do próprio HA. **Copiar do Home Assistant** traz os seus painéis para o Casa, onde
+  pode mudar o visual à vontade (aparelhos e automações continuam no HA). Cartões **arrastáveis**; luzes com **cor,
+  branco e efeitos**; **fonte** no Som e TV.
+- **Desinstalar aplicativos como no Windows** (Configurações › Aplicativos): todos juntos — Flathub, Debian, AppImage,
+  apps e programas do Windows — com tamanho e data. O que é do sistema (e o driver de vídeo) nunca sai; também no
+  botão direito do Launchpad.
+- **Ctrl+Alt+Del** abre **Forçar o encerramento**: a lista dos apps abertos para fechar o que travou, com Bloquear, Sair
+  e Desligar (também <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Esc</kbd> e o botão direito da Dock).
+- **Deck em seções**: em cima os **favoritos do seu navegador** (Chrome, Brave, Edge, Firefox…, com os ícones dos
+  sites) ou os mais visitados; acrescente sites seus e oculte os que não quer. Embaixo, os atalhos.
+- **Sem travamentos com pouca memória**: memória comprimida (**zram**) e a proteção do kernel contra travamentos
+  (Multi-Gen LRU) ligadas de fábrica, como o macOS e o Windows fazem. Em **disco mecânico**, o CarinaeOS o detecta e
+  se ajusta sozinho (BFQ, menos gravações, navegador na memória).
+- **.exe de apps Electron** instalam a versão nativa para Linux; os outros rodam pelo Bottles e ficam no Launchpad.
+- **Configurações › Dock**: 16 modelos (Fluent por padrão), com miniaturas. **Central**: Celular (KDE Connect),
+  Vindo do Windows, Jogos (só se pedir), Firewall. **Modo leve** para computadores antigos.
+- **Mais seguro**: firewall e correções de segurança automáticas de origem; a ISO é **conferida automaticamente**
+  antes de cada publicação.
 
 E ainda:
 
@@ -115,7 +114,7 @@ E ainda:
 - **Janelas em zonas**: esquemas prontos (2 ou 3 colunas, grade, principal + duas); arraste com Shift para encaixar.
   E **áreas de trabalho** como os Spaces do Mac (<kbd>Ctrl</kbd>+<kbd>⊞</kbd>+<kbd>←/→</kbd>, <kbd>⊞</kbd>+<kbd>W</kbd>).
 - **Histórico do Ctrl+C** com <kbd>⊞</kbd>+<kbd>V</kbd>.
-- **Drivers e hardware**: deteta placa NVIDIA, Wi-Fi, Bluetooth, impressoras e scanners, leitor de impressão digital,
+- **Drivers e hardware**: detecta placa NVIDIA, Wi-Fi, Bluetooth, impressoras e scanners, leitor de impressão digital,
   mouses Logitech e de jogos, e instala o que falta com um clique.
 - **Sessão sem rastro**: “Convidado” na tela de entrada; tudo vive na memória e desaparece ao sair.
 - **Modo escuro em todo o lado**, até no Chrome, no Firefox e nos aplicativos GTK e Flatpak.
@@ -123,8 +122,9 @@ E ainda:
 - **Um só estilo, o do CarinaeOS**: barra em cima, Dock embaixo, e nenhum nome técnico à vista — o Terminal é “Terminal”, o visualizador de fotos é “Fotos”, o de PDF é “Documentos”.
 - **Configurações próprias**, como as do Fedora: Wi-Fi, Bluetooth, telas, som, energia, aparência, pesquisa, compartilhamento, data e hora, usuários e “Sistema” (sobre o computador).
 - **Instalador e configuração inicial como no Fedora**: passos numerados à esquerda e, no primeira inicialização, Wi-Fi, privacidade, aparência e contas online.
-- **Carinae Casa**: painéis do Home Assistant que monta como quiser (leves, sem travar, mesmo com centenas de aparelhos), com 13 tipos de cartões (botão, luz, lista, sensor,
-  gráfico de 24 h, clima, cenas, som e TV, câmera, persianas, tempo, número, texto), e este PC como dispositivo no Home Assistant.
+- **Carinae Casa**: os painéis do Home Assistant com o visual do próprio HA e cartões no estilo Mushroom (leves, sem travar,
+  mesmo com centenas de aparelhos), copiados do seu HA ou montados à mão, com cartões arrastáveis e 19 modelos, e este PC
+  como dispositivo no Home Assistant.
 - **Calendários**: conta Google, iCloud (CalDAV) ou qualquer endereço iCal (Google, iCloud, Outlook, feriados), e **Mapas**.
 - **Etiquetas** coloridas nos Arquivos, como no Finder, na barra lateral, até em pastas de rede.
 - **Papéis de parede em 8K**: o céu do Atacama com a estrela, fotografias do James Webb e do Hubble e desenhos originais.
@@ -162,10 +162,11 @@ arrastá-los, mudar a cor e colocar uma imagem como marca de água; o botão dir
 ou tranca com senha.
 Escreva para pesquisar; setas e Enter também funcionam.
 
-**Deck**: uma grelha de teclas grandes, como um Stream Deck, para **fazer coisas** (os aplicativos vivem na Dock e nos
-ambientes): as luzes, cenas e aparelhos do **Home Assistant**, *Não incomodar*, *Luz noturna*, Wi-Fi, Bluetooth, modo de
-energia, a **saída de som**, tocar uma **rádio ou playlist**, captura de tela, todas as janelas, bloquear… Cada tecla mostra
-o estado e acende quando está ligada. *Adicionar* abre a lista de ações; também aceita comandos e sites.
+**Deck**: em cima, os **sites** — a barra de favoritos do seu navegador principal (ou os mais visitados), com os ícones,
+pastas e os sites que acrescentar; botão direito para editar, manter ou ocultar (os favoritos do navegador nunca mudam).
+Embaixo, os **atalhos**, teclas grandes como um Stream Deck: luzes e cenas do **Home Assistant**, *Não incomodar*,
+*Luz noturna*, Wi-Fi, Bluetooth, a **saída de som**, uma **rádio ou playlist**, captura de tela… Cada tecla mostra o
+estado e acende quando está ligada. *Adicionar* abre a lista de ações; também aceita comandos.
 
 **Pesquisa** (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd> ou a lupa da barra de cima), no modelo da nova pesquisa do Windows:
 a caixa embaixo e os resultados por cima. Encontra **aplicativos**, **arquivos** (pelo nome e pelo conteúdo — a
@@ -271,7 +272,8 @@ Cada ajudante só aceita os argumentos que conhece, e os valida:
 |---|---|---|
 | `atualizar` | Ponto de restauro, atualizar, voltar a um ponto | `ponto`, `sistema`, `restaurar`/`apagar` + nome de ponto (data) |
 | `instalar-pacotes` | Drivers e firmware da Central | Nomes de pacotes válidos que existam no Debian |
-| `placa-video` | Driver NVIDIA (atual ou 470) e chave do Secure Boot | `atual`, `kepler`, `mok` |
+| `placa-video` | Driver NVIDIA (atual ou 470), chave do Secure Boot, proteger o driver do `autoremove` | `atual`, `kepler`, `mok`, `proteger` |
+| `remover-pacote` | Desinstalar um aplicativo do Debian | Um nome válido; recusa o sistema, o driver de vídeo, firmwares e núcleo, e qualquer remoção que leve outros pacotes |
 | `firewall` | Ligar/desligar, abrir/fechar serviços | Serviços fixos: `ssh`, `partilha`, `musica` |
 | `partilha` | Samba e pastas compartilhadas | Nome `[A-Za-z0-9_-]`, pasta existente, `ro`/`rw`/`livre`; senha pela entrada, nunca na linha de comando |
 | `ssh` | Ligar/desligar o SSH | `ligar`, `desligar` |
@@ -336,8 +338,11 @@ carinae/lfs/                 a primeira versão, feita do zero com Linux From Sc
 ### Gerar a ISO você mesmo
 
 - **No GitHub:** aba **Actions → CarinaeOS ISO → Run workflow**. Leva cerca de 20 minutos e a ISO
-  aparece em *Releases*.
-- **No seu computador**, dentro de um Debian 13 (ou de um contentor `debian:trixie` com
+  aparece em *Releases* (com *publicar* desligado, fica só como anexo da execução, para testar).
+- **Antes de cada publicação**, a CI confere o português do Brasil e abre a ISO para verificar o que ela promete
+  (zram, música, atalhos, cada ação de administrador, comandos, nada de dados de quem a construiu):
+  `carinae-debian/testes/verificar-ptbr.py` e `carinae-debian/testes/verificar-iso.sh`.
+- **No seu computador**, dentro de um Debian 13 (ou de um contêiner `debian:trixie` com
   `--privileged`), como root:
   ```
   apt install live-build librsvg2-bin fonts-dejavu-core apt-utils git cmake g++ make

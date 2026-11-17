@@ -49,14 +49,23 @@ Da esquerda para a direita:
 
 ### O Deck
 
-Uma grelha de botões grandes e coloridos para o que faz muitas vezes, como um Stream Deck:
-captura de tela, terminal, downloads, monitor do sistema, todas as janelas, mostrar a área de trabalho,
-Central, Supernova, Manual, configurações, bloquear e suspender.
+Duas seções:
+
+**Sites** (em cima): a barra de favoritos do seu navegador principal — Chrome, Brave, Edge, Vivaldi, Chromium ou
+Firefox, instalado ou Flatpak, incluindo os favoritos da conta Google — com o ícone de cada site. As pastas abrem
+lá dentro (‹ volta). Sem favoritos, aparecem os sites mais visitados.
+
+- **Acrescentar um site:** tecla **Adicionar site** › endereço (ex.: `youtube.com` ou `192.168.1.193:8123`) e um nome.
+- **Botão direito num site:** *Editar…*, *Manter no Deck* (fixar um dos mais visitados), *Ocultar do Deck* /
+  *Tirar do Deck*, *Mostrar os ocultos*. Os favoritos do navegador nunca são alterados.
+- Os sites seus e os ocultos ficam em `~/.config/carinaeos/deck-sites.json`.
+
+**Atalhos** (embaixo): teclas grandes, como um Stream Deck — captura de tela, todas as janelas, mostrar a área de
+trabalho, música, luzes e cenas do Home Assistant, Não incomodar, Wi-Fi, saída de som…
 
 - **Colocar um aplicativo:** botão direito no aplicativo › *Adicionar ao Deck*.
-- **Colocar um comando ou um site:** botão **+ Adicionar** › nome e comando (ex.: `kcalc`) ou endereço
-  (ex.: `https://youtube.com`).
-- **Tirar:** botão direito no botão › *Tirar do Deck*. *Repor o Deck original* volta ao início.
+- **Colocar uma ação ou um comando:** botão **+ Adicionar**.
+- **Tirar:** botão direito na tecla › *Tirar do Deck*. *Repor o Deck original* volta ao início.
 - Fica salvo em `~/.config/carinaeos-deck.json`.
 
 ## Pesquisa (Ctrl+Espaço)

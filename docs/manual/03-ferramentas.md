@@ -30,13 +30,17 @@ instala e remove. Também atualiza tudo. Na sessão de teste avisa que o que ins
 
 1. **Ligar:** endereço do Home Assistant (ex.: `http://192.168.1.193:8123`) e um *token de acesso
    de longa duração* (no Home Assistant: o seu perfil › Segurança › Tokens de acesso de longa duração › Criar).
-2. **Painéis:** crie vários (Sala, Quarto, Energia…) na barra lateral. *✎ Editar painel* › *+ Adicionar cartão*.
-3. **13 tipos de cartões:** Botão, Luz (com brilho), Lista, Sensor (valor grande), Gráfico (24 h),
-   Clima (alvo, +/−), Cenas (fila de botões), Som e TV (tocar/pausa, volume), Câmera (imagem a cada 10 s),
-   Persianas e portões (abrir/parar/fechar), Tempo (previsão), Número (deslizante ou escolha), Texto.
-   Cada cartão pode ter largura 1×, 2× ou 3×; em modo de edição pode mover (‹ ›), editar (✎) e apagar (✕).
-   *✦ Sugerir um painel* monta um primeiro painel com o que existe na casa.
-4. **Este computador no Home Assistant:** com MQTT, o PC aparece como dispositivo (CPU, memória, bateria,
+2. **Copiar do Home Assistant** (barra lateral): escolha um painel do seu HA e os separadores e cartões vêm para o
+   Casa — os do HA, os Mushroom e os mais usados da comunidade. Só o visual: aparelhos, automações e o painel
+   original continuam no HA. Os textos com modelos (`{{ … }}`) são calculados pelo próprio HA.
+3. **Painéis:** os separadores do topo, como as vistas do HA. O lápis abre o modo de edição: **arraste os cartões**
+   para onde quiser, duplique, edite e apague; o **+** junto aos separadores cria um painel novo.
+4. **19 modelos de cartão**, no estilo do Home Assistant e dos cartões Mushroom: Entidade (deitada ou em pé), Botão
+   grande, Chips (simples ou com nome e estado), Luz (barra de brilho, branco e cor; ⋮ abre a roda de cores, as cores
+   favoritas e os efeitos), Entidades, Sensor, Gráfico (24 h), Medidor, Termostato, Cenas, Som e TV (com a fonte),
+   Câmera, Imagem, Persianas e portões, Previsão do tempo, Número ou escolha, Pessoa (com a foto), Relógio e Título
+   (com `{saudacao}`, `{nome}` ou modelos do HA). Largura de 1× a 4×. *Sugerir um painel* monta um primeiro.
+5. **Este computador no Home Assistant:** com MQTT, o PC aparece como dispositivo (CPU, memória, bateria,
    botões para bloquear/desligar, volume e notificações).
 
 
@@ -98,7 +102,7 @@ Pelo terminal: `carinaeos-etiquetas pôr Azul <arquivo>`, `carinaeos-etiquetas l
 
 ## Drivers e hardware
 
-Central › Drivers e hardware deteta a placa de vídeo (NVIDIA, AMD, Intel), Wi-Fi, Bluetooth, impressoras e
+Central › Drivers e hardware detecta a placa de vídeo (NVIDIA, AMD, Intel), Wi-Fi, Bluetooth, impressoras e
 scanners, leitor de impressão digital, mouses Logitech e de jogos e controles de videogame, e instala o que falta
 com um clique (capítulo 7).
 

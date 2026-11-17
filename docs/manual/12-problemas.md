@@ -5,8 +5,17 @@ se não estiver cá, na internet, entre aspas.
 
 ## Um aplicativo congelou
 
-Clique no X; se não fechar, menu estrela › *Forçar saída*, ou **Ctrl+Esc** (Monitor do sistema) › Terminar.
+**Ctrl+Alt+Del** (ou Ctrl+Shift+Esc) abre **Forçar o encerramento**: escolha o aplicativo e *Forçar o encerramento*
+(o que não estiver salvo será perdido). Na mesma janela: Bloquear, Sair, Desligar e Monitor do sistema.
+Também: botão direito no ícone da Dock › *Forçar o encerramento*, ou **Ctrl+Alt+Esc** e clicar na janela travada.
 Terminal: `pkill nome` ou `kill -9 PID`.
+
+## Tudo fica lento ou a Dock engasga
+
+O CarinaeOS usa memória comprimida (zram) e a proteção do kernel contra travamentos. Para ver o que está pesando:
+`cat /proc/pressure/memory /proc/pressure/io` (perto de 0 = tudo bem), `/usr/sbin/zramctl` e
+`cat /sys/kernel/mm/lru_gen/min_ttl_ms` (tem de dar 1000). Num disco mecânico (HD), a pressão de disco alta é
+normal ao abrir muitos programas; um SSD é a maior melhoria possível.
 
 ## A tela cheia congelou
 

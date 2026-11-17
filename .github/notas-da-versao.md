@@ -1,4 +1,4 @@
-## CarinaeOS — ISO de testes
+## CarinaeOS — 1.0-rc18
 
 **Em partes** (GitHub não aceita arquivos com mais de 2 GB): baixe **todas as partes** (`.parte00`, `.parte01`, …) para a mesma pasta e junte-as:
 
@@ -15,21 +15,22 @@ cat CarinaeOS-1.0-amd64.iso.parte* > CarinaeOS-1.0-amd64.iso
 
 **Confirmar que é a original:** `sha256sum -c SHA256SUMS` e, com a [chave do CarinaeOS](https://raw.githubusercontent.com/leothemurphy/CarinaeOS/main/carinaeos-chave.asc) importada, `gpg --verify SHA256SUMS.asc SHA256SUMS` (tem de dizer *Good signature*).
 
-Depois, use a ISO numa máquina virtual ou grave-a num pen drive (balenaEtcher ou Rufus).
+Depois, use a ISO numa máquina virtual ou grave-a em um pen drive (balenaEtcher ou Rufus).
 A sessão de teste entra sozinha, sem senha. Para instalar, abra **Instalar o CarinaeOS** na área de trabalho.
 
-### Novidades desta versão
-- **Música** (novo): leitor e biblioteca ligados ao **MPD**. Junte as pastas de música, veja os álbuns com capa e as letras (a linha atual acompanha a música), crie listas e rádios. Cada lista aparece como **fonte** no Home Assistant (integração *Music Player Daemon*, porta 6600) e no `mpc`.
-- **Configurações › Dock** (novo): tamanho, ampliação, posição (embaixo, à esquerda, à direita, em cima), esconder automaticamente, e espessura e cor dos separadores.
-- **Compartilhamento de pastas** a funcionar: o interruptor liga o Samba e abre logo a escolha da pasta; aparece o endereço para Windows/Mac. O **SSH** ligado mostra IP, usuário, senha e os comandos `ssh`/`sftp`.
-- **Som**: o volume mudado pela Pesquisa (ou pelas teclas) já aparece na barra das Configurações.
-- **Energia**: os modos mudam de verdade; os que o computador não tem aparecem como “não disponível” (numa máquina virtual, normalmente não há *Desempenho*).
-- **Contas online** sem erro: Google e iCloud pelos Calendários, Nextcloud/ownCloud com entrada na conta, Google Drive em Meus documentos.
-- A janela para **escolher foto** da Tela de entrada é a do sistema, com o mesmo visual.
+### Novidades desta versão (1.0-rc18)
 
-Da rc15: instalação em português de ponta a ponta, janelas maximizadas por baixo da Dock, barra de cima escura, Dock reorganizável com separadores, Pesquisa instantânea, papel de parede animado, Meus documentos como o Explorador, rede como no Fedora.
+Versão de **congelamento**: daqui até a 1.0 entram só correções.
 
-Da rc12: sem IA, Launchpad em vidro com Deck, Pesquisa como a do Windows (Ctrl+Espaço), Configurações, instalador e configuração inicial ao estilo do Fedora, só o estilo CarinaeOS, e a nebulosa da inicialização ao ambiente de trabalho.
+- **Carinae Casa com o visual do Home Assistant**: barra lateral, separadores e cartões no estilo **Mushroom**, com os ícones do HA. **Copiar do Home Assistant** traz os seus painéis para o Casa, onde pode mudar o visual à vontade (aparelhos e automações continuam no HA). Cartões **arrastáveis**, 19 modelos, luzes com **cor, branco e efeitos**, **fonte** no Som e TV.
+- **Desinstalar aplicativos como no Windows** (Configurações › Aplicativos): Flathub, Debian, AppImage e programas do Windows juntos, com tamanho e data. O que é do sistema — e o **driver de vídeo, os firmwares e o núcleo** — nunca sai.
+- **Ctrl+Alt+Del** abre **Forçar o encerramento** (também Ctrl+Shift+Esc e o botão direito da Dock), com Bloquear, Sair e Desligar.
+- **Deck em seções**: em cima os **favoritos do seu navegador** (Chrome com conta Google, Brave, Edge, Firefox…) ou os sites mais visitados; acrescente sites pelo endereço, edite e oculte com o botão direito. Embaixo, os atalhos.
+- **Sem travamentos com pouca memória**: memória comprimida (**zram**) e a proteção do kernel contra travamentos (Multi-Gen LRU) de fábrica. Em **disco mecânico**, ajuste automático (BFQ, menos gravações, navegador na memória).
+- **Música**: a barra de cima mostra o que toca também quando se dá play pelo Casa ou pelo Home Assistant; acabou a falsa pressão de disco do MPD.
+- **Driver NVIDIA protegido**: os pacotes do driver ficam marcados para não saírem numa limpeza de pacotes.
+- **Tudo em português do Brasil**, conferido automaticamente; a ISO também é **conferida automaticamente** (memória, atalhos, permissões, driver) antes de cada publicação.
+- Também desde a rc17: programas do Windows (.exe) com duplo clique e apps Electron na versão nativa; 16 modelos de Dock; Central com Celular, Vindo do Windows, Jogos (só se pedir) e Firewall; **modo leve** para computadores antigos; firewall e correções de segurança automáticas; atualizações com ponto de restauração (Timeshift); Secure Boot com NVIDIA sem terminal; inicialização sem esperar pela rede.
 
 Guia completo no [README](https://github.com/leothemurphy/carinaeos#readme).
 

@@ -23,7 +23,8 @@ PALAVRAS = {
     r'prima|premir': 'pressione', r'sítio': 'lugar', r'mostrar a mesa': 'mostrar a área de trabalho', r'actual(izar|izado)?': 'atual(izar)',
     r'acç(ão|ões)': 'ação/ações', r'óptim[oa]': 'ótimo', r'objectos?': 'objeto(s)', r'direcç(ão|ões)': 'direção',
     r'colecç(ão|ões)': 'coleção', r'percentagem': 'porcentagem', r'guarda-redes': 'goleiro', r'autocarro': 'ônibus',
-    r'combinámos|fizemos-lhe|apanh(ou|ar|a)': '(pt-PT)', r'partilh(a|ar|ada|adas|ado|ados|e)': 'compartilhar',
+    r'combinámos|fizemos-lhe|apanh(ou|ar|a)': '(pt-PT)', r'detet(a|ar|ado|ada|am)|deteç(ão|ões)': 'detecta(r)',
+    r'contentor(es)?': 'contêiner', r'correm (pelo|no|na|em)': 'rodam', r'partilh(a|ar|ada|adas|ado|ados|e)': 'compartilhar',
 }
 # "está a fazer" (pt-PT) em vez de "está fazendo"; "A tocar" no início de um texto
 GERUNDIO = re.compile(r'\b(est(á|ão|ou|ava|avam|eja|ar)|fic(a|am|ar)|anda(m)?|continua(m)?)\s+a\s+[a-zçãé]+(ar|er|ir)\b', re.I)
@@ -83,6 +84,7 @@ def arquivos(raiz):
             for f in fs:
                 yield os.path.join(d, f)
     yield os.path.join(raiz, 'README.md')
+    yield os.path.join(raiz, '.github', 'notas-da-versao.md')
     man = os.path.join(raiz, 'docs', 'manual')
     if os.path.isdir(man):
         for f in sorted(os.listdir(man)):

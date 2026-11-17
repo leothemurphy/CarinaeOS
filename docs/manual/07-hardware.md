@@ -2,7 +2,7 @@
 
 O Linux traz os drivers dentro do kernel: quase tudo funciona sem instalar nada. As exceções
 são algumas placas NVIDIA, firmwares de Wi-Fi/Bluetooth muito recentes e periféricos com software
-próprio. **Central › Drivers e hardware** deteta e instala o que falta.
+próprio. **Central › Drivers e hardware** detecta e instala o que falta.
 
 ## Ver o que o computador tem
 

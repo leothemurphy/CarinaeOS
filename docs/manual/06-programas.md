@@ -81,9 +81,18 @@ Se não abrir:
 
 ## Remover
 
-Órbita › Instalados › Remover; botão direito no Launchpad › Desinstalar;
-ou os comandos `apt remove` / `flatpak uninstall` acima. AppImage: apague o arquivo em `~/Aplicativos`
-e a entrada em `~/.local/share/applications`.
+**Configurações › Aplicativos** junta todos os aplicativos instalados — Flathub, Debian, AppImage, apps de
+`~/Aplicativos` e programas do Windows — com tamanho e data, procura, ordem e filtros. *Desinstalar* pede
+confirmação (nos Flatpak, pode apagar também os dados). Também no botão direito do Launchpad › *Desinstalar…*.
+
+- O que faz parte do sistema aparece como *Do sistema* e não sai; o **driver de vídeo, os firmwares e o núcleo**
+  nunca são removidos por aqui.
+- Um pacote do Debian que levaria outras partes do sistema junto não é removido (a confirmação diz porquê); só
+  saem junto as peças do próprio aplicativo, como as traduções.
+- Programas do Windows: o atalho sai do Launchpad e abre-se o desinstalador do Wine para apagar os arquivos.
+
+No terminal: `apt remove` / `flatpak uninstall` (acima). **Nunca use `apt autoremove`** num PC com placa NVIDIA
+antiga sem olhar a lista: o CarinaeOS protege os pacotes do driver (`placa-video proteger`), mas confirme sempre.
 
 ## Programas que iniciam com o sistema
 
