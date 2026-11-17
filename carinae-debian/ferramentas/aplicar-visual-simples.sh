@@ -28,6 +28,12 @@ sudo rm -rf /usr/share/plasma/wallpapers/org.carinaeos.vivo /usr/bin/carinaeos-c
             /usr/lib/systemd/user/carinaeos-ceu-vivo.service /usr/lib/systemd/user/carinaeos-ceu-vivo.timer
 rm -f "$HOME/.config/carinaeos/fundo-modo"
 
+echo "== Restos das Rotinas (saíram no rc18)"
+systemctl --user disable --now carinaeos-rotinas.timer 2>/dev/null || true
+sudo rm -rf /usr/bin/carinaeos-rotinas /usr/share/carinaeos/rotinas /usr/share/carinaeos/comum/rotinas.py \
+            /usr/share/applications/carinaeos-rotinas.desktop /etc/xdg/autostart/carinaeos-rotinas-entrar.desktop \
+            /usr/lib/systemd/user/carinaeos-rotinas.service /usr/lib/systemd/user/carinaeos-rotinas.timer
+
 echo "== Dock: 3 modelos"
 D=carinae/tema/plasmoid/org.carinaeos.dock/contents/ui
 for f in main.qml Tarefa.qml FundoIcone.qml Lancador.qml; do baixar "$D/$f" "/usr/share/plasma/plasmoids/org.carinaeos.dock/contents/ui/$f"; done
@@ -72,5 +78,5 @@ systemctl --user restart plasma-plasmashell
 echo
 echo "Pronto. Papel de parede: Ameixa. Dock: Padrão (com efeito)."
 echo "Configurações › Dock tem os 3 modelos; Configurações › Aparência, os 4 papéis de parede."
-echo "Launchpad: o botão de cores (embaixo, à esquerda) troca a cor. Feche e abra os aplicativos para"
+echo "Launchpad: Editar › Cor do fundo (ou o botão de cores embaixo, à esquerda). Feche e abra os aplicativos para"
 echo "verem as janelas sem transparência (ou saia e entre na sessão)."

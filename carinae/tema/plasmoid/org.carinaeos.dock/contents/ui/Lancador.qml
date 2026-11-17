@@ -231,7 +231,7 @@ Kicker.DashboardWindow {
         : vista === "semamb" ? "Sem ambiente"
         : (categorias[catAtual] || { nome: "" }).nome
     readonly property string subtitulo: filtro !== "" ? contagem(lista.length)
-        : vista === "inicio" ? (editando ? "Arraste os ambientes para os mudar de lugar · cor e imagem em cada um" : "Os seus ambientes, de um relance")
+        : vista === "inicio" ? (editando ? "Arraste os ambientes para mudá-los de lugar · cor e imagem em cada um · Cor do fundo, ao lado" : "Seus ambientes, de relance")
         : vista === "favoritos" ? "Os aplicativos que estão na Dock"
         : vista === "deck" ? "Seus sites e atalhos · botão direito para editar, ocultar ou tirar"
         : vista === "semamb" ? contagem(lista.length) + " por arrumar · botão direito › Mover para"
@@ -1500,7 +1500,7 @@ Kicker.DashboardWindow {
                     anchors.bottom: parent.bottom
                     anchors.horizontalCenter: parent.horizontalCenter
                     spacing: Math.round(10 * palco.u)
-                    BotaoRedondo { id: btCor; u: palco.u; icone: "color-management"; dica: "Cor do Launchpad"; onCarregado: escolhaCor.open() }
+                    BotaoRedondo { id: btCor; u: palco.u; icone: "color-picker"; dica: "Cor do fundo"; onCarregado: escolhaCor.abrirEm(btCor, true) }
                     BotaoRedondo { u: palco.u; icone: "system-lock-screen"; dica: "Bloquear"; onCarregado: { lp.correr("loginctl lock-session"); lp.toggle(); } }
                     BotaoRedondo { u: palco.u; icone: "system-suspend"; dica: "Suspender"; onCarregado: { lp.correr("systemctl suspend"); lp.toggle(); } }
                     BotaoRedondo { u: palco.u; icone: "system-reboot"; dica: "Reiniciar…"; onCarregado: { lp.correr("qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptReboot"); lp.toggle(); } }
@@ -1511,9 +1511,16 @@ Kicker.DashboardWindow {
             // escolha da cor do Launchpad
             QQC2.Popup {
                 id: escolhaCor
+                // abre por cima do botão da barra lateral, ou por baixo do "Cor do fundo" (no modo Editar)
+                property bool acima: true
+                function abrirEm(botao: Item, emCima: bool): void {
+                    parent = botao;
+                    acima = emCima;
+                    open();
+                }
                 parent: btCor
-                y: -height - Math.round(10 * palco.u)
-                x: -Math.round(12 * palco.u)
+                y: acima ? -height - Math.round(10 * palco.u) : parent.height + Math.round(10 * palco.u)
+                x: acima ? -Math.round(12 * palco.u) : parent.width - width
                 padding: Math.round(14 * palco.u)
                 background: Rectangle {
                     radius: Math.round(16 * palco.u)
@@ -1522,7 +1529,7 @@ Kicker.DashboardWindow {
                 }
                 contentItem: Column {
                     spacing: Math.round(10 * palco.u)
-                    Text { text: "Cor do Launchpad"; color: lp.texto; font.pixelSize: Math.round(14 * palco.u); font.weight: Font.DemiBold }
+                    Text { text: "Cor do fundo do Launchpad"; color: lp.texto; font.pixelSize: Math.round(14 * palco.u); font.weight: Font.DemiBold }
                     Grid {
                         columns: 5
                         spacing: Math.round(10 * palco.u)
@@ -1641,7 +1648,36 @@ Kicker.DashboardWindow {
                 }
 
                 // título da vista
+                Rectangle {     // no modo Editar: a cor do fundo do Launchpad
+                    id: btFundo
+                    visible: lp.editando && lp.vista === "inicio" && lp.filtro === ""
+                    anchors.right: btEditar.left
+                    anchors.rightMargin: Math.round(10 * palco.u)
+                    anchors.verticalCenter: cabecalho.verticalCenter
+                    width: linhaFundo.implicitWidth + Math.round(30 * palco.u)
+                    height: Math.round(34 * palco.u)
+                    radius: height / 2
+                    color: mFundo.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.09)
+                    border.width: 1
+                    border.color: Qt.rgba(1, 1, 1, 0.2)
+                    Row {
+                        id: linhaFundo
+                        anchors.centerIn: parent
+                        spacing: Math.round(8 * palco.u)
+                        Rectangle {
+                            width: Math.round(16 * palco.u); height: width; radius: width / 2
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: lp.corLp !== "" ? lp.corLp : Qt.rgba(1, 1, 1, 0.25)
+                            border.width: 1; border.color: Qt.rgba(1, 1, 1, 0.5)
+                        }
+                        Text { text: "Cor do fundo"; color: "white"; font.pixelSize: Math.round(13 * palco.u); font.weight: Font.DemiBold
+                               anchors.verticalCenter: parent.verticalCenter }
+                    }
+                    MouseArea { id: mFundo; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                onClicked: escolhaCor.abrirEm(btFundo, false) }
+                }
                 Rectangle {     // Editar os ambientes (arrastar, cor, imagem)
+                    id: btEditar
                     visible: lp.vista === "inicio" && lp.filtro === ""
                     anchors.right: parent.right
                     anchors.verticalCenter: cabecalho.verticalCenter
