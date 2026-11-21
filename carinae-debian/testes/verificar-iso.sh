@@ -56,6 +56,7 @@ contem /usr/lib/systemd/user/mpd.service.d/carinaeos-ponte-mpris.conf 'Wants=mpD
 contem /usr/lib/systemd/user/mpDris2.service.d/carinaeos.conf 'Requisite=mpd.service' 'a ponte MPRIS só existe com o mpd'
 contem /usr/lib/systemd/user/mpDris2.service.d/carinaeos.conf 'Type=simple' 'a ponte MPRIS não espera 90 s pelo D-Bus'
 [ ! -e "$R/etc/systemd/user/default.target.wants/mpDris2.service" ] && ok "a ponte MPRIS não arranca sozinha na sessão" || falha "mpDris2 ligado no default.target (atrasa a sessão em 90 s)"
+grep -q "^\[Install\]" "$R/usr/lib/systemd/user/carinaeos-musica-vigia.service" && falha "o vigia da música liga com a sessão" || ok "a música (mpd e vigia) só liga ao abrir o app"
 contem /usr/lib/udev/rules.d/60-carinaeos-i2c.rules 'uaccess' 'brilho dos monitores pelo cabo (DDC/CI)'
 
 # ---- atalhos ------------------------------------------------------------------------------------

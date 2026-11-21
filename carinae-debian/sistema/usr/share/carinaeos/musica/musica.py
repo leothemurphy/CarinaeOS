@@ -219,7 +219,7 @@ class Musica(QObject):
                         raise e
 
     def _preparar(self):
-        """Primeira vez: mpd.conf, a pasta Músicas na biblioteca, e o MPD ligado com a sessão."""
+        """Ao abrir: mpd.conf, a pasta Músicas na biblioteca e o MPD ligado (só a partir de agora, não na sessão)."""
         def trabalho():
             if not os.path.exists(CONF) or 'Criado pelo aplicativo Música' not in open(CONF, encoding='utf-8').read():
                 if os.path.exists(CONF):
@@ -232,9 +232,13 @@ class Musica(QObject):
                     os.symlink(m, os.path.join(BIBLIO, os.path.basename(m) or 'Músicas'))
                 except FileExistsError:
                     pass
-            subprocess.run(['systemctl', '--user', 'enable', '--now', 'mpd.service'], capture_output=True, timeout=30)
+            # o MPD só liga quando a Música abre (não na entrada da sessão, que ficava mais lenta);
+            # depois continua tocando com o app fechado. Versões antigas o ligavam com a sessão: desfaz isso.
+            subprocess.run(['systemctl', '--user', 'disable', 'mpd.service', 'mpd.socket',
+                            'carinaeos-musica-vigia.service'], capture_output=True, timeout=20)
+            subprocess.run(['systemctl', '--user', 'start', 'mpd.service'], capture_output=True, timeout=30)
             self._ponte_mpris()
-            subprocess.run(['systemctl', '--user', 'enable', '--now', 'carinaeos-musica-vigia.service'],
+            subprocess.run(['systemctl', '--user', 'start', 'carinaeos-musica-vigia.service'],
                            capture_output=True, timeout=20)
             for _ in range(20):
                 try:
