@@ -53,7 +53,10 @@ pacote mpd
 pacote mpdris2
 contem /usr/lib/systemd/user/mpd.service.d/carinaeos-sem-io-uring.conf 'io_uring' 'mpd sem io_uring (sem pressão de disco falsa)'
 contem /usr/lib/systemd/user/mpd.service.d/carinaeos-ponte-mpris.conf 'Wants=mpDris2' 'a ponte MPRIS arranca com o mpd'
-contem /usr/lib/systemd/user/mpDris2.service.d/carinaeos.conf 'Restart=always' 'a ponte MPRIS volta sozinha'
+contem /usr/lib/systemd/user/mpDris2.service.d/carinaeos.conf 'Requisite=mpd.service' 'a ponte MPRIS só existe com o mpd'
+contem /usr/lib/systemd/user/mpDris2.service.d/carinaeos.conf 'Type=simple' 'a ponte MPRIS não espera 90 s pelo D-Bus'
+[ ! -e "$R/etc/systemd/user/default.target.wants/mpDris2.service" ] && ok "a ponte MPRIS não arranca sozinha na sessão" || falha "mpDris2 ligado no default.target (atrasa a sessão em 90 s)"
+contem /usr/lib/udev/rules.d/60-carinaeos-i2c.rules 'uaccess' 'brilho dos monitores pelo cabo (DDC/CI)'
 
 # ---- atalhos ------------------------------------------------------------------------------------
 secao "Atalhos"

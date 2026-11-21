@@ -406,6 +406,8 @@ systemctl disable smbd.service nmbd.service samba-ad-dc.service 2>/dev/null || t
 # ---- musica: o MPD corre por utilizador (o aplicativo Musica configura-o); o servico do sistema fica desligado
 systemctl disable mpd.service mpd.socket 2>/dev/null || true
 systemctl --global disable mpd.service mpd.socket 2>/dev/null || true
+# a ponte MPRIS vem ligada no pacote; no CarinaeOS quem a liga é o mpd (senão atrasava a sessão em 90 s)
+systemctl --global disable mpDris2.service 2>/dev/null || true
 
 # marca do fim da construcao: o Launchpad mostra como "Instalados recentemente" o que for mais novo do que isto
 mkdir -p /usr/lib/carinaeos && touch /usr/lib/carinaeos/.base

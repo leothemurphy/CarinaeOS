@@ -21,6 +21,7 @@ sys.path.insert(0, '/usr/share/carinaeos/comum')
 from base import Icones  # noqa: E402
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import acoes as AC  # noqa: E402
+import rapido as RP  # noqa: E402
 
 from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot  # noqa: E402
 from PySide6.QtGui import QGuiApplication, QIcon  # noqa: E402
@@ -128,7 +129,39 @@ def _avaliar(n):
     raise ValueError
 
 
+def _num_br(s):
+    s = s.strip()
+    if ',' in s:
+        s = s.replace('.', '').replace(',', '.')
+    return float(s)
+
+
+def _formatar(v):
+    if isinstance(v, float):
+        if v != v or abs(v) == float('inf'):
+            return None
+        v = round(v, 10)
+        if v == int(v) and abs(v) < 1e15:
+            v = int(v)
+    s = str(v)
+    return s.replace('.', ',') if isinstance(v, float) else s
+
+
 def conta(texto):
+    # "15% de 230", "raiz de 16", "√16"
+    b = texto.strip().lower()
+    m = re.fullmatch(r'([\d.,]+)\s*%\s*(?:de|of)\s*([\d.,]+)', b)
+    if m:
+        try:
+            return _formatar(_num_br(m.group(1)) * _num_br(m.group(2)) / 100)
+        except ValueError:
+            return None
+    m = re.fullmatch(r'(?:raiz(?: quadrada)?(?: de)?|√|sqrt)\s*\(?\s*([\d.,]+)\s*\)?', b)
+    if m:
+        try:
+            return _formatar(_num_br(m.group(1)) ** 0.5)
+        except ValueError:
+            return None
     t = texto.strip().replace('×', '*').replace('÷', '/').replace('^', '**').replace(' ', '')
     if not re.fullmatch(r'[0-9.,+\-*/%()]+', t) or not re.search(r'\d[+\-*/%(]|\)', t):
         return None
@@ -139,14 +172,7 @@ def conta(texto):
         v = _avaliar(ast.parse(t, mode='eval'))
     except Exception:
         return None
-    if isinstance(v, float):
-        if v != v or abs(v) == float('inf'):
-            return None
-        v = round(v, 10)
-        if v == int(v) and abs(v) < 1e15:
-            v = int(v)
-    s = str(v)
-    return s.replace('.', ',') if isinstance(v, float) else s
+    return _formatar(v)
 
 
 class Comando(QObject):
@@ -166,6 +192,8 @@ class Comando(QObject):
         self._uso = self._ler_uso()
         self._modo = ''
         self._tempo = None
+        self._rapido = None      # cartão vindo da internet: {q, cartao}
+        RP.preparar()
         if psutil:
             psutil.cpu_percent(None)
         self._relogio = QTimer(self)
@@ -308,6 +336,19 @@ class Comando(QObject):
         v = conta(t)
         if v is not None:
             r.append(self._item('Calculadora', 'conta', v, '%s · Enter copia o resultado' % t, 'accessories-calculator', v))
+
+        # respostas rápidas: hora e países (na hora); moedas, CEP, endereços e jogos (da internet)
+        rapidos = RP.local(t)
+        if self._rapido and self._rapido.get('q') == t:
+            rapidos.append(self._rapido['cartao'])
+        nomes = {'hora': ('Hora', 'preferences-system-time'), 'pais': ('País', 'applications-education-geography'),
+                 'moeda': ('Conversão de moeda', 'accessories-calculator'), 'endereco': ('Endereço', 'mark-location'),
+                 'jogos': ('Próximos jogos', 'applications-games')}
+        for cr in rapidos:
+            rot, ico = nomes.get(cr['modelo'], ('Resposta', 'help-about'))
+            r.append(self._item('Respostas', 'rapido', rot, 'Enter abre' if cr['url'] else 'Enter copia', ico,
+                                cr['url'] or cr['copiar'],
+                                dict(dados=json.dumps(cr, ensure_ascii=False), botao='Abrir' if cr['url'] else 'Copiar')))
 
         if t.startswith('>'):
             cmd = t[1:].strip()
@@ -458,6 +499,24 @@ class Comando(QObject):
                 pass
         threading.Thread(target=t, daemon=True).start()
 
+    def _talvez_rapido(self, texto, gen):
+        busca = RP.rede(texto) if self._modo == '' else None
+        if not busca:
+            return
+
+        def t():
+            time.sleep(0.45)           # espera que acabe de escrever
+            if gen != self._gen:
+                return
+            try:
+                c = busca()
+            except Exception:
+                c = None
+            if c and gen == self._gen:
+                self._rapido = dict(q=texto, cartao=c)
+                self.arquivosProntos.emit(gen, self._arquivos)
+        threading.Thread(target=t, daemon=True).start()
+
     @Property('QVariantList', notify=resultadosMudaram)
     def correcoes(self):
         if self._modo or not self._consulta.strip():
@@ -482,6 +541,7 @@ class Comando(QObject):
         self.resultadosMudaram.emit()
         t = texto.strip()
         self._talvez_tempo(t, self._gen)
+        self._talvez_rapido(t, self._gen)
         if self._modo == '' and len(t) >= 3 and not t.startswith('>') and conta(t) is None:
             g = self._gen
 
@@ -510,6 +570,11 @@ class Comando(QObject):
                     a['fazer']()
         elif tipo in ('tempo',):
             correr(['xdg-open', alvo])
+        elif tipo == 'rapido':
+            if alvo.startswith('http'):
+                correr(['xdg-open', alvo])
+            else:
+                self._copiar(alvo)
         elif tipo == 'estado':
             correr('plasma-systemmonitor')
         elif tipo == 'app':
@@ -562,6 +627,10 @@ class Comando(QObject):
             a.append(dict(id='definicoes', nome='Abrir as Configurações', icone='preferences-system'))
         elif tipo in ('tempo', 'estado'):
             a.append(dict(id='abrir', nome='Abrir', icone='go-next'))
+        elif tipo == 'rapido':
+            if it['alvo'].startswith('http'):
+                a.append(dict(id='abrir', nome='Abrir', icone='go-next'))
+            a.append(dict(id='copiar', nome='Copiar', icone='edit-copy'))
         elif tipo in ('cmd', 'url', 'web', 'terminal'):
             a.append(dict(id='abrir', nome='Executar', icone='media-playback-start'))
             if tipo in ('url', 'web'):
@@ -580,7 +649,13 @@ class Comando(QObject):
         elif acao == 'pasta':
             correr(['dolphin', '--select', it['alvo']])
         elif acao == 'copiar':
-            self._copiar(it['alvo'])
+            if it['tipo'] == 'rapido':
+                try:
+                    self._copiar(json.loads(it['dados']).get('copiar') or it['titulo'])
+                except ValueError:
+                    self._copiar(it['titulo'])
+            else:
+                self._copiar(it['alvo'])
         elif acao == 'dock' and Gio:
             info = Gio.DesktopAppInfo.new(it['alvo'])
             if info and info.get_filename():

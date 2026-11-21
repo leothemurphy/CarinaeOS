@@ -1,0 +1,4 @@
+# CarinaeOS: o usuário da sessão pode falar com os monitores pelo cabo (DDC/CI), como no pacote
+# ddcutil. Assim o Plasma controla o brilho dos monitores externos, e o powerdevil deixa de
+# encher o diário com "Permissão negada opening /dev/i2c-*".
+SUBSYSTEM=="i2c-dev", KERNEL=="i2c-[0-9]*", TAG+="uaccess"

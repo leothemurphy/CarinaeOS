@@ -139,7 +139,7 @@ Window {
                     required property int index
                     required property var model
                     readonly property bool escolhido: index === janela.atual && model.tipo !== "nada"
-                    readonly property bool cartao: model.tipo === "tempo" || model.tipo === "estado"
+                    readonly property bool cartao: model.tipo === "tempo" || model.tipo === "estado" || model.tipo === "rapido"
                     width: lista.width
                     height: cabeca.height + (detalhe.visible ? detalhe.height + 10 : 0) + 8
                     radius: 10
@@ -233,7 +233,8 @@ Window {
                                 color: entrar.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
                                 Text {
                                     anchors.centerIn: parent
-                                    text: item.model.tipo === "web" || item.model.tipo === "url" || item.model.tipo === "tempo" ? "↗" : "↵"
+                                    text: item.model.tipo === "web" || item.model.tipo === "url" || item.model.tipo === "tempo"
+                                          || (item.model.tipo === "rapido" && item.model.alvo.startsWith("http")) ? "↗" : "↵"
                                     color: janela.texto; font.pixelSize: 15
                                 }
                                 MouseArea { id: entrar; anchors.fill: parent; hoverEnabled: true; onClicked: janela.executar(item.index) }
@@ -323,6 +324,67 @@ Window {
                                         : /^(116|119)$/.test(detalhe.d.codigo || "") ? "weather-few-clouds"
                                         : /^(122|143|248|260)$/.test(detalhe.d.codigo || "") ? "weather-overcast"
                                         : /^(2|3)/.test(detalhe.d.codigo || "") ? "weather-showers" : "weather-few-clouds")
+                                }
+                            }
+
+                            // respostas rápidas: hora, país, moeda, CEP/código postal, endereço, próximos jogos
+                            Item {
+                                visible: item.model.tipo === "rapido"
+                                width: parent.width
+                                height: Math.max(rapCol.height, 60)
+                                Column {
+                                    id: rapCol
+                                    width: parent.width - 72
+                                    spacing: 3
+                                    Text { visible: text !== ""; text: detalhe.d.linha1 || ""; color: janela.suave; font.pixelSize: 12; textFormat: Text.PlainText }
+                                    Text {
+                                        width: parent.width
+                                        wrapMode: Text.Wrap
+                                        text: detalhe.d.grande || ""
+                                        color: janela.texto
+                                        font.pixelSize: (detalhe.d.modelo === "hora" || detalhe.d.modelo === "moeda") ? 34 : 24
+                                        font.weight: Font.DemiBold
+                                        textFormat: Text.PlainText
+                                    }
+                                    Text { visible: text !== ""; width: parent.width; wrapMode: Text.Wrap; text: detalhe.d.linha2 || ""
+                                           color: janela.suave; font.pixelSize: 12; textFormat: Text.PlainText }
+                                    Grid {
+                                        visible: (detalhe.d.linhas || []).length > 0
+                                        columns: 2
+                                        columnSpacing: 14
+                                        rowSpacing: 3
+                                        topPadding: 4
+                                        Repeater {
+                                            model: (detalhe.d.linhas || []).reduce((a, l) => a.concat(l), [])
+                                            delegate: Text {
+                                                required property string modelData
+                                                required property int index
+                                                width: index % 2 ? rapCol.width - 134 : 120
+                                                elide: Text.ElideRight
+                                                text: modelData
+                                                color: index % 2 ? janela.texto : janela.suave
+                                                font.pixelSize: 12.5
+                                                textFormat: Text.PlainText
+                                            }
+                                        }
+                                    }
+                                }
+                                Image {
+                                    visible: (detalhe.d.imagem || "") !== "" && status === Image.Ready
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    width: 56; height: 56
+                                    sourceSize: Qt.size(112, 112)
+                                    fillMode: Image.PreserveAspectFit
+                                    asynchronous: true
+                                    source: detalhe.d.imagem || ""
+                                }
+                                Text {
+                                    visible: (detalhe.d.imagem || "") === ""
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    text: detalhe.d.emoji || ""
+                                    font.pixelSize: 42
                                 }
                             }
 
