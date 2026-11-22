@@ -5,7 +5,7 @@
 <p align="center">
   <a href="../../releases/latest"><b>⬇ Baixar a ISO (versão atual)</b></a> ·
   <a href="#-experimentar-em-5-minutos">Experimentar</a> ·
-  <a href="#-o-ambiente-do-carinaeos">O ambiente</a> ·
+  <a href="#-roteiro-uma-volta-pelo-carinaeos">Roteiro</a> ·
   <a href="#-os-apps-carinae">Apps Carinae</a> ·
   <a href="#-como-é-feito">Como é feito</a>
 </p>
@@ -28,52 +28,136 @@ A estrela de quatro pontas com a órbita é o símbolo do sistema.
 > Durante os testes fica publicada **só a versão mais recente**: cada nova versão substitui a anterior.
 > A versão anterior, com o KDE Plasma, continua no ramo [`plasma`](../../tree/plasma).
 
-## ✨ O ambiente do CarinaeOS
+## 🧭 Roteiro: uma volta pelo CarinaeOS
 
-<p align="center">
-  <img src="docs/imagens/01-ambiente.jpg" alt="A área de trabalho do CarinaeOS com Carinae Documentos e Carinae Terminal" width="100%">
-</p>
+Tudo o que aparece nesta página é o **ambiente do próprio CarinaeOS**: o gestor de janelas, a barra, a Dock,
+o Launchpad e os aplicativos foram feitos para este sistema. Venha dar uma volta.
+
+### 1. Ligar o computador
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/imagens/02-launchpad.jpg" alt="Launchpad"></td>
-    <td width="50%"><img src="docs/imagens/03-comando.jpg" alt="Comando"></td>
+    <td width="50%"><img src="docs/imagens/01-arranque.jpg" alt="Arranque com a estrela"></td>
+    <td width="50%"><img src="docs/imagens/02-entrada.jpg" alt="Tela de entrada"></td>
   </tr>
   <tr>
-    <td><b>Launchpad</b> (tecla <kbd>⊞</kbd> ou a estrela da Dock): o ecrã inteiro em vidro fosco, com os seus
-    <b>ambientes</b> — grupos de aplicativos que monta como quiser, com cor, imagem e cadeado — e a pesquisa por cima.</td>
-    <td><b>Comando</b> (<kbd>Ctrl</kbd>+<kbd>Espaço</kbd>): encontra aplicativos, arquivos e configurações, faz contas,
-    corre ações do sistema e aceita <b>extensões</b>: <code>emoji</code>, <code>cor</code>, <code>senha</code>, <code>matar</code>, <code>g</code>/<code>yt</code>/<code>wiki</code>, <code>~/</code> para arquivos…</td>
+    <td>O arranque já mostra a estrela do CarinaeOS, do menu de arranque ao carregamento.</td>
+    <td>Na <b>tela de entrada</b>: relógio grande, a data em português e a sua foto. Escolha a sessão <b>CarinaeOS</b> e entre.</td>
+  </tr>
+</table>
+
+### 2. A área de trabalho
+
+<p align="center"><img src="docs/imagens/00-mesa.jpg" alt="A área de trabalho do CarinaeOS" width="100%"></p>
+
+Uma tela limpa: a **barra de cima** escura com o menu da estrela, o nome do aplicativo ativo, os ícones da bandeja e o
+relógio; a **Dock** de vidro em baixo; e o papel de parede (nebulosa, aurora, órbita ou uma imagem sua).
+
+### 3. O menu da estrela e a Dock
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/imagens/12-estrela.jpg" alt="Menu da estrela"></td>
+    <td width="50%"><img src="docs/imagens/11-dock.jpg" alt="Dock com pré-visualização"></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/imagens/05-apps.jpg" alt="Carinae Notas, Calculadora e Emojis"></td>
+    <td>A <b>estrela</b> no canto, como a maçã do Mac: sobre este computador, Comando, Configurações, Supernova, Órbita,
+    forçar encerramento, suspender, reiniciar, desligar, bloquear e encerrar sessão.</td>
+    <td>A <b>Dock</b>: os seus aplicativos, um ponto em baixo dos que estão abertos, <b>pré-visualização das janelas</b>
+    ao passar o rato, separadores coloridos, a pasta de Transferências e o Lixo. Arraste para reorganizar.</td>
+  </tr>
+</table>
+
+### 4. O Launchpad: os seus aplicativos, por ambientes
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/imagens/02a-ambientes.jpg" alt="Launchpad com ambientes"></td>
+    <td width="50%"><img src="docs/imagens/02-launchpad.jpg" alt="Launchpad com os apps Carinae"></td>
+  </tr>
+  <tr>
+    <td>Tecla <kbd>⊞</kbd> ou a estrela da Dock. Os aplicativos vivem em <b>ambientes</b> que monta como quiser:
+    crie, mude o nome e a cor, ponha uma imagem como marca de água e <b>tranque com senha</b>.</td>
+    <td>Abra um ambiente para ver todos os seus aplicativos. Escreva para pesquisar; setas e Enter também funcionam.
+    O botão direito fixa na Dock, move para outro ambiente ou tranca.</td>
+  </tr>
+</table>
+
+### 5. O Comando: pesquisar e fazer
+
+<p align="center"><img src="docs/imagens/03-comando.jpg" alt="Comando" width="100%"></p>
+
+<kbd>Ctrl</kbd>+<kbd>Espaço</kbd> em qualquer lugar. Encontra **aplicativos**, **arquivos** e **configurações**,
+faz **contas** (o resultado vai para a área de transferência com Enter), corre **ações** do sistema (bloquear, captura de
+tela, papel de parede seguinte…) e tem **extensões**: `emoji`, `cor`, `senha`, `matar`, `g`/`yt`/`wiki`, `~/` para
+arquivos e `smb://` para pastas de rede. Escreva `?` para ver todas.
+
+### 6. Os seus arquivos
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/imagens/08-documentos.jpg" alt="Carinae Documentos"></td>
+    <td width="50%"><img src="docs/imagens/09-compactador.jpg" alt="Carinae Compactador"></td>
+  </tr>
+  <tr>
+    <td><b>Carinae Documentos</b>: abas, barra lateral, galeria, miniaturas, etiquetas coloridas, pastas de rede e o
+    <b>Cofre</b>. No botão direito: compactar, abrir com, bloquear com senha, abrir o terminal aqui…</td>
+    <td><b>Carinae Compactador</b>: abre ZIP, 7z, TAR e muitos outros formatos, navega por dentro, extrai tudo ou só
+    o que escolher, e cria arquivos novos.</td>
+  </tr>
+</table>
+
+### 7. O Terminal
+
+<p align="center"><img src="docs/imagens/01-ambiente.jpg" alt="Carinae Terminal e Carinae Documentos" width="100%"></p>
+
+O **Carinae Terminal** tem abas, temas de cores, transparência e abre em qualquer pasta (<kbd>⊞</kbd>+<kbd>Enter</kbd> ou
+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd>). É o terminal do sistema para todos os aplicativos.
+
+### 8. Fotos e PDF
+
+<table>
+  <tr>
     <td width="50%"><img src="docs/imagens/06-fotos.jpg" alt="Carinae Fotos"></td>
+    <td width="50%"><img src="docs/imagens/10-pdf.jpg" alt="Carinae PDF"></td>
   </tr>
   <tr>
-    <td><b>Carinae Notas, Calculadora e Emojis</b>: o bloco de notas com abas e sessão guardada, a calculadora
-    padrão e científica com histórico e memória, e os emojis em <kbd>⊞</kbd>+<kbd>.</kbd>, escritos direto onde está o cursor.</td>
-    <td><b>Carinae Fotos</b>: abre a pasta inteira com miniaturas, zoom, rodar, apresentação, informações (EXIF)
-    e apagar para o lixo com <i>Desfazer</i>.</td>
+    <td><b>Carinae Fotos</b>: a pasta inteira em miniaturas, zoom, rodar, apresentação, informações (EXIF) e apagar
+    para o Lixo com <i>Desfazer</i>.</td>
+    <td><b>Carinae PDF</b>: miniaturas das páginas, índice, pesquisa no texto, PDFs com senha, zoom com
+    <kbd>Ctrl</kbd>+roda e imprimir.</td>
   </tr>
+</table>
+
+### 9. Notas, Calculadora e Emojis
+
+<p align="center"><img src="docs/imagens/05-apps.jpg" alt="Carinae Notas, Calculadora e Emojis" width="100%"></p>
+
+**Carinae Notas** guarda as abas abertas de uma vez para a outra; a **Calculadora** tem os modos padrão e científico,
+histórico e memória; os **Emojis** (<kbd>⊞</kbd>+<kbd>.</kbd>) escrevem o emoji direto onde está o cursor.
+
+### 10. Monitor e Configurações
+
+<table>
   <tr>
     <td width="50%"><img src="docs/imagens/04-monitor.jpg" alt="Carinae Monitor"></td>
     <td width="50%"><img src="docs/imagens/07-configuracoes.jpg" alt="Carinae Configurações"></td>
   </tr>
   <tr>
-    <td><b>Carinae Monitor</b>: processos, desempenho em gráficos (processador, memória, discos, rede),
-    aplicativos de inicialização e um <b>teste de velocidade da internet</b> com download, upload, ping, latência e perda de pacotes.</td>
-    <td><b>Carinae Configurações</b>: Wi-Fi, rede, Bluetooth, telas, som, energia, aparência (escuro/claro, papel de parede,
-    modo leve), Dock, notificações, pesquisa, aplicativos, privacidade, compartilhamento e teclado.</td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/imagens/02-entrada.jpg" alt="Tela de entrada"></td>
-    <td width="50%"><img src="docs/imagens/01-arranque.jpg" alt="Arranque com a estrela"></td>
-  </tr>
-  <tr>
-    <td><b>Tela de entrada</b>: relógio grande, a data em português, a sua foto e o céu desfocado ao fundo.</td>
-    <td><b>Arranque com a estrela</b>: do menu de arranque ao instalador, tudo com a marca CarinaeOS.</td>
+    <td><b>Carinae Monitor</b>: processos, gráficos de desempenho, aplicativos de inicialização e um
+    <b>teste de velocidade da internet</b> (download, upload, ping, latência e perda de pacotes).</td>
+    <td><b>Carinae Configurações</b>: Wi-Fi, rede, Bluetooth, telas, som, energia, aparência, Dock, notificações,
+    pesquisa, aplicativos, privacidade, compartilhamento e teclado.</td>
   </tr>
 </table>
+
+### 11. E ainda
+
+<p align="center"><img src="docs/imagens/10-carinae3d.jpg" alt="Carinae 3D" width="100%"></p>
+
+A loja **Órbita** (Flathub), o **Carinae 3D** (a biblioteca dos seus modelos STL, 3MF e SVG para impressão 3D),
+o **Carinae Casa** (Home Assistant), a **Música** (MPD), o **Cadeado** para pastas e aplicativos, o **Manual** e as
+**Boas-vindas** depois de instalar.
 
 ### As peças
 
