@@ -28,6 +28,8 @@ marca "início da sessão ($(cut -d" " -f1 /proc/uptime) s depois de ligar o PC)
 COMPOSITOR=picom           # picom | nenhum
 PICOM_BACKEND=glx          # glx | xrender  (xrender se a placa der problemas)
 DESENHO=opengl             # opengl | software  (como a Aurora desenha)
+# modo leve (Configurações › Aparência; sozinho nas máquinas virtuais): sem compositor
+command -v carinaeos-modo-leve >/dev/null && carinaeos-modo-leve ativo && COMPOSITOR=nenhum
 [ -f "$HOME/.config/carinaeos/sessao.conf" ] && . "$HOME/.config/carinaeos/sessao.conf"
 
 # --- ambiente ---------------------------------------------------------------------------
