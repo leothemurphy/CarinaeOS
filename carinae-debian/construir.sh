@@ -1,5 +1,5 @@
 #!/bin/bash
-# CarinaeOS - gera a ISO (Debian 13 + KDE Plasma + visual CarinaeOS).
+# CarinaeOS - gera a ISO (Debian 13 + o ambiente do CarinaeOS: Gravidade, Aurora e os apps Carinae).
 # Correr como root num Debian 13 (ou num chroot/contentor Debian 13) com o
 # pacote live-build instalado:   sudo ./construir.sh
 # Resultado: carinaeos-amd64.hybrid.iso nesta pasta.
@@ -18,20 +18,14 @@ I=config/includes.chroot
 mkdir -p $I
 cp -a sistema/. $I/
 U=$I/usr/share
-install -d $U/icons/hicolor/scalable/apps $U/plasma/plasmoids $U/plasma/look-and-feel \
-           $U/wallpapers $U/color-schemes $U/sddm/themes $U/plymouth/themes $U/carinaeos
+install -d $U/icons/hicolor/scalable/apps $U/wallpapers $U/sddm/themes $U/plymouth/themes $U/carinaeos
 install -m644 $T/icones/*.svg $U/icons/hicolor/scalable/apps/
-cp -a $T/plasmoid/org.carinaeos.dock         $U/plasma/plasmoids/
-cp -a $T/plasmoid/org.carinaeos.menuestrela  $U/plasma/plasmoids/
-cp -a $T/plasmoid/org.carinaeos.nomeapp      $U/plasma/plasmoids/
-cp -a $T/plasmoid/org.carinaeos.pesquisa     $U/plasma/plasmoids/
-cp -a $T/plasmoid/org.carinaeos.agoratoca    $U/plasma/plasmoids/
-install -d $U/plasma/desktoptheme
-cp -a $T/plasmastyle/carinaeos               $U/plasma/desktoptheme/
-cp -a $T/lookandfeel/org.carinaeos.desktop    $U/plasma/look-and-feel/
 cp -a $T/wallpaper/CarinaeOS                  $U/wallpapers/
-install -d $U/plasma/wallpapers
-cp -a $T/wallpaper-vivo/org.carinaeos.vivo    $U/plasma/wallpapers/
+# o ambiente do CarinaeOS (código-fonte): é compilado dentro da imagem pelo hook 8000-ambiente
+install -d $I/usr/src
+rm -rf $I/usr/src/carinaeos-ambiente
+cp -a ../ambiente $I/usr/src/carinaeos-ambiente
+rm -rf $I/usr/src/carinaeos-ambiente/construcao
 # marca CarinaeOS em PNG, para substituir os logotipos do Debian (desktop-base, emblemas)
 M=$U/carinaeos/marca
 install -d $M
@@ -72,7 +66,6 @@ fi
 
 # colecao de papeis de parede 8K (fotos do Webb/Hubble + desenhos do CarinaeOS) para Plasma, GNOME e XFCE
 python3 fundos/fundos.py "$PWD/$I" "$PWD/cache/fundos"
-install -m644 $T/cores/CarinaeOS.colors       $U/color-schemes/
 cp -a $T/sddm/carinaeos                       $U/sddm/themes/
 cp -a $T/plymouth/carinaeos                   $U/plymouth/themes/
 # fundo do arranque: o ceu do papel de parede, escuro e desfocado (PNG pequeno para o initramfs)
@@ -84,10 +77,6 @@ im.convert('P', palette=Image.ADAPTIVE, colors=200).save('$U/plymouth/themes/car
 " || cp $T/plymouth/carinaeos/barra-fundo.png $U/plymouth/themes/carinaeos/fundo.png
 install -m644 arte/grub.png                   $U/carinaeos/grub.png
 install -m644 arte/calamares-*.png arte/calamares-*.jpg $I/etc/calamares/branding/carinaeos/
-
-# Dock: lancadores das aplicacoes que existem nesta edicao
-sed -i 's#<default>applications:org.kde.dolphin.desktop,.*</default>#<default>applications:org.kde.dolphin.desktop,applications:firefox-esr.desktop,applications:org.kde.konsole.desktop,applications:carinaeos-central.desktop,applications:carinaeos-orbita.desktop,applications:org.kde.merkuro.calendar.desktop,applications:carinaeos-configuracoes.desktop</default>#' \
-  $U/plasma/plasmoids/org.carinaeos.dock/contents/config/main.xml
 
 # ---- Carinae 3D (Rust): compilado aqui e posto pronto em /usr/bin ----------------
 C3D=$D/../carinae/apps/carinae-3d

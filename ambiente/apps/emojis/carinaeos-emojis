@@ -1,0 +1,2 @@
+#!/bin/sh
+exec python3 /usr/local/share/carinaeos/emojis/emojis.py "$@"

@@ -1,0 +1,17 @@
+#!/usr/bin/python3
+# CarinaeOS — aplica as escolhas do teclado (disposições, Num Lock, repetição) e do rato/touchpad
+# (velocidade, rolagem natural, canhoto, tocar para clicar). Corre ao entrar na sessão e quando se liga
+# um rato ou teclado novo:  carinae-entrada --aplicar
+import os
+import sys
+
+for d in ('/usr/local/share/carinaeos/configuracoes', '/usr/share/carinaeos/configuracoes'):
+    if os.path.isfile(os.path.join(d, 'sistema_pags.py')):
+        sys.path.insert(0, d)
+        break
+import sistema_pags as sp  # noqa: E402
+
+if os.path.exists(os.path.join(sp.CFG, 'teclado.json')):
+    sp.aplicar_teclado()
+if os.path.exists(os.path.join(sp.CFG, 'rato.json')):
+    sp.aplicar_rato()

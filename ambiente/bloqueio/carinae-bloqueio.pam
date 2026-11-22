@@ -1,0 +1,3 @@
+# CarinaeOS — ecrã de bloqueio (carinae-bloqueio)
+@include common-auth
+@include common-account

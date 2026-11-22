@@ -1,0 +1,1088 @@
+#!/usr/bin/python3
+# CarinaeOS - Configuracoes: as definicoes do computador num so sitio, ao estilo das
+# Definicoes do Fedora: lista de seccoes a esquerda (com pesquisa), paginas simples a direita.
+# O essencial faz-se aqui; "Mais opcoes" abre o modulo completo correspondente.
+import json
+import os
+import re
+import shutil
+import socket
+import subprocess
+import sys
+import threading
+
+sys.path.insert(0, os.environ.get('CARINAE_COMUM') or next(
+    (d for d in ('/usr/local/share/carinaeos/comum', '/usr/share/carinaeos/comum') if os.path.isdir(d)),
+    '/usr/share/carinaeos/comum'))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from base import correr, iniciar  # noqa: E402
+import instalados  # noqa: E402
+import rede_som  # noqa: E402
+import sistema_pags as sp  # noqa: E402
+import padroes  # noqa: E402
+import outras_pags as op  # noqa: E402
+
+from PySide6.QtCore import Property, QObject, Signal, Slot  # noqa: E402
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+DOCK_JSON = os.path.expanduser('~/.config/carinaeos-dock.json')
+SEM_RECENTES = os.path.expanduser('~/.config/carinaeos/sem-recentes')
+HOME = os.path.expanduser('~')
+
+# (id, nome, icone, modulo completo, palavras para a pesquisa)
+SECCOES = [
+    ('wifi', 'Wi-Fi', 'network-wireless', None, 'internet rede sem fio senha esquecer oculta'),
+    ('rede', 'Rede', 'network-wired', None, 'cabo ethernet vpn ip fixo dns gateway mac'),
+    ('bluetooth', 'Bluetooth', 'preferences-system-bluetooth', None, 'fones fones de ouvido mouse'),
+    ('ecras', 'Telas', 'video-display', 'kcm_kscreen', 'monitor resolucao escala brilho luz noturna tela'),
+    ('som', 'Som', 'audio-volume-high', None, 'volume alto-falantes colunas microfone audio hdmi fones misturador'),
+    ('energia', 'Energia', 'battery-good', None, 'bateria suspender desempenho poupanca ecra tela desligar botao'),
+    ('aparencia', 'Aparência', 'preferences-desktop-theme', None, 'tema claro escuro fundo papel de parede cores'),
+    ('dock', 'Dock', 'preferences-desktop-icons', None, 'barra icones tamanho separador esconder posicao'),
+    ('notificacoes', 'Notificações', 'preferences-desktop-notification', None, 'avisos nao incomodar'),
+    ('pesquisa', 'Pesquisa', 'search', None, 'indexacao arquivos procurar indice plocate'),
+    ('aplicativos', 'Aplicativos', 'preferences-desktop-default-applications', None, 'instalados desinstalar remover tamanho padrao navegador email abrir com'),
+    ('privacidade', 'Privacidade e segurança', 'preferences-system-privacy', None, 'convidado bloqueio tela senha'),
+    ('partilha', 'Compartilhamento', 'network-server', None, 'ssh acesso remoto pastas'),
+    ('teclado', 'Teclado', 'preferences-desktop-keyboard', None, 'atalhos idioma layout numlock'),
+    ('rato', 'Mouse e touchpad', 'input-mouse', None, 'touchpad cursor velocidade'),
+    ('impressoras', 'Impressoras', 'printer', None, 'imprimir scanner'),
+    ('contas', 'Contas online', 'preferences-online-accounts', 'kcm_kaccounts', 'google nextcloud calendario icloud outlook'),
+    ('utilizadores', 'Usuários', 'system-users', None, 'conta senha foto'),
+    ('regiao', 'Região e idioma', 'preferences-desktop-locale', None, 'lingua formato data moeda'),
+    ('datahora', 'Data e hora', 'preferences-system-time', None, 'relogio fuso horario'),
+    ('acessibilidade', 'Acessibilidade', 'preferences-desktop-accessibility', None, 'texto maior cursor grande animacoes contraste'),
+    ('sistema', 'Sistema', 'carinaeos', None, 'sobre computador atualizacoes memoria processador nome'),
+]
+
+
+def cmd(args, timeout=8):
+    try:
+        r = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+        return r.stdout.strip()
+    except Exception:
+        return ''
+
+
+def bg(args):
+    try:
+        subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except Exception:
+        pass
+
+
+def tamanho(n):
+    for u in ('B', 'KB', 'MB', 'GB', 'TB'):
+        if n < 1024 or u == 'TB':
+            return ('%.0f %s' if u in ('B', 'KB', 'MB') else '%.1f %s') % (n, u)
+        n /= 1024.0
+
+
+SERVIDORES = os.path.join(HOME, '.config/carinaeos/servidores.json')
+
+
+def servidores():
+    try:
+        with open(SERVIDORES) as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return []
+
+
+def normalizar_endereco(t):
+    t = t.strip()
+    if not t:
+        return ''
+    if re.match(r'^[a-z]+://', t):
+        return t
+    if t.startswith('\\\\'):                       # \\servidor\pasta (como no Windows)
+        return 'smb://' + t.lstrip('\\').replace('\\', '/')
+    return 'smb://' + t.lstrip('/')
+
+
+def adicionar_local(url, nome):
+    """Coloca o endereço na barra lateral de "Meus documentos" (user-places.xbel)."""
+    import xml.etree.ElementTree as ET
+    f = os.path.join(HOME, '.local/share/user-places.xbel')
+    try:
+        arvore = ET.parse(f)
+        raiz = arvore.getroot()
+    except Exception:
+        return
+    for b in raiz.findall('bookmark'):
+        if b.get('href') == url:
+            return
+    b = ET.SubElement(raiz, 'bookmark', href=url)
+    ET.SubElement(b, 'title').text = nome
+    info = ET.SubElement(b, 'info')
+    md = ET.SubElement(info, 'metadata', owner='http://freedesktop.org')
+    ic = ET.SubElement(md, '{http://www.freedesktop.org/standards/desktop-bookmarks}icon')
+    ic.set('name', 'folder-remote')
+    ET.register_namespace('bookmark', 'http://www.freedesktop.org/standards/desktop-bookmarks')
+    arvore.write(f, encoding='utf-8', xml_declaration=True)
+
+
+def partilhas():
+    r = []
+    out = cmd(['net', 'usershare', 'info'])
+    atual = None
+    for l in out.splitlines():
+        m = re.match(r'^\[(.+)\]$', l.strip())
+        if m:
+            atual = dict(nome=m.group(1), caminho='', escrita=False, livre=False)
+            r.append(atual)
+        elif atual and l.startswith('path='):
+            atual['caminho'] = l[5:]
+        elif atual and l.startswith('usershare_acl='):
+            atual['escrita'] = ':F' in l
+        elif atual and l.startswith('guest_ok='):
+            atual['livre'] = l.strip().lower().endswith('y')
+    return r
+
+
+SENHA_REDE = os.path.join(HOME, '.config/carinaeos/senha-rede-definida')
+
+
+def sobre():
+    info = {}
+    try:
+        with open('/etc/os-release') as f:
+            os_rel = dict(l.strip().split('=', 1) for l in f if '=' in l)
+        info['sistema'] = os_rel.get('PRETTY_NAME', 'CarinaeOS').strip('"')
+    except OSError:
+        info['sistema'] = 'CarinaeOS'
+    info['nome'] = socket.gethostname()
+    try:
+        with open('/proc/cpuinfo') as f:
+            m = re.search(r'model name\s*:\s*(.+)', f.read())
+        info['processador'] = re.sub(r'\s+', ' ', m.group(1)) if m else '—'
+    except OSError:
+        info['processador'] = '—'
+    info['nucleos'] = str(os.cpu_count() or 1)
+    try:
+        with open('/proc/meminfo') as f:
+            kb = int(re.search(r'MemTotal:\s+(\d+)', f.read()).group(1))
+        info['memoria'] = tamanho(kb * 1024)
+    except Exception:
+        info['memoria'] = '—'
+    try:
+        st = os.statvfs('/')
+        info['disco'] = '%s (%s livres)' % (tamanho(st.f_blocks * st.f_frsize), tamanho(st.f_bavail * st.f_frsize))
+    except OSError:
+        info['disco'] = '—'
+    gpu = cmd(['sh', '-c', "lspci 2>/dev/null | grep -iE 'vga|3d|display' | cut -d: -f3"])
+    info['grafica'] = ' + '.join(l.strip() for l in gpu.splitlines() if l.strip()) or '—'
+    sessao = os.environ.get('XDG_SESSION_TYPE', '')
+    info['janelas'] = 'Wayland' if sessao == 'wayland' else ('X11' if sessao == 'x11' else '—')
+    try:
+        deb = open('/etc/debian_version').read().strip()
+    except OSError:
+        deb = ''
+    pl = cmd(['plasmashell', '--version']).replace('plasmashell', '').strip()
+    if os.environ.get('XDG_CURRENT_DESKTOP', '').startswith('CarinaeOS'):
+        info['base'] = 'Debian %s · CarinaeOS (Gravidade + Aurora)' % (deb or '13')
+    else:
+        info['base'] = 'Debian %s · KDE Plasma %s' % (deb or '13', pl or '6')
+    info['nucleo'] = os.uname().release
+    return info
+
+
+class Config(QObject):
+    mudou = Signal()
+    _chegou = Signal(object, object)
+
+    def __init__(self, inicio, procura=''):
+        super().__init__()
+        self._inicio = inicio if any(s[0] == inicio for s in SECCOES) else 'wifi'
+        self._procura = procura
+        self._previa = {}
+        self._a_remover = ''
+        self._redes = []
+        self._msg = ''
+        self._estado = {}
+        self._chegou.connect(lambda f, r: f(r))
+        self._procurar_agora = False
+        self._impressoras_vistas = []
+
+    seccoes = Property('QVariantList', lambda s: [dict(id=a, nome=b, icone=c, completo=bool(d), palavras=e)
+                                                  for a, b, c, d, e in SECCOES], constant=True)
+    inicio = Property(str, lambda s: s._inicio, constant=True)
+    redes = Property('QVariantList', lambda s: s._redes, notify=mudou)
+    mensagem = Property(str, lambda s: s._msg, notify=mudou)
+    estado = Property('QVariantMap', lambda s: s._estado, notify=mudou)
+    procuraInicial = Property(str, lambda s: s._procura, constant=True)
+    previa = Property('QVariantMap', lambda s: s._previa, notify=mudou)
+    aRemover = Property(str, lambda s: s._a_remover, notify=mudou)
+
+    def _fundo(self, trabalho, depois):
+        def t():
+            try:
+                r = trabalho()
+            except Exception as e:
+                r = e
+            self._chegou.emit(depois, r)
+        threading.Thread(target=t, daemon=True).start()
+
+    def _aviso(self, msg):
+        self._msg = msg
+        self.mudou.emit()
+
+    # ---- ler o estado de uma pagina ------------------------------------------------------------
+    @Slot(str)
+    def ler(self, pagina):
+        self._pagina_atual = pagina
+
+        def trabalho():
+            e = {}
+            if pagina == 'wifi':
+                e.update(rede_som.wifi_estado(self._procurar_agora))
+                self._procurar_agora = False
+                e['guardadas'] = [c for c in rede_som.ligacoes_guardadas() if c['tipo'] == 'wifi']
+            elif pagina == 'rede':
+                e.update(rede_som.rede_estado())
+                e['servidores'] = servidores()
+            elif pagina == 'som':
+                e.update(rede_som.som_estado())
+            elif pagina == '_antigo_wifi':
+                e['wifi'] = cmd(['nmcli', 'radio', 'wifi']) == 'enabled'
+                linhas = cmd(['nmcli', '-t', '-f', 'IN-USE,SSID,SIGNAL,SECURITY', 'dev', 'wifi', 'list'], 15).splitlines()
+                redes, vistos = [], set()
+                for l in linhas:
+                    p = re.split(r'(?<!\\):', l)
+                    if len(p) < 4 or not p[1] or p[1] in vistos:
+                        continue
+                    vistos.add(p[1])
+                    redes.append(dict(ssid=p[1].replace('\\:', ':'), ligada=p[0] == '*', sinal=int(p[2] or 0),
+                                      segura=bool(p[3] and p[3] != '--')))
+                e['redes'] = redes
+                e['ligacoes'] = [dict(nome=x.split(':')[0], tipo=x.split(':')[1], disp=x.split(':')[2])
+                                 for x in cmd(['nmcli', '-t', '-f', 'NAME,TYPE,DEVICE', 'con', 'show', '--active']).splitlines()
+                                 if x.count(':') >= 2]
+                e['ip'] = cmd(['hostname', '-I']).split()[:2]
+                e['servidores'] = servidores()
+            elif pagina == 'bluetooth':
+                e.update(sp.bt_estado())
+            elif pagina == 'teclado':
+                e.update(sp.teclado_estado())
+            elif pagina == 'rato':
+                e.update(sp.rato_estado())
+            elif pagina == 'impressoras':
+                e.update(sp.impressoras_estado())
+                e['descobertas'] = self._impressoras_vistas
+            elif pagina == '_antigo_bluetooth':
+                e['bluetooth'] = 'Powered: yes' in cmd(['bluetoothctl', 'show'])
+                e['aparelhos'] = [l.split(' ', 2)[2] for l in cmd(['bluetoothctl', 'devices', 'Paired']).splitlines()
+                                  if l.count(' ') >= 2]
+            elif pagina == '_antigo_som':
+                m = re.search(r'([\d.]+)', cmd(['wpctl', 'get-volume', '@DEFAULT_AUDIO_SINK@']))
+                e['volume'] = min(1.0, float(m.group(1))) if m else 0.5
+                m = re.search(r'([\d.]+)', cmd(['wpctl', 'get-volume', '@DEFAULT_AUDIO_SOURCE@']))
+                e['microfone'] = min(1.0, float(m.group(1))) if m else 0.5
+            elif pagina == 'ecras':
+                if shutil.which('brightnessctl'):
+                    a, mx = cmd(['brightnessctl', 'g']), cmd(['brightnessctl', 'm'])
+                    e['brilho'] = int(a) / int(mx) if a.isdigit() and mx.isdigit() and int(mx) else -1
+                else:
+                    e['brilho'] = -1
+                e['ecras'] = [l.strip() for l in cmd(['sh', '-c', "kscreen-doctor -o 2>/dev/null | sed 's/\\x1b\\[[0-9;]*m//g' | grep -E '^Output:'"]).splitlines()]
+            elif pagina == 'energia':
+                e['perfil'] = cmd(['powerprofilesctl', 'get']) or ''
+                lista = cmd(['powerprofilesctl', 'list'])
+                e['perfis'] = [p for p in ('performance', 'balanced', 'power-saver') if re.search(r'\b%s:' % p, lista)]
+                m = re.search(r'performance:.*?Degraded:\s*yes\s*\((.*?)\)', lista, re.S)
+                e['degradado'] = m.group(1) if m else ''
+                try:
+                    e['energia'] = json.load(open(os.path.join(HOME, '.config/carinaeos/energia.json'), encoding='utf-8'))
+                except (OSError, ValueError):
+                    e['energia'] = dict(desligarEcra=10, bloquear=True, bloquearAoSuspender=True, suspender=0, botao='perguntar')
+                bat = cmd(['sh', '-c', 'cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -1'])
+                e['bateria'] = int(bat) if bat.isdigit() else -1
+            elif pagina == 'aparencia':
+                e.update(op.aparencia_estado())
+            elif pagina == '_antigo_aparencia':
+                e['claro'] = 'Light' in cmd(['kreadconfig6', '--group', 'General', '--key', 'ColorScheme'])
+                fundos = []
+                base = '/usr/share/wallpapers'
+                for d in sorted(os.listdir(base)) if os.path.isdir(base) else []:
+                    if not d.startswith('CarinaeOS-'):      # só os quatro do CarinaeOS
+                        continue
+                    sc = os.path.join(base, d, 'contents/screenshot.jpg')
+                    img = os.path.join(base, d, 'contents/images')
+                    if os.path.exists(sc) and os.path.isdir(img):
+                        fundos.append(dict(id=d, miniatura='file://' + sc, caminho=os.path.join(base, d)))
+                ordem = ['CarinaeOS-Seda', 'CarinaeOS-Orbe', 'CarinaeOS-Crista', 'CarinaeOS-Aurora']
+                fundos.sort(key=lambda x: (ordem.index(x['id']) if x['id'] in ordem else 9, x['id']))
+                e['fundos'] = fundos
+            elif pagina == 'pesquisa':
+                e.update(op.pesquisa_estado())
+            elif pagina == 'notificacoes':
+                e.update(op.notificacoes_estado())
+            elif pagina == 'regiao':
+                e.update(op.regiao_estado())
+            elif pagina == 'acessibilidade':
+                e.update(op.acess_estado())
+            elif pagina == '_antigo_pesquisa':
+                try:
+                    with open(os.path.join(HOME, '.config/baloofilerc')) as f:
+                        e['indexacao'] = 'Indexing-Enabled=false' not in f.read()
+                except OSError:
+                    e['indexacao'] = True
+                e['indexados'] = cmd(['sh', '-c', "balooctl6 status 2>/dev/null | grep -iE 'total|arquivos|files' | head -2"])
+            elif pagina == 'partilha':
+                e['sambaInstalado'] = os.path.exists('/usr/sbin/smbd')
+                e['samba'] = e['sambaInstalado'] and cmd(['systemctl', 'is-active', 'smbd']) == 'active'
+                e['partilhas'] = partilhas() if e['sambaInstalado'] else []
+                e['senhaRede'] = os.path.exists(SENHA_REDE)
+                e['usuario'] = os.environ.get('USER') or os.path.basename(HOME)
+                e['nomePc'] = socket.gethostname()
+                e['ssh'] = -1 if not os.path.exists('/usr/sbin/sshd') else (1 if cmd(['systemctl', 'is-active', 'ssh']) == 'active' else 0)
+                e['ip'] = cmd(['hostname', '-I']).split()[:2]
+                e['usuario'] = os.environ.get('USER') or os.path.basename(HOME)
+            if pagina == 'aparencia':
+                try:
+                    e['leve'] = json.loads(cmd(['carinaeos-modo-leve', 'estado']) or '{}')
+                except ValueError:
+                    e['leve'] = {}
+            if pagina == 'privacidade':
+                e['recentes'] = not os.path.exists(SEM_RECENTES)
+            if pagina == 'dock':
+                rc = os.path.join(HOME, '.config/plasma-org.kde.plasma.desktop-appletsrc')
+                d = dict(iconSize=56, zoom=1.6, separatorWidth=1, separatorColor='#ffffff', posicao='bottom', esconder=False)
+                try:
+                    txt = open(rc, encoding='utf-8').read()
+                    blocos = re.split(r'\n(?=\[)', txt)
+                    cont = None
+                    for i, b in enumerate(blocos):
+                        if 'plugin=org.carinaeos.dock' in b:
+                            m = re.match(r'\[Containments\]\[(\d+)\]\[Applets\]\[(\d+)\]', b)
+                            if m:
+                                cont, app = m.groups()
+                    for b in blocos:
+                        if cont and b.startswith('[Containments][%s][Applets][%s][Configuration][General]' % (cont, app)):
+                            for l in b.splitlines()[1:]:
+                                if '=' in l:
+                                    k, v = l.split('=', 1)
+                                    if k in ('iconSize', 'separatorWidth'):
+                                        d[k] = int(v)
+                                    elif k == 'zoom':
+                                        d[k] = float(v)
+                                    elif k == 'separatorColor':
+                                        d[k] = v
+                        if cont and b.startswith('[Containments][%s]\n' % cont):
+                            m = re.search(r'^location=(\d+)', b, re.M)
+                            if m:
+                                d['posicao'] = {'3': 'top', '4': 'bottom', '5': 'left', '6': 'right'}.get(m.group(1), 'bottom')
+                    pv = open(os.path.join(HOME, '.config/plasmashellrc'), encoding='utf-8').read()
+                    m = re.search(r'\[PlasmaViews\]\[Panel %s\][^\[]*?panelVisibility=(\d)' % cont, pv)
+                    d['esconder'] = bool(m and m.group(1) == '1')
+                except Exception:
+                    pass
+                # modelo e efeito da Dock: ~/.config/carinaeos-dock.json (o mesmo que o Supernova usa)
+                try:
+                    j = json.load(open(DOCK_JSON, encoding='utf-8'))
+                except (OSError, ValueError):
+                    j = {}
+                d['estilo'] = j.get('estilo') if j.get('estilo') in ('fluent', 'simples', 'icones', 'orbita', 'glass', 'windows') else 'fluent'
+                d['animacao'] = j.get('animacao') if j.get('animacao') in ('', 'luz', 'orbita', 'onda', 'inclinar', 'nenhuma') else ''
+                d['carinae'] = os.environ.get('XDG_CURRENT_DESKTOP', '').startswith('CarinaeOS')
+                if d['carinae']:
+                    try:
+                        dj = json.load(open(os.path.join(HOME, '.config/carinaeos/dock.json'), encoding='utf-8'))
+                        for k in ('iconSize', 'separatorWidth', 'separatorColor'):
+                            if k in dj:
+                                d[k] = dj[k]
+                        for k in ('iconSize', 'separatorWidth', 'separatorColor'):
+                            if k in j:
+                                d[k] = j[k]
+                    except (OSError, ValueError):
+                        pass
+                d['pastaEstilos'] = os.path.join(AQUI, 'dock-estilos')
+                e.update(d)
+            elif pagina == 'datahora':
+                e.update(sp.datahora_estado())
+                e['agora'] = cmd(['date', '+%A, %d de %B de %Y · %H:%M'])
+            elif pagina == '_antigo_datahora':
+                e['auto'] = 'NTP=yes' in cmd(['timedatectl', 'show', '-p', 'NTP'])
+                e['fuso'] = cmd(['timedatectl', 'show', '-p', 'Timezone', '--value'])
+                e['agora'] = cmd(['date', '+%A, %d de %B de %Y · %H:%M'])
+            elif pagina == 'contas':
+                try:
+                    e['google'] = json.loads(cmd(['carinaeos-contas', 'listar']) or '{}')
+                except Exception:
+                    e['google'] = {}
+            elif pagina == 'utilizadores':
+                e.update(sp.utilizadores_estado())
+                me = next((c for c in e['contas'] if c['eu']), {})
+                e['nome'] = me.get('nome', e['usuario'])
+                e['foto'] = me.get('foto', '')
+            elif pagina == '_antigo_utilizadores':
+                e['usuario'] = os.environ.get('USER') or os.path.basename(HOME)
+                nome = cmd(['getent', 'passwd', e['usuario']]).split(':')
+                e['nome'] = (nome[4].split(',')[0] if len(nome) > 4 else '') or e['usuario']
+                foto = os.path.join(HOME, '.face.icon')
+                e['foto'] = 'file://' + foto if os.path.exists(foto) else ''
+            elif pagina == 'sistema':
+                e.update(sobre())
+            elif pagina == 'aplicativos':
+                try:
+                    e['padroes'] = padroes.estado()
+                except Exception as erro:
+                    e['padroes'] = []
+                    print('padroes:', erro, file=sys.stderr)
+                e['apps'] = instalados.listar()
+            return e
+
+        def depois(r):
+            # uma leitura mais lenta de outra página (que acabou depois) não pode tapar a página atual
+            if pagina != getattr(self, '_pagina_atual', pagina):
+                return
+            if isinstance(r, Exception):
+                import traceback
+                traceback.print_exception(r)
+                self._aviso('Não consegui ler esta página: %s' % r)
+                r = {'apps': []} if pagina == 'aplicativos' else {}
+            if isinstance(r, dict):
+                self._estado = r
+                self.mudou.emit()
+        self._fundo(trabalho, depois)
+
+    # ---- contas Google (login proprio: carinaeos-contas) -------------------------------------------
+    def _contas(self, args, msg_ok='', espera=600):
+        def trabalho():
+            return subprocess.run(['carinaeos-contas'] + args, capture_output=True, text=True, timeout=espera)
+
+        def depois(r):
+            if isinstance(r, Exception):
+                self._aviso('Não foi possível: %s' % r)
+            elif r.returncode != 0:
+                self._aviso((r.stderr or 'Não foi possível.').strip().splitlines()[-1])
+            elif msg_ok:
+                self._aviso(msg_ok)
+            self.ler('contas')
+        self._fundo(trabalho, depois)
+
+    @Slot()
+    def entrarGoogle(self):
+        self._aviso('O Google abriu no navegador: entre com a sua conta e autorize o CarinaeOS.')
+        self._contas(['entrar-google'], 'Conta Google ligada.')
+
+    @Slot(str)
+    def removerGoogle(self, email):
+        self._contas(['remover', email], 'Conta desligada.', 60)
+
+    @Slot(str, bool)
+    def calendarioGoogle(self, email, ligar):
+        if ligar:
+            self._aviso('Trazendo os calendários do Google…')
+        self._contas(['calendario', email, 'on' if ligar else 'off'],
+                     'Calendários ligados: abra o Merkuro (Calendário).' if ligar else 'Calendários desligados.', 300)
+
+    @Slot(str, bool)
+    def driveGoogle(self, email, ligar):
+        self._contas(['drive', email, 'on' if ligar else 'off'], 'Google Drive ligado em Arquivos.' if ligar else '', 120)
+
+    def _configurar(self, dados):
+        try:
+            r = subprocess.run(['carinaeos-contas', 'configurar-google'], input=json.dumps(dados),
+                               capture_output=True, text=True, timeout=20)
+            self._aviso('Login do Google configurado. Já pode ligar a conta.' if r.returncode == 0
+                        else 'Não foi possível salvar: ' + (r.stderr or '').strip())
+        except Exception as e:
+            self._aviso('Não foi possível salvar: %s' % e)
+        self.ler('contas')
+
+    @Slot(str, str)
+    def configurarGoogle(self, cid, segredo):
+        if not cid.strip().endswith('.apps.googleusercontent.com'):
+            self._aviso('O ID do cliente acaba em .apps.googleusercontent.com — confira o que copiou.')
+            return
+        self._configurar({'client_id': cid.strip(), 'client_secret': segredo.strip()})
+
+    @Slot()
+    def ficheiroGoogle(self):
+        def trabalho():
+            return cmd(['carinae-escolher', 'ficheiro', 'Arquivo do cliente Google',
+                        os.path.join(HOME, 'Downloads'), 'JSON', '*.json'], 600)
+
+        def depois(f):
+            if isinstance(f, str) and f:
+                try:
+                    with open(f) as x:
+                        self._configurar(json.load(x))
+                except Exception as e:
+                    self._aviso('Esse arquivo não é o JSON do cliente Google (%s).' % e)
+        self._fundo(trabalho, depois)
+
+    # ---- acoes ------------------------------------------------------------------------------------
+    @Slot(str)
+    def completo(self, ident):
+        for s in SECCOES:
+            if s[0] == ident and s[0] == 'ecras' and shutil.which('carinae-telas'):
+                bg(['carinae-telas'])
+            elif s[0] == ident and s[3]:
+                bg(['kcmshell6', s[3]])
+
+    @Slot(bool)
+    def definirWifi(self, ligar):
+        bg(['nmcli', 'radio', 'wifi', 'on' if ligar else 'off'])
+
+    @Slot(str, str)
+    def ligarWifi(self, ssid, senha):
+        args = ['nmcli', 'dev', 'wifi', 'connect', ssid] + (['password', senha] if senha else [])
+        self._aviso('Ligando a %s…' % ssid)
+
+        def depois(r):
+            ok = not isinstance(r, Exception) and r.returncode == 0
+            self._aviso(('Ligado a %s ✓' % ssid) if ok else 'Não foi possível ligar: confirme a senha.')
+            self.ler('wifi')
+        self._fundo(lambda: subprocess.run(args, capture_output=True, text=True, timeout=60), depois)
+
+    @Slot(bool)
+    def definirBluetooth(self, ligar):
+        bg(['bluetoothctl', 'power', 'on' if ligar else 'off'])
+
+    @Slot(float)
+    def definirVolume(self, v):
+        bg(['wpctl', 'set-volume', '-l', '1.0', '@DEFAULT_AUDIO_SINK@', '%.2f' % v])
+
+    @Slot(float)
+    def definirMicrofone(self, v):
+        bg(['wpctl', 'set-volume', '-l', '1.0', '@DEFAULT_AUDIO_SOURCE@', '%.2f' % v])
+
+    @Slot(float)
+    def definirBrilho(self, v):
+        bg(['brightnessctl', '-q', 's', '%d%%' % max(1, round(v * 100))])
+
+    @Slot(bool)
+    def luzNoturna(self, ligar):
+        self._fundo(lambda: op.luz_noturna(ligar), self._feito(self._pagina_atual, 'Luz noturna %s' % ('ligada' if ligar else 'desligada')))
+
+    @Slot(str)
+    def definirPerfil(self, p):
+        nomes = {'performance': 'Desempenho', 'balanced': 'Equilibrado', 'power-saver': 'Poupança'}
+
+        def depois(r):
+            ok = not isinstance(r, Exception) and r.returncode == 0
+            if ok:
+                self._aviso('Modo %s ✓' % nomes.get(p, p))
+            else:
+                erro = '' if isinstance(r, Exception) else (r.stderr or '').strip()
+                self._aviso('Este computador não tem o modo %s' % nomes.get(p, p) if 'not' in erro.lower() or 'available' in erro.lower()
+                            else 'Não foi possível mudar o modo de energia')
+            self.ler('energia')
+        self._fundo(lambda: subprocess.run(['powerprofilesctl', 'set', p], capture_output=True, text=True, timeout=20), depois)
+
+    @Slot(bool)
+    def definirClaro(self, claro):
+        self._fundo(lambda: op.definir_tema('claro' if claro else 'escuro'),
+                    self._feito('aparencia', 'Tema %s ✓ — os programas abertos mudam quando forem reabertos' % ('claro' if claro else 'escuro')))
+
+    @Slot(str)
+    def definirFundo(self, caminho):
+        if caminho.startswith('file://'):
+            from urllib.parse import unquote
+            caminho = unquote(caminho[7:])
+        op.definir_papel(caminho)
+        self._aviso('Papel de parede aplicado ✓')
+        self.ler('aparencia')
+
+    @Slot(bool)
+    def definirIndexacao(self, ligar):
+        self._fundo(lambda: op.baloo(ligar), self._feito('pesquisa', 'Feito ✓'))
+
+    @Slot(bool)
+    def definirSSH(self, ligar):
+        self._aviso('Pedindo autorização…')
+
+        def depois(r):
+            ok = not isinstance(r, Exception) and r.returncode == 0
+            self._aviso(('Acesso remoto %s ✓' % ('ligado' if ligar else 'desligado')) if ok else 'Não foi alterado.')
+            self.ler('partilha')
+        self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/ssh', 'ligar' if ligar else 'desligar'],
+                                           capture_output=True, timeout=600), depois)
+
+    # ---- pastas partilhadas na rede (como "Outros locais" do Fedora) ----------------------------------
+    @Slot(str)
+    def ligarServidor(self, texto):
+        url = normalizar_endereco(texto)
+        if not url:
+            return
+        lista = [x for x in servidores() if x.get('url') != url]
+        nome = re.sub(r'^[a-z]+://', '', url).rstrip('/')
+        lista.insert(0, dict(url=url, nome=nome))
+        os.makedirs(os.path.dirname(SERVIDORES), exist_ok=True)
+        with open(SERVIDORES, 'w') as f:
+            json.dump(lista[:12], f)
+        adicionar_local(url, nome.split('/')[-1] or nome)
+        bg(['dolphin', '--new-window', url])
+        self._aviso('Ligando a %s… (se pedir, escreva o usuário e a senha do servidor)' % nome)
+        self.ler('rede')
+
+    @Slot(str)
+    def esquecerServidor(self, url):
+        lista = [x for x in servidores() if x.get('url') != url]
+        with open(SERVIDORES, 'w') as f:
+            json.dump(lista, f)
+        self.ler('rede')
+
+    escolherPastaPedida = Signal()
+
+    @Slot(bool)
+    def definirPartilha(self, ligar):
+        self._aviso('Pedindo autorização…')
+        u = os.environ.get('USER') or os.path.basename(HOME)
+
+        def depois(r):
+            ok = not isinstance(r, Exception) and r.returncode == 0
+            if ok and ligar:
+                self._aviso('Compartilhamento de pastas ligado ✓ Escolha a primeira pasta a compartilhar.')
+                self.escolherPastaPedida.emit()
+            elif ok:
+                self._aviso('Compartilhamento de pastas desligado ✓')
+            else:
+                erro = '' if isinstance(r, Exception) else (r.stderr or b'').decode(errors='ignore').strip()
+                self._aviso('Não foi possível: ' + (erro[-120:] or 'autorização recusada'))
+            self.ler('partilha')
+        self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/partilha', 'ligar' if ligar else 'desligar', u],
+                                           capture_output=True, timeout=900), depois)
+
+    @Slot()
+    def ativarPartilha(self):
+        self.definirPartilha(True)
+
+    @Slot(str, str)
+    def partilharPasta(self, caminho, modo):
+        """modo: 'ro' / 'rw' (com a senha da rede) ou 'livre' (sem senha, só leitura)."""
+        if caminho.startswith('file://'):
+            from urllib.parse import unquote
+            caminho = unquote(caminho[7:])
+        if modo not in ('ro', 'rw', 'livre'):
+            modo = 'ro'
+        nome = re.sub(r'[^A-Za-z0-9_-]', '_', os.path.basename(caminho.rstrip('/')) or 'pasta')[:40]
+        acl = 'Everyone:F' if modo == 'rw' else 'Everyone:R'
+        guest = 'guest_ok=y' if modo == 'livre' else 'guest_ok=n'
+        r = subprocess.run(['net', 'usershare', 'add', nome, caminho, 'Compartilhada pelo CarinaeOS', acl, guest],
+                           capture_output=True, text=True)
+        if r.returncode != 0:
+            # ainda sem permissao na sessao atual (grupo novo): faz-se como administrador
+            r = subprocess.run(['pkexec', '/usr/lib/carinaeos/partilha', 'pasta', nome, caminho, modo,
+                                os.environ.get('USER') or ''], capture_output=True, text=True)
+        if r.returncode == 0 and modo != 'livre' and not os.path.exists(SENHA_REDE):
+            self._aviso('“%s” está compartilhada ✓ Falta escolher a senha da rede (abaixo) para os outros entrarem.' % nome)
+        else:
+            self._aviso(('“%s” está compartilhada na rede ✓' % nome) if r.returncode == 0
+                        else 'Não foi possível compartilhar: ' + (r.stderr.strip() or r.stdout.strip())[:120])
+        self.ler('partilha')
+
+    @Slot(str)
+    def definirSenhaRede(self, senha):
+        if len(senha) < 4:
+            self._aviso('A senha tem de ter pelo menos 4 caracteres.')
+            return
+        u = os.environ.get('USER') or os.path.basename(HOME)
+
+        def depois(r):
+            if not isinstance(r, Exception) and r.returncode == 0:
+                os.makedirs(os.path.dirname(SENHA_REDE), exist_ok=True)
+                open(SENHA_REDE, 'w').close()
+                self._aviso('Senha da rede definida ✓ Nos outros computadores, entre com “%s” e essa senha.' % u)
+            else:
+                erro = '' if isinstance(r, Exception) else (r.stderr or b'').decode(errors='ignore').strip()
+                self._aviso('Não foi possível: ' + (erro[-120:] or 'autorização recusada'))
+            self.ler('partilha')
+        # a senha vai pela entrada do processo (nunca na linha de comando, que outros podem ver)
+        self._fundo(lambda: subprocess.run(['pkexec', '/usr/lib/carinaeos/partilha', 'senha', u],
+                                           input=(senha + '\n').encode(), capture_output=True, timeout=600), depois)
+
+    @Slot(str)
+    def deixarDePartilhar(self, nome):
+        subprocess.run(['net', 'usershare', 'delete', nome], capture_output=True)
+        self.ler('partilha')
+
+    pastaEscolhida = Signal(str, bool)
+
+    @Slot(str)
+    def escolherPastaPartilhar(self, modo):
+        def t():
+            r = subprocess.run(['carinae-escolher', 'pasta', 'Escolha a pasta a compartilhar', HOME],
+                               capture_output=True, text=True)
+            if r.returncode == 0 and r.stdout.strip():
+                self._chegou.emit(lambda c: self.partilharPasta(c, modo), r.stdout.strip())
+        threading.Thread(target=t, daemon=True).start()
+
+    # ---- Dock -----------------------------------------------------------------------------------------
+    @Slot(bool)
+    def definirModoLeve(self, ligar):
+        self._aviso('Ligando o modo leve…' if ligar else 'Desligando o modo leve…')
+
+        def depois(r):
+            self._aviso('Modo leve %s ✓' % ('ligado' if ligar else 'desligado'))
+            self.ler('aparencia')
+        self._fundo(lambda: subprocess.run(['carinaeos-modo-leve', 'ligar' if ligar else 'desligar'],
+                                           capture_output=True, timeout=120), depois)
+
+    @Slot(bool)
+    def definirRecentes(self, mostrar):
+        if mostrar:
+            try:
+                os.remove(SEM_RECENTES)
+            except OSError:
+                pass
+        else:
+            os.makedirs(os.path.dirname(SEM_RECENTES), exist_ok=True)
+            open(SEM_RECENTES, 'w').close()
+        self.ler('privacidade')
+
+    @Slot(str, str)
+    def definirModeloDock(self, chave, valor):
+        """estilo da Dock (fluent, simples ou icones): a Dock aplica em até 4 segundos."""
+        if not ((chave == 'estilo' and valor in ('fluent', 'simples', 'icones', 'orbita', 'glass', 'windows')) or (chave == 'animacao' and valor in ('', 'luz', 'orbita', 'onda', 'inclinar', 'nenhuma'))):
+            return
+        try:
+            j = json.load(open(DOCK_JSON, encoding='utf-8'))
+        except (OSError, ValueError):
+            j = {}
+        j[chave] = valor
+        os.makedirs(os.path.dirname(DOCK_JSON), exist_ok=True)
+        tmp = DOCK_JSON + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(j, f)
+        os.replace(tmp, DOCK_JSON)
+        self.ler('dock')
+
+    @Slot(str, 'QVariant')
+    def definirDock(self, chave, valor):
+        if os.environ.get('XDG_CURRENT_DESKTOP', '').startswith('CarinaeOS') and chave in ('iconSize', 'separatorWidth', 'separatorColor'):
+            # a Dock do CarinaeOS (Aurora) lê ~/.config/carinaeos-dock.json
+            try:
+                j = json.load(open(DOCK_JSON, encoding='utf-8'))
+            except (OSError, ValueError):
+                j = {}
+            j[chave] = {'iconSize': int, 'separatorWidth': int}.get(chave, str)(valor)
+            tmp = DOCK_JSON + '.tmp'
+            with open(tmp, 'w', encoding='utf-8') as f:
+                json.dump(j, f)
+            os.replace(tmp, DOCK_JSON)
+            self._aviso('Dock atualizada ✓')
+            return
+        if chave == 'posicao':
+            js = ('var p = panels(); for (var i = 0; i < p.length; i++) { var w = p[i].widgets(); '
+                  'for (var j = 0; j < w.length; j++) if (w[j].type == "org.carinaeos.dock") p[i].location = "%s"; }' % valor)
+        elif chave == 'esconder':
+            js = ('var p = panels(); for (var i = 0; i < p.length; i++) { var w = p[i].widgets(); '
+                  'for (var j = 0; j < w.length; j++) if (w[j].type == "org.carinaeos.dock") p[i].hiding = "%s"; }'
+                  % ('autohide' if valor else 'none'))
+        else:
+            tipo = {'iconSize': int, 'zoom': float, 'separatorWidth': int, 'separatorColor': str}.get(chave, str)
+            v = tipo(valor)
+            js = ('var p = panels(); for (var i = 0; i < p.length; i++) { var w = p[i].widgets(); '
+                  'for (var j = 0; j < w.length; j++) if (w[j].type == "org.carinaeos.dock") { '
+                  'w[j].currentConfigGroup = ["General"]; w[j].writeConfig("%s", %s); } }' % (chave, json.dumps(v)))
+        # depois: o painel-espaçador acompanha a Dock (altura do vidro, mesmo lado; sai se a Dock se esconder)
+        try:
+            js += '\n' + open('/usr/share/carinaeos/dock-espacador.js', encoding='utf-8').read()
+        except OSError:
+            pass
+        bg(['qdbus6', 'org.kde.plasmashell', '/PlasmaShell', 'org.kde.PlasmaShell.evaluateScript', js])
+        if chave == 'esconder' and not valor:
+            # voltar a "sempre visível" = modo 3 (as janelas passam por baixo; o espaçador reserva o vidro):
+            # só se guarda com o Plasma parado, e o script de entrada trata disso
+            bg(['sh', '-c', 'sleep 2; XDG_CURRENT_DESKTOP=KDE carinaeos-ambiente-inicio'])
+        self._aviso('Dock atualizada ✓')
+
+    @Slot(bool)
+    def definirHoraAuto(self, ligar):
+        bg(['timedatectl', 'set-ntp', 'true' if ligar else 'false'])
+
+    # ---- aplicativos instalados: desinstalar ----------------------------------------------------------
+    @Slot(str)
+    def previaApp(self, ident):
+        self._previa = dict(ident=ident, aCarregar=True)
+        self.mudou.emit()
+
+        def depois(r):
+            if isinstance(r, Exception):
+                r = dict(pode=False, mensagem=str(r))
+            self._previa = dict(r, ident=ident, aCarregar=False)
+            self.mudou.emit()
+        self._fundo(lambda: instalados.previa(ident), depois)
+
+    @Slot(str, bool)
+    def desinstalarApp(self, ident, apagar_dados):
+        self._a_remover = ident
+        self._aviso('Desinstalando…')
+
+        def depois(r):
+            self._a_remover = ''
+            ok, msg = r if not isinstance(r, Exception) else (False, str(r))
+            self._aviso(('✓ ' if ok else '') + msg)
+            self.ler('aplicativos')
+        self._fundo(lambda: instalados.desinstalar(ident, apagar_dados), depois)
+
+    # ---- Wi-Fi ------------------------------------------------------------------------------------------
+    pedeSenhaWifi = Signal(str, bool)
+    senhaWifiVista = Signal(str, str)
+
+    @Slot()
+    def procurarWifi(self):
+        self._procurar_agora = True
+        self._aviso('A procurar redes…')
+        self.ler('wifi')
+
+    @Slot(str, str, bool)
+    def ligarWifiNova(self, ssid, senha, oculta):
+        self._aviso('A ligar a %s…' % ssid)
+
+        def depois(r):
+            if r == '':
+                self._aviso('Ligado a %s ✓' % ssid)
+            elif r == 'senha':
+                self._aviso('A senha de %s não está certa.' % ssid)
+                self.pedeSenhaWifi.emit(ssid, True)
+            else:
+                self._aviso('Não foi possível ligar a %s: %s' % (ssid, r))
+            self.ler('wifi')
+        self._fundo(lambda: rede_som.ligar_wifi(ssid, senha, oculta), depois)
+
+    def _acao_ligacao(self, fn, uuid, msg, pagina):
+        def depois(r):
+            self._aviso(msg if not r else 'Não foi possível: %s' % r)
+            self.ler(pagina)
+        self._fundo(lambda: fn(uuid), depois)
+
+    @Slot(str, str)
+    def ligarGuardada(self, uuid, pagina):
+        self._aviso('A ligar…')
+        self._acao_ligacao(rede_som.ligar_guardada, uuid, 'Ligado ✓', pagina or 'wifi')
+
+    @Slot(str, str)
+    def desligarLigacao(self, uuid, pagina):
+        self._acao_ligacao(rede_som.desligar_ligacao, uuid, 'Desligado', pagina or 'wifi')
+
+    @Slot(str, str)
+    def esquecerLigacao(self, uuid, pagina):
+        self._acao_ligacao(rede_som.esquecer, uuid, 'Rede esquecida', pagina or 'wifi')
+
+    @Slot(str)
+    def verSenhaWifi(self, uuid):
+        def depois(r):
+            if r:
+                self.senhaWifiVista.emit(uuid, r)
+            else:
+                self._aviso('Não consegui ler a senha (rede aberta, ou sem autorização).')
+        self._fundo(lambda: rede_som.senha_wifi(uuid), depois)
+
+    # ---- Rede ------------------------------------------------------------------------------------------
+    @Slot(str, str, str, str, str)
+    def configurarIp(self, uuid, metodo, endereco, gateway, dns):
+        self._aviso('A aplicar…')
+
+        def depois(r):
+            self._aviso('Aplicado ✓' if not r else 'Não foi possível: %s' % r)
+            self.ler('rede')
+        self._fundo(lambda: rede_som.configurar_ip(uuid, metodo, endereco, gateway, dns), depois)
+
+    @Slot(str)
+    def importarVpn(self, ficheiro):
+        if ficheiro.startswith('file://'):
+            from urllib.parse import unquote
+            ficheiro = unquote(ficheiro[7:])
+
+        def depois(r):
+            self._aviso('VPN adicionada ✓' if not r else 'Não foi possível: %s' % r)
+            self.ler('rede')
+        self._fundo(lambda: rede_som.importar_vpn(ficheiro), depois)
+
+    # ---- Som --------------------------------------------------------------------------------------------
+    @Slot(str, str)
+    def somPadrao(self, tipo, nome):
+        rede_som.som_padrao(tipo, nome)
+        self.ler('som')
+
+    @Slot(str, str, float)
+    def somVolume(self, tipo, nome, v):
+        rede_som.som_volume(tipo, nome, v)
+
+    @Slot(str, str)
+    def somMudo(self, tipo, nome):
+        rede_som.som_mudo(tipo, nome)
+        self.ler('som')
+
+    @Slot(str, str)
+    def somPerfil(self, placa, perfil):
+        r = rede_som.som_perfil(placa, perfil)
+        if r:
+            self._aviso('Não foi possível: %s' % r)
+        self.ler('som')
+
+    @Slot(str)
+    def somTestar(self, nome):
+        rede_som.som_testar(nome)
+
+    # ---- Energia (as escolhas do carinae-energia) ---------------------------------------------------------
+    @Slot(str, 'QVariant')
+    def energiaMudar(self, chave, valor):
+        f = os.path.join(HOME, '.config/carinaeos/energia.json')
+        try:
+            v = json.load(open(f, encoding='utf-8'))
+        except (OSError, ValueError):
+            v = dict(desligarEcra=10, bloquear=True, bloquearAoSuspender=True, suspender=0, botao='perguntar')
+        v[chave] = int(valor) if chave in ('desligarEcra', 'suspender') else valor
+        os.makedirs(os.path.dirname(f), exist_ok=True)
+        with open(f + '.tmp', 'w', encoding='utf-8') as o:
+            json.dump(v, o, indent=1)
+        os.replace(f + '.tmp', f)
+        self.ler('energia')
+
+    # ---- Bluetooth, teclado, rato, impressoras, data e hora, utilizadores ----------------------------------
+    def _feito(self, pagina, msg_ok):
+        def depois(r):
+            if isinstance(r, Exception):
+                r = str(r)
+            self._aviso(msg_ok if not r else 'Não foi possível: %s' % r)
+            self.ler(pagina)
+        return depois
+
+    @Slot()
+    def btProcurar(self):
+        sp.bt_procurar()
+        self._aviso('A procurar aparelhos durante 20 segundos… ponha o aparelho em modo de emparelhar.')
+
+    @Slot(str, str)
+    def btAcao(self, acao, mac):
+        if acao == 'emparelhar':
+            self._aviso('A emparelhar…')
+            self._fundo(lambda: sp.bt_emparelhar(mac), self._feito('bluetooth', 'Emparelhado ✓'))
+        else:
+            self._fundo(lambda: sp.bt_acao(acao, mac), self._feito('bluetooth', {'connect': 'Ligado ✓', 'disconnect': 'Desligado', 'remove': 'Esquecido'}.get(acao, 'Feito')))
+
+    @Slot(str, 'QVariant')
+    def tecladoMudar(self, chave, valor):
+        sp.teclado_mudar(chave, valor.toVariant() if hasattr(valor, 'toVariant') else valor)
+        self.ler('teclado')
+
+    @Slot(str, str, str)
+    def tecladoDisposicao(self, acao, codigo, variante):
+        sp.teclado_disposicao(acao, codigo, variante)
+        self.ler('teclado')
+
+    @Slot(str, 'QVariant')
+    def ratoMudar(self, chave, valor):
+        sp.rato_mudar(chave, valor)
+        self.ler('rato')
+
+    @Slot()
+    def impressorasProcurar(self):
+        self._aviso('A procurar impressoras na rede e no USB…')
+
+        def depois(r):
+            self._impressoras_vistas = r if isinstance(r, list) else []
+            self._aviso('Encontrei %d impressora(s) nova(s)' % len(self._impressoras_vistas) if self._impressoras_vistas
+                        else 'Não encontrei impressoras novas. Ligue-a e confirme que está na mesma rede.')
+            self.ler('impressoras')
+        self._fundo(sp.impressoras_descobrir, depois)
+
+    @Slot(str, str)
+    def impressoraJuntar(self, uri, nome):
+        self._aviso('A adicionar %s…' % nome)
+        self._impressoras_vistas = [i for i in self._impressoras_vistas if i['uri'] != uri]
+        self._fundo(lambda: sp.impressora_juntar(uri, nome), self._feito('impressoras', 'Impressora adicionada ✓'))
+
+    @Slot(str, str)
+    def impressoraAcao(self, acao, nome):
+        msgs = {'padrao': 'Passou a ser a impressora predefinida', 'teste': 'Página de teste enviada',
+                'cancelar': 'Impressões canceladas', 'retomar': 'Impressora retomada', 'remover': 'Impressora removida'}
+        self._fundo(lambda: sp.impressora_acao(acao, nome), self._feito('impressoras', msgs.get(acao, 'Feito')))
+
+    @Slot(str, 'QVariant')
+    def dataHora(self, acao, valor):
+        self._fundo(lambda: sp.datahora_acao(acao, valor), self._feito('datahora', 'Feito ✓'))
+
+    @Slot(str)
+    def mudarNome(self, nome):
+        self._fundo(lambda: sp.mudar_nome(nome), self._feito('utilizadores', 'Nome mudado ✓'))
+
+    @Slot(str)
+    def mudarFoto(self, ficheiro):
+        if ficheiro.startswith('file://'):
+            from urllib.parse import unquote
+            ficheiro = unquote(ficheiro[7:])
+        self._fundo(lambda: sp.mudar_foto(ficheiro), self._feito('utilizadores', 'Foto mudada ✓'))
+
+    @Slot(str, str)
+    def mudarSenha(self, utilizador, nova):
+        self._fundo(lambda: sp.mudar_senha(utilizador, nova), self._feito('utilizadores', 'Senha mudada ✓'))
+
+    @Slot(str, str, str, bool)
+    def novaConta(self, utilizador, nome, senha, admin):
+        self._fundo(lambda: sp.nova_conta(utilizador, nome, senha, admin), self._feito('utilizadores', 'Conta criada ✓'))
+
+    @Slot(str, bool)
+    def apagarConta(self, utilizador, ficheiros):
+        self._fundo(lambda: sp.apagar_conta(utilizador, ficheiros), self._feito('utilizadores', 'Conta apagada'))
+
+    @Slot(str, bool)
+    def mudarAdmin(self, utilizador, admin):
+        self._fundo(lambda: sp.mudar_admin(utilizador, admin), self._feito('utilizadores', 'Feito ✓'))
+
+    @Slot(bool)
+    def entradaAutomatica(self, ligar):
+        self._fundo(lambda: sp.entrada_automatica(ligar), self._feito('utilizadores', 'Feito ✓'))
+
+    # ---- aplicativos padrão -------------------------------------------------------------------------------
+    tipoPronto = Signal('QVariantMap')
+
+    @Slot(str, str)
+    def definirPadrao(self, chave, app_id):
+        self._fundo(lambda: padroes.definir(chave, app_id), self._feito('aplicativos', 'Feito ✓'))
+
+    @Slot(str)
+    def procurarTipo(self, ext):
+        self._fundo(lambda: padroes.por_extensao(ext), lambda r: self.tipoPronto.emit(r if isinstance(r, dict) else {}))
+
+    @Slot(str, str)
+    def definirPadraoMime(self, mime, app_id):
+        r = padroes.definir_mime(mime, app_id)
+        self._aviso('Feito ✓' if not r else 'Não foi possível: %s' % r)
+
+    # ---- notificações, pesquisa, região, acessibilidade ------------------------------------------------
+    @Slot(bool)
+    def naoIncomodar(self, ligar):
+        op.nao_incomodar(ligar)
+        self.ler('notificacoes')
+
+    @Slot()
+    def avisoTeste(self):
+        op.aviso_teste()
+
+    @Slot()
+    def atualizarIndice(self):
+        self._aviso('A atualizar o índice de ficheiros… (pode demorar uns minutos)')
+        self._fundo(op.pesquisa_atualizar, self._feito('pesquisa', 'Índice atualizado ✓'))
+
+    @Slot(str, str)
+    def regiaoDefinir(self, idioma, formatos):
+        self._fundo(lambda: op.regiao_definir(idioma, formatos),
+                    self._feito('regiao', 'Feito ✓ — vale a partir do próximo início de sessão'))
+
+    @Slot(str)
+    def regiaoInstalar(self, locale):
+        self._aviso('A instalar %s…' % locale)
+        self._fundo(lambda: op.regiao_instalar(locale), self._feito('regiao', '%s instalado ✓' % locale))
+
+    @Slot(str, 'QVariant')
+    def acessMudar(self, chave, valor):
+        op.acess_mudar(chave, valor)
+        self._aviso('Guardado ✓ — o tamanho do texto vale a partir do próximo início de sessão')
+        self.ler('acessibilidade')
+
+    @Slot(str)
+    def abrir(self, comando):
+        correr(['bash', '-lc', comando], espera=False)
+
+
+if __name__ == '__main__':
+    pag = sys.argv[1] if len(sys.argv) > 1 else ''
+    procura = sys.argv[2] if len(sys.argv) > 2 else ''      # carinaeos-configuracoes aplicativos "Nome do app"
+    sys.exit(iniciar('carinaeos-configuracoes', 'Carinae Configurações', 'preferences-system', os.path.join(AQUI, 'Main.qml'),
+                     {'ajustes': Config(pag, procura)}))

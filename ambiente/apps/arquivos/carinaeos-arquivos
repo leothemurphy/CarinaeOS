@@ -1,0 +1,3 @@
+#!/bin/sh
+# CarinaeOS — Documentos (Carinae Arquivos), o gestor de ficheiros ao estilo do Windows 11
+exec python3 /usr/local/share/carinaeos/arquivos/arquivos.py "$@"

@@ -153,9 +153,6 @@ fc-cache -f >/dev/null 2>&1 || true
 
 # ---- explorador de arquivos: "Arquivos" (o programa continua a ser o Dolphin) ----
 mkdir -p /usr/local/share/applications
-sed -E '/^(Name|GenericName)(\[[^]]*\])?=/d' /usr/share/applications/org.kde.dolphin.desktop \
-  | sed '0,/^\[Desktop Entry\]$/s//[Desktop Entry]\nName=Arquivos\nGenericName=Gerenciador de arquivos/' \
-  > /usr/local/share/applications/org.kde.dolphin.desktop
 
 # Mapas (Marble) e Calendario (Merkuro): nomes simples, em portugues
 renomear() {   # renomear <arquivo.desktop> <Nome> <Descricao>
@@ -168,13 +165,10 @@ renomear() {   # renomear <arquivo.desktop> <Nome> <Descricao>
       $0 == "[Desktop Entry]" { print "Name=" n; print "GenericName=" g }
     ' "/usr/share/applications/$1" > "/usr/local/share/applications/$1"
 }
-sed -i 's/^Icon=.*/Icon=carinaeos-arquivos/' /usr/local/share/applications/org.kde.dolphin.desktop
 renomear org.kde.marble.desktop "Mapas" "Mapas e globo terrestre"
 renomear org.kde.merkuro.calendar.desktop "Calendário" "Agenda, com a conta Google"
 renomear org.kde.merkuro.contact.desktop "Contactos" "Os seus contactos"
 # nenhum nome "KDE"/"K…" no menu: cada aplicativo pelo que faz
-renomear org.kde.dolphin.desktop "Meus documentos" "Pastas e arquivos"
-sed -i 's/^Icon=.*/Icon=carinaeos-arquivos/' /usr/local/share/applications/org.kde.dolphin.desktop
 renomear org.kde.konsole.desktop "Terminal" "Linha de comandos"
 renomear org.kde.ark.desktop "Compactador" "Comprimir e extrair arquivos"
 renomear org.kde.gwenview.desktop "Fotos" "Ver imagens e fotografias"
@@ -406,3 +400,50 @@ if command -v flatpak >/dev/null; then
     flatpak override --system "$app" --filesystem=~/.local/share/applications:create --filesystem=~/.local/share/icons:create || true
   done
 fi
+
+
+# ---- o ambiente do CarinaeOS (Gravidade + Aurora) ------------------------------------------
+# o terminal do sistema (Ctrl+Alt+T, "abrir no terminal") é o Carinae Terminal
+update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/local/bin/carinae-terminal 60 || true
+update-alternatives --set x-terminal-emulator /usr/local/bin/carinae-terminal || true
+# pré-aquecer a sessão enquanto a tela de entrada espera; partilhas de rede depois de entrar
+systemctl enable carinae-preaquecer.service 2>/dev/null || true
+systemctl enable carinae-adiar.timer 2>/dev/null || true
+# cada coisa abre no app Carinae certo
+python3 - <<'EOT'
+import configparser
+p = '/etc/xdg/mimeapps.list'
+c = configparser.ConfigParser(interpolation=None, delimiters=('=',))
+c.optionxform = str
+c.read(p)
+if not c.has_section('Default Applications'):
+    c.add_section('Default Applications')
+d = c['Default Applications']
+for m in ('image/jpeg image/png image/gif image/webp image/bmp image/svg+xml image/tiff image/avif image/heif image/x-icon').split():
+    d[m] = 'carinaeos-fotos.desktop'
+d['application/pdf'] = 'carinaeos-pdf.desktop'
+for m in ('application/zip application/vnd.rar application/x-rar application/x-7z-compressed application/x-tar '
+          'application/x-compressed-tar application/x-xz-compressed-tar application/x-bzip-compressed-tar '
+          'application/x-zstd-compressed-tar application/gzip').split():
+    d[m] = 'carinaeos-compactador.desktop'
+for m in 'text/plain text/markdown text/x-log text/csv application/json'.split():
+    d[m] = 'carinaeos-notas.desktop'
+d['inode/directory'] = 'carinaeos-arquivos.desktop'
+with open(p, 'w') as f:
+    c.write(f, space_around_delimiters=False)
+EOT
+# todos os apps do CarinaeOS com o nome "Carinae …"
+python3 /usr/src/carinaeos-ambiente/ferramentas/nomes-carinae.py /usr/share/applications /usr/local/share/applications || true
+update-desktop-database -q /usr/share/applications /usr/local/share/applications 2>/dev/null || true
+gtk-update-icon-cache -qtf /usr/local/share/icons/hicolor 2>/dev/null || true
+# o Calamares deixa a sessão do CarinaeOS como a predefinida no sistema instalado
+mkdir -p /etc/calamares/modules
+cat > /etc/calamares/modules/displaymanager.conf <<'EOT'
+displaymanagers:
+  - sddm
+defaultDesktopEnvironment:
+    executable: "startcarinae"
+    desktopFile: "carinae"
+basicSetup: false
+sysconfigSetup: false
+EOT

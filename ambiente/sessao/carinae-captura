@@ -1,0 +1,30 @@
+#!/bin/sh
+# CarinaeOS — captura de tela (sem o Spectacle do KDE)
+#   carinae-captura            a tela inteira
+#   carinae-captura regiao     escolher um retângulo com o mouse
+#   carinae-captura janela     a janela ativa
+# Guarda em ~/Imagens/Capturas de tela e copia a imagem para a área de transferência.
+modo="${1:-tela}"
+pasta="$(xdg-user-dir PICTURES 2>/dev/null || echo "$HOME/Imagens")/Capturas de tela"
+mkdir -p "$pasta"
+f="$pasta/Captura_$(date +%Y-%m-%d_%H-%M-%S).png"
+
+if command -v maim >/dev/null; then
+    case "$modo" in
+        regiao) maim -s -u -b 2 -c 1,0.71,0.43,0.8 "$f" ;;
+        janela) maim -u -i "$(xdotool getactivewindow 2>/dev/null)" "$f" ;;
+        *)      maim -u "$f" ;;
+    esac
+else
+    # sem o maim: o import do ImageMagick (na região, arraste com o mouse)
+    case "$modo" in
+        regiao) import "$f" ;;
+        janela) import -window "$(xdotool getactivewindow 2>/dev/null)" "$f" ;;
+        *)      import -window root "$f" ;;
+    esac
+fi
+[ -s "$f" ] || exit 1      # cancelado (Esc)
+
+command -v xclip >/dev/null && xclip -selection clipboard -t image/png -i "$f" &
+paplay /usr/share/sounds/freedesktop/stereo/camera-shutter.oga 2>/dev/null &
+echo "$f"

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae Telas
+GenericName=Monitores
+Comment=Posição, resolução, frequência e rotação dos monitores
+Icon=preferences-desktop-display
+Exec=carinae-telas
+Terminal=false
+StartupWMClass=carinae-telas
+Categories=Settings;HardwareSettings;
+Keywords=monitor;tela;ecrã;resolução;display;xrandr;

@@ -1,0 +1,18 @@
+#!/bin/sh
+# CarinaeOS — Comando (Ctrl+Espaço). Se já estiver a correr (arranca com a sessão), só pede para aparecer: instantâneo.
+#   carinaeos-comando           mostra o Comando
+#   carinaeos-comando --fundo   arranca escondido (com a sessão); não faz nada se já estiver a correr
+python3 -S -c '
+import os, socket, sys
+p = os.path.join(os.environ.get("TMPDIR") or "/tmp", "carinaeos-comando-%d" % os.getuid())
+s = socket.socket(socket.AF_UNIX)
+s.settimeout(0.5)
+s.connect(p)
+if sys.argv[1:] != ["--fundo"]:
+    s.sendall(b"mostrar\n")
+' "$@" 2>/dev/null && exit 0
+for d in /usr/local/share/carinaeos/comando /usr/share/carinaeos/comando; do
+    [ -f "$d/comando.py" ] && exec python3 "$d/comando.py" "$@"
+done
+echo "carinaeos-comando: comando.py não encontrado" >&2
+exit 1

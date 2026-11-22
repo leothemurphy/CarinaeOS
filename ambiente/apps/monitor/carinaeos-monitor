@@ -1,0 +1,3 @@
+#!/bin/sh
+# Monitor do sistema: carinaeos-monitor [processos|desempenho|velocidade|arranque]
+exec python3 /usr/local/share/carinaeos/monitor/monitor.py "$@"

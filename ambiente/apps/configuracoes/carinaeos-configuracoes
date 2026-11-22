@@ -1,0 +1,3 @@
+#!/bin/sh
+# CarinaeOS — Configurações
+exec python3 /usr/local/share/carinaeos/configuracoes/configuracoes.py "$@"

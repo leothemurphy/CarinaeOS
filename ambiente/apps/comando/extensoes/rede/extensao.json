@@ -1,0 +1,1 @@
+{"nome": "Pastas de rede", "descricao": "\\\\servidor\\pasta ou smb://… abre nos Documentos", "icone": "network-workgroup", "comeca": ["\\\\", "smb://"]}

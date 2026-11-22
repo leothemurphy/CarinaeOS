@@ -1,0 +1,15 @@
+[Unit]
+Description=CarinaeOS: pré-aquecer a sessão (ler para a memória o que a sessão vai usar)
+After=local-fs.target
+DefaultDependencies=no
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/carinae-preaquecer
+Nice=19
+# prioridade baixa mas não "só quando o disco está parado" (no arranque o disco nunca está parado)
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target

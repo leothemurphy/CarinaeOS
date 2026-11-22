@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae Monitor
+Comment=Processos, desempenho, velocidade da internet e aplicativos de inicialização
+Icon=utilities-system-monitor
+Exec=carinaeos-monitor
+Terminal=false
+StartupWMClass=carinaeos-monitor
+Categories=System;Monitor;
+Keywords=gerenciador de tarefas;task manager;processos;cpu;memória;ram;disco;rede;velocidade;internet;speedtest;ping;latência;
+Actions=velocidade;desempenho;
+
+[Desktop Action velocidade]
+Name=Testar a velocidade da internet
+Exec=carinaeos-monitor velocidade
+
+[Desktop Action desempenho]
+Name=Desempenho
+Exec=carinaeos-monitor desempenho

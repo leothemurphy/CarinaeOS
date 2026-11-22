@@ -1,0 +1,137 @@
+#!/usr/bin/python3
+# CarinaeOS — a aparência dos programas Qt (os nossos apps, a Aurora, o Konsole, o Dolphin…) sem o KDE:
+# o "tema de plataforma" passa a ser o qt6ct (que não é do KDE). Escreve a configuração dele com as cores do
+# CarinaeOS, os ícones e a letra da sessão, e o estilo Kvantum "CarinaeOS" se existir (senão o Fusion).
+#   carinae-aparencia-qt            cria a configuração (se ainda não existir)
+#   carinae-aparencia-qt --forcar   escreve tudo outra vez
+import configparser
+import glob
+import os
+import sys
+
+CASA = os.path.expanduser('~')
+PASTA = os.path.join(CASA, '.config', 'qt6ct')
+CONF = os.path.join(PASTA, 'qt6ct.conf')
+CORES = os.path.join(PASTA, 'colors', 'CarinaeOS.conf')
+FORCAR = '--forcar' in sys.argv
+
+if os.path.exists(CONF) and not FORCAR:
+    print('aparência Qt: já configurada (%s)' % CONF)
+    sys.exit(0)
+
+
+def ler_kdeglobals():
+    """Aproveita o que o utilizador já tinha escolhido no Plasma (ícones, letra), se houver."""
+    c = configparser.ConfigParser(strict=False, interpolation=None)
+    c.optionxform = str
+    try:
+        c.read(os.path.join(CASA, '.config', 'kdeglobals'))
+    except configparser.Error:
+        pass
+    return c
+
+
+def tema_icones(kg):
+    candidatos = []
+    if kg.has_option('Icons', 'Theme'):
+        candidatos.append(kg.get('Icons', 'Theme'))
+    candidatos += ['WhiteSur-dark', 'Papirus-Dark', 'Adwaita']
+    for t in candidatos:
+        for base in (os.path.join(CASA, '.local/share/icons'), os.path.join(CASA, '.icons'),
+                     '/usr/share/icons', '/usr/local/share/icons'):
+            if os.path.isfile(os.path.join(base, t, 'index.theme')):
+                return t
+    return 'hicolor'
+
+
+def letra(nome, tamanho):
+    # formato do QFont::toString() do Qt 6
+    return '"%s,%d,-1,5,400,0,0,0,0,0,0,0,0,0,0,1"' % (nome, tamanho)
+
+
+def existe_letra(nome):
+    for d in ('/usr/share/fonts', '/usr/local/share/fonts', os.path.join(CASA, '.local/share/fonts')):
+        if glob.glob(os.path.join(d, '**', nome.replace(' ', '') + '*'), recursive=True) or \
+           glob.glob(os.path.join(d, '**', nome.replace(' ', '-') + '*'), recursive=True):
+            return True
+    return False
+
+
+kg = ler_kdeglobals()
+icones = tema_icones(kg)
+geral = 'Inter' if existe_letra('Inter') else 'Noto Sans'
+fixa = next((f for f in ('JetBrains Mono', 'Hack', 'Fira Code', 'DejaVu Sans Mono') if existe_letra(f)), 'Monospace')
+
+# o estilo: Kvantum "CarinaeOS" (o visual Vidro) se estiver instalado; senão o Fusion, com as nossas cores
+import json
+try:
+    ESCURO = json.load(open(os.path.join(CASA, '.config/carinaeos/aparencia.json'))).get('tema', 'escuro') != 'claro'
+except (OSError, ValueError):
+    ESCURO = True
+kvantum = bool(glob.glob('/usr/lib/*/qt6/plugins/styles/libkvantum.so'))
+estilo = 'kvantum' if kvantum and ESCURO else 'Fusion'
+
+# ---- as cores do CarinaeOS (as mesmas do esquema "CarinaeOS" do Plasma) -------------------------------
+# ordem do QPalette: WindowText Button Light Midlight Dark Mid Text BrightText ButtonText Base Window Shadow
+#                    Highlight HighlightedText Link LinkVisited AlternateBase NoRole ToolTipBase ToolTipText
+#                    PlaceholderText Accent
+ativa = ['#fffcfcfc', '#ff161826', '#ff2a2d45', '#ff1f2234', '#ff0a0b14', '#ff14162a', '#fffcfcfc', '#ffffffff',
+         '#fffcfcfc', '#ff0a0b14', '#ff10121e', '#ff000000', '#ffb58153', '#ff000000', '#ffffb46e', '#ff9b59b6',
+         '#ff1d1f22', '#ff000000', '#ff161826', '#fffcfcfc', '#80fcfcfc', '#ffffb46e']
+inativa = list(ativa)
+inativa[12] = '#ff6b5240'          # seleção sem foco: mais apagada
+inativa[13] = '#fffcfcfc'
+desativada = list(ativa)
+for i in (0, 6, 8):
+    desativada[i] = '#ff6e7080'
+desativada[12] = '#ff3a3d55'
+
+if not ESCURO:
+    # o tema claro do CarinaeOS: fundo claro, seleção âmbar
+    ativa = ['#ff1b1b1f', '#ffefedf2', '#ffffffff', '#fff6f4f8', '#ffb9b6c0', '#ffd6d3dc', '#ff1b1b1f', '#ffffffff',
+             '#ff1b1b1f', '#ffffffff', '#fff4f2f7', '#ff8a8792', '#ffe8a062', '#ff000000', '#ffb5601b', '#ff8e44ad',
+             '#fff7f5fa', '#ff000000', '#ffffffff', '#ff1b1b1f', '#801b1b1f', '#ffe8a062']
+    inativa = list(ativa)
+    desativada = list(ativa)
+    for i in (0, 6, 8):
+        desativada[i] = '#ffa09ca8'
+os.makedirs(os.path.dirname(CORES), exist_ok=True)
+with open(CORES, 'w') as f:
+    f.write('[ColorScheme]\n')
+    f.write('active_colors=%s\n' % ', '.join(ativa))
+    f.write('disabled_colors=%s\n' % ', '.join(desativada))
+    f.write('inactive_colors=%s\n' % ', '.join(inativa))
+
+with open(CONF, 'w') as f:
+    f.write('''[Appearance]
+color_scheme_path=%s
+custom_palette=true
+icon_theme=%s
+standard_dialogs=xdgdesktopportal
+style=%s
+
+[Fonts]
+fixed=%s
+general=%s
+
+[Interface]
+activate_item_on_single_click=0
+buttonbox_layout=0
+cursor_flash_time=1000
+dialog_buttons_have_icons=1
+double_click_interval=400
+gui_effects=@Invalid()
+keyboard_scheme=2
+menus_have_icons=true
+show_shortcuts_in_context_menus=true
+stylesheets=@Invalid()
+toolbutton_style=4
+underline_shortcut=1
+wheel_scroll_lines=3
+
+[Troubleshooting]
+force_raster_widgets=1
+ignored_applications=@Invalid()
+''' % (CORES, icones, estilo, letra(fixa, 10), letra(geral, 10)))
+
+print('aparência Qt: qt6ct com o estilo %s, ícones %s, letra %s / %s' % (estilo, icones, geral, fixa))

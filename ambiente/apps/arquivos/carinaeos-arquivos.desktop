@@ -1,0 +1,21 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae Documentos
+GenericName=Gestor de ficheiros
+Comment=Os seus ficheiros, unidades e pastas de rede
+Icon=system-file-manager
+Exec=carinaeos-arquivos %U
+Terminal=false
+StartupWMClass=carinaeos-arquivos
+Categories=System;FileTools;FileManager;Utility;Core;
+MimeType=inode/directory;
+Keywords=ficheiros;arquivos;pastas;explorador;documentos;rede;smb;
+Actions=nova-janela;rede;
+
+[Desktop Action nova-janela]
+Name=Nova janela
+Exec=carinaeos-arquivos
+
+[Desktop Action rede]
+Name=Rede
+Exec=carinaeos-arquivos carinae:rede

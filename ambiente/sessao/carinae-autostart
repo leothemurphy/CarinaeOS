@@ -1,0 +1,116 @@
+#!/usr/bin/python3
+"""CarinaeOS — corre os programas de arranque (XDG autostart) na sessão CarinaeOS.
+
+Lê ~/.config/autostart (tem prioridade) e /etc/xdg/autostart. Corre os que servem para o
+CarinaeOS ou para o KDE, menos as peças do próprio Plasma (que aqui não fazem falta).
+Para não correr algum: escreve o nome do .desktop em ~/.config/carinaeos/autostart-ignorar
+(um por linha).
+"""
+import configparser
+import os
+import shlex
+import shutil
+import subprocess
+
+CASA = os.path.expanduser("~")
+PASTAS = [os.path.join(os.environ.get("XDG_CONFIG_HOME", CASA + "/.config"), "autostart")]
+PASTAS += [os.path.join(d, "autostart") for d in os.environ.get("XDG_CONFIG_DIRS", "/etc/xdg").split(":") if d]
+AMBIENTES = {"CarinaeOS", "KDE"}
+
+# peças do Plasma (ou do arranque antigo do CarinaeOS) que não fazem sentido sem o Plasma
+IGNORAR = {
+    "org.kde.plasmashell.desktop", "plasmashell.desktop", "org.kde.kwin.desktop", "ksmserver.desktop",
+    "org.kde.plasma-fallback-session-restore.desktop", "xembedsniproxy.desktop", "gmenudbusmenuproxy.desktop",
+    "org.kde.plasma.emojier.desktop", "plasma-welcome.desktop", "org.kde.plasma-welcome.desktop",
+    "carinaeos-kwin-guarda.desktop", "carinaeos-medir-arranque.desktop", "polkit-kde-authentication-agent-1.desktop",
+    "org.kde.discover.notifier.desktop", "org.kde.kalendarac.desktop",
+    "picom.desktop", "compton.desktop",
+    # só servem no Plasma, no Wayland ou em máquinas virtuais
+    "carinaeos-ambiente-inicio.desktop", "org.kde.xwaylandvideobridge.desktop", "spice-vdagent.desktop",          # o compositor já é arrancado pelo startcarinae
+    # serviços do KDE que o CarinaeOS faz de outra forma (ou não precisa) — o arranque fica mais leve
+    "baloo_file.desktop",              # indexador de ficheiros do KDE (muito disco; o Comando procura sem ele)
+    "kaccess.desktop",                 # acessibilidade do KDE
+    "kglobalacceld.desktop",           # atalhos globais do KDE (os nossos são da Gravidade)
+    "powerdevil.desktop",              # energia do KDE (num PC de mesa só dava erros)
+    "xapp-sn-watcher.desktop",         # outro "vigia" da bandeja (o nosso é o carinae-vigia-bandeja)
+    "xdg-user-dirs-kde.desktop",       # repetido (o xdg-user-dirs já faz isto)
+    "org.gnome.Evolution-alarm-notify.desktop",   # lembretes do Evolution (os nossos são da Agenda)
+    "mpdris2.desktop",                 # o Pulsar liga-o quando liga a música
+    "pam_kwallet_init.desktop",        # carteira do KDE
+    "im-launch.desktop",               # método de entrada (ibus); o teclado português não precisa
+}
+
+# coisas úteis mas que não precisam de estar prontas no primeiro segundo: arrancam um pouco depois
+ATRASAR = {
+    "org.kde.kdeconnect.daemon.desktop": 20,
+}
+
+
+def ignorados() -> set:
+    r = set(IGNORAR)
+    try:
+        with open(os.path.join(CASA, ".config/carinaeos/autostart-ignorar"), encoding="utf-8") as f:
+            r |= {l.strip() for l in f if l.strip() and not l.startswith("#")}
+    except OSError:
+        pass
+    return r
+
+
+def lista(v: str) -> set:
+    return {x for x in v.split(";") if x}
+
+
+def correr(nome: str, caminho: str) -> None:
+    cp = configparser.ConfigParser(interpolation=None, strict=False)
+    cp.optionxform = str
+    try:
+        cp.read(caminho, encoding="utf-8")
+    except (configparser.Error, UnicodeDecodeError):
+        return
+    if "Desktop Entry" not in cp:
+        return
+    e = cp["Desktop Entry"]
+    if e.get("Hidden", "false").lower() == "true":
+        return
+    if e.get("X-GNOME-Autostart-enabled", "true").lower() == "false":
+        return
+    so, nao = lista(e.get("OnlyShowIn", "")), lista(e.get("NotShowIn", ""))
+    if so and not (so & AMBIENTES):
+        return
+    if "CarinaeOS" in nao:
+        return
+    tryexec = e.get("TryExec", "")
+    if tryexec and not shutil.which(tryexec) and not os.access(tryexec, os.X_OK):
+        return
+    cmd = e.get("Exec", "")
+    if not cmd:
+        return
+    try:
+        args = [a for a in shlex.split(cmd) if not (len(a) == 2 and a.startswith("%"))]
+    except ValueError:
+        return
+    if not args or not shutil.which(args[0]) and not os.access(args[0], os.X_OK):
+        return
+    atraso = ATRASAR.get(nome, 0)
+    print("carinae-autostart:", nome, "->", " ".join(args), "(daqui a %d s)" % atraso if atraso else "", flush=True)
+    if atraso:
+        args = ["sh", "-c", 'sleep %d; exec "$@"' % atraso, "sh"] + args
+    subprocess.Popen(args, start_new_session=True, stdin=subprocess.DEVNULL, cwd=CASA)
+
+
+def main() -> None:
+    vistos, ign = set(), ignorados()
+    for pasta in PASTAS:
+        if not os.path.isdir(pasta):
+            continue
+        for nome in sorted(os.listdir(pasta)):
+            if not nome.endswith(".desktop") or nome in vistos:
+                continue
+            vistos.add(nome)          # o de ~/.config/autostart esconde o do sistema com o mesmo nome
+            if nome in ign:
+                continue
+            correr(nome, os.path.join(pasta, nome))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,93 @@
+#!/usr/bin/python3
+# CarinaeOS — a aparência dos programas GTK e Electron (Firefox, Claude, GIMP, os diálogos de abrir/salvar
+# do portal): tema escuro, os ícones e a letra do CarinaeOS. Substitui o "kde-gtk-config" do Plasma.
+#   carinae-aparencia-gtk            aplica (só muda o que é do Plasma ou o que está por omissão)
+#   carinae-aparencia-gtk --forcar   aplica tudo outra vez
+import configparser
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+CASA = os.path.expanduser('~')
+FORCAR = '--forcar' in sys.argv
+
+TEMA_GTK = 'Adwaita'          # vem com o GTK, não depende de nada; o escuro é pedido à parte
+LETRA = 'Inter 10'
+try:
+    ESCURO = json.load(open(os.path.join(CASA, '.config/carinaeos/aparencia.json'))).get('tema', 'escuro') != 'claro'
+except (OSError, ValueError):
+    ESCURO = True
+
+
+def tema_icones():
+    """O mesmo tema de ícones da Aurora (WhiteSur-dark se existir, senão Papirus-Dark, senão Adwaita)."""
+    for t in ('WhiteSur-dark', 'Papirus-Dark', 'Adwaita'):
+        for base in (os.path.join(CASA, '.local/share/icons'), os.path.join(CASA, '.icons'),
+                     '/usr/share/icons', '/usr/local/share/icons'):
+            if os.path.isfile(os.path.join(base, t, 'index.theme')):
+                return t
+    return 'Adwaita'
+
+
+def do_plasma(valor):
+    v = (valor or '').strip("'\" ").lower()
+    return v == '' or v.startswith('breeze') or v in ('default', 'adwaita', 'hicolor', 'oxygen')
+
+
+def settings_ini(pasta, gtk4):
+    f = os.path.join(CASA, '.config', pasta, 'settings.ini')
+    c = configparser.ConfigParser(strict=False, interpolation=None)
+    c.optionxform = str
+    try:
+        c.read(f)
+    except configparser.Error:
+        c = configparser.ConfigParser(interpolation=None)
+        c.optionxform = str
+    if not c.has_section('Settings'):
+        c.add_section('Settings')
+    s = c['Settings']
+    if FORCAR or do_plasma(s.get('gtk-theme-name')):
+        s['gtk-theme-name'] = TEMA_GTK
+    if FORCAR or do_plasma(s.get('gtk-icon-theme-name')):
+        s['gtk-icon-theme-name'] = tema_icones()
+    if FORCAR or not s.get('gtk-font-name') or 'noto sans' in s.get('gtk-font-name', '').lower():
+        s['gtk-font-name'] = LETRA
+    s['gtk-application-prefer-dark-theme'] = '1' if ESCURO else '0'
+    if not gtk4:
+        s.setdefault('gtk-cursor-theme-name', 'breeze_cursors' if os.path.isdir('/usr/share/icons/breeze_cursors') else 'Adwaita')
+    # o kde-gtk-config punha os botões das janelas à moda do Plasma
+    if 'gtk-decoration-layout' in s and (FORCAR or s['gtk-decoration-layout'].startswith('icon:')):
+        del s['gtk-decoration-layout']
+    os.makedirs(os.path.dirname(f), exist_ok=True)
+    with open(f, 'w') as o:
+        c.write(o, space_around_delimiters=False)
+
+
+def gsettings(chave, valor, so_se_plasma=True):
+    if not shutil.which('gsettings'):
+        return
+    try:
+        atual = subprocess.run(['gsettings', 'get', 'org.gnome.desktop.interface', chave],
+                               capture_output=True, text=True, timeout=5).stdout.strip()
+    except Exception:
+        return
+    if FORCAR or not so_se_plasma or do_plasma(atual):
+        subprocess.run(['gsettings', 'set', 'org.gnome.desktop.interface', chave, valor],
+                       capture_output=True, timeout=5)
+
+
+settings_ini('gtk-3.0', False)
+settings_ini('gtk-4.0', True)
+gsettings('gtk-theme', TEMA_GTK)
+gsettings('icon-theme', tema_icones())
+gsettings('color-scheme', 'prefer-dark' if ESCURO else 'default', so_se_plasma=False)
+if FORCAR:
+    gsettings('font-name', LETRA, so_se_plasma=False)
+# o GTK 2 (programas muito antigos) — o kde-gtk-config deixava aqui o Breeze
+g2 = os.path.join(CASA, '.gtkrc-2.0')
+if os.path.isfile(g2) and 'breeze' in open(g2, errors='ignore').read().lower():
+    with open(g2, 'w') as o:
+        o.write('gtk-theme-name="Adwaita-dark"\ngtk-icon-theme-name="%s"\ngtk-font-name="%s"\n' % (tema_icones(), LETRA))
+print('aparência GTK: Adwaita ' + ('escuro' if ESCURO else 'claro') + ', ícones %s, letra %s' % (tema_icones(), LETRA))

@@ -1,0 +1,9 @@
+[Unit]
+Description=CarinaeOS: arrancar a partilha de pastas 100 s depois de ligar (depois do login)
+
+[Timer]
+OnBootSec=100s
+Unit=carinae-adiar.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae Calculadora
+GenericName=Calculadora
+Comment=Contas do dia a dia e científicas
+Icon=carinaeos-calculadora
+Exec=carinaeos-calculadora
+Terminal=false
+StartupWMClass=carinaeos-calculadora
+Categories=Utility;Calculator;
+Keywords=calculadora;calculator;contas;matemática;kcalc;

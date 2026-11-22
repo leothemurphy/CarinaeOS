@@ -1,0 +1,26 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae Terminal
+GenericName=Terminal
+Comment=A linha de comandos do CarinaeOS
+Icon=carinaeos-terminal
+Exec=carinae-terminal
+TryExec=carinae-terminal
+Terminal=false
+StartupNotify=true
+StartupWMClass=carinae-terminal
+Categories=System;TerminalEmulator;
+Keywords=terminal;konsole;shell;bash;prompt;comandos;linha de comandos;console;
+Actions=NovaJanela;Administrador;Aparencia;
+
+[Desktop Action NovaJanela]
+Name=Nova janela
+Exec=carinae-terminal
+
+[Desktop Action Administrador]
+Name=Terminal como administrador
+Exec=carinae-terminal -T Administrador -e sudo -i
+
+[Desktop Action Aparencia]
+Name=Aparência do terminal…
+Exec=carinae-terminal-aparencia

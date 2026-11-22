@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae Notas
+GenericName=Bloco de notas
+Comment=Escrever e editar texto simples
+Icon=carinaeos-notas
+Exec=carinaeos-notas %F
+Terminal=false
+StartupWMClass=carinaeos-notas
+Categories=Utility;TextEditor;
+Keywords=bloco de notas;notepad;notas;texto;editor;kate;kwrite;txt;
+MimeType=text/plain;text/markdown;text/x-log;text/csv;application/x-shellscript;text/x-python;application/json;application/xml;text/xml;application/x-desktop;text/x-ini;

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=XSession
+Name=CarinaeOS (Gravidade)
+Comment=O ambiente do CarinaeOS: Gravidade (janelas) + Aurora (barra, Dock, área de trabalho), sem Plasma
+Exec=/usr/local/bin/startcarinae
+TryExec=/usr/local/bin/startcarinae
+DesktopNames=CarinaeOS

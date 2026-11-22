@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Aparência do Carinae Terminal
+Comment=Cores, fonte e transparência do Terminal Carinae
+Icon=carinaeos-terminal
+Exec=carinae-terminal-aparencia
+Terminal=false
+StartupWMClass=carinae-terminal-aparencia
+Categories=Settings;DesktopSettings;
+Keywords=terminal;cores;tema;fonte;transparência;

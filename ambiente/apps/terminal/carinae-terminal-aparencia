@@ -1,0 +1,3 @@
+#!/bin/sh
+# CarinaeOS — Terminal Carinae: aparência (cores, fonte, transparência)
+exec python3 /usr/local/share/carinaeos/terminal/aparencia.py "$@"

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Comando (Ctrl+Espaço) — fica pronto em segundo plano
+Exec=carinaeos-comando --fundo
+NoDisplay=true
+OnlyShowIn=CarinaeOS;
+X-GNOME-Autostart-enabled=true

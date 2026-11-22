@@ -1,0 +1,25 @@
+#!/bin/sh
+# CarinaeOS - sessão de experimentar (ISO ao vivo): entra sozinho no ambiente do CarinaeOS, com o
+# "Instalar o CarinaeOS" na Dock e sem bloquear o ecrã (o utilizador ao vivo não tem senha).
+U="${LIVE_USERNAME:-carinae}"
+for f in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+    [ -f "$f" ] && sed -i 's/^Session=.*/Session=carinae.desktop/' "$f"
+done
+if ! grep -qs '^\[Autologin\]' /etc/sddm.conf /etc/sddm.conf.d/*.conf; then
+    mkdir -p /etc/sddm.conf.d
+    printf '[Autologin]\nUser=%s\nSession=carinae.desktop\n' "$U" > /etc/sddm.conf.d/90-carinaeos-ao-vivo.conf
+fi
+H=$(getent passwd "$U" | cut -d: -f6)
+[ -n "$H" ] && [ -d "$H" ] || exit 0
+C="$H/.config/carinaeos"
+mkdir -p "$C"
+INST=calamares-install-debian.desktop
+[ -f /usr/share/applications/$INST ] || INST=$(ls /usr/share/applications/ | grep -i calamares | head -1)
+cat > "$C/dock.json" <<EOT
+{"launchers": ["applications:$INST", "applications:carinaeos-arquivos.desktop", "applications:firefox-esr.desktop",
+ "applications:carinaeos-terminal.desktop", "applications:carinaeos-configuracoes.desktop"]}
+EOT
+cat > "$C/energia.json" <<'EOT'
+{"desligarEcra": 0, "bloquear": false, "bloquearAoSuspender": false, "suspender": 0, "botao": "perguntar"}
+EOT
+chown -R "$U:" "$H/.config"
