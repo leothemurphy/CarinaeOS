@@ -14,8 +14,10 @@
 #include <QJsonObject>
 #include <QProcess>
 #include <QTimer>
+#include <QUrl>
 
 #include <unistd.h>
+#include <pwd.h>
 
 using namespace X11;
 
@@ -48,6 +50,26 @@ Sistema::Sistema(QObject *parent) : QObject(parent) {
 }
 
 QString Sistema::casa() const { return QDir::homePath(); }
+
+QString Sistema::nomeUtilizador() const {
+    if (const passwd *p = getpwuid(getuid())) {
+        const QString gecos = QString::fromLocal8Bit(p->pw_gecos).section(QLatin1Char(','), 0, 0).trimmed();
+        if (!gecos.isEmpty()) return gecos;
+        const QString login = QString::fromLocal8Bit(p->pw_name);
+        if (!login.isEmpty()) return login.left(1).toUpper() + login.mid(1);
+    }
+    return qEnvironmentVariable("USER");
+}
+
+QString Sistema::fotoUtilizador() const {
+    const QString login = qEnvironmentVariable("USER");
+    const QStringList c = {QDir::homePath() + QStringLiteral("/.face.icon"), QDir::homePath() + QStringLiteral("/.face"),
+                           QStringLiteral("/var/lib/AccountsService/icons/") + login,
+                           QStringLiteral("/usr/share/carinaeos/marca/avatar-redondo.png")};
+    for (const QString &f : c)
+        if (QFileInfo(f).isFile() && QFileInfo(f).isReadable()) return QUrl::fromLocalFile(f).toString();
+    return QString();
+}
 
 QScreen *Sistema::ecraPrincipal() const {
     // o mesmo ficheiro que o CarinaeOS já usava (~/.config/carinaeos/ecra-principal)

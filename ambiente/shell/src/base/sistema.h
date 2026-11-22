@@ -29,6 +29,9 @@ class Sistema : public QObject, public X11::Ouvinte {
     Q_PROPERTY(QString nomeAppAtiva READ nomeAppAtiva NOTIFY ativaChanged)
     Q_PROPERTY(QString iconeAppAtiva READ iconeAppAtiva NOTIFY ativaChanged)
     Q_PROPERTY(QString casa READ casa CONSTANT)
+    // o nome de quem está na sessão (o nome completo da conta, ou o login) e a sua foto
+    Q_PROPERTY(QString nomeUtilizador READ nomeUtilizador CONSTANT)
+    Q_PROPERTY(QString fotoUtilizador READ fotoUtilizador CONSTANT)
     Q_PROPERTY(QString pastaQml READ pastaQml CONSTANT)
 public:
     static Sistema *instancia();
@@ -42,6 +45,8 @@ public:
     QString nomeAppAtiva() const { return m_nomeApp; }
     QString iconeAppAtiva() const { return m_iconeApp; }
     QString casa() const;
+    QString nomeUtilizador() const;
+    QString fotoUtilizador() const;
     QString pastaQml() const { return m_pastaQml; }
     void setPastaQml(const QString &p) { m_pastaQml = p; }
 

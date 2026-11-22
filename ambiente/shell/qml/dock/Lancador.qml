@@ -18,6 +18,7 @@ import QtQuick.Effects
 import QtQuick.Controls as QQC2
 
 import CarinaeOS.Compat as Kirigami
+import CarinaeOS.Base as Base
 import CarinaeOS.Compat as Kicker
 import CarinaeOS.Compat as P5Support
 import QtCore
@@ -1785,13 +1786,14 @@ Kicker.DashboardWindow {
                         Image {
                             width: Math.round(44 * palco.u)
                             height: width
-                            source: "file:///usr/share/carinaeos/marca/avatar-redondo.png"
+                            source: Base.Sistema.fotoUtilizador
+                            visible: source != ""
                             fillMode: Image.PreserveAspectFit
                             smooth: true
                             asynchronous: true
                         }
                         Text {
-                            text: "Leo"
+                            text: Base.Sistema.nomeUtilizador
                             color: lp.texto
                             font.pixelSize: Math.round(15 * palco.u)
                             font.weight: Font.DemiBold
