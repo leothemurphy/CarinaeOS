@@ -42,7 +42,8 @@ xdg-desktop-portal
 xdg-desktop-portal-gtk
 xdg-utils
 gnome-keyring
-policykit-1
+polkitd
+pkexec
 upower
 picom
 xss-lock
