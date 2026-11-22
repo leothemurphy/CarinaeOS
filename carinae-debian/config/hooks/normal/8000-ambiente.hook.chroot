@@ -24,11 +24,18 @@ cmake --install $B
 rm -rf $B
 
 # as bibliotecas que os programas compilados usam ficam marcadas como precisas
-PRECISAS=$(find /usr/local/bin /usr/local/lib /usr/local/share/carinaeos -type f \( -perm -u+x -o -name '*.so*' \) 2>/dev/null \
+PRECISAS=$(find -L /usr/local/bin /usr/local/lib /usr/local/share/carinaeos -type f \( -perm -u+x -o -name '*.so*' \) 2>/dev/null \
   | xargs -r ldd 2>/dev/null | awk '/=> \//{print $3}' | sort -u \
   | xargs -r dpkg -S 2>/dev/null | cut -d: -f1 | sort -u)
 [ -n "$PRECISAS" ] && apt-mark manual $PRECISAS >/dev/null
 echo "bibliotecas do ambiente: $(echo $PRECISAS | wc -w) pacotes"
+
+# bibliotecas e módulos QML que vieram com as ferramentas também ficam (o autoremove não os leva)
+echo "$ANTES" > /tmp/antes.txt
+NOVOS=$(dpkg-query -W -f='${Package}\n' | sort | comm -13 /tmp/antes.txt -)
+FICAM=$(echo "$NOVOS" | grep -E '^(lib.*[0-9](t64)?(:amd64)?$|qml6-module-|qt6-.*-plugins?$|libqt6)' | grep -vE -- '-(dev|dev-tools|doc)$' || true)
+[ -n "$FICAM" ] && apt-mark manual $FICAM >/dev/null
+echo "ficam também: $(echo $FICAM | wc -w) pacotes"
 
 # tirar só as ferramentas de compilar que este hook instalou
 TIRAR=""
