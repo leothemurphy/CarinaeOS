@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CarinaeOS — um ambiente de trabalho novo, feito de raiz</title>
+<meta name="description" content="CarinaeOS é um sistema Linux com um ambiente de trabalho próprio: o gestor de janelas Gravidade, o shell Aurora e os apps Carinae. Baixe a ISO 1.0 beta.">
+<meta property="og:title" content="CarinaeOS">
+<meta property="og:description" content="Um ambiente de trabalho novo, feito de raiz. Gravidade + Aurora + apps Carinae, sobre Debian 13.">
+<meta property="og:image" content="https://carinae-os.pt/img/partilha.jpg">
+<meta property="og:url" content="https://carinae-os.pt/">
+<meta name="theme-color" content="#15121a">
+<link rel="icon" href="img/favicon-64.png" type="image/png">
+<link rel="preload" href="fontes/Inter-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fontes/InterDisplay-Bold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="estilo.css">
+<script>document.documentElement.classList.add("js")</script>
+</head>
+<body>
+<a class="saltar" href="#sobre">Saltar para o conteúdo</a>
+
+<!-- a barra de cima, como a da Aurora -->
+<header class="barra">
+  <div class="barra-esq">
+    <button class="estrela-btn" id="estrela-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-estrela">
+      <img src="img/favicon-64.png" alt="Menu CarinaeOS" width="20" height="20">
+    </button>
+    <span class="app-ativa" id="app-ativa">CarinaeOS</span>
+  </div>
+  <div class="barra-dir">
+    <a class="barra-link" href="https://github.com/leothemurphy/CarinaeOS">GitHub</a>
+    <time id="relogio" class="relogio"></time>
+  </div>
+  <div class="menu-estrela" id="menu-estrela" role="menu" hidden>
+    <a role="menuitem" href="#sobre" data-abrir="sobre">Sobre o CarinaeOS</a>
+    <a role="menuitem" href="#baixar" data-abrir="baixar">Baixar a ISO</a>
+    <a role="menuitem" href="#distros" data-abrir="distros">Instalar noutra distribuição</a>
+    <hr>
+    <a role="menuitem" href="https://github.com/leothemurphy/CarinaeOS/tree/main/docs/manual">Manual</a>
+    <a role="menuitem" href="https://github.com/leothemurphy/CarinaeOS">Código no GitHub</a>
+    <a role="menuitem" href="https://github.com/leothemurphy/CarinaeOS/issues">Comunicar um problema</a>
+  </div>
+</header>
+
+<main class="mesa" id="mesa">
+  <h1 class="titulo-mesa">
+    <span class="titulo-nome">CarinaeOS</span>
+    <span class="titulo-frase">Um ambiente de trabalho novo, feito de raiz.</span>
+  </h1>
+  <a class="botao botao-ouro so-telemovel" href="#baixar" data-abrir="baixar">Baixar a ISO 1.0 beta</a>
+  <p class="dica-mesa" id="dica-mesa">Esta página é uma área de trabalho. Use a Dock em baixo para abrir as janelas.</p>
+
+  <!-- ===== janelas ===== -->
+
+  <section class="janela" id="sobre" data-app="launchpad" aria-labelledby="t-sobre">
+    <div class="janela-topo">
+      <div class="semaforo"><button class="s-fechar" aria-label="Fechar"></button><button class="s-min" aria-label="Minimizar"></button><button class="s-max" aria-label="Maximizar"></button></div>
+      <h2 class="janela-titulo" id="t-sobre">Sobre o CarinaeOS</h2>
+    </div>
+    <div class="janela-corpo">
+      <p class="grande">CarinaeOS é um sistema Linux com um <strong>ambiente de trabalho todo novo</strong>: o gestor de janelas
+        <strong>Gravidade</strong>, o shell <strong>Aurora</strong> e a família de <strong>apps Carinae</strong>.</p>
+      <p>Não é um tema nem uma modificação do KDE, do GNOME ou do XFCE. Cada peça foi escrita para o CarinaeOS,
+        perto de 40 mil linhas de código próprio, e a ISO assenta na base estável do <strong>Debian 13</strong>.</p>
+      <p>Foi feito para quem quer um Linux bonito e fácil desde o primeiro minuto, sem precisar de abrir o terminal.
+        O nome vem de <em>Eta Carinae</em>, uma das estrelas mais brilhantes e instáveis da nossa galáxia.</p>
+      <div class="acoes">
+        <a class="botao botao-ouro" href="#baixar" data-abrir="baixar">Baixar a ISO 1.0 beta</a>
+        <a class="botao" href="#raiz" data-abrir="raiz">Como foi feito</a>
+      </div>
+      <p class="nota">Versão 1.0 beta: já se usa e instala, mas ainda pode ter arestas.
+        Criado por Leonardo Mendes com o Claude (Anthropic). Código livre sob GPL-2.0-or-later.</p>
+    </div>
+  </section>
+
+  <section class="janela" id="raiz" data-app="documentos" aria-labelledby="t-raiz">
+    <div class="janela-topo">
+      <div class="semaforo"><button class="s-fechar" aria-label="Fechar"></button><button class="s-min" aria-label="Minimizar"></button><button class="s-max" aria-label="Maximizar"></button></div>
+      <h2 class="janela-titulo" id="t-raiz">Feito de raiz</h2>
+    </div>
+    <div class="janela-corpo">
+      <p class="grande">Quatro camadas, todas do CarinaeOS. Por baixo, só as bibliotecas comuns a qualquer programa Linux.</p>
+      <dl class="camadas">
+        <div class="camada c-apps">
+          <dt>Apps Carinae</dt>
+          <dd>Documentos, Terminal, Configurações, Comando, Monitor, Fotos, PDF, Notas, Calculadora, Compactador e Emojis, todos com o mesmo visual e os mesmos atalhos.</dd>
+          <dd class="tec">Python, PySide6 e QML; o Terminal em C++</dd>
+        </div>
+        <div class="camada c-aurora">
+          <dt>Aurora</dt>
+          <dd>O shell: papel de parede, a barra de cima com o menu da estrela, a Dock com a luz dourada e pré-visualização das janelas, e o Launchpad com ambientes.</dd>
+          <dd class="tec">C++ e Qt 6 / QML</dd>
+        </div>
+        <div class="camada c-gravidade">
+          <dt>Gravidade</dt>
+          <dd>O gestor de janelas: molduras com os botões à esquerda, encaixar nas metades e em zonas, quatro áreas de trabalho, vários monitores e todos os atalhos.</dd>
+          <dd class="tec">C++ sobre XCB e cairo</dd>
+        </div>
+        <div class="camada c-sessao">
+          <dt>Sessão</dt>
+          <dd>Arranque da sessão, bloqueio do ecrã, janela de senha e gestão de energia.</dd>
+          <dd class="tec">C++ e shell</dd>
+        </div>
+        <div class="camada c-base">
+          <dt>Base</dt>
+          <dd>Linux, X11, Qt 6, PAM e polkit. Na ISO, o Debian 13.</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="janela janela-larga" id="capturas" data-app="fotos" aria-labelledby="t-capturas">
+    <div class="janela-topo">
+      <div class="semaforo"><button class="s-fechar" aria-label="Fechar"></button><button class="s-min" aria-label="Minimizar"></button><button class="s-max" aria-label="Maximizar"></button></div>
+      <h2 class="janela-titulo" id="t-capturas">Carinae Fotos</h2>
+    </div>
+    <div class="janela-corpo galeria">
+      <figure class="foto-grande"><img id="foto-grande" src="img/01-ambiente.webp" alt="Carinae Documentos e Carinae Terminal na área de trabalho" width="1600" height="900" loading="lazy">
+        <figcaption id="foto-legenda">Carinae Documentos e Carinae Terminal, com o papel de parede Fusão.</figcaption></figure>
+      <ul class="tiras" id="tiras">
+        <li><button data-img="01-ambiente" data-leg="Carinae Documentos e Carinae Terminal, com o papel de parede Fusão." aria-current="true"><img src="img/01-ambiente-p.webp" alt="Documentos e Terminal" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="02a-ambientes" data-leg="O Launchpad organiza os aplicativos em ambientes. Os que instala depois ficam em Novos aplicativos."><img src="img/02a-ambientes-p.webp" alt="Launchpad com ambientes" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="02-launchpad" data-leg="Um ambiente aberto no Launchpad. Escreva para pesquisar."><img src="img/02-launchpad-p.webp" alt="Ambiente aberto no Launchpad" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="03-comando" data-leg="O Comando (Ctrl+Espaço) encontra aplicativos e arquivos, faz contas e corre ações."><img src="img/03-comando-p.webp" alt="Comando" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="08-documentos" data-leg="Carinae Documentos: abas, galeria, etiquetas, pastas de rede e cofre com senha."><img src="img/08-documentos-p.webp" alt="Carinae Documentos" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="06-fotos" data-leg="Carinae Fotos: zoom, rodar, apresentação e informações da imagem."><img src="img/06-fotos-p.webp" alt="Carinae Fotos" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="05-apps" data-leg="Carinae Notas, Calculadora e Emojis."><img src="img/05-apps-p.webp" alt="Notas, Calculadora e Emojis" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="10-pdf" data-leg="Carinae PDF: miniaturas, índice, pesquisa e PDFs com senha."><img src="img/10-pdf-p.webp" alt="Carinae PDF" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="09-compactador" data-leg="Carinae Compactador: ZIP, 7z, TAR e muitos outros formatos."><img src="img/09-compactador-p.webp" alt="Carinae Compactador" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="11-dock-config" data-leg="Configurações da Dock: seis modelos, animação, tamanho e posição."><img src="img/11-dock-config-p.webp" alt="Configurações da Dock" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="07-configuracoes" data-leg="Carinae Configurações: tudo num só lugar."><img src="img/07-configuracoes-p.webp" alt="Configurações, aparência" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="04-monitor" data-leg="Carinae Monitor: desempenho, processos e teste de velocidade da internet."><img src="img/04-monitor-p.webp" alt="Carinae Monitor" loading="lazy" width="800" height="450"></button></li>
+        <li><button data-img="12-estrela" data-leg="O menu da estrela, no canto, como o deste site."><img src="img/12-estrela-p.webp" alt="Menu da estrela" loading="lazy" width="800" height="450"></button></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="janela" id="novidades" data-app="notas" aria-labelledby="t-novidades">
+    <div class="janela-topo">
+      <div class="semaforo"><button class="s-fechar" aria-label="Fechar"></button><button class="s-min" aria-label="Minimizar"></button><button class="s-max" aria-label="Maximizar"></button></div>
+      <h2 class="janela-titulo" id="t-novidades">novidades-1.0-beta.txt</h2>
+    </div>
+    <div class="janela-corpo notas">
+      <ul>
+        <li>Papel de parede <strong>Fusão</strong>, criado para o CarinaeOS, até 8K.</li>
+        <li>O ambiente instala-se também em <strong>Ubuntu, Fedora, Arch e openSUSE</strong>.</li>
+        <li>No <strong>Launchpad</strong>, os aplicativos que instala depois ficam em <em>Novos aplicativos</em> até escolher o ambiente deles.</li>
+        <li>A <strong>Dock</strong> muda de modelo logo nas Configurações, com a luz dourada ligada de origem.</li>
+        <li><strong>Sem restos do KDE</strong>: tudo abre os apps Carinae.</li>
+        <li>Placas <strong>NVIDIA antigas</strong> (Kepler, como a GT 710) instalam pela Central sem ficar com a tela preta.</li>
+        <li>Um computador desligado na rede já não deixa o sistema lento à espera dele.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="janela" id="requisitos" data-app="monitor" aria-labelledby="t-requisitos">
+    <div class="janela-topo">
+      <div class="semaforo"><button class="s-fechar" aria-label="Fechar"></button><button class="s-min" aria-label="Minimizar"></button><button class="s-max" aria-label="Maximizar"></button></div>
+      <h2 class="janela-titulo" id="t-requisitos">Carinae Monitor: requisitos</h2>
+    </div>
+    <div class="janela-corpo">
+      <dl class="medidores">
+        <div><dt>Processador</dt><dd>64 bits (x86-64)</dd><span class="barra-medida" style="--v:.35"></span></div>
+        <div><dt>Memória</dt><dd>4 GB (8 GB recomendado)</dd><span class="barra-medida" style="--v:.5"></span></div>
+        <div><dt>Disco</dt><dd>30 GB</dd><span class="barra-medida" style="--v:.3"></span></div>
+        <div><dt>Arranque</dt><dd>UEFI ou BIOS antigo; instala ao lado do Windows</dd><span class="barra-medida" style="--v:.8"></span></div>
+        <div><dt>Gráficos</dt><dd>Intel, AMD e NVIDIA (incluindo placas antigas pela Central)</dd><span class="barra-medida" style="--v:.7"></span></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="janela janela-larga" id="baixar" data-app="transferencias" aria-labelledby="t-baixar">
+    <div class="janela-topo">
+      <div class="semaforo"><button class="s-fechar" aria-label="Fechar"></button><button class="s-min" aria-label="Minimizar"></button><button class="s-max" aria-label="Maximizar"></button></div>
+      <h2 class="janela-titulo" id="t-baixar">Transferências</h2>
+    </div>
+    <div class="janela-corpo">
+      <div class="baixar-cabeca">
+        <img src="img/estrela-256.png" alt="" width="72" height="72">
+        <div>
+          <h3>CarinaeOS <span id="versao">1.0 beta</span></h3>
+          <p class="nota">ISO para computadores de 64 bits, <span id="tamanho">2,5 GB</span> em duas partes</p>
+        </div>
+      </div>
+      <ol class="passos">
+        <li>
+          <h4>Baixe as duas partes</h4>
+          <p>O GitHub só aceita arquivos até 2 GB, por isso a ISO vem dividida. Guarde as duas na mesma pasta.</p>
+          <div class="acoes">
+            <a class="botao botao-ouro" id="parte00" href="https://github.com/leothemurphy/CarinaeOS/releases/download/carinaeos-v1.0-beta/CarinaeOS-1.0-amd64.iso.parte00">Parte 1 <small id="t-parte00">1,9 GB</small></a>
+            <a class="botao botao-ouro" id="parte01" href="https://github.com/leothemurphy/CarinaeOS/releases/download/carinaeos-v1.0-beta/CarinaeOS-1.0-amd64.iso.parte01">Parte 2 <small id="t-parte01">626 MB</small></a>
+          </div>
+        </li>
+        <li>
+          <h4>Junte as partes numa ISO</h4>
+          <div class="abas" role="tablist" aria-label="Sistema onde vai juntar">
+            <button role="tab" aria-selected="true" aria-controls="j-win" id="a-win">Windows</button>
+            <button role="tab" aria-selected="false" aria-controls="j-mac" id="a-mac">macOS</button>
+            <button role="tab" aria-selected="false" aria-controls="j-lin" id="a-lin">Linux</button>
+          </div>
+          <div class="aba" role="tabpanel" id="j-win" aria-labelledby="a-win">
+            <p>Abra a pasta, escreva <code>cmd</code> na barra de endereço e carregue em Enter. Depois:</p>
+            <pre><code>copy /b CarinaeOS-1.0-amd64.iso.parte00 + CarinaeOS-1.0-amd64.iso.parte01 CarinaeOS-1.0-amd64.iso</code><button class="copiar">Copiar</button></pre>
+            <p class="nota">No PowerShell, escreva <code>cmd /c</code> antes do mesmo comando.</p>
+          </div>
+          <div class="aba" role="tabpanel" id="j-mac" aria-labelledby="a-mac" hidden>
+            <p>No Terminal, dentro da pasta:</p>
+            <pre><code>cat CarinaeOS-1.0-amd64.iso.parte* &gt; CarinaeOS-1.0-amd64.iso</code><button class="copiar">Copiar</button></pre>
+          </div>
+          <div class="aba" role="tabpanel" id="j-lin" aria-labelledby="a-lin" hidden>
+            <p>No terminal, dentro da pasta:</p>
+            <pre><code>cat CarinaeOS-1.0-amd64.iso.parte* &gt; CarinaeOS-1.0-amd64.iso</code><button class="copiar">Copiar</button></pre>
+          </div>
+          <details class="soma">
+            <summary>Confirmar que a ISO veio inteira</summary>
+            <p>O código SHA-256 da ISO juntada tem de ser este:</p>
+            <pre><code id="sha">ca504ea8262362f3bee78be645d07549918d0a8e62cd4d24e8d92825437eba41</code></pre>
+            <p class="nota">Windows: <code>certutil -hashfile CarinaeOS-1.0-amd64.iso SHA256</code> · macOS: <code>shasum -a 256 CarinaeOS-1.0-amd64.iso</code> · Linux: <code>sha256sum CarinaeOS-1.0-amd64.iso</code></p>
+          </details>
+        </li>
+        <li>
+          <h4>Experimente e instale</h4>
+          <p>Grave a ISO num pen drive de 4 GB ou mais com o <a href="https://etcher.balena.io/">balenaEtcher</a> ou o
+            <a href="https://rufus.ie/">Rufus</a> (modo DD) e arranque por ele. Também funciona numa máquina virtual,
+            com 4 GB de memória e 30 GB de disco.</p>
+          <p>A sessão de experimentar entra sozinha. Gostou? Carregue em <strong>Instalar o CarinaeOS</strong>, o primeiro ícone da Dock.</p>
+        </li>
+      </ol>
+      <p class="nota">Todas as versões e notas: <a id="pagina-versao" href="https://github.com/leothemurphy/CarinaeOS/releases/tag/carinaeos-v1.0-beta">página da versão no GitHub</a>.</p>
+    </div>
+  </section>
+
+  <section class="janela janela-larga" id="distros" data-app="terminal" aria-labelledby="t-distros">
+    <div class="janela-topo">
+      <div class="semaforo"><button class="s-fechar" aria-label="Fechar"></button><button class="s-min" aria-label="Minimizar"></button><button class="s-max" aria-label="Maximizar"></button></div>
+      <h2 class="janela-titulo" id="t-distros">Terminal Carinae: instalar noutra distribuição</h2>
+    </div>
+    <div class="janela-corpo terminal">
+      <p class="t-com"># Já usa Linux? A Gravidade, a Aurora e os apps Carinae instalam-se ao lado do ambiente que tem.</p>
+      <p class="t-com"># Testado automaticamente em Debian 13, Ubuntu 25.10, Fedora, Arch Linux e openSUSE Tumbleweed.</p>
+      <pre class="t-bloco"><code><span class="t-ps">leo@linux:~$</span> curl -LO https://github.com/leothemurphy/CarinaeOS/releases/download/ambiente-v1.0-beta/carinaeos-ambiente-1.0-beta.tar.gz
+<span class="t-ps">leo@linux:~$</span> tar xf carinaeos-ambiente-1.0-beta.tar.gz
+<span class="t-ps">leo@linux:~$</span> cd carinaeos-ambiente-1.0-beta
+<span class="t-ps">leo@linux:~/carinaeos-ambiente-1.0-beta$</span> ./instalar-universal.sh</code><button class="copiar" data-texto="curl -LO https://github.com/leothemurphy/CarinaeOS/releases/download/ambiente-v1.0-beta/carinaeos-ambiente-1.0-beta.tar.gz
+tar xf carinaeos-ambiente-1.0-beta.tar.gz
+cd carinaeos-ambiente-1.0-beta
+./instalar-universal.sh">Copiar</button></pre>
+      <p class="t-com"># Depois termine a sessão e escolha "CarinaeOS (Gravidade)" na tela de entrada.</p>
+      <p class="t-com"># Para desinstalar: ./instalar-universal.sh --remover</p>
+      <p><a class="botao" href="https://github.com/leothemurphy/CarinaeOS/releases/tag/ambiente-v1.0-beta">Baixar o pacote do ambiente (4,6 MB)</a></p>
+    </div>
+  </section>
+
+  <noscript><p class="sem-js">Sem JavaScript, as janelas aparecem todas em sequência acima.</p></noscript>
+</main>
+
+<!-- a Dock, com a luz dourada -->
+<nav class="dock" id="dock" aria-label="Dock">
+  <div class="dock-vidro">
+    <span class="luz" id="luz" aria-hidden="true"></span>
+    <a class="icone" href="#sobre" data-abrir="sobre" data-nome="Sobre o CarinaeOS"><img src="img/dock/launchpad.png" alt="Sobre o CarinaeOS" width="92" height="88"></a>
+    <a class="icone" href="#raiz" data-abrir="raiz" data-nome="Feito de raiz"><img src="img/dock/documentos.png" alt="Feito de raiz" width="92" height="88"></a>
+    <a class="icone" href="#capturas" data-abrir="capturas" data-nome="Capturas de ecrã"><img src="img/dock/fotos.png" alt="Capturas de ecrã" width="92" height="88"></a>
+    <a class="icone" href="#novidades" data-abrir="novidades" data-nome="Novidades"><img src="img/dock/notas.png" alt="Novidades" width="92" height="88"></a>
+    <a class="icone" href="#distros" data-abrir="distros" data-nome="Instalar noutra distribuição"><img src="img/dock/terminal.png" alt="Instalar noutra distribuição" width="92" height="88"></a>
+    <a class="icone" href="#requisitos" data-abrir="requisitos" data-nome="Requisitos"><img src="img/dock/monitor.png" alt="Requisitos" width="92" height="88"></a>
+    <a class="icone" href="https://github.com/leothemurphy/CarinaeOS/tree/main/docs/manual" data-nome="Manual"><img src="img/dock/pdf.png" alt="Manual" width="92" height="88"></a>
+    <a class="icone" href="https://github.com/leothemurphy/CarinaeOS" data-nome="Código no GitHub"><img src="img/dock/configuracoes.png" alt="Código no GitHub" width="92" height="88"></a>
+    <span class="separador" aria-hidden="true"></span>
+    <a class="icone" href="#baixar" data-abrir="baixar" data-nome="Baixar a ISO"><img src="img/dock/transferencias.png" alt="Baixar a ISO" width="92" height="88"></a>
+  </div>
+  <span class="rotulo" id="rotulo" aria-hidden="true"></span>
+</nav>
+
+
+<script src="site.js" defer></script>
+</body>
+</html>
