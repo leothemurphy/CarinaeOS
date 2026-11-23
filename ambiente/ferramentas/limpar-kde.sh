@@ -3,7 +3,10 @@
 #   bash ferramentas/limpar-kde.sh              só mostra o que sairia (não muda nada)
 #   bash ferramentas/limpar-kde.sh --remover    remove (pergunta antes, guarda a lista para poder voltar atrás)
 #   bash ferramentas/limpar-kde.sh --restaurar ARQUIVO   reinstala o que foi removido
+#   bash ferramentas/limpar-kde.sh --automatico  remove sem perguntar e sem autoremove (é o que a ISO usa)
 set -u
+AUTOMATICO=0
+[ "${1:-}" = "--automatico" ] && { AUTOMATICO=1; set -- --remover; }
 cd "$(dirname "$0")/.."
 azul() { printf '\n\033[1;34m%s\033[0m\n' "$*"; }
 aviso() { printf '\033[1;33m%s\033[0m\n' "$*"; }
@@ -54,7 +57,7 @@ PADROES='^(plasma-.*|kde-plasma.*|task-kde.*|kde-standard|kde-baseapps|kwin.*|ks
 MANTER='^(skanlite|kdeconnect|kaccounts-integration|kaccounts-providers|sddm|breeze-cursor-theme|breeze-icon-theme|breeze-gtk-theme|kde-style-breeze|qt6-style-kvantum)$'
 
 # o que NUNCA pode sair (se o apt quiser levar algum destes, paramos)
-PROTEGER='^(sddm|xserver-xorg-core|xserver-xorg|network-manager|pipewire|pipewire-pulse|wireplumber|polkitd|udisks2|cups|bluez|dbus|systemd|sudo|firefox-esr|zenity|qt6ct|xdg-desktop-portal|xdg-desktop-portal-gtk|gnome-keyring|xdotool|picom|python3-pyside6.*|qml6-module-qtquick.*|libqt6core6.*|libqt6gui6.*|qt6-base-dev|python3|grub.*|linux-image.*|nvidia-driver|firmware-.*)$'
+PROTEGER='^(sddm|xserver-xorg-core|xserver-xorg|network-manager|pipewire|pipewire-pulse|wireplumber|polkitd|udisks2|cups|bluez|dbus|systemd|sudo|firefox-esr|zenity|qt6ct|xdg-desktop-portal|xdg-desktop-portal-gtk|gnome-keyring|xdotool|picom|python3-pyside6.*|qml6-module-qtquick.*|libqt6core6.*|libqt6gui6.*|qt6-base-dev|python3|grub.*|linux-image.*|nvidia-driver|firmware-.*|calamares.*|live-.*|libkpmcore.*)$'
 # e tudo o que o instalar.sh do CarinaeOS precisa
 NOSSOS=$(sed -n '/^PRECISOS="/,/"$/p; /^UTEIS="/p' instalar.sh | sed 's/^[A-Z]*="//; s/"$//' | tr ' \n' '\n\n' | grep -v '^$' | sort -u)
 
@@ -131,13 +134,14 @@ echo "  A lista do que sai ficou em: $GUARDA"
 echo "  (para voltar atrás:  bash ferramentas/limpar-kde.sh --restaurar \"$GUARDA\")"
 grep -q 'carinae' /etc/sddm.conf.d/*.conf 2>/dev/null || aviso "  Atenção: a sessão CarinaeOS não está definida como a predefinida no SDDM."
 printf '\n  Escreva SIM para remover %s pacotes: ' "$(echo "$LEVA" | wc -l)"
-read -r resposta
+if [ $AUTOMATICO = 1 ]; then resposta=SIM; echo SIM; else read -r resposta; fi
 [ "$resposta" = "SIM" ] || { echo "  Cancelado. Nada foi mudado."; exit 0; }
 sudo apt-get purge -y $LISTA || { erro "  O apt falhou; veja acima."; exit 1; }
 
 echo
 echo "  Bibliotecas do KDE que ficaram sem uso (simulação):"
-AUTO=$(LC_ALL=C apt-get -s autoremove --purge 2>/dev/null | awk '/^Purg|^Remv/{print $2}')
+AUTO=""
+[ $AUTOMATICO = 1 ] || AUTO=$(LC_ALL=C apt-get -s autoremove --purge 2>/dev/null | awk '/^Purg|^Remv/{print $2}')
 if [ -n "$AUTO" ]; then
     PERIGO=$( { echo "$AUTO" | grep -E "$PROTEGER"; comm -12 <(echo "$AUTO" | sort -u) <(echo "$NOSSOS"); } | sort -u)
     if [ -n "$PERIGO" ]; then
@@ -160,4 +164,5 @@ if verificar; then
 else
     erro "Há problemas acima. NÃO reinicie: mande-me esta saída, ou volte atrás com:"
     echo "  bash ferramentas/limpar-kde.sh --restaurar \"$GUARDA\""
+    exit 1
 fi

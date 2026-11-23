@@ -19,7 +19,7 @@ static QVariantMap padroes() {
         {QStringLiteral("launchers"), QStringList{
             QStringLiteral("applications:carinaeos-arquivos.desktop"), QStringLiteral("applications:carinaeos-terminal.desktop"),
             QStringLiteral("applications:carinaeos-fotos.desktop"), QStringLiteral("applications:carinaeos-pdf.desktop"),
-            QStringLiteral("applications:carinaeos-compactador.desktop"), QStringLiteral("applications:systemsettings.desktop")}},
+            QStringLiteral("applications:carinaeos-compactador.desktop"), QStringLiteral("applications:carinaeos-configuracoes.desktop")}},
         {QStringLiteral("iconSize"), 48},
         {QStringLiteral("zoom"), 1.9},
         {QStringLiteral("bounce"), true},
@@ -76,6 +76,8 @@ void Configuracao::carregar() {
         {QStringLiteral("org.kde.kwrite.desktop"), QStringLiteral("carinaeos-notas.desktop")},
         {QStringLiteral("org.kde.ark.desktop"), QStringLiteral("carinaeos-compactador.desktop")},
         {QStringLiteral("org.kde.plasma.emojier.desktop"), QStringLiteral("carinaeos-emojis.desktop")},
+        {QStringLiteral("systemsettings.desktop"), QStringLiteral("carinaeos-configuracoes.desktop")},
+        {QStringLiteral("kdesystemsettings.desktop"), QStringLiteral("carinaeos-configuracoes.desktop")},
     };
     QStringList l = value(QStringLiteral("launchers")).toStringList();
     bool mudou = false;
