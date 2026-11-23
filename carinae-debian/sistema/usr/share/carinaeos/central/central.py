@@ -234,10 +234,11 @@ def hardware():
                      'Reinicie depois de instalar.' + (' Com gráficos Intel/AMD também (notebook), as janelas usam a placa '
                                                         'integrada e os jogos a NVIDIA.' if len(gpus) > 1 else ''))
                 itens[-1]['script'] = 'atual'
-        elif re.search(r'AMD|ATI', g, re.I):
-            item('amd', 'Placa de vídeo AMD', g_curto, ['firmware-amd-graphics', 'mesa-vulkan-drivers'], 'video-display')
-        elif re.search(r'Intel', g, re.I):
+        elif re.search(r'\bIntel\b', g, re.I):
+            # (antes do AMD: "Intel CorporATIon" fazia-a passar por placa ATI)
             item('intel', 'Gráficos Intel', g_curto, ['intel-media-va-driver-non-free', 'mesa-vulkan-drivers'], 'video-display')
+        elif re.search(r'\b(AMD|ATI)\b|Advanced Micro Devices|Radeon', g, re.I):
+            item('amd', 'Placa de vídeo AMD', g_curto, ['firmware-amd-graphics', 'mesa-vulkan-drivers'], 'video-display')
         else:
             item('video', 'Placa de vídeo', g_curto, [], 'video-display')
     # Secure Boot: o controlador NVIDIA (DKMS) só carrega com a chave deste computador registada no firmware
