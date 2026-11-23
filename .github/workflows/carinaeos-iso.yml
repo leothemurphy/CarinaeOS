@@ -48,7 +48,7 @@ jobs:
           cd carinae-debian
           TAG=carinaeos-v$(head -1 VERSAO | tr -d ' \n')
           [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && TAG=$TAG-teste-$GITHUB_RUN_NUMBER
-          gh release create "$TAG" --title "CarinaeOS ($TAG)" --prerelease \
+          gh release create "$TAG" --title "CarinaeOS $(head -1 VERSAO | tr -d ' \n' | sed 's/-beta/ beta/')$([ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && echo " (teste $GITHUB_RUN_NUMBER)")" --prerelease \
             --notes-file ../.github/notas-da-versao.md \
             CarinaeOS-1.0-amd64.iso.parte* CarinaeOS-1.0-amd64.iso.sha256
 
@@ -60,9 +60,11 @@ jobs:
           [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && exit 0
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           gh release list --limit 200 --json tagName --jq '.[].tagName' | while read t; do
-            [ "$t" = "$TAG" ] || gh release delete "$t" --yes --cleanup-tag || true
+            case "$t" in "$TAG"|ambiente-v*) continue ;; esac     # fica a ISO nova e o pacote do ambiente
+            gh release delete "$t" --yes --cleanup-tag || true
           done
           # etiquetas antigas que ficaram sem lançamento
           git ls-remote --tags origin | awk '{print $2}' | sed 's#refs/tags/##; /\^{}$/d' | while read t; do
-            [ "$t" = "$TAG" ] || git push origin --delete "refs/tags/$t" || true
+            case "$t" in "$TAG"|ambiente-v*) continue ;; esac
+            git push origin --delete "refs/tags/$t" || true
           done

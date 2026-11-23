@@ -915,7 +915,7 @@ Kicker.DashboardWindow {
             if (!lp.jaAbriu) {
                 lp.jaAbriu = true;
                 lp.lerFundo.connectSource("f=$(sed -n 's/.*\"papel\": *\"\\([^\"]*\\)\".*/\\1/p' \"$HOME/.config/carinaeos-shell.json\" | head -1); [ -n \"$f\" ] || f=$(grep -A4 '\\[Wallpaper\\]\\[org.kde.image\\]\\[General\\]' \"$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc\" | sed -n 's/^Image=//p' | head -1); "
-                    + "f=${f#file://}; if [ -d \"$f\" ]; then ls -S \"$f\"/contents/images/* 2>/dev/null | tail -1; else echo \"$f\"; fi #" + Date.now());
+                    + "f=${f#file://}; [ -e \"$f\" ] || f=''; if [ -z \"$f\" ]; then :; elif [ -d \"$f\" ]; then ls -S \"$f\"/contents/images/* 2>/dev/null | tail -1; else echo \"$f\"; fi #" + Date.now());
                 lp.lerDeck.connectSource("cat \"$HOME/.config/carinaeos-deck.json\" 2>/dev/null #" + Date.now());
                 lp.lerCartoes.connectSource("cat \"$HOME/.config/carinaeos-cartoes.json\" 2>/dev/null #" + Date.now());
                 lp.lerDescricoes.connectSource("carinaeos-descricoes #" + Date.now());

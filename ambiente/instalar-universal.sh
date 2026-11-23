@@ -71,13 +71,17 @@ arch)
       xorg-server picom xdotool maim xclip zenity xorg-xrandr xorg-xset xorg-xprop xorg-xdpyinfo playerctl libnotify \
       i3lock xss-lock networkmanager inter-font ;;
 suse)
-    $SUDO zypper --non-interactive install --no-recommends gcc-c++ cmake pkgconf qt6-base-devel qt6-base-private-devel \
+    $SUDO zypper --non-interactive install --no-recommends python3 gcc-c++ cmake pkgconf qt6-base-devel qt6-base-private-devel \
       qt6-declarative-devel qt6-declarative-private-devel libxcb-devel xcb-util-wm-devel xcb-util-keysyms-devel \
-      xcb-util-cursor-devel cairo-devel pam-devel polkit-devel libvterm-devel \
-      qt6-declarative-imports qt6-multimedia-imports qt6-svg qt6-imageformats qt6-pdf-imports \
-      python3-pyside6 python3-gobject python3-dbus-python python3-psutil python3-Pillow \
-      xorg-x11-server picom xdotool maim xclip zenity xrandr xset xprop xdpyinfo playerctl libnotify-tools \
-      i3lock xss-lock NetworkManager inter-fonts ;;
+      xcb-util-cursor-devel cairo-devel pam-devel polkit-devel libvterm-devel
+    # os módulos Python no openSUSE têm a versão no nome (python313-…)
+    PYV=python$(python3 -c 'import sys; print("%d%d" % sys.version_info[:2])')
+    for p in qt6-declarative-imports qt6-multimedia-imports qt6-svg-imports libQt6Svg6 qt6-imageformats qt6-pdf-imports \
+             $PYV-pyside6 $PYV-PySide6 $PYV-gobject $PYV-dbus-python $PYV-psutil $PYV-Pillow \
+             xorg-x11-server picom xdotool maim xclip zenity xrandr xset xprop xdpyinfo playerctl libnotify-tools \
+             i3lock xss-lock NetworkManager inter-fonts; do
+        $SUDO zypper --non-interactive install --no-recommends "$p" >/dev/null 2>&1 && echo "  + $p" || echo "  (não existe aqui: $p — sigo sem ele)"
+    done ;;
 esac
 [ "$1" = "--so-dependencias" ] && exit 0
 
