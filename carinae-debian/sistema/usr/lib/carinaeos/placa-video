@@ -1,10 +1,41 @@
 #!/bin/bash
 # CarinaeOS - controladores de placas de vídeo que o Debian 13 não traz (corre como root, pela Central).
+#   placa-video atual    NVIDIA GTX 750 em diante e RTX: o controlador do Debian 13.
 #   placa-video kepler   NVIDIA Kepler (GeForce GT 710/730/740, GTX 600/700, Quadro K…): controlador 470
 #                        do Debian sid (preso com prioridade baixa: só este pacote vem de lá) e sessão X11.
 set -e
 export DEBIAN_FRONTEND=noninteractive
+
+# Secure Boot: o controlador é compilado aqui (DKMS) e assinado com a chave deste computador
+# (/var/lib/dkms/mok.pub). A chave tem de ser registada no firmware: pede-se aqui com um código
+# de 8 algarismos que a pessoa escreve uma vez no ecrã azul (MOK) do próximo arranque.
+chave_mok() {
+    [ -d /sys/firmware/efi ] || return 0
+    command -v mokutil >/dev/null || return 0
+    [ -f /var/lib/dkms/mok.pub ] || return 0
+    if mokutil --test-key /var/lib/dkms/mok.pub 2>&1 | grep -qi "already enrolled"; then
+        return 0
+    fi
+    # um pedido antigo (com outra senha) ficava à frente deste: apaga-o, para valer o código novo
+    mokutil --revoke-import >/dev/null 2>&1 || true
+    codigo=$(shuf -i 10000000-99999999 -n 1)
+    # o mokutil só pede a senha num terminal: aqui vai como "hash" (o código é de uso único e é mostrado à pessoa)
+    h=$(mktemp)
+    if mokutil --generate-hash="$codigo" > "$h" 2>/dev/null && mokutil --import /var/lib/dkms/mok.pub --hash-file "$h" >/dev/null 2>&1; then
+        echo "MOK:$codigo"
+    fi
+    rm -f "$h"
+}
+
 case "$1" in
+mok)
+    chave_mok
+    ;;
+atual)
+    apt-get update -q
+    apt-get install -y linux-headers-amd64 nvidia-driver firmware-misc-nonfree nvidia-suspend-common
+    chave_mok
+    ;;
 kepler)
     echo 'deb http://deb.debian.org/debian sid main contrib non-free non-free-firmware' > /etc/apt/sources.list.d/carinaeos-sid.list
     printf 'Package: *\nPin: release a=unstable\nPin-Priority: 100\n' > /etc/apt/preferences.d/carinaeos-sid
@@ -13,20 +44,19 @@ kepler)
     if dpkg -s nvidia-driver >/dev/null 2>&1 || dpkg -s nvidia-open-kernel-dkms >/dev/null 2>&1; then
         apt-get purge -y '~nnvidia' glx-diversions glx-alternative-mesa update-glx || true
     fi
-    apt-get install -y linux-headers-amd64 nvidia-tesla-470-driver/sid kwin-x11
-    # o 470 não tem Wayland: a sessão passa a ser a X11, com as afinações que tiram os solavancos
+    apt-get install -y linux-headers-amd64 nvidia-tesla-470-driver/sid
+    # o 470 não tem Wayland (a sessão do CarinaeOS já é X11): só as afinações que tiram os solavancos
     mkdir -p /etc/environment.d
     printf 'KWIN_TRIPLE_BUFFER=1\n__GL_MaxFramesAllowed=1\n__GL_YIELD=USLEEP\n' > /etc/environment.d/90-carinaeos-nvidia.conf
-    mkdir -p /var/lib/sddm
-    if [ -f /var/lib/sddm/state.conf ] && grep -q '^Session=' /var/lib/sddm/state.conf; then
-        sed -i 's|^Session=.*|Session=/usr/share/xsessions/plasmax11.desktop|' /var/lib/sddm/state.conf
-    else
-        printf '[Last]\nSession=/usr/share/xsessions/plasmax11.desktop\n' >> /var/lib/sddm/state.conf
-    fi
-    chown sddm:sddm /var/lib/sddm/state.conf 2>/dev/null || true
+    # o driver 470 vem do sid: um núcleo novo só pelo app Atualizações (com ponto de restauro),
+    # nunca sozinho de madrugada, para nunca acordar sem imagem se o módulo não compilar
+    mkdir -p /etc/apt/apt.conf.d
+    printf '%s\n' '// CarinaeOS: placa NVIDIA antiga (driver 470) - o núcleo só se atualiza pelo app Atualizações' \
+        'Unattended-Upgrade::Package-Blacklist { "linux-image-"; "linux-headers-"; };' > /etc/apt/apt.conf.d/53carinaeos-nvidia-antiga
+    chave_mok
     ;;
 *)
-    echo "uso: placa-video kepler" >&2
+    echo "uso: placa-video atual|kepler|mok" >&2
     exit 2
     ;;
 esac

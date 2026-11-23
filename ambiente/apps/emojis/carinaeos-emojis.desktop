@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae Emojis
+GenericName=Emojis
+Comment=Escolher um emoji e escrevê-lo (Super+.)
+Icon=carinaeos-emojis
+Exec=carinaeos-emojis
+Terminal=false
+StartupWMClass=carinaeos-emojis
+Categories=Utility;
+Keywords=emoji;emojis;emoticon;smiley;carinha;símbolos;

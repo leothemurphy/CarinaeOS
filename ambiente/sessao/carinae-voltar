@@ -1,0 +1,10 @@
+#!/bin/bash
+# CarinaeOS — desfaz o carinae-experimentar: volta o KWin e o plasmashell.
+# SPDX-License-Identifier: GPL-2.0-or-later
+aurora --enviar sair 2>/dev/null
+pkill -x picom
+sleep 0.3
+nohup kwin_x11 --replace >/dev/null 2>&1 &
+sleep 1.5
+systemctl --user start plasma-plasmashell.service 2>/dev/null || (nohup plasmashell >/dev/null 2>&1 &)
+echo "De volta ao Plasma."

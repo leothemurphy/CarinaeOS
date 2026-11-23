@@ -71,7 +71,7 @@ ApplicationWindow {
         id: novaLista
         property string ficheiro: ""
         anchors.centerIn: parent; modal: true; width: 420
-        title: ficheiro ? "Nova lista" : "Guardar a fila como lista"
+        title: ficheiro ? "Nova lista" : "Salvar a fila como lista"
         background: Rectangle { color: "#1b1726"; radius: 16; border.color: Qt.rgba(1, 1, 1, 0.1) }
         header: Text { text: novaLista.title; color: janela.texto; font.pixelSize: 18; font.weight: Font.Bold; padding: 20; bottomPadding: 6 }
         contentItem: Column {
@@ -82,7 +82,7 @@ ApplicationWindow {
         }
         footer: Row {
             layoutDirection: Qt.RightToLeft; spacing: 10; padding: 16
-            Botao { texto: "Guardar"; destaque: true
+            Botao { texto: "Salvar"; destaque: true
                 onClicked: {
                     if (!nomeLista.text.trim()) return
                     if (novaLista.ficheiro) musica.adicionarALista(novaLista.ficheiro, nomeLista.text.trim())
@@ -229,7 +229,7 @@ ApplicationWindow {
         contentItem: Campo { id: campoNome; placeholderText: "Novo nome" }
         footer: Row {
             layoutDirection: Qt.RightToLeft; spacing: 10; padding: 16
-            Botao { texto: "Guardar"; destaque: true; onClicked: { musica.renomearLista(musica.listaAberta.nome, campoNome.text); renomear.close() } }
+            Botao { texto: "Salvar"; destaque: true; onClicked: { musica.renomearLista(musica.listaAberta.nome, campoNome.text); renomear.close() } }
             Botao { texto: "Cancelar"; onClicked: renomear.close() }
         }
     }
@@ -335,12 +335,12 @@ ApplicationWindow {
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
                     Text { text: "Música"; color: janela.texto; font.pixelSize: 19; font.weight: Font.Bold }
-                    Text { text: musica.ligado ? "Servidor ligado" : "A ligar o servidor…"; color: musica.ligado ? "#7fd8a6" : janela.suave; font.pixelSize: 12 }
+                    Text { text: musica.ligado ? "Servidor ligado" : "Ligando o servidor…"; color: musica.ligado ? "#7fd8a6" : janela.suave; font.pixelSize: 12 }
                 }
             }
             Repeater {
                 model: [
-                    { id: "agora", nome: "A tocar", icone: "media-playback-start" },
+                    { id: "agora", nome: "Tocando", icone: "media-playback-start" },
                     { id: "albuns", nome: "Álbuns", icone: "media-optical-audio" },
                     { id: "artistas", nome: "Artistas", icone: "view-media-artist" },
                     { id: "musicas", nome: "Músicas", icone: "view-media-track" },
@@ -568,7 +568,7 @@ ApplicationWindow {
             RowLayout {
                 id: cabFila; width: parent.width
                 Text { Layout.fillWidth: true; text: "Fila"; color: janela.texto; font.pixelSize: 26; font.weight: Font.Bold }
-                Botao { texto: "Guardar como lista"; icone: "document-save"; onClicked: { novaLista.ficheiro = ""; novaLista.open() } }
+                Botao { texto: "Salvar como lista"; icone: "document-save"; onClicked: { novaLista.ficheiro = ""; novaLista.open() } }
             }
             ListView {
                 anchors { left: parent.left; right: parent.right; top: cabFila.bottom; bottom: parent.bottom; topMargin: 16 }
@@ -605,7 +605,7 @@ ApplicationWindow {
                     width: parent.width; spacing: 10
                     Botao { texto: "Nova lista"; icone: "list-add"; destaque: true; onClicked: escolherMusicas.abrir("nova", "") }
                     Botao { texto: "De uma pasta"; icone: "folder-music"; onClicked: deUmaPasta.open() }
-                    Botao { texto: "Guardar a fila"; icone: "document-save"; onClicked: { novaLista.ficheiro = ""; novaLista.open() } }
+                    Botao { texto: "Salvar a fila"; icone: "document-save"; onClicked: { novaLista.ficheiro = ""; novaLista.open() } }
                     Botao { texto: "Rádio"; icone: "radio"; onClicked: novaRadio.open() }
                 }
             }
@@ -651,7 +651,7 @@ ApplicationWindow {
                         }
                     }
                 }
-                Text { visible: gListas.count === 0; anchors.centerIn: parent; text: "Ainda não há listas. Carregue em «Nova lista»."; color: janela.suave }
+                Text { visible: gListas.count === 0; anchors.centerIn: parent; text: "Ainda não há listas. Clique em «Nova lista»."; color: janela.suave }
             }
         }
 
@@ -706,7 +706,7 @@ ApplicationWindow {
                         BotaoRedondo { lado: 32; icone: "list-remove"; onClicked: musica.tirarDaLista(musica.listaAberta.nome, modelData.pos) }
                     }
                 }
-                Text { visible: itensLista.count === 0; anchors.centerIn: parent; text: "A lista está vazia. Carregue em «Adicionar músicas»."; color: janela.suave }
+                Text { visible: itensLista.count === 0; anchors.centerIn: parent; text: "A lista está vazia. Clique em «Adicionar músicas»."; color: janela.suave }
             }
         }
 
@@ -719,7 +719,7 @@ ApplicationWindow {
                 id: colBib; width: parent.width; spacing: 14
                 Text { text: "Biblioteca"; color: janela.texto; font.pixelSize: 26; font.weight: Font.Bold }
                 Text { width: parent.width; wrapMode: Text.Wrap; color: janela.suave; font.pixelSize: 13
-                       text: "Escolha as pastas onde tem música: no computador, num disco externo ou numa pasta da rede (abra-a primeiro em Meus documentos › Rede). A música não é copiada nem mudada de sítio." }
+                       text: "Escolha as pastas onde tem música: no computador, num disco externo ou numa pasta da rede (abra-a primeiro em Meus documentos › Rede). A música não é copiada nem mudada de lugar." }
                 Repeater {
                     model: musica.pastas
                     delegate: Rectangle {
@@ -790,10 +790,10 @@ ApplicationWindow {
                         Text { text: "Fontes sempre atualizadas"; color: janela.texto; font.pixelSize: 15; font.weight: Font.Bold }
                         Text { width: parent.width; wrapMode: Text.Wrap; color: janela.suave; font.pixelSize: 13
                                text: "Com isto, uma lista, rádio ou música nova aparece logo nas fontes do Home Assistant (sem esperar 2 minutos), mesmo com este aplicativo fechado. As listas feitas «De uma pasta» acompanham a pasta sozinhas. O token cria-se no Home Assistant: o seu perfil › Segurança › Tokens de acesso de longa duração › Criar token." }
-                        Campo { id: haUrl; width: parent.width; placeholderText: "Endereço do Home Assistant (ex.: http://192.168.1.193:8123)"; text: musica.rede.haUrl }
+                        Campo { id: haUrl; width: parent.width; placeholderText: "Endereço do Home Assistant (ex.: http://homeassistant.local:8123)"; text: musica.rede.haUrl }
                         Campo { id: haToken; width: parent.width; echoMode: TextInput.Password
-                                placeholderText: musica.rede.haToken ? "Token guardado (cole outro para mudar)" : "Token de acesso de longa duração" }
-                        Botao { texto: "Guardar e testar"; destaque: true; onClicked: { musica.definirHomeAssistant(haUrl.text, haToken.text); haToken.text = "" } }
+                                placeholderText: musica.rede.haToken ? "Token salvo (cole outro para mudar)" : "Token de acesso de longa duração" }
+                        Botao { texto: "Salvar e testar"; destaque: true; onClicked: { musica.definirHomeAssistant(haUrl.text, haToken.text); haToken.text = "" } }
                     }
                 }
                 Rectangle {
@@ -803,7 +803,7 @@ ApplicationWindow {
                         id: dadosHa; x: 18; y: 16; width: parent.width - 36; spacing: 8
                         Text { text: "No Home Assistant"; color: janela.ambar; font.pixelSize: 15; font.weight: Font.Bold }
                         Text { width: parent.width; wrapMode: Text.Wrap; color: janela.texto; font.pixelSize: 13; lineHeight: 1.3
-                               text: "1. Definições › Dispositivos e serviços › Adicionar integração › «Music Player Daemon (MPD)».\n2. Preencha:" }
+                               text: "1. Configurações › Dispositivos e serviços › Adicionar integração › «Music Player Daemon (MPD)».\n2. Preencha:" }
                         Grid {
                             columns: 2; columnSpacing: 18; rowSpacing: 6; leftPadding: 14
                             Text { text: "Anfitrião"; color: janela.suave }

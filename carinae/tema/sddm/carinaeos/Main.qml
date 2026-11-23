@@ -20,6 +20,14 @@ Rectangle {
     property int indiceSessao: sessionModel.lastIndex >= 0 ? sessionModel.lastIndex : 0
     property var nomes: []        // nomes de login, por indice do userModel
     property var sessoes: []      // nomes das sessoes, por indice
+    // com dois ou mais ecrãs, a entrada aparece só no principal (nos outros fica o céu e as horas)
+    readonly property bool principal: typeof primaryScreen === "undefined" ? true : primaryScreen
+    // os nomes técnicos das sessões ("Plasma (Wayland)", "Plasma (X11)") com o nome do sistema
+    function nomeSessao(n) {
+        if (/wayland/i.test(n)) return "CarinaeOS"
+        if (/x11|xorg/i.test(n)) return "CarinaeOS (X11, para placas antigas)"
+        return n
+    }
     property date agora: new Date()
     property bool aEntrar: false
 
@@ -58,7 +66,7 @@ Rectangle {
         anchors.fill: parent
         source: fundo
         autoPaddingEnabled: false
-        blurEnabled: true
+        blurEnabled: false
         blurMax: 64
         blur: 0.55
         brightness: -0.12
@@ -104,13 +112,14 @@ Rectangle {
     Repeater {
         model: sessionModel
         delegate: Item {
-            Component.onCompleted: { var a = raiz.sessoes.slice(); a[index] = model.name; raiz.sessoes = a }
+            Component.onCompleted: { var a = raiz.sessoes.slice(); a[index] = raiz.nomeSessao(model.name); raiz.sessoes = a }
         }
     }
 
     // ---- baixo: usuarios, senha ---------------------------------
     Column {
         id: blocoEntrada
+        visible: raiz.principal
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: barraEnergia.top
         anchors.bottomMargin: 64 * raiz.s
@@ -294,6 +303,7 @@ Rectangle {
     // ---- fundo do ecra: Suspender / Reiniciar / Desligar --------------------
     Row {
         id: barraEnergia
+        visible: raiz.principal
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 40 * raiz.s
@@ -345,7 +355,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.margins: 22 * raiz.s
-        visible: raiz.sessoes.length > 1
+        visible: raiz.principal && raiz.sessoes.length > 1
         text: (raiz.sessoes[raiz.indiceSessao] || "") + "  ▾"
         color: "#b8ffffff"
         font.family: raiz.letra

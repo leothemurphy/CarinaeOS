@@ -1,0 +1,186 @@
+#!/usr/bin/python3
+"""CarinaeOS - uma frase curta em português para cada aplicativo (Launchpad, Pesquisa).
+
+Ordem: a nossa lista (os apps mais comuns, escrita à mão) > o comentário em português do próprio
+aplicativo > a categoria dele ("Navegador da internet", "Jogo"…) > o comentário original.
+Escreve JSON {"arquivo.desktop": "frase", "nome:nome em minúsculas": "frase"}; guarda em cache
+e só volta a ler quando se instala ou remove algum aplicativo.
+"""
+import configparser
+import glob
+import json
+import os
+import sys
+
+HOME = os.path.expanduser('~')
+CACHE = os.path.join(HOME, '.cache/carinaeos/descricoes.json')
+PASTAS = [os.path.join(HOME, '.local/share/applications'),
+          os.path.join(HOME, '.local/share/flatpak/exports/share/applications'),
+          '/var/lib/flatpak/exports/share/applications', '/usr/local/share/applications',
+          '/usr/share/applications']
+
+# escrita à mão: pelo nome do .desktop (sem ".desktop") ou pelo nome que aparece (minúsculas)
+MAO = {
+    # CarinaeOS
+    'carinaeos-central': 'Todas as ferramentas do sistema num só lugar',
+    'carinaeos-configuracoes': 'Wi-Fi, telas, som, Dock, contas e o resto do sistema',
+    'carinaeos-supernova': 'Personalizar a Dock, as janelas e os efeitos',
+    'carinaeos-orbita': 'Loja de aplicativos (Flathub)',
+    'carinaeos-atualizacoes': 'Atualizar o sistema com ponto de restauro',
+    'carinaeos-casa': 'Sua casa inteligente, ligada ao Home Assistant',
+    'carinaeos-musica': 'Suas músicas, álbuns, letras e rádios',
+    'carinaeos-manual': 'Como fazer tudo no CarinaeOS',
+    'carinaeos-boasvindas': 'Um passeio por tudo o que o CarinaeOS tem',
+    'carinae-3d': 'Modelos 3D: ver, organizar e mandar para a impressora',
+    # navegadores e internet
+    'firefox': 'Navegador da internet, rápido e privado', 'firefox-esr': 'Navegador da internet, rápido e privado',
+    'org.mozilla.firefox': 'Navegador da internet, rápido e privado',
+    'google-chrome': 'Navegador da internet do Google', 'com.google.chrome': 'Navegador da internet do Google',
+    'chromium': 'Navegador da internet de código aberto', 'org.chromium.chromium': 'Navegador da internet de código aberto',
+    'brave-browser': 'Navegador que bloqueia anúncios', 'com.brave.browser': 'Navegador que bloqueia anúncios',
+    'microsoft-edge': 'Navegador da internet da Microsoft', 'com.microsoft.edge': 'Navegador da internet da Microsoft',
+    'thunderbird': 'E-mail, calendário e contatos', 'org.mozilla.thunderbird': 'E-mail, calendário e contatos',
+    'org.telegram.desktop': 'Mensagens do Telegram', 'com.discordapp.discord': 'Conversas por voz e texto com amigos',
+    'com.spotify.client': 'Música e podcasts em streaming', 'spotify': 'Música e podcasts em streaming',
+    'com.slack.slack': 'Conversas da equipe de trabalho', 'us.zoom.zoom': 'Videochamadas e reuniões',
+    'org.qbittorrent.qbittorrent': 'Baixar arquivos por torrent',
+    'org.kde.kdeconnect.app': 'Conectar o celular ao computador', 'org.kde.kdeconnect-settings': 'Conectar o celular ao computador',
+    'org.kde.kdeconnect.sms': 'Ler e enviar SMS do celular Android',
+    # escritório
+    'libreoffice-startcenter': 'Pacote de escritório: textos, planilhas e apresentações',
+    'libreoffice-writer': 'Editor de textos (como o Word)', 'libreoffice-calc': 'Planilhas (como o Excel)',
+    'libreoffice-impress': 'Apresentações (como o PowerPoint)', 'libreoffice-draw': 'Desenhos e diagramas',
+    'libreoffice-math': 'Fórmulas matemáticas', 'libreoffice-base': 'Bancos de dados',
+    'org.kde.okular': 'Ler PDF e documentos', 'okularApplication_pdf': 'Ler PDF e documentos',
+    'org.kde.kate': 'Editor de texto avançado', 'org.kde.kwrite': 'Editor de texto simples',
+    'org.kde.merkuro.calendar': 'Calendário e tarefas', 'org.kde.merkuro.contact': 'Contatos',
+    'org.kde.kalk': 'Calculadora', 'org.kde.kcalc': 'Calculadora científica',
+    'code': 'Editor de código (Visual Studio Code)', 'com.visualstudio.code': 'Editor de código (Visual Studio Code)',
+    'obsidian': 'Notas ligadas entre si', 'md.obsidian.obsidian': 'Notas ligadas entre si',
+    # arquivos e sistema
+    'org.kde.dolphin': 'Seus arquivos e pastas', 'org.kde.konsole': 'Terminal: comandos de texto',
+    'org.kde.ark': 'Abrir e criar arquivos .zip, .rar e outros', 'org.kde.spectacle': 'Capturas de tela e gravações',
+    'org.kde.gwenview': 'Ver fotos e imagens', 'org.kde.filelight': 'Ver o que ocupa espaço no disco',
+    'org.kde.partitionmanager': 'Discos e partições', 'org.kde.kinfocenter': 'Informações do computador',
+    'systemsettings': 'Todas as configurações do KDE', 'kdesystemsettings': 'Todas as configurações do KDE',
+    'org.kde.plasma-systemmonitor': 'Processos, memória e uso do processador', 'org.kde.discover': 'Loja de aplicativos do KDE',
+    'org.kde.kfind': 'Procurar arquivos', 'org.kde.skanlite': 'Digitalizar documentos e fotos',
+    'org.kde.skanpage': 'Digitalizar documentos com várias páginas', 'org.kde.kcharselect': 'Símbolos e caracteres especiais',
+    'timeshift-gtk': 'Pontos de restauro do sistema', 'org.kde.kwalletmanager5': 'Senhas guardadas',
+    'org.kde.kwalletmanager': 'Senhas guardadas', 'org.kde.marble': 'Mapas e globo terrestre',
+    'org.gnome.maps': 'Mapas e rotas', 'org.kde.itinerary': 'Viagens, passagens e reservas',
+    'com.usebottles.bottles': 'Abrir programas do Windows', 'bottles': 'Abrir programas do Windows',
+    'garrafas': 'Abrir programas do Windows',
+    'org.kde.kclock': 'Relógio, alarmes e temporizador', 'org.kde.kweather': 'Previsão do tempo',
+    'io.github.flattool.warehouse': 'Gerenciar os aplicativos Flatpak', 'com.github.tchx84.flatseal': 'Permissões dos aplicativos Flatpak',
+    # multimédia e gráficos
+    'vlc': 'Tocar qualquer vídeo ou música', 'org.videolan.vlc': 'Tocar qualquer vídeo ou música',
+    'mpv': 'Reprodutor de vídeo leve', 'io.mpv.mpv': 'Reprodutor de vídeo leve', 'org.kde.haruna': 'Reprodutor de vídeo',
+    'org.kde.elisa': 'Reprodutor de música', 'org.kde.kdenlive': 'Editar vídeos',
+    'com.obsproject.studio': 'Gravar a tela e fazer transmissões ao vivo', 'org.kde.kamoso': 'Câmera: fotos e vídeos',
+    'gimp': 'Editar fotos e imagens (como o Photoshop)', 'org.gimp.gimp': 'Editar fotos e imagens (como o Photoshop)',
+    'org.kde.krita': 'Pintura e desenho digital', 'org.inkscape.inkscape': 'Desenho vetorial (como o Illustrator)',
+    'blender': 'Modelagem, animação e renderização 3D', 'org.blender.blender': 'Modelagem, animação e renderização 3D',
+    'org.freecad.freecad': 'Projeto mecânico 3D (CAD)', 'freecad': 'Projeto mecânico 3D (CAD)',
+    'org.kde.digikam': 'Organizar e editar fotos', 'org.darktable.darktable': 'Revelar fotos RAW',
+    'audacity': 'Gravar e editar áudio', 'org.audacityteam.audacity': 'Gravar e editar áudio',
+    'org.kde.kolourpaint': 'Desenho simples (como o Paint)',
+    'com.ultimaker.cura': 'Preparar modelos para a impressora 3D', 'prusa-slicer': 'Preparar modelos para a impressora 3D',
+    'com.prusa3d.prusaslicer': 'Preparar modelos para a impressora 3D', 'orcaslicer': 'Preparar modelos para a impressora 3D',
+    'io.github.softfever.orcaslicer': 'Preparar modelos para a impressora 3D',
+    'elegooslicer': 'Preparar modelos para as impressoras 3D Elegoo',
+    # jogos
+    'steam': 'Loja e biblioteca de jogos', 'com.valvesoftware.steam': 'Loja e biblioteca de jogos',
+    'com.heroicgameslauncher.hgl': 'Jogos da Epic e da GOG', 'net.lutris.lutris': 'Organizar jogos de várias lojas',
+    'net.davidotek.pupgui2': 'Instalar versões do Proton para jogos do Windows',
+    # inteligência artificial
+    'chatgpt': 'Assistente de inteligência artificial da OpenAI',
+    'claude': 'Assistente de inteligência artificial da Anthropic',
+    'gemini': 'Assistente de inteligência artificial do Google',
+    'home assistant': 'Painel da sua casa inteligente',
+}
+
+CATEGORIAS = [   # da mais específica para a mais geral
+    ('WebBrowser', 'Navegador da internet'), ('Email', 'E-mail'), ('InstantMessaging', 'Mensagens e conversas'),
+    ('Chat', 'Mensagens e conversas'), ('VideoConference', 'Videochamadas'), ('FileTransfer', 'Baixar e enviar arquivos'),
+    ('WordProcessor', 'Editor de textos'), ('Spreadsheet', 'Planilhas'), ('Presentation', 'Apresentações'),
+    ('Calendar', 'Calendário'), ('ContactManagement', 'Contatos'), ('Viewer', 'Ver documentos e imagens'),
+    ('TextEditor', 'Editor de texto'), ('IDE', 'Programação'), ('Development', 'Programação'),
+    ('3DGraphics', 'Gráficos 3D'), ('Photography', 'Fotografia'), ('RasterGraphics', 'Editar imagens'),
+    ('VectorGraphics', 'Desenho vetorial'), ('Scanning', 'Digitalizar'), ('Graphics', 'Imagens e desenho'),
+    ('Player', 'Tocar música e vídeo'), ('Recorder', 'Gravar som e vídeo'), ('AudioVideoEditing', 'Editar áudio e vídeo'),
+    ('Music', 'Música'), ('Video', 'Vídeo'), ('AudioVideo', 'Música e vídeo'), ('Audio', 'Som'),
+    ('Game', 'Jogo'), ('Education', 'Educação'), ('Science', 'Ciência'), ('Maps', 'Mapas'),
+    ('Finance', 'Finanças'), ('Office', 'Escritório'), ('Archiving', 'Arquivos compactados'),
+    ('FileManager', 'Arquivos e pastas'), ('TerminalEmulator', 'Terminal'), ('Monitor', 'Monitorar o sistema'),
+    ('Security', 'Segurança'), ('Settings', 'Configurações'), ('PackageManager', 'Instalar aplicativos'),
+    ('System', 'Ferramenta do sistema'), ('Accessibility', 'Acessibilidade'), ('Utility', 'Utilitário'),
+    ('Network', 'Internet'),
+]
+
+
+def ler_desktop(f):
+    c = configparser.RawConfigParser(strict=False, interpolation=None)
+    c.optionxform = str
+    try:
+        c.read(f, encoding='utf-8')
+        return dict(c['Desktop Entry']) if c.has_section('Desktop Entry') else None
+    except (configparser.Error, UnicodeDecodeError, OSError):
+        return None
+
+
+def frase(id_, d):
+    nome = (d.get('Name[pt_BR]') or d.get('Name') or '').strip()
+    for k in (id_, id_.lower(), nome.lower()):
+        if k in MAO:
+            return MAO[k]
+    for k in ('Comment[pt_BR]', 'Comment[pt]', 'GenericName[pt_BR]', 'GenericName[pt]'):
+        v = (d.get(k) or '').strip()
+        if v:
+            return v
+    cats = set((d.get('Categories') or '').split(';'))
+    for c, t in CATEGORIAS:
+        if c in cats:
+            return t
+    return (d.get('Comment') or d.get('GenericName') or '').strip()
+
+
+def assinatura():
+    return [round(os.path.getmtime(p)) if os.path.isdir(p) else 0 for p in PASTAS]
+
+
+def main():
+    sig = assinatura()
+    try:
+        with open(CACHE, encoding='utf-8') as f:
+            c = json.load(f)
+        if c.get('sig') == sig and c.get('versao') == 2:
+            sys.stdout.write(json.dumps(c['d'], ensure_ascii=True))
+            return 0
+    except (OSError, ValueError, KeyError):
+        pass
+    r = {}
+    for p in reversed(PASTAS):           # os do usuário ficam por cima
+        for f in glob.glob(os.path.join(p, '*.desktop')):
+            d = ler_desktop(f)
+            if not d or d.get('NoDisplay', '').lower() == 'true':
+                continue
+            base = os.path.basename(f)
+            t = frase(base[:-8], d)
+            if t:
+                r[base] = t
+                nome = (d.get('Name[pt_BR]') or d.get('Name') or '').strip().lower()
+                if nome:
+                    r['nome:' + nome] = t
+    try:
+        os.makedirs(os.path.dirname(CACHE), exist_ok=True)
+        with open(CACHE, 'w', encoding='utf-8') as f:
+            json.dump(dict(sig=sig, versao=2, d=r), f, ensure_ascii=False)
+    except OSError:
+        pass
+    sys.stdout.write(json.dumps(r, ensure_ascii=True))
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

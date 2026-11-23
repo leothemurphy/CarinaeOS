@@ -1,0 +1,53 @@
+#!/bin/sh
+# CarinaeOS - compila e instala o ambiente do CarinaeOS (Gravidade, Aurora, Carinae Terminal, janela de
+# senha, bloqueio, energia e os apps Carinae) dentro da imagem, em /usr/local.
+# As ferramentas de compilar saem no fim; as bibliotecas de que os programas precisam ficam.
+set -e
+SRC=/usr/src/carinaeos-ambiente
+[ -d "$SRC" ] || { echo "falta $SRC"; exit 1; }
+
+DEV="build-essential cmake pkg-config qt6-base-dev qt6-declarative-dev qt6-base-private-dev qt6-declarative-private-dev
+     libxcb1-dev libxcb-randr0-dev libxcb-icccm4-dev libxcb-keysyms1-dev libxcb-cursor-dev libxcb-composite0-dev
+     libxcb-screensaver0-dev libcairo2-dev x11proto-dev libpam0g-dev libpolkit-agent-1-dev libpolkit-gobject-1-dev
+     libvterm-dev libx11-dev libxcb-xfixes0-dev libxcb-damage0-dev libxcb-shape0-dev libxcb-util-dev libxcb-ewmh-dev"
+LISTA=""
+for p in $DEV; do apt-cache show "$p" >/dev/null 2>&1 && LISTA="$LISTA $p"; done
+# o que já estava instalado antes (não se tira no fim)
+ANTES=$(dpkg-query -W -f='${Package}\n' | sort)
+DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $LISTA
+
+B=/tmp/carinaeos-construcao
+rm -rf $B
+cmake -S $SRC -B $B -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -Wno-dev
+cmake --build $B -j"$(nproc)"
+cmake --install $B
+rm -rf $B
+
+# as bibliotecas que os programas compilados usam ficam marcadas como precisas
+PRECISAS=$(find -L /usr/local/bin /usr/local/lib /usr/local/share/carinaeos -type f \( -perm -u+x -o -name '*.so*' \) 2>/dev/null \
+  | xargs -r ldd 2>/dev/null | awk '/=> \//{print $3}' | sort -u \
+  | xargs -r dpkg -S 2>/dev/null | cut -d: -f1 | sort -u)
+[ -n "$PRECISAS" ] && apt-mark manual $PRECISAS >/dev/null
+echo "bibliotecas do ambiente: $(echo $PRECISAS | wc -w) pacotes"
+
+# bibliotecas e módulos QML que vieram com as ferramentas também ficam (o autoremove não os leva)
+echo "$ANTES" > /tmp/antes.txt
+NOVOS=$(dpkg-query -W -f='${Package}\n' | sort | comm -13 /tmp/antes.txt -)
+FICAM=$(echo "$NOVOS" | grep -E '^(lib.*[0-9](t64)?(:amd64)?$|qml6-module-|qt6-.*-plugins?$|libqt6)' | grep -vE -- '-(dev|dev-tools|doc)$' || true)
+[ -n "$FICAM" ] && apt-mark manual $FICAM >/dev/null
+echo "ficam também: $(echo $FICAM | wc -w) pacotes"
+
+# tirar só as ferramentas de compilar que este hook instalou
+TIRAR=""
+for p in $LISTA; do echo "$ANTES" | grep -qx "$p" || TIRAR="$TIRAR $p"; done
+[ -n "$TIRAR" ] && DEBIAN_FRONTEND=noninteractive apt-get purge -y $TIRAR
+DEBIAN_FRONTEND=noninteractive apt-get autoremove --purge -y
+
+# confirmar que tudo ficou a funcionar (falha a construção da ISO se faltar alguma biblioteca)
+for b in gravidade aurora carinae-terminal carinae-senha carinae-bloqueio carinae-energia; do
+  f=/usr/local/bin/$b
+  [ -x "$f" ] || { echo "ERRO: falta $f"; exit 1; }
+  if ldd "$f" | grep -q 'not found'; then echo "ERRO: $b sem bibliotecas:"; ldd "$f" | grep 'not found'; exit 1; fi
+done
+python3 -c 'import PySide6.QtQuick, PySide6.QtNetwork, psutil, PIL' || { echo "ERRO: falta o PySide6/psutil/PIL"; exit 1; }
+echo "ambiente do CarinaeOS instalado"

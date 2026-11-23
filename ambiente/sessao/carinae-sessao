@@ -1,0 +1,93 @@
+#!/bin/bash
+# CarinaeOS — sair, reiniciar, desligar, suspender, bloquear
+#   carinae-sessao sair|reiniciar|desligar|suspender|bloquear [--sem-perguntar]
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+acao="$1"
+perguntar=1
+[ "$2" = "--sem-perguntar" ] && perguntar=0
+
+confirmar() {
+    [ "$perguntar" -eq 0 ] && return 0
+    # o ecrã de desligar da Aurora (com a opção já escolhida); só sem a Aurora é que se usa outra janela
+    if aurora --enviar "desligar $3" 2>/dev/null || carinae-shell --enviar "desligar $3" 2>/dev/null; then
+        exit 0
+    elif command -v zenity >/dev/null; then
+        zenity --question --title="CarinaeOS" --text="$1" --ok-label="$2" --cancel-label="Cancelar"
+    else
+        return 0
+    fi
+}
+
+papel() {
+    sed -n 's/.*"papel": *"\([^"]*\)".*/\1/p' "$HOME/.config/carinaeos-shell.json" 2>/dev/null | head -1
+}
+
+bloquear_agora() {
+    # o nosso ecrã de bloqueio: só sai com 0 quando a senha está certa; se cair, volta a bloquear
+    if command -v carinae-bloqueio >/dev/null; then
+        local quedas=0 pid r t0
+        while [ "$quedas" -lt 3 ]; do
+            t0=$(date +%s)
+            carinae-bloqueio & pid=$!
+            # o fd do xss-lock fica só com o bloqueio (ele fecha-o quando o ecrã estiver tapado)
+            if [ -n "${XSS_SLEEP_LOCK_FD:-}" ]; then eval "exec ${XSS_SLEEP_LOCK_FD}>&-"; unset XSS_SLEEP_LOCK_FD; fi
+            wait "$pid"; r=$?
+            [ "$r" -eq 0 ] && return 0
+            echo "carinae-sessao: carinae-bloqueio saiu com $r — a bloquear de novo" >&2
+            [ $(( $(date +%s) - t0 )) -lt 10 ] && quedas=$((quedas + 1)) || quedas=0
+        done
+        echo "carinae-sessao: carinae-bloqueio falhou 3 vezes seguidas — uso o i3lock" >&2
+    fi
+    if command -v i3lock >/dev/null; then
+        local img="$HOME/.cache/carinaeos/bloqueio.png" p
+        p="$(papel)"
+        # o i3lock só aceita PNG do tamanho do ecrã: prepara-o uma vez (com o ImageMagick, se houver)
+        if [ -n "$p" ] && [ -f "$p" ] && command -v convert >/dev/null && { [ ! -f "$img" ] || [ "$p" -nt "$img" ]; }; then
+            geo=$(xdpyinfo 2>/dev/null | awk '/dimensions:/{print $2}')
+            convert "$p" -resize "${geo:-1920x1080}^" -gravity center -extent "${geo:-1920x1080}" -blur 0x18 -brightness-contrast -25x0 "$img" 2>/dev/null
+        fi
+        if [ -f "$img" ]; then i3lock -n -e -i "$img"; else i3lock -n -e -c 120f1c; fi
+    elif command -v xsecurelock >/dev/null; then
+        xsecurelock
+    else
+        echo "carinae-sessao: instala o i3lock para poder bloquear o ecrã" >&2
+        return 1
+    fi
+}
+
+case "$acao" in
+    sair)
+        confirmar "Encerrar a sessão?" "Encerrar sessão" sair || exit 0
+        aurora --enviar sair 2>/dev/null || carinae-shell --enviar sair 2>/dev/null
+        # o gestor de janelas pode ainda ter o nome antigo (sessão iniciada antes da troca de nome)
+        pkill -TERM -u "$(id -u)" -x gravidade
+        pkill -TERM -u "$(id -u)" -x carinae-wm
+        ;;
+    reiniciar)
+        confirmar "Reiniciar o computador?" "Reiniciar" reiniciar || exit 0
+        systemctl reboot
+        ;;
+    desligar)
+        confirmar "Desligar o computador?" "Desligar" desligar || exit 0
+        systemctl poweroff
+        ;;
+    suspender)
+        systemctl suspend
+        ;;
+    bloquear)
+        # passa pelo logind (assim o xss-lock trata disto, também ao suspender)
+        if pgrep -u "$(id -u)" -x xss-lock >/dev/null; then loginctl lock-session; else bloquear_agora; fi
+        ;;
+    bloquear-agora)
+        # a suspender: só bloqueia se essa opção estiver ligada (Energia › "Bloquear ao suspender")
+        if [ -n "${XSS_SLEEP_LOCK_FD:-}" ] && grep -q '"bloquearAoSuspender": *false' "$HOME/.config/carinaeos/energia.json" 2>/dev/null; then
+            exit 0
+        fi
+        bloquear_agora
+        ;;
+    *)
+        echo "uso: carinae-sessao sair|reiniciar|desligar|suspender|bloquear [--sem-perguntar]"
+        exit 1
+        ;;
+esac

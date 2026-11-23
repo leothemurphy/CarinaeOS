@@ -1,0 +1,14 @@
+{
+  "KPackageStructure": "Wallpaper/Images",
+  "KPlugin": {
+    "Id": "CarinaeOS-Marinho",
+    "Name": "Groovy",
+    "Description": "Low-poly magenta sobre roxo.",
+    "License": "CC-BY-SA-4.0",
+    "Authors": [
+      {
+        "Name": "CarinaeOS"
+      }
+    ]
+  }
+}

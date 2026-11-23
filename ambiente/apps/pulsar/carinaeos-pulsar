@@ -1,0 +1,3 @@
+#!/bin/sh
+# Pulsar Player — música, rádios e vídeos do CarinaeOS
+exec python3 /usr/local/share/carinaeos/pulsar/pulsar.py "$@"

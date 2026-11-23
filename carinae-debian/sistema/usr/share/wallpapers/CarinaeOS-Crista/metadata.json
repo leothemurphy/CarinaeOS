@@ -1,0 +1,14 @@
+{
+  "KPackageStructure": "Wallpaper/Images",
+  "KPlugin": {
+    "Id": "CarinaeOS-Crista",
+    "Name": "Crista",
+    "Description": "Crista: horizonte ao longe.",
+    "License": "CC-BY-SA-4.0",
+    "Authors": [
+      {
+        "Name": "CarinaeOS"
+      }
+    ]
+  }
+}

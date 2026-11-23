@@ -1,0 +1,3 @@
+#!/bin/sh
+# CarinaeOS - o Konsole passa para o Carinae Terminal
+exec carinae-terminal "$@"

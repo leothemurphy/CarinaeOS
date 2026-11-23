@@ -1,0 +1,11 @@
+# CarinaeOS — copia para ~/.config/carinaeos/sessao.conf e muda o que quiseres.
+
+# compositor (transparência, sombras, cantos redondos): picom | nenhum
+COMPOSITOR=picom
+
+# como o picom desenha: glx (placa de vídeo) | xrender (mais compatível; usa se vires ecrã preto ou tremido)
+PICOM_BACKEND=glx
+
+# como o carinae-shell (Dock, Launchpad) desenha: opengl | software
+# (se a placa falhar, a sessão muda sozinha para software)
+DESENHO=opengl

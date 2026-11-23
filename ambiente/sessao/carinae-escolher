@@ -1,0 +1,31 @@
+#!/bin/sh
+# CarinaeOS — escolher um ficheiro ou uma pasta (janela GTK com o nosso tema; o kdialog só se não houver outra).
+#   carinae-escolher ficheiro "Título" PASTA "Nome do filtro" "*.png *.jpg"
+#   carinae-escolher pasta "Título" PASTA
+#   carinae-escolher salvar "Título" PASTA/NOME-SUGERIDO
+# Escreve o caminho escolhido; sai com 1 se a pessoa cancelar.
+modo=$1; titulo=${2:-Escolher}; pasta=${3:-$HOME}; nomeFiltro=$4; filtro=$5
+if [ "$modo" = salvar ]; then
+    sugestao=$3
+    if command -v zenity >/dev/null 2>&1; then
+        exec zenity --file-selection --save --confirm-overwrite --title="$titulo" --filename="$sugestao" 2>/dev/null
+    elif command -v kdialog >/dev/null 2>&1; then
+        exec kdialog --title "$titulo" --getsavefilename "$sugestao" 2>/dev/null
+    fi
+    exit 2
+fi
+[ -d "$pasta" ] || pasta=$HOME
+if command -v zenity >/dev/null 2>&1; then
+    if [ "$modo" = pasta ]; then
+        exec zenity --file-selection --directory --title="$titulo" --filename="$pasta/" 2>/dev/null
+    elif [ -n "$filtro" ]; then
+        exec zenity --file-selection --title="$titulo" --filename="$pasta/" --file-filter="$nomeFiltro | $filtro" --file-filter="Todos os arquivos | *" 2>/dev/null
+    else
+        exec zenity --file-selection --title="$titulo" --filename="$pasta/" 2>/dev/null
+    fi
+elif command -v kdialog >/dev/null 2>&1; then
+    if [ "$modo" = pasta ]; then exec kdialog --title "$titulo" --getexistingdirectory "$pasta" 2>/dev/null
+    else exec kdialog --title "$titulo" --getopenfilename "$pasta" "${filtro:+$nomeFiltro ($filtro)}" 2>/dev/null; fi
+fi
+echo "carinae-escolher: instale o zenity" >&2
+exit 2

@@ -1,0 +1,7 @@
+Sessão sem rastro do CarinaeOS
+
+Tudo o que fizer nesta sessão fica só na memória do computador: arquivos,
+downloads, histórico dos navegadores, senhas guardadas e definições.
+Ao terminar a sessão, tudo é apagado para sempre.
+
+Se quiser guardar alguma coisa, copie-a para um pen drive antes de sair.

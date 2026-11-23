@@ -1,0 +1,3 @@
+#!/bin/sh
+# CarinaeOS — Telas (monitores)
+exec python3 /usr/local/share/carinaeos/telas/telas.py "$@"

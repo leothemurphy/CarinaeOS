@@ -1,0 +1,502 @@
+#!/usr/bin/python3
+"""CarinaeOS - abrir um programa do Windows (.exe / .msi) com duplo clique.
+
+Nada vem instalado: na primeira vez, oferece instalar o Bottles (Flathub, na conta do usuário)
+ou procurar uma alternativa para Linux na Órbita. Depois, abre direto no Bottles.
+  carinaeos-exe ARQUIVO.exe
+  carinaeos-exe --atalhos     põe no Launchpad os programas já instalados na garrafa
+"""
+import glob
+import json
+import os
+import re
+import subprocess
+import sys
+
+def kdialog(args):
+    """As janelas que antes eram do kdialog (KDE), agora com o zenity.
+    Devolve um objeto com returncode como o kdialog: 0 = sim/ok, 1 = não, 2 = cancelar."""
+    class R:
+        returncode = 2
+        stdout = ''
+    if args and args[0] == 'kdialog':
+        args = args[1:]
+    titulo, modo, texto, rot = 'CarinaeOS', None, '', {}
+    i = 0
+    while i < len(args):
+        x = args[i]
+        if x == '--title':
+            titulo = args[i + 1]; i += 2; continue
+        if x in ('--yes-label', '--no-label', '--cancel-label'):
+            rot[x] = args[i + 1]; i += 2; continue
+        if x.startswith('--') and modo is None:
+            modo = x
+        elif not x.startswith('--') and not texto:
+            texto = x
+        i += 1
+    z = ['zenity', '--title=' + titulo, '--width=460']
+    if modo in ('--msgbox', '--sorry'):
+        z += ['--info' if modo == '--msgbox' else '--warning', '--text=' + texto]
+    elif modo == '--error':
+        z += ['--error', '--text=' + texto]
+    elif modo in ('--yesno', '--yesnocancel'):
+        z += ['--question', '--text=' + texto, '--ok-label=' + rot.get('--yes-label', 'Sim')]
+        if modo == '--yesno':
+            z += ['--cancel-label=' + rot.get('--no-label', 'Não')]
+        else:
+            z += ['--cancel-label=' + rot.get('--cancel-label', 'Cancelar'), '--extra-button=' + rot.get('--no-label', 'Não')]
+    else:
+        return R()
+    try:
+        p = subprocess.run(z, capture_output=True, text=True)
+    except OSError:
+        return R()
+    r = R()
+    if p.returncode == 0:
+        r.returncode = 0
+    elif modo == '--yesnocancel' and p.stdout.strip() == rot.get('--no-label', 'Não'):
+        r.returncode = 1
+    else:
+        r.returncode = 1 if modo == '--yesno' else 2
+    return r
+
+
+BOTTLES = 'com.usebottles.bottles'
+FLATHUB = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
+
+
+def tem_bottles():
+    return subprocess.run(['flatpak', 'info', BOTTLES], capture_output=True).returncode == 0
+
+
+GARRAFA = 'Programas do Windows'
+
+
+def cli(*args, timeout=900):
+    try:
+        return subprocess.run(['flatpak', 'run', '--command=bottles-cli', BOTTLES] + list(args),
+                              capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def garrafas():
+    p = cli('--json', 'list', 'bottles', timeout=120)
+    if not p or p.returncode != 0:
+        return []
+    try:
+        j = json.loads(p.stdout)
+        return list(j.keys()) if isinstance(j, dict) else [b.get('Name', b) if isinstance(b, dict) else b for b in j]
+    except ValueError:
+        return [l.strip()[2:] for l in p.stdout.splitlines() if l.strip().startswith('- ')]
+
+
+def sem_vulkan13():
+    """Placas sem Vulkan 1.3 (o DXVK 2+ e o VKD3D precisam dele): Intel até à 8.ª geração (Ivy Bridge,
+    Haswell, Broadwell, Bay Trail, Cherry View) e NVIDIA Kepler (driver 470) ou mais antiga."""
+    import glob
+    tem_gpu, todas_antigas = False, True
+    for d in glob.glob('/sys/bus/pci/devices/*'):
+        try:
+            classe = open(d + '/class').read().strip()
+            if not classe.startswith('0x03'):
+                continue
+            fab = open(d + '/vendor').read().strip().lower()
+            disp = int(open(d + '/device').read().strip(), 16)
+        except (OSError, ValueError):
+            continue
+        tem_gpu = True
+        if fab == '0x8086':
+            antiga = (disp >> 8) in (0x01, 0x04, 0x0a, 0x0c, 0x0d, 0x16, 0x0f, 0x22)
+        elif fab == '0x10de':
+            # Kepler e anteriores: o driver 470 (ou nenhum) — o CarinaeOS instala o 470 só para estas
+            antiga = os.path.exists('/etc/apt/apt.conf.d/53carinaeos-nvidia-antiga') or disp < 0x1300
+        else:
+            antiga = False
+        todas_antigas = todas_antigas and antiga
+    return tem_gpu and todas_antigas
+
+
+def ajustar_garrafa(nome):
+    """Uma vez por garrafa: sem Vulkan 1.3, os programas usam OpenGL (WineD3D) em vez do DXVK."""
+    marca = os.path.expanduser('~/.config/carinaeos/bottles-wined3d')
+    try:
+        feitas = open(marca).read().splitlines()
+    except OSError:
+        feitas = []
+    if nome in feitas or not sem_vulkan13():
+        return
+    p = cli('edit', '-b', nome, '--params', 'dxvk:false,vkd3d:false', timeout=120)
+    if p and p.returncode == 0:
+        os.makedirs(os.path.dirname(marca), exist_ok=True)
+        with open(marca, 'a') as f:
+            f.write(nome + '\n')
+
+
+def progresso(texto):
+    try:
+        return subprocess.Popen(['zenity', '--progress', '--pulsate', '--no-cancel', '--auto-close',
+                                 '--title=Bottles', '--width=460', '--text=' + texto], stdin=subprocess.PIPE)
+    except OSError:
+        return None
+
+
+def fechar(ref):
+    if ref is not None:
+        try:
+            ref.terminate()
+        except Exception:
+            pass
+
+
+def abrir_no_bottles(arquivo):
+    """Corre o .exe numa garrafa (o ambiente Windows do Bottles). Na primeira vez cria a garrafa
+    "Programas do Windows"; o Bottles sozinho, com um arquivo e sem garrafas, não fazia nada."""
+    dados = os.path.expanduser('~/.var/app/%s/data/bottles' % BOTTLES)
+    if not os.path.isdir(os.path.join(dados, 'runners')) or not os.listdir(os.path.join(dados, 'runners')):
+        # o Bottles nunca foi aberto: primeiro a configuração inicial dele (baixa os componentes do Windows)
+        kdialog(['kdialog', '--title', 'Bottles', '--msgbox',
+                        'Na primeira vez, o Bottles precisa de baixar os componentes do Windows.\n\n'
+                        'Ele vai abrir agora: siga os passos até ao fim e depois dê de novo dois cliques no .exe.'])
+        os.execvp('flatpak', ['flatpak', 'run', BOTTLES])
+    lista = garrafas()
+    if not lista:
+        ref = progresso('Preparando o ambiente para programas do Windows… (só da primeira vez; pode levar alguns minutos)')
+        try:
+            p = cli('new', '--bottle-name', GARRAFA, '--environment', 'application')
+        finally:
+            fechar(ref)
+        lista = garrafas()
+        if not lista:
+            erro = ((p.stderr or p.stdout).strip().splitlines()[-1:] if p else []) or ['']
+            kdialog(['kdialog', '--title', 'Bottles', '--msgbox',
+                            'O Bottles ainda precisa de terminar a configuração inicial.\n\n'
+                            'Ele vai abrir agora: siga os passos (baixa os componentes) e depois dê de novo dois cliques no .exe.'
+                            + ('\n\n' + erro[0] if erro[0] else '')])
+            os.execvp('flatpak', ['flatpak', 'run', BOTTLES])
+    nome = GARRAFA if GARRAFA in lista else lista[0]
+    ajustar_garrafa(nome)
+    subprocess.Popen(['notify-send', '-a', 'Bottles', '-i', 'com.usebottles.bottles',
+                      'Abrindo %s' % os.path.basename(arquivo), 'No Bottles, na garrafa “%s”. A primeira vez demora um pouco.' % nome],
+                     start_new_session=True)
+    # se for um instalador: os programas que aparecerem na garrafa vão para o Launchpad no fim
+    c = drive_c(nome)
+    antes = exes_da_garrafa(c)
+    subprocess.run(['flatpak', 'run', '--file-forwarding', '--command=bottles-cli', BOTTLES,
+                    'run', '-b', nome, '-e', '@@', arquivo, '@@'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    novos = [e for e in exes_da_garrafa(c) - antes if not IGNORAR.search(os.path.basename(e))]
+    if novos:
+        feitos = [atalho(nome, c, e) for e in sorted(novos, key=lambda x: -os.path.getsize(x))[:3]]
+        subprocess.run(['kbuildsycoca6'], capture_output=True)
+        subprocess.Popen(['notify-send', '-a', 'CarinaeOS', '-i', 'emblem-ok-symbolic',
+                          'No Launchpad ✓', '%s: abre como os outros aplicativos (pelo Bottles).' % ', '.join(feitos)],
+                         start_new_session=True)
+    sys.exit(0)
+
+
+# ---- programas instalados numa garrafa -> Launchpad ----------------------------------------------------
+IGNORAR = re.compile(r'(?i)(unins|uninstall|update|updater|crash|helper|elevate|setup|install|squirrel|'
+                     r'redist|vcredist|dxsetup|notification|reporter)')
+
+
+def drive_c(garrafa):
+    """A pasta da garrafa: o Bottles guarda "Programas do Windows" em Programas-do-Windows (vê-se no bottle.yml)."""
+    base = os.path.expanduser('~/.var/app/%s/data/bottles/bottles' % BOTTLES)
+    for yml in glob.glob(os.path.join(base, '*', 'bottle.yml')):
+        try:
+            for l in open(yml, encoding='utf-8', errors='ignore'):
+                if l.startswith('Name:') and l.split(':', 1)[1].strip().strip('\'"') == garrafa:
+                    return os.path.join(os.path.dirname(yml), 'drive_c')
+        except OSError:
+            pass
+    return os.path.join(base, garrafa.replace(' ', '-'), 'drive_c')
+
+
+def exes_da_garrafa(c):
+    """Os .exe nos sítios onde os instaladores põem os programas."""
+    r = set()
+    sitios = [os.path.join(c, 'Program Files'), os.path.join(c, 'Program Files (x86)')] + \
+        glob.glob(os.path.join(c, 'users', '*', 'AppData', 'Local', 'Programs')) + \
+        glob.glob(os.path.join(c, 'users', '*', 'AppData', 'Local', '*'))
+    for s in sitios:
+        if not os.path.isdir(s):
+            continue
+        for raiz, pastas, arquivos in os.walk(s):
+            if raiz.count(os.sep) - s.count(os.sep) > 3:
+                pastas[:] = []
+                continue
+            pastas[:] = [p for p in pastas if p.lower() not in ('windows', 'common files', 'internet explorer',
+                                                                  'windows nt', 'windows media player', 'temp', 'microsoft')]
+            for a in arquivos:
+                if a.lower().endswith('.exe'):
+                    r.add(os.path.join(raiz, a))
+    return r
+
+
+def normalizar(t):
+    return re.sub(r'[^a-z0-9]', '', t.lower())
+
+
+def nome_do_menu(c, exe):
+    """O nome do atalho que o instalador criou no Menu Iniciar (o .lnk), se combinar com o .exe."""
+    alvo = normalizar(os.path.splitext(os.path.basename(exe))[0])
+    pasta = normalizar(os.path.basename(os.path.dirname(exe)))
+    for lnk in glob.glob(os.path.join(c, '**', 'Start Menu', '**', '*.lnk'), recursive=True):
+        n = os.path.splitext(os.path.basename(lnk))[0]
+        if IGNORAR.search(n):
+            continue
+        k = normalizar(n)
+        if k and (k in alvo or alvo in k or k in pasta or pasta in k):
+            return n
+    return os.path.splitext(os.path.basename(exe))[0]
+
+
+def icone_do_exe(exe, destino):
+    """O maior ícone guardado no .exe (recursos do Windows), em PNG."""
+    import struct
+    try:
+        lista = subprocess.run(['7z', 'l', '-ba', exe], capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ''
+    icones = [(int(l.split()[-2]) if l.split()[-2].isdigit() else 0, l.split()[-1]) for l in lista.splitlines()
+              if '.rsrc' in l and '/ICON/' in l.replace('\\', '/')]
+    for _, nome in sorted(icones, reverse=True):
+        try:
+            dados = subprocess.run(['7z', 'e', '-so', exe, nome], capture_output=True, timeout=30).stdout
+            if dados[:8] == b'\x89PNG\r\n\x1a\n':
+                open(destino, 'wb').write(dados)
+                return destino
+            # bitmap do Windows sem cabeçalho: embrulha-se num .ico para o PIL o ler
+            larg, alt2, _, bits = struct.unpack('<iiHH', dados[4:16])
+            ico = struct.pack('<HHH', 0, 1, 1) + struct.pack('<BBBBHHII', larg % 256, (alt2 // 2) % 256, 0, 0, 1, bits,
+                                                             len(dados), 22) + dados
+            import io
+            from PIL import Image
+            Image.open(io.BytesIO(ico)).save(destino)
+            return destino
+        except Exception:
+            continue
+    return ''
+
+
+def atalho(garrafa, c, exe):
+    nome = nome_do_menu(c, exe)
+    ident = re.sub(r'[^a-z0-9]+', '-', nome.lower()).strip('-') or 'programa'
+    pasta_ic = os.path.expanduser('~/.local/share/icons/carinaeos-windows')
+    os.makedirs(pasta_ic, exist_ok=True)
+    icone = icone_do_exe(exe, os.path.join(pasta_ic, ident + '.png')) or 'application-x-ms-dos-executable'
+    apps = os.path.expanduser('~/.local/share/applications')
+    os.makedirs(apps, exist_ok=True)
+    with open(os.path.join(apps, 'carinaeos-windows-%s.desktop' % ident), 'w', encoding='utf-8') as f:
+        f.write('[Desktop Entry]\nType=Application\nName=%s\nComment=Programa do Windows (Bottles · %s)\n'
+                'Exec=flatpak run --command=bottles-cli %s run -b "%s" -e "%s"\nIcon=%s\nCategories=Utility;Wine;\n'
+                'StartupWMClass=%s\n' % (nome, garrafa, BOTTLES, garrafa, exe, icone, os.path.basename(exe).lower()))
+    return nome
+
+
+def nome_para_procurar(arquivo):
+    n = os.path.splitext(os.path.basename(arquivo))[0]
+    n = re.sub(r'[-_.]+', ' ', n)
+    n = re.sub(r'(?i)\b(setup|install(er)?|x64|x86|win(32|64)?|amd64|portable|full|v?\d+)\b', ' ', n)
+    n = re.sub(r'(?<=[A-Za-z])\d{3,}\b', '', n)          # 7z2301 -> 7z
+    n = re.sub(r'(?i)(setup|installer)$', '', n)              # ChromeSetup -> Chrome
+    n = re.sub(r'\s+', ' ', n).strip()
+    return n or 'windows'
+
+
+def instalar():
+    """Instala o Bottles mostrando uma barra de progresso. Devolve True se ficou instalado."""
+    ref = progresso('Instalando o Bottles (pode levar alguns minutos)…')
+    try:
+        subprocess.run(['flatpak', 'remote-add', '--user', '--if-not-exists', 'flathub', FLATHUB], capture_output=True)
+        p = subprocess.run(['flatpak', 'install', '--user', '-y', '--noninteractive', 'flathub', BOTTLES],
+                           capture_output=True, text=True)
+    finally:
+        fechar(ref)
+    if p.returncode != 0:
+        erro = (p.stderr or p.stdout).strip().splitlines()[-1:] or ['sem conexão com a internet?']
+        kdialog(['kdialog', '--title', 'Bottles', '--error', 'Não foi possível instalar o Bottles:\n' + erro[0]])
+        return False
+    return True
+
+
+# ---- apps Electron: a versão nativa para Linux, sem Wine ---------------------------------------------
+# Muitos programas do Windows são feitos com Electron (JavaScript + Chromium). O instalador (NSIS) traz o
+# programa num app-64.7z; se o app.asar não tiver módulos nativos (.node, compilados para o Windows), corre
+# igual com o Electron oficial para Linux da mesma versão.
+TEMP = os.path.expanduser('~/.cache/carinaeos/exe')
+APLICATIVOS = os.path.expanduser('~/Aplicativos')
+
+
+def asar_ler(caminho):
+    """(cabeçalho JSON, início dos dados) de um app.asar."""
+    import struct
+    with open(caminho, 'rb') as f:
+        cab = f.read(16)
+        tam_pickle = struct.unpack('<I', cab[4:8])[0]
+        n = struct.unpack('<I', cab[12:16])[0]
+        return json.loads(f.read(n)), 8 + tam_pickle
+
+
+def asar_arquivos(h, c=''):
+    for k, v in h.get('files', {}).items():
+        if 'files' in v:
+            yield from asar_arquivos(v, c + '/' + k)
+        else:
+            yield c + '/' + k, v
+
+
+def electron_nativo(arquivo):
+    """Se o .exe for o instalador de um app Electron que corre no Linux: dict com nome, versão e pastas."""
+    import shutil
+    if not shutil.which('7z'):
+        return None
+    lista = subprocess.run(['7z', 'l', '-ba', arquivo], capture_output=True, text=True, timeout=60).stdout
+    pacote = next((l.split()[-1] for l in lista.splitlines() if l.rstrip().endswith('app-64.7z')), '')
+    if not pacote:
+        return None
+    t = os.path.join(TEMP, re.sub(r'[^A-Za-z0-9._-]', '_', os.path.basename(arquivo)))
+    shutil.rmtree(t, ignore_errors=True)
+    os.makedirs(t)
+    subprocess.run(['7z', 'x', '-y', '-o' + t, arquivo, pacote], capture_output=True, timeout=300)
+    app = os.path.join(t, 'app')
+    subprocess.run(['7z', 'x', '-y', '-o' + app, os.path.join(t, pacote)], capture_output=True, timeout=600)
+    asar = os.path.join(app, 'resources', 'app.asar')
+    if not os.path.exists(asar):
+        return None
+    try:
+        h, base = asar_ler(asar)
+    except (OSError, ValueError):
+        return None
+    arquivos = dict(asar_arquivos(h))
+    if any(k.endswith('.node') for k in arquivos) or os.path.isdir(asar + '.unpacked'):
+        return None                     # tem partes compiladas para o Windows: fica para o Bottles
+    exes = [x for x in os.listdir(app) if x.lower().endswith('.exe') and not x.lower().startswith(('uninstall', 'elevate'))]
+    if not exes:
+        return None
+    m = re.search(rb'Electron/(\d+\.\d+\.\d+)', open(os.path.join(app, exes[0]), 'rb').read())
+    if not m:
+        return None
+    nome = os.path.splitext(exes[0])[0]
+    desc = ''
+    pj = arquivos.get('/package.json')
+    if pj and 'offset' in pj:
+        try:
+            with open(asar, 'rb') as f:
+                f.seek(base + int(pj['offset']))
+                j = json.loads(f.read(int(pj['size'])))
+            nome = j.get('productName') or nome
+            desc = j.get('description') or ''
+        except (OSError, ValueError):
+            pass
+    return dict(nome=nome, desc=desc, versao=m.group(1).decode(), app=app, temp=t)
+
+
+def instalar_nativo(info):
+    """~/Aplicativos/<Nome>: o Electron oficial para Linux (verificado pela soma SHA-256 publicada) + o app.asar."""
+    import hashlib
+    import shutil
+    import urllib.request
+    v = info['versao']
+    base = 'https://github.com/electron/electron/releases/download/v%s/' % v
+    zipn = 'electron-v%s-linux-x64.zip' % v
+    ref = progresso('Instalando %s para Linux… (baixa o Electron %s, uns 100 MB)' % (info['nome'], v))
+    try:
+        somas = urllib.request.urlopen(base + 'SHASUMS256.txt', timeout=60).read().decode()
+        esperado = next((l.split()[0] for l in somas.splitlines() if l.strip().endswith(zipn)), '')
+        z = os.path.join(info['temp'], zipn)
+        urllib.request.urlretrieve(base + zipn, z)
+        h = hashlib.sha256(open(z, 'rb').read()).hexdigest()
+        if not esperado or h != esperado:
+            raise RuntimeError('o Electron baixado não confere com a soma publicada')
+        pasta = os.path.join(APLICATIVOS, re.sub(r'[^A-Za-z0-9 ._-]', '', info['nome']).strip() or 'App')
+        shutil.rmtree(pasta, ignore_errors=True)
+        os.makedirs(pasta)
+        subprocess.run(['7z', 'x', '-y', '-o' + pasta, z], check=True, capture_output=True)
+        shutil.copy2(os.path.join(info['app'], 'resources', 'app.asar'), os.path.join(pasta, 'resources', 'app.asar'))
+        try:
+            os.remove(os.path.join(pasta, 'resources', 'default_app.asar'))
+        except OSError:
+            pass
+        ident = re.sub(r'[^a-z0-9]+', '-', info['nome'].lower()).strip('-') or 'app'
+        binario = os.path.join(pasta, ident)
+        os.rename(os.path.join(pasta, 'electron'), binario)
+        icone = 'application-x-executable'
+        for ico in glob.glob(os.path.join(info['app'], 'resources', '*.ico')) + glob.glob(os.path.join(info['app'], '*.ico')):
+            try:
+                from PIL import Image
+                im = Image.open(ico)
+                im.size = max(im.info.get('sizes', [im.size]))
+                im.save(os.path.join(pasta, ident + '.png'))
+                icone = os.path.join(pasta, ident + '.png')
+                break
+            except Exception:
+                pass
+        apps = os.path.expanduser('~/.local/share/applications')
+        os.makedirs(apps, exist_ok=True)
+        with open(os.path.join(apps, 'carinaeos-electron-%s.desktop' % ident), 'w', encoding='utf-8') as f:
+            f.write('[Desktop Entry]\nType=Application\nName=%s\nComment=%s\nExec="%s" %%U\nIcon=%s\n'
+                    'Categories=Utility;\nStartupWMClass=%s\nX-CarinaeOS-Electron=%s\n'
+                    % (info['nome'], info['desc'] or 'Versão para Linux, instalada pelo CarinaeOS', binario, icone,
+                       info['nome'], v))
+        subprocess.run(['kbuildsycoca6'], capture_output=True)
+        return binario
+    finally:
+        fechar(ref)
+        shutil.rmtree(info['temp'], ignore_errors=True)
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(__doc__)
+        return 2
+    if sys.argv[1] == '--atalhos':
+        # programas já instalados na garrafa que ainda não estão no Launchpad
+        c = drive_c(GARRAFA)
+        feitos = [atalho(GARRAFA, c, e) for e in sorted(exes_da_garrafa(c)) if not IGNORAR.search(os.path.basename(e))]
+        subprocess.run(['kbuildsycoca6'], capture_output=True)
+        print('No Launchpad: ' + (', '.join(feitos) or 'nada'))
+        return 0
+    arquivo = os.path.abspath(sys.argv[1])
+    # primeiro: é um app Electron que corre no Linux? então a versão nativa, sem Wine
+    ref = progresso('Vendo que programa é…')
+    try:
+        info = electron_nativo(arquivo)
+    except Exception:
+        info = None
+    finally:
+        fechar(ref)
+    if info:
+        r = kdialog(['kdialog', '--title', info['nome'], '--yesno',
+                            '“%s” é feito com Electron e pode rodar direto no Linux, sem o Wine: '
+                            'mais rápido e integrado no CarinaeOS.\n\nInstalar a versão para Linux?' % info['nome'],
+                            '--yes-label', 'Instalar para Linux', '--no-label', 'Usar o Bottles'])
+        if r.returncode == 0:
+            try:
+                binario = instalar_nativo(info)
+            except Exception as e:
+                kdialog(['kdialog', '--title', info['nome'], '--error', 'Não foi possível: %s' % e])
+                return 1
+            subprocess.Popen(['notify-send', '-a', 'CarinaeOS', '-i', 'emblem-ok-symbolic', '%s instalado ✓' % info['nome'],
+                              'Versão para Linux, já no Launchpad.'], start_new_session=True)
+            os.execv(binario, [binario])
+    if tem_bottles():
+        abrir_no_bottles(arquivo)
+    nome = os.path.basename(arquivo)
+    r = kdialog([
+        'kdialog', '--title', 'Programa do Windows', '--yesnocancel',
+        '“%s” é um programa feito para o Windows.\n\n'
+        'O CarinaeOS pode abrir muitos deles com o Bottles (gratuito, cerca de 300 MB, instalado só para você).\n'
+        'Nem todos funcionam: muitas vezes há uma versão para Linux, ou uma alternativa, na Órbita.' % nome,
+        '--yes-label', 'Instalar o Bottles e abrir', '--no-label', 'Procurar na Órbita', '--cancel-label', 'Cancelar'])
+    if r.returncode == 0:
+        if instalar():
+            abrir_no_bottles(arquivo)
+        return 1
+    if r.returncode == 1:
+        os.execvp('carinaeos-orbita', ['carinaeos-orbita', '--procurar', nome_para_procurar(arquivo)])
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

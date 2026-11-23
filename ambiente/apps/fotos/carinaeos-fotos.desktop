@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae Fotos
+GenericName=Visualizador de imagens
+Comment=Ver as suas fotos e imagens
+Icon=carinaeos-fotos
+Exec=carinaeos-fotos %f
+TryExec=carinaeos-fotos
+Terminal=false
+StartupWMClass=carinaeos-fotos
+Categories=Graphics;Viewer;Photography;
+Keywords=fotos;imagens;fotografias;visualizador;gwenview;photos;jpg;png;
+MimeType=image/jpeg;image/png;image/gif;image/webp;image/bmp;image/svg+xml;image/svg+xml-compressed;image/tiff;image/x-icon;image/vnd.microsoft.icon;image/avif;image/heif;image/heic;image/jxl;image/x-tga;image/x-portable-pixmap;image/x-portable-graymap;image/x-portable-bitmap;image/x-xpixmap;image/x-xbitmap;

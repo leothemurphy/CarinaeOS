@@ -156,7 +156,7 @@ ApplicationWindow {
                 }
                 Linha {
                     visible: (janela.e.redes || []).length === 0
-                    titulo: (janela.e.ligacoes || []).length > 0 ? "Já está ligado à internet por cabo ✓" : "A procurar redes…"
+                    titulo: (janela.e.ligacoes || []).length > 0 ? "Já está ligado à internet por cabo ✓" : "Procurando redes…"
                     sub: (janela.e.ligacoes || []).length > 0 ? "Pode seguir para o passo seguinte." : "Se não aparecer nenhuma, confirme que o Wi-Fi está ligado."
                 }
             }
@@ -228,12 +228,12 @@ ApplicationWindow {
             Text {
                 visible: janela.atual === "contas"
                 Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
-                text: "Ligue as suas contas para ver o calendário e os contactos no CarinaeOS. Também pode fazê-lo mais tarde."
+                text: "Ligue as suas contas para ver o calendário e os contatos no CarinaeOS. Também pode fazê-lo mais tarde."
                 color: janela.suave; font.pixelSize: 14
             }
             Grupo {
                 visible: janela.atual === "contas"
-                Linha { titulo: "Google"; sub: "Calendário e contactos"; icone: "view-calendar"; clicavel: true; onCarregado: bv.abrir("carinaeos-central calendarios"); Text { text: "›"; color: janela.suave; font.pixelSize: 20 } }
+                Linha { titulo: "Google"; sub: "Calendário e contatos"; icone: "view-calendar"; clicavel: true; onCarregado: bv.abrir("carinaeos-central calendarios"); Text { text: "›"; color: janela.suave; font.pixelSize: 20 } }
                 Linha { titulo: "iCloud, Outlook e outros calendários"; sub: "Pelo endereço do calendário (iCal)"; icone: "view-calendar-day"; clicavel: true; onCarregado: bv.abrir("carinaeos-central calendarios"); Text { text: "›"; color: janela.suave; font.pixelSize: 20 } }
                 Linha { titulo: "Nextcloud e outras contas"; icone: "preferences-online-accounts"; clicavel: true; onCarregado: bv.abrir("kcmshell6 kcm_kaccounts"); Text { text: "›"; color: janela.suave; font.pixelSize: 20 } }
             }
@@ -250,8 +250,10 @@ ApplicationWindow {
                 Grupo {
                     Linha { titulo: "Pesquisa"; sub: "Ctrl+Espaço ou a lupa da barra de cima: aplicativos, arquivos e ações como “diminuir volume”."; icone: "search" }
                     Linha { titulo: "Launchpad"; sub: "A estrela da Dock ou a tecla ⊞: todos os aplicativos por categoria, e o Deck."; icone: "carinaeos-estrela" }
-                    Linha { titulo: "Configurações"; sub: "Wi-Fi, som, ecrãs, aparência e tudo o resto."; icone: "preferences-system" }
+                    Linha { titulo: "Configurações"; sub: "Wi-Fi, som, telas, aparência e tudo o resto."; icone: "preferences-system" }
                     Linha { titulo: "Manual do CarinaeOS"; sub: "Tudo explicado, passo a passo."; icone: "help-contents" }
+                    Linha { titulo: "Vindo do Windows?"; sub: "Traga os seus arquivos e ache os programas equivalentes."; icone: "windows"; clicavel: true
+                            onCarregado: bv.abrir("carinaeos-central windows"); Text { text: "›"; color: janela.suave; font.pixelSize: 20 } }
                 }
                 Rectangle {
                     Layout.alignment: Qt.AlignHCenter

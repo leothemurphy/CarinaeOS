@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Documentos — voltar a ligar as unidades de rede
+Exec=carinaeos-arquivos --religar
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

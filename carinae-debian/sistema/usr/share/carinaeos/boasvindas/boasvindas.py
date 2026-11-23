@@ -43,9 +43,6 @@ if __name__ == '__main__':
     if '--se-primeira-vez' in sys.argv:
         if os.path.exists(FEITO) or 'boot=live' in open('/proc/cmdline').read():
             sys.exit(0)
-        # mostra-se uma vez só: fica marcado logo ao abrir (fechar a janela no ✕ também conta)
-        os.makedirs(os.path.dirname(FEITO), exist_ok=True)
-        open(FEITO, 'w').close()
     sys.argv = [a for a in sys.argv if not a.startswith('--')]
     sys.exit(iniciar('carinaeos-boasvindas', 'Configuração inicial', 'carinaeos',
                      os.path.join(AQUI, 'Main.qml'), {'bv': BoasVindas(), 'ajustes': Config('wifi')}))

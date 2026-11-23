@@ -1,0 +1,37 @@
+#!/bin/sh
+# CarinaeOS - modo leve: sem sombras nem transparências do compositor (picom), para computadores mais
+# antigos e máquinas virtuais sem aceleração 3D.
+#   carinaeos-modo-leve estado     -> {"ligado": ..., "recomendado": ..., "motivo": "..."}
+#   carinaeos-modo-leve ligar | desligar
+# A escolha fica em ~/.config/carinaeos/modo-leve (ligado / desligado). Sem escolha, o modo leve
+# liga-se sozinho nas máquinas virtuais.
+F="$HOME/.config/carinaeos/modo-leve"
+motivo=""
+if command -v systemd-detect-virt >/dev/null && systemd-detect-virt -q --vm; then motivo="máquina virtual"
+else
+    mem=$(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo)
+    [ "${mem:-4096}" -lt 3500 ] && motivo="pouca memória"
+    [ "$(nproc)" -le 2 ] && motivo="${motivo:+$motivo, }poucos processadores"
+fi
+escolha=$(cat "$F" 2>/dev/null)
+# o modo leve antigo marcava "ligado" só com o ficheiro (vazio)
+[ -f "$F" ] && [ -z "$escolha" ] && escolha=ligado
+if [ "$escolha" = ligado ] || { [ -z "$escolha" ] && [ -n "$motivo" ]; }; then ligado=true; else ligado=false; fi
+case "$1" in
+    estado)
+        [ -n "$motivo" ] && rec=true || rec=false
+        printf '{"ligado": %s, "recomendado": %s, "motivo": "%s"}\n' "$ligado" "$rec" "$motivo" ;;
+    ativo) [ "$ligado" = true ] ;;
+    ligar)
+        mkdir -p "${F%/*}"; echo ligado > "$F"
+        pkill -u "$(id -u)" -x picom ;;
+    desligar)
+        mkdir -p "${F%/*}"; echo desligado > "$F"
+        if ! pgrep -u "$(id -u)" -x picom >/dev/null && command -v picom >/dev/null; then
+            C="$HOME/.config/carinaeos/picom.conf"
+            [ -f "$C" ] || C=/usr/local/share/carinaeos/picom.conf
+            [ -f "$C" ] || C=/usr/share/carinaeos/picom.conf
+            setsid picom --config "$C" >/dev/null 2>&1 &
+        fi ;;
+    *) echo "uso: carinaeos-modo-leve estado|ligar|desligar" >&2; exit 2 ;;
+esac

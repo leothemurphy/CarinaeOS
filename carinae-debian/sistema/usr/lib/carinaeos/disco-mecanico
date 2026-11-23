@@ -1,0 +1,27 @@
+#!/bin/sh
+# CarinaeOS - sistema instalado num disco mecânico (HD): menos gravações do diário do ext4.
+# Corre como root no arranque (carinaeos-disco.service). Só mexe se / for ext4 num disco rotativo;
+# guarda o fstab original em /etc/fstab.carinaeos-antes. Desfazer: carinaeos-disco-mecanico desfazer
+set -e
+FONTE=$(findmnt -no SOURCE /)
+PAI=$(lsblk -no PKNAME "$FONTE" 2>/dev/null | head -1)
+[ -n "$PAI" ] && [ "$(cat /sys/block/$PAI/queue/rotational 2>/dev/null)" = 1 ] || exit 0
+[ "$(findmnt -no FSTYPE /)" = ext4 ] || exit 0
+if [ "$1" = desfazer ]; then
+  [ -f /etc/fstab.carinaeos-antes ] && cp /etc/fstab.carinaeos-antes /etc/fstab && mount -o remount,commit=5,relatime /
+  exit 0
+fi
+# já feito?
+awk '$2 == "/" && $3 == "ext4" {print $4}' /etc/fstab | grep -q 'commit=' && exit 0
+[ -f /etc/fstab.carinaeos-antes ] || cp /etc/fstab /etc/fstab.carinaeos-antes
+awk 'BEGIN{OFS="\t"} $2 == "/" && $3 == "ext4" && $1 !~ /^#/ { o=$4; gsub(/(^|,)(relatime|atime|noatime)/, "", o); sub(/^,/, "", o);
+     $4 = (o == "" || o == "defaults" ? "defaults" : o) ",noatime,commit=30" } {print}' /etc/fstab > /etc/fstab.novo
+# só troca se o resultado ainda tiver a linha do / (nunca deixar o fstab estragado)
+if awk '$2 == "/"' /etc/fstab.novo | grep -q 'commit=30' && findmnt --verify --tab-file /etc/fstab.novo >/dev/null 2>&1; then
+  mv /etc/fstab.novo /etc/fstab
+  mount -o remount,noatime,commit=30 /
+  echo "fstab: / com noatime,commit=30"
+else
+  rm -f /etc/fstab.novo
+  echo "fstab não mudado (verificação falhou)" >&2
+fi

@@ -1,0 +1,21 @@
+#!/bin/bash
+# CarinaeOS — experimentar o ambiente novo DENTRO da sessão Plasma, sem sair.
+# Tira o KWin e o plasmashell e põe a Gravidade, o picom e a Aurora.
+# Para voltar ao Plasma:  carinae-voltar   (ou terminar a sessão: tudo volta ao normal)
+# SPDX-License-Identifier: GPL-2.0-or-later
+PARTILHA="$(cd "$(dirname "$(readlink -f "$0")")/../share/carinaeos" && pwd)"
+mkdir -p "$HOME/.cache/carinaeos" "$HOME/.config/carinaeos"
+REG="$HOME/.cache/carinaeos/experimentar.log"
+[ -f "$HOME/.config/carinaeos/atalhos.conf" ] || cp "$PARTILHA/atalhos.conf" "$HOME/.config/carinaeos/atalhos.conf"
+echo "A trocar o Plasma pelo CarinaeOS (registo em $REG)…"
+{
+    date
+    systemctl --user stop plasma-plasmashell.service 2>/dev/null || pkill -x plasmashell
+    sleep 0.5
+    nohup gravidade --substituir >>"$REG" 2>&1 &
+    sleep 1.5
+    pgrep -x picom >/dev/null || nohup picom --config "$PARTILHA/picom.conf" >>"$REG" 2>&1 &
+    pgrep -x carinae-vigia-ban >/dev/null || nohup carinae-vigia-bandeja >>"$REG" 2>&1 &
+    nohup aurora >>"$REG" 2>&1 &
+} >>"$REG" 2>&1
+echo "Pronto. Para voltar ao Plasma: carinae-voltar"

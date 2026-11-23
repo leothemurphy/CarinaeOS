@@ -12,7 +12,7 @@ from PySide6.QtQuickControls2 import QQuickStyle
 
 
 class Icones(QQuickImageProvider):
-    """image://icone/<nome> -> icone do tema (Breeze/CarinaeOS) ou ficheiro."""
+    """image://icone/<nome> -> icone do tema (Breeze/CarinaeOS) ou arquivo."""
 
     def __init__(self):
         super().__init__(QQuickImageProvider.ImageType.Pixmap)

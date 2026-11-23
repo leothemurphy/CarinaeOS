@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+ <defs>
+  <linearGradient id="f" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a1d4f"/><stop offset="0.6" stop-color="#151026"/><stop offset="1" stop-color="#0c0a17"/></linearGradient>
+  <linearGradient id="p" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8fab"/><stop offset="1" stop-color="#ff6f91"/></linearGradient>
+ </defs>
+ <rect x="12" y="12" width="232" height="232" rx="56" fill="url(#f)"/>
+ <rect x="13" y="13" width="230" height="230" rx="55" fill="none" stroke="#fff" stroke-opacity="0.09" stroke-width="2"/>
+ <path d="M76 44 L150 44 L190 84 L190 204 Q190 214 180 214 L76 214 Q66 214 66 204 L66 54 Q66 44 76 44 Z" fill="#f2f0f6"/>
+ <path d="M150 44 L150 76 Q150 84 158 84 L190 84 Z" fill="#c9c3d6"/>
+ <rect x="86" y="104" width="84" height="7" rx="3.5" fill="#a8a3b6"/>
+ <rect x="86" y="122" width="70" height="7" rx="3.5" fill="#a8a3b6"/>
+ <rect x="86" y="140" width="78" height="7" rx="3.5" fill="#a8a3b6"/>
+ <rect x="50" y="160" width="96" height="44" rx="12" fill="url(#p)"/>
+ <text x="98" y="191" font-family="Inter, DejaVu Sans, sans-serif" font-weight="800" font-size="26" fill="#fff" text-anchor="middle">PDF</text>
+</svg>

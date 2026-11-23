@@ -1,0 +1,44 @@
+#!/bin/sh
+# CarinaeOS — pré-aquecer a sessão: enquanto a tela de login espera pela senha, lê para a memória os
+# ficheiros que a sessão vai usar (bibliotecas do Qt, Gravidade, Aurora, QML, papel de parede, fontes).
+# Num disco mecânico isto poupa vários segundos depois de entrar. Corre com a prioridade mais baixa de
+# disco e de CPU, por isso não atrasa mais nada.
+set -u
+lista=$(mktemp)
+trap 'rm -f "$lista"' EXIT
+
+for b in /usr/local/bin/aurora /usr/local/bin/gravidade /usr/local/bin/carinae-vigia-bandeja \
+         "$(command -v picom 2>/dev/null)" "$(command -v python3 2>/dev/null)"; do
+    [ -x "$b" ] || continue
+    echo "$b"
+    ldd "$b" 2>/dev/null | awk '/=>/ && $3 ~ /^\// {print $3}'
+done >> "$lista"
+
+# QML, plugins do Qt e o QML da Aurora
+for d in /usr/lib/x86_64-linux-gnu/qt6/qml/QtQuick /usr/lib/x86_64-linux-gnu/qt6/qml/QtQml \
+         /usr/lib/x86_64-linux-gnu/qt6/plugins/platforms /usr/lib/x86_64-linux-gnu/qt6/plugins/xcbglintegrations \
+         /usr/lib/x86_64-linux-gnu/qt6/plugins/imageformats /usr/lib/x86_64-linux-gnu/qt6/plugins/platformthemes \
+         /usr/lib/x86_64-linux-gnu/qt6/plugins/styles /usr/local/share/carinaeos/shell \
+         /usr/share/fonts/truetype/inter /usr/share/fonts/opentype/inter; do
+    [ -d "$d" ] && find "$d" -type f -size -20M
+done >> "$lista"
+
+# o que é de cada utilizador: papel de parede, cache do QML, configurações
+for casa in /home/*; do
+    [ -d "$casa" ] || continue
+    papel=$(grep -o '"papel": *"[^"]*"' "$casa/.config/carinaeos-shell.json" 2>/dev/null | sed 's/.*: *"//; s/"$//')
+    [ -n "$papel" ] && [ -f "$papel" ] && echo "$papel"
+    for d in "$casa/.cache/aurora" "$casa/.cache/carinae-shell" "$casa/.cache/qmlcache"; do
+        [ -d "$d" ] && find "$d" -type f
+    done
+done >> "$lista"
+
+# o tema de ícones (só os índices e os ícones pequenos usados na barra e na Dock)
+for t in /usr/share/icons/breeze-dark /usr/share/icons/breeze /usr/share/icons/WhiteSur-dark; do
+    [ -f "$t/index.theme" ] && echo "$t/index.theme" && [ -f "$t/icon-theme.cache" ] && echo "$t/icon-theme.cache"
+done >> "$lista"
+
+sort -u "$lista" | while IFS= read -r f; do
+    [ -f "$f" ] && cat "$f" > /dev/null 2>&1
+done
+exit 0

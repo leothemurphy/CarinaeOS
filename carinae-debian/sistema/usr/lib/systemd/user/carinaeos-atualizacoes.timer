@@ -1,0 +1,10 @@
+[Unit]
+Description=Ver se há atualizações uma vez por dia (CarinaeOS)
+
+[Timer]
+OnStartupSec=15min
+OnUnitActiveSec=1d
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -73,7 +73,9 @@ DTD_ESTILOS = {   # cor de fundo, opacidade (0..1)
     'mac': ('#d9d4de', 0.30), 'escuro': ('#1d1a23', 0.65), 'transparente': ('#000000', 0.0),
     'bolhas': ('#cfe3ff', 0.40), 'squircle': ('#36363a', 0.85), 'rosepine': ('#191724', 0.90),
     'xp': ('#2f6fe6', 0.95), 'vista': ('#1b2633', 0.70), 'translucido': ('#ffffff', 0.08),
-    'docklike': ('#232323', 0.72), 'matter': ('#2b2930', 1.0), 'lucent': ('#f2f2f2', 0.55), 'neon': ('#14091e', 0.80)}
+    'docklike': ('#232323', 0.72), 'matter': ('#2b2930', 1.0), 'lucent': ('#f2f2f2', 0.55), 'neon': ('#14091e', 0.80),
+    'vidro': ('#cfd8ff', 0.20), 'fluent': ('#18181f', 0.85), 'minimalista': ('#000000', 0.0), 'colorida': ('#0e0f33', 0.88),
+    'orbital': ('#000000', 0.0), 'hexagonal': ('#000000', 0.0), 'aereo': ('#9db4ff', 0.18), 'icones': ('#000000', 0.0), 'redondos': ('#000000', 0.0), 'simples': ('#18181f', 0.85)}
 
 
 def a_estilo_dock(m):
@@ -239,20 +241,6 @@ def a_noite(m):
     kwin()
 
 
-MODO_FUNDO = os.path.join(os.path.dirname(CFG), 'fundo-modo')
-
-
-def a_fundo(m):
-    os.makedirs(os.path.dirname(MODO_FUNDO), exist_ok=True)
-    with open(MODO_FUNDO, 'w') as f:
-        f.write(m)
-    if m in ('ceu', 'galeria'):
-        _c(['systemctl', '--user', 'enable', '--now', 'carinaeos-ceu-vivo.timer'])
-        _c(['/usr/bin/carinaeos-ceu-vivo', '--forcar'])
-    else:
-        _c(['systemctl', '--user', 'disable', '--now', 'carinaeos-ceu-vivo.timer'])
-
-
 def a_achar(m):
     efeito('shakecursor', m == 'sim')
 
@@ -279,31 +267,21 @@ def a_gelatina(m):
 # ---- catalogo ---------------------------------------------------------------------------------
 # "inspirado": o mod do Windhawk (Windows) em que o modelo se baseia
 MODS = [
-    dict(id='estilo_dock', cat='dock', nome='Estilo da Dock', icone='carinaeos-estrela', aplicar=a_estilo_dock, padrao='mac',
+    dict(id='estilo_dock', cat='dock', nome='Estilo da Dock', icone='carinaeos-estrela', aplicar=a_estilo_dock, padrao='fluent',
          inspirado='Windows 11 Taskbar Styler',
-         desc='O vidro por trás dos ícones da Dock. Os modelos vêm dos temas mais usados do Windhawk.',
+         desc='O fundo por trás dos ícones da Dock e se ela tem efeitos.',
          modelos=[
-             dict(id='mac', nome='Mac claro', desc='Vidro fosco claro, como no macOS.', cor='#d9d4de'),
-             dict(id='escuro', nome='Mac escuro', desc='Vidro fumado, para fundos claros.', cor='#29252f'),
-             dict(id='transparente', nome='SimplyTransparent', desc='Sem vidro: só os ícones a flutuar.', cor='#00000000'),
-             dict(id='bolhas', nome='Bubbles', desc='Bolha redonda, brilhante e azulada.', cor='#cfe3ff'),
-             dict(id='squircle', nome='Squircle', desc='Cantos “squircle”, cinzento sólido.', cor='#36363a'),
-             dict(id='rosepine', nome='Rosé Pine', desc='Roxo profundo com borda rosa-pálido.', cor='#ebbcba'),
-             dict(id='xp', nome='Windows XP', desc='O azul “Luna” do XP, com brilho no topo.', cor='#3a81f3'),
-             dict(id='vista', nome='WinVista', desc='Vidro Aero escuro com reflexo.', cor='#3b4c5c'),
-             dict(id='translucido', nome='TranslucentTaskbar', desc='Quase invisível, só um véu de vidro.', cor='#33ffffff'),
-             dict(id='docklike', nome='DockLike', desc='Dock escura e discreta, cantos médios.', cor='#232323'),
-             dict(id='matter', nome='Matter', desc='Material Design: sólido e muito arredondado.', cor='#2b2930'),
-             dict(id='lucent', nome='Lucent', desc='Vidro branco leitoso, borda brilhante.', cor='#f2f2f2'),
-             dict(id='neon', nome='Neon Eta', desc='Escuro com borda néon rosa e âmbar a pulsar.', cor='#ff6f91'),
+             dict(id='fluent', nome='Padrão', desc='Escura; o ícone cresce um pouco e salta ao abrir.', cor='#18181f'),
+             dict(id='simples', nome='Sem efeitos', desc='Escura; o ícone só acende ao passar o mouse.', cor='#18181f'),
+             dict(id='icones', nome='Só ícones', desc='Sem o fundo da Dock; o ícone acende ao passar o mouse.', cor='#00000000'),
          ]),
     dict(id='visivel', cat='dock', nome='Dock sempre à vista', icone='view-visible', aplicar=a_visivel, padrao='sempre',
          inspirado='Taskbar auto-hide',
-         desc='A Dock (e a barra de cima) ficam sempre no ecrã, ou escondem-se.',
+         desc='A Dock (e a barra de cima) ficam sempre na tela, ou escondem-se.',
          modelos=[
              dict(id='sempre', nome='Sempre visível', desc='Como a barra de cima: nunca se esconde (padrão).'),
              dict(id='janelas', nome='Sai do caminho', desc='Esconde-se quando uma janela passa por cima.'),
-             dict(id='esconder', nome='Esconder sempre', desc='Aparece ao levar o rato ao fundo do ecrã.'),
+             dict(id='esconder', nome='Esconder sempre', desc='Aparece ao levar o mouse ao fundo da tela.'),
          ]),
     dict(id='troca', cat='janelas', nome='Alt+Tab', icone='preferences-system-windows-effect-flipswitch', aplicar=a_troca, padrao='flipswitch',
          inspirado='Alt+Tab Flip 3D / Better Alt+Tab',
@@ -334,7 +312,7 @@ MODS = [
              dict(id='supernova', nome='Supernova', desc='Zoom ao abrir e explosão em pedaços ao fechar.'),
              dict(id='nada', nome='Nenhuma', desc='Sem animação.'),
          ]),
-    dict(id='mesa', cat='mesa', nome='Clicar no papel de parede', icone='user-desktop', aplicar=a_mesa, padrao='afastar',
+    dict(id='mesa', cat='mesa', nome='Clicar no papel de parede', icone='user-desktop', aplicar=a_mesa, padrao='nao',
          inspirado='Click on empty taskbar space / Show desktop',
          desc='Clicar numa parte vazia do papel de parede mostra a área de trabalho.',
          modelos=[
@@ -344,13 +322,13 @@ MODS = [
          ]),
     dict(id='canto', cat='mesa', nome='Canto superior esquerdo', icone='view-app-grid', aplicar=a_canto, padrao='nada',
          inspirado='Hot corners',
-         desc='Leve o rato ao canto superior esquerdo do ecrã para…',
+         desc='Leve o mouse ao canto superior esquerdo da tela para…',
          modelos=[
              dict(id='nada', nome='Nada', desc='O canto não faz nada.'),
              dict(id='visao', nome='Visão geral', desc='Todas as janelas e áreas de trabalho (Mission Control).'),
              dict(id='janelas', nome='Todas as janelas', desc='Só as janelas, lado a lado (Exposé).'),
-             dict(id='mesa', nome='Mostrar a mesa', desc='Afasta as janelas.'),
-             dict(id='bloquear', nome='Bloquear o ecrã', desc='Bloqueia logo, para sair à pressa.'),
+             dict(id='mesa', nome='Mostrar a área de trabalho', desc='Afasta as janelas.'),
+             dict(id='bloquear', nome='Bloquear a tela', desc='Bloqueia logo, para sair às pressas.'),
          ]),
     dict(id='botoes', cat='janelas', nome='Botões das janelas', icone='window-close', aplicar=a_botoes, padrao='mac',
          inspirado='Windows 11 Window Styler',
@@ -372,7 +350,7 @@ MODS = [
          ]),
     dict(id='transparencia', cat='janelas', nome='Janelas em segundo plano', icone='preferences-desktop-effects', aplicar=a_transparencia, padrao='100',
          inspirado='Translucent Windows',
-         desc='Deixa as janelas que não está a usar um pouco transparentes.',
+         desc='Deixa as janelas que não está usando um pouco transparentes.',
          modelos=[
              dict(id='100', nome='Opacas', desc='Sem transparência.'),
              dict(id='92', nome='Um véu', desc='Quase não se nota.'),
@@ -396,11 +374,11 @@ MODS = [
              dict(id='0.5', nome='Rápido', desc='Metade do tempo.'),
              dict(id='1', nome='Normal', desc='Padrão.'),
              dict(id='1.6', nome='Suave', desc='Mais lento e elegante.'),
-             dict(id='2.5', nome='Cinema', desc='Tudo em câmara lenta.'),
+             dict(id='2.5', nome='Cinema', desc='Tudo em câmera lenta.'),
          ]),
-    dict(id='roda', cat='dock', nome='Roda do rato na Dock', icone='audio-volume-high', aplicar=a_roda, padrao='5',
+    dict(id='roda', cat='dock', nome='Roda do mouse na Dock', icone='audio-volume-high', aplicar=a_roda, padrao='5',
          inspirado='Taskbar Volume Control',
-         desc='Rodar a roda do rato por cima da Dock muda o volume.',
+         desc='Rodar a roda do mouse por cima da Dock muda o volume.',
          modelos=[
              dict(id='2', nome='Passos finos', desc='2% de cada vez.'),
              dict(id='5', nome='Normal', desc='5% de cada vez.'),
@@ -409,12 +387,12 @@ MODS = [
          ]),
     dict(id='meio', cat='dock', nome='Clique do meio na Dock', icone='input-mouse', aplicar=a_meio, padrao='nova',
          inspirado='Middle click to close on the taskbar',
-         desc='O que faz o clique com a roda do rato num ícone da Dock.',
+         desc='O que faz o clique com a roda do mouse num ícone da Dock.',
          modelos=[
              dict(id='nova', nome='Nova janela', desc='Abre outra janela do aplicativo.'),
              dict(id='fechar', nome='Fechar', desc='Fecha o aplicativo, como no mod do Windhawk.'),
          ]),
-    dict(id='cursor', cat='mesa', nome='Cursor do rato', icone='input-mouse', aplicar=a_cursor, padrao='escuro',
+    dict(id='cursor', cat='mesa', nome='Cursor do mouse', icone='input-mouse', aplicar=a_cursor, padrao='escuro',
          inspirado='Cursor customization',
          desc='A cor e o tamanho do cursor.',
          modelos=[
@@ -422,7 +400,7 @@ MODS = [
              dict(id='claro', nome='Claro', desc='Branco, como no Mac.'),
              dict(id='escuro-grande', nome='Escuro grande', desc='Mais fácil de ver.'),
              dict(id='claro-grande', nome='Claro grande', desc='Branco e maior.'),
-             dict(id='enorme', nome='Enorme', desc='Para ecrãs grandes ou TV.'),
+             dict(id='enorme', nome='Enorme', desc='Para telas grandes ou TV.'),
          ]),
     dict(id='noite', cat='mesa', nome='Luz noturna', icone='redshift-status-on', aplicar=a_noite, padrao='nao',
          inspirado='Night light',
@@ -435,7 +413,7 @@ MODS = [
          ]),
     dict(id='foco', cat='janelas', nome='Foco estelar', icone='view-visible', aplicar=a_janela_foco, padrao='nao', novo=True,
          inspirado='Dim inactive windows',
-         desc='Escurece as janelas que não está a usar, para se concentrar numa só.',
+         desc='Escurece as janelas que não está usando, para se concentrar numa só.',
          modelos=[
              dict(id='nao', nome='Desligado', desc=''),
              dict(id='15', nome='Leve', desc=''),
@@ -453,19 +431,11 @@ MODS = [
              dict(id='4', nome='Gelatina!', desc=''),
          ]),
     dict(id='achar', cat='mesa', nome='Agitar para achar o cursor', icone='input-mouse', aplicar=a_achar, padrao='sim',
-         inspirado='Shake to find cursor', desc='Agite o rato e o cursor cresce para o encontrar.',
+         inspirado='Shake to find cursor', desc='Agite o mouse e o cursor cresce para o encontrar.',
          modelos=[dict(id='sim', nome='Ligado', desc=''), dict(id='nao', nome='Desligado', desc='')]),
     dict(id='deslizar', cat='mesa', nome='Trocar de área de trabalho', icone='go-next', aplicar=a_deslizar, padrao='sim',
          inspirado='Virtual desktop animation', desc='Animação ao passar de uma área de trabalho para outra.',
          modelos=[dict(id='sim', nome='Deslizar', desc=''), dict(id='nao', nome='Sem animação', desc='')]),
-    dict(id='fundo', cat='mesa', nome='Papel de parede vivo', icone='weather-clear-night', aplicar=a_fundo, padrao='fixo', novo=True,
-         inspirado='Wallpaper slideshow',
-         desc='O fundo pode mudar sozinho ao longo do dia.',
-         modelos=[
-             dict(id='fixo', nome='Fixo', desc='O que escolher fica sempre.'),
-             dict(id='ceu', nome='Céu vivo', desc='A Eta Carinae muda de tom: madrugada, manhã, tarde e noite.'),
-             dict(id='galeria', nome='Galeria CarinaeOS', desc='Um fundo diferente da coleção a cada hora.'),
-         ]),
 ]
 
 
@@ -484,8 +454,8 @@ def gravar_escolhas(d):
 
 
 ONDE = {   # mods que tambem funcionam fora do Plasma
-    'gnome': {'visivel', 'estilo_dock', 'botoes', 'cursor', 'noite', 'velocidade', 'canto', 'fundo'},
-    'xfce': {'visivel', 'botoes', 'cursor', 'fundo'},
+    'gnome': {'visivel', 'estilo_dock', 'botoes', 'cursor', 'noite', 'velocidade', 'canto'},
+    'xfce': {'visivel', 'botoes', 'cursor'},
 }
 
 
@@ -518,30 +488,29 @@ def escolher(ident, modelo):
 # perfis: um conjunto de modelos de uma vez
 PERFIS = [
     dict(id='mac', nome='Mac clássico', icone='carinaeos-estrela',
-         desc='Dock de vidro claro, lâmpada mágica, botões à esquerda e Alt+Tab em grade.',
-         escolhas=dict(estilo_dock='mac', minimizar='lampada', abrir='zoom', botoes='mac', troca='thumbnail_grid',
+         desc='Lâmpada mágica, botões à esquerda e Alt+Tab em grade.',
+         escolhas=dict(estilo_dock='fluent', minimizar='lampada', abrir='zoom', botoes='mac', troca='thumbnail_grid',
                        sombra='ShadowLarge', desfoque='10', mesa='afastar', canto='visao', gelatina='nao', velocidade='1')),
     dict(id='vista', nome='Vista retrô', icone='preferences-desktop-effects',
-         desc='Dock de vidro Aero, Flip 3D no Alt+Tab, janelas a entrar em 3D e botões à direita.',
-         escolhas=dict(estilo_dock='vista', minimizar='encolher', abrir='tresd', botoes='windows', troca='flipswitch',
+         desc='Flip 3D no Alt+Tab, janelas a entrar em 3D e botões à direita.',
+         escolhas=dict(estilo_dock='fluent', minimizar='encolher', abrir='tresd', botoes='windows', troca='flipswitch',
                        sombra='ShadowVeryLarge', desfoque='15', mesa='minimizar', canto='nada', gelatina='nao', velocidade='1')),
     dict(id='xp', nome='Nostalgia XP', icone='computer',
-         desc='Dock azul “Luna”, botões à direita, Alt+Tab compacto e animações rápidas.',
-         escolhas=dict(estilo_dock='xp', minimizar='encolher', abrir='desvanecer', botoes='windows', troca='compact',
+         desc='Botões à direita, Alt+Tab compacto e animações rápidas.',
+         escolhas=dict(estilo_dock='simples', minimizar='encolher', abrir='desvanecer', botoes='windows', troca='compact',
                        sombra='ShadowMedium', desfoque='0', mesa='minimizar', canto='nada', gelatina='nao', velocidade='0.5')),
     dict(id='supernova', nome='Supernova total', icone='carinaeos-supernova',
-         desc='Dock néon, gelatina, explosão ao fechar, Cover Flow, Foco estelar e Céu vivo.',
-         escolhas=dict(estilo_dock='neon', minimizar='lampada', abrir='supernova', botoes='mac', troca='coverswitch',
-                       sombra='ShadowLarge', desfoque='15', mesa='afastar', canto='visao', gelatina='3', foco='15',
-                       fundo='ceu', velocidade='1.6')),
+         desc='Gelatina, explosão ao fechar, Cover Flow e Foco estelar.',
+         escolhas=dict(estilo_dock='fluent', minimizar='lampada', abrir='supernova', botoes='mac', troca='coverswitch',
+                       sombra='ShadowLarge', desfoque='15', mesa='afastar', canto='visao', gelatina='3', foco='15', velocidade='1.6')),
     dict(id='rosepine', nome='Rosé Pine', icone='color-management',
-         desc='Tons de rosa e roxo, Dock Rosé Pine, janelas translúcidas e luz noturna suave.',
-         escolhas=dict(estilo_dock='rosepine', minimizar='lampada', abrir='desvanecer', botoes='mac', troca='thumbnail_grid',
+         desc='Tons de rosa e roxo, Dock só com ícones, janelas translúcidas e luz noturna suave.',
+         escolhas=dict(estilo_dock='icones', minimizar='lampada', abrir='desvanecer', botoes='mac', troca='thumbnail_grid',
                        transparencia='92', noite='4500', gelatina='nao')),
     dict(id='leve', nome='Leve e rápido', icone='speedometer',
          desc='Quase sem efeitos: ideal para computadores mais fracos.',
-         escolhas=dict(estilo_dock='escuro', minimizar='nada', abrir='nada', troca='compact', sombra='ShadowSmall',
-                       desfoque='0', transparencia='100', gelatina='nao', foco='nao', velocidade='0.5', fundo='fixo')),
+         escolhas=dict(estilo_dock='simples', minimizar='nada', abrir='nada', troca='compact', sombra='ShadowSmall',
+                       desfoque='0', transparencia='100', gelatina='nao', foco='nao', velocidade='0.5')),
 ]
 
 

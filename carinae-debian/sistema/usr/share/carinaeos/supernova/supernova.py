@@ -63,11 +63,11 @@ class Supernova(QObject):
 
     @Slot(str, str)
     def escolher(self, ident, modelo):
-        self._em_fundo('A aplicar…', lambda: M.escolher(ident, modelo))
+        self._em_fundo('Aplicando…', lambda: M.escolher(ident, modelo))
 
     @Slot(str)
     def aplicarPerfil(self, ident):
-        self._em_fundo('A aplicar o perfil…', lambda: M.aplicar_perfil(ident))
+        self._em_fundo('Aplicando o perfil…', lambda: M.aplicar_perfil(ident))
 
     @Slot()
     def restaurar(self):

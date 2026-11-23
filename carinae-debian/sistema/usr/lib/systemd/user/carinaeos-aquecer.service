@@ -1,0 +1,9 @@
+[Unit]
+Description=CarinaeOS - deixar os apps prontos a abrir depressa
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/carinaeos/aquecer-apps
+Nice=19
+IOSchedulingClass=idle
+CPUSchedulingPolicy=idle

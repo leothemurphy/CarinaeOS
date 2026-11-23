@@ -1,0 +1,14 @@
+{
+  "KPackageStructure": "Wallpaper/Images",
+  "KPlugin": {
+    "Id": "CarinaeOS-Fusao",
+    "Name": "Fusão",
+    "Description": "Fusão: luz dourada em movimento (papel de parede padrão do CarinaeOS, até 8K).",
+    "License": "CC-BY-SA-4.0",
+    "Authors": [
+      {
+        "Name": "CarinaeOS"
+      }
+    ]
+  }
+}

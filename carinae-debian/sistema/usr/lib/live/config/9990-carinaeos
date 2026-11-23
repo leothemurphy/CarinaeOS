@@ -1,0 +1,38 @@
+#!/bin/sh
+# CarinaeOS - sessão de experimentar (ISO ao vivo): entra sozinho no ambiente do CarinaeOS, com o
+# "Instalar o CarinaeOS" na Dock e sem bloquear o ecrã (o utilizador ao vivo não tem senha).
+U="${LIVE_USERNAME:-carinae}"
+for f in /etc/sddm.conf /etc/sddm.conf.d/*.conf; do
+    [ -f "$f" ] && sed -i 's/^Session=.*/Session=carinae.desktop/' "$f"
+done
+if ! grep -qs '^\[Autologin\]' /etc/sddm.conf /etc/sddm.conf.d/*.conf; then
+    mkdir -p /etc/sddm.conf.d
+    printf '[Autologin]\nUser=%s\nSession=carinae.desktop\n' "$U" > /etc/sddm.conf.d/90-carinaeos-ao-vivo.conf
+fi
+H=$(getent passwd "$U" | cut -d: -f6)
+[ -n "$H" ] && [ -d "$H" ] || exit 0
+C="$H/.config/carinaeos"
+mkdir -p "$C"
+INST=calamares-install-debian.desktop
+[ -f /usr/share/applications/$INST ] || INST=$(ls /usr/share/applications/ | grep -i calamares | head -1)
+cat > "$C/dock.json" <<EOT
+{"launchers": ["applications:$INST", "applications:carinaeos-arquivos.desktop", "applications:firefox-esr.desktop",
+ "applications:carinaeos-terminal.desktop", "applications:carinaeos-configuracoes.desktop"]}
+EOT
+cat > "$C/energia.json" <<'EOT'
+{"desligarEcra": 0, "bloquear": false, "bloquearAoSuspender": false, "suspender": 0, "botao": "perguntar"}
+EOT
+chown -R "$U:" "$H/.config"
+
+# Arrancou em modo antigo (Legacy/CSM) num PC que já tem sistemas UEFI (há uma partição EFI)? Então o
+# instalador não punha o arranque no sítio certo e o CarinaeOS instalado não aparecia no menu. Avisa logo.
+if [ ! -d /sys/firmware/efi ] && lsblk -rno PARTTYPE 2>/dev/null | grep -qi c12a7328-f81f-11d2-ba4b-00a0c93ec93b; then
+    cat > /etc/xdg/autostart/carinaeos-aviso-legacy.desktop <<'EOT'
+[Desktop Entry]
+Type=Application
+Name=Aviso do modo de arranque
+Exec=sh -c 'sleep 6; zenity --warning --width=460 --title="Instalar o CarinaeOS" --text="O pen drive arrancou em <b>modo antigo (Legacy)</b>, mas este computador arranca os outros sistemas em <b>UEFI</b>.\n\nSe instalar assim, o CarinaeOS não vai aparecer no menu de arranque.\n\nReinicie, abra o menu de arranque da placa-mãe (F9, F12, F8 ou Esc) e escolha a opção do pen drive que começa por <b>UEFI</b>."'
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+EOT
+fi

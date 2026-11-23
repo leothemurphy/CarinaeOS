@@ -101,8 +101,8 @@ ApplicationWindow {
                 width: parent.width - 8
                 horizontalAlignment: Text.AlignHCenter
                 elide: Text.ElideRight
-                text: ac.app.fila === "removendo" ? "A remover…"
-                      : (ac.app.progresso > 0 ? ac.app.progresso + "%" : "A baixar") + (ac.app.detalhe ? " · " + ac.app.detalhe : "")
+                text: ac.app.fila === "removendo" ? "Removendo…"
+                      : (ac.app.progresso > 0 ? ac.app.progresso + "%" : "Baixando") + (ac.app.detalhe ? " · " + ac.app.detalhe : "")
                 color: "white"; font.pixelSize: 11; font.weight: Font.DemiBold
             }
         }
@@ -201,7 +201,7 @@ ApplicationWindow {
         Text {
             anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right; anchors.margins: 22
             text: orbita.estado !== "" ? orbita.estado
-                  : orbita.aoVivo ? "Está a usar o CarinaeOS sem instalar: os aplicativos ficam na memória e desaparecem ao desligar. Para os guardar, instale primeiro o CarinaeOS no disco."
+                  : orbita.aoVivo ? "Está usando o CarinaeOS sem instalar: os aplicativos ficam na memória e desaparecem ao desligar. Para os salvar, instale primeiro o CarinaeOS no disco."
                   : "Aplicativos do Flathub, instalados só para si."
             color: orbita.aoVivo && orbita.estado === "" ? janela.ambar : janela.textoSuave
             font.pixelSize: 11; wrapMode: Text.WordWrap
@@ -226,6 +226,7 @@ ApplicationWindow {
             color: janela.texto
             background: Item {}
             onTextChanged: atraso.restart()
+            Component.onCompleted: if (orbita.pesquisaInicial) text = orbita.pesquisaInicial
             Timer { id: atraso; interval: 350; onTriggered: { janela.busca = campo.text.trim(); orbita.pesquisar(janela.busca) } }
         }
     }

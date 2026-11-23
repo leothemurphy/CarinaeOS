@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae Pulsar
+GenericName=Música e vídeo
+Comment=Biblioteca de música, rádios e vídeos do CarinaeOS
+Icon=carinaeos-pulsar
+Exec=carinaeos-pulsar %F
+Terminal=false
+StartupWMClass=carinaeos-pulsar
+Categories=AudioVideo;Audio;Video;Player;
+Keywords=música;musica;vídeo;video;rádio;radio;player;filme;mp3;mp4;mkv;
+MimeType=audio/mpeg;audio/mp4;audio/flac;audio/ogg;audio/x-vorbis+ogg;audio/opus;audio/x-wav;audio/x-m4a;audio/aac;video/mp4;video/x-matroska;video/webm;video/x-msvideo;video/quicktime;video/mpeg;video/x-flv;video/ogg;video/3gpp;video/x-ms-wmv;

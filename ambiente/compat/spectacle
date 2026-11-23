@@ -1,0 +1,7 @@
+#!/bin/sh
+# CarinaeOS - o Spectacle do KDE passa para a carinae-captura
+case " $* " in
+  *" -r "*|*" --region "*) exec carinae-captura regiao ;;
+  *" -a "*|*" --activewindow "*) exec carinae-captura janela ;;
+  *) exec carinae-captura tela ;;
+esac

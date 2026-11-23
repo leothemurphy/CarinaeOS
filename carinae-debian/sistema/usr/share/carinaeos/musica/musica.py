@@ -81,7 +81,7 @@ def gravar_prefs(p):
 
 
 def escrever_conf(rede, senha):
-    """mpd.conf do utilizador. 'rede' abre o MPD a outros computadores (Home Assistant)."""
+    """mpd.conf do usuário. 'rede' abre o MPD a outros computadores (Home Assistant)."""
     os.makedirs(CONF_DIR, exist_ok=True)
     os.makedirs(os.path.join(DADOS, 'listas'), exist_ok=True)
     os.makedirs(BIBLIO, exist_ok=True)
@@ -107,11 +107,11 @@ def escrever_conf(rede, senha):
     linhas += [
         'audio_output {',
         '    type  "pipewire"',
-        '    name  "Altifalantes deste computador"',
+        '    name  "Alto-falantes deste computador"',
         '}',
         'audio_output {',
         '    type  "pulse"',
-        '    name  "Altifalantes (compatibilidade)"',
+        '    name  "Alto-falantes (compatibilidade)"',
         '    enabled "no"',
         '}',
         'audio_output {',
@@ -219,7 +219,7 @@ class Musica(QObject):
                         raise e
 
     def _preparar(self):
-        """Primeira vez: mpd.conf, a pasta Músicas na biblioteca, e o MPD ligado com a sessão."""
+        """Ao abrir: mpd.conf, a pasta Músicas na biblioteca e o MPD ligado (só a partir de agora, não na sessão)."""
         def trabalho():
             if not os.path.exists(CONF) or 'Criado pelo aplicativo Música' not in open(CONF, encoding='utf-8').read():
                 if os.path.exists(CONF):
@@ -232,9 +232,13 @@ class Musica(QObject):
                     os.symlink(m, os.path.join(BIBLIO, os.path.basename(m) or 'Músicas'))
                 except FileExistsError:
                     pass
-            subprocess.run(['systemctl', '--user', 'enable', '--now', 'mpd.service'], capture_output=True, timeout=30)
+            # o MPD só liga quando a Música abre (não na entrada da sessão, que ficava mais lenta);
+            # depois continua tocando com o app fechado. Versões antigas o ligavam com a sessão: desfaz isso.
+            subprocess.run(['systemctl', '--user', 'disable', 'mpd.service', 'mpd.socket',
+                            'carinaeos-musica-vigia.service'], capture_output=True, timeout=20)
+            subprocess.run(['systemctl', '--user', 'start', 'mpd.service'], capture_output=True, timeout=30)
             self._ponte_mpris()
-            subprocess.run(['systemctl', '--user', 'enable', '--now', 'carinaeos-musica-vigia.service'],
+            subprocess.run(['systemctl', '--user', 'start', 'carinaeos-musica-vigia.service'],
                            capture_output=True, timeout=20)
             for _ in range(20):
                 try:
@@ -688,7 +692,7 @@ class Musica(QObject):
             except Exception:
                 pass
             self._mpd('save', nome)
-        self._bg(trabalho, lambda r: (self._aviso('Lista “%s” guardada ✓ — aparece como fonte no Home Assistant' % nome)
+        self._bg(trabalho, lambda r: (self._aviso('Lista “%s” salva ✓ — aparece como fonte no Home Assistant' % nome)
                                       if not isinstance(r, Exception) else self._aviso('Erro: %s' % r), self.recarregar()))
 
     @Slot(str, str)
@@ -835,7 +839,7 @@ class Musica(QObject):
 
     @Slot(str, str)
     def adicionarRadio(self, nome, url):
-        """Uma rádio da internet guardada como lista (assim também aparece no Home Assistant)."""
+        """Uma rádio da internet salva como lista (assim também aparece no Home Assistant)."""
         nome, url = nome.strip(), url.strip()
         if not url:
             return
@@ -856,8 +860,15 @@ class Musica(QObject):
     @Slot()
     def escolherPasta(self):
         def trabalho():
-            return subprocess.run(['kdialog', '--title', 'Escolha uma pasta com música', '--getexistingdirectory', HOME],
-                                  capture_output=True, text=True)
+            # carinae-escolher (zenity); o kdialog do KDE só se não houver outro
+            for c in (['carinae-escolher', 'pasta', 'Escolha uma pasta com música', HOME],
+                      ['zenity', '--file-selection', '--directory', '--title=Escolha uma pasta com música', '--filename=' + HOME + '/'],
+                      ['kdialog', '--title', 'Escolha uma pasta com música', '--getexistingdirectory', HOME]):
+                try:
+                    return subprocess.run(c, capture_output=True, text=True)
+                except FileNotFoundError:
+                    continue
+            raise RuntimeError('sem janela para escolher pastas')
 
         def depois(r):
             if isinstance(r, Exception) or r.returncode != 0 or not r.stdout.strip():
@@ -895,7 +906,7 @@ class Musica(QObject):
 
     @Slot()
     def atualizarBiblioteca(self):
-        self._aviso('A ler as pastas de música…')
+        self._aviso('Lendo as pastas de música…')
 
         def trabalho():
             self._mpd('rescan')
@@ -907,7 +918,7 @@ class Musica(QObject):
 
     @Slot()
     def procurarCapas(self):
-        self._aviso('A procurar capas na internet…')
+        self._aviso('Procurando capas na internet…')
         self._bg(lambda: [self._capa_de(a['artista'], a['album'], a['ficheiro'], sincrono=True)
                           for a in list(self._albuns) if not a['capa']],
                  lambda r: self._aviso('Capas atualizadas ✓'))
@@ -919,13 +930,19 @@ class Musica(QObject):
         if senha is not None:
             self._prefs['senha'] = senha.strip()
         gravar_prefs(self._prefs)
-        self._aviso('A aplicar…')
+        self._aviso('Aplicando…')
 
         def trabalho():
             escrever_conf(ligar, self._prefs.get('senha', ''))
             self._reiniciar_mpd()
-            subprocess.run('command -v ufw >/dev/null && ufw status | grep -q active && ufw allow %d/tcp' % PORTA,
-                           shell=True, capture_output=True)
+            # firewall: abre (ou fecha) o MPD e a transmissão só para a rede de casa
+            try:
+                abertos = open('/var/lib/carinaeos/firewall-abertos').read().split()
+            except OSError:
+                abertos = []
+            if os.path.exists('/usr/lib/carinaeos/firewall') and (ligar != ('musica' in abertos)):
+                subprocess.run(['pkexec', '/usr/lib/carinaeos/firewall', 'abrir' if ligar else 'fechar', 'musica'],
+                               capture_output=True, timeout=120)
             return True
         self._bg(trabalho, lambda r: (self._aviso('Pronto ✓' if r is True else 'Erro: %s' % r), self.mudou.emit()))
 

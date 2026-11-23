@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae PDF
+GenericName=Leitor de documentos PDF
+Comment=Ler e imprimir documentos PDF
+Icon=carinaeos-pdf
+Exec=carinaeos-pdf %f
+TryExec=carinaeos-pdf
+Terminal=false
+StartupWMClass=carinaeos-pdf
+Categories=Office;Viewer;
+Keywords=pdf;documento;leitor;okular;acrobat;imprimir;
+MimeType=application/pdf;application/x-pdf;

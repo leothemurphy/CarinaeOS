@@ -1,0 +1,194 @@
+#!/bin/bash
+# CarinaeOS — arranque da sessão (o que o SDDM corre ao escolher "CarinaeOS")
+#
+#   gravidade       gestor de janelas (molduras, foco, atalhos)
+#   picom           compositor (transparência, sombras, cantos redondos)
+#   aurora          papel de parede, barra de cima, Dock e Launchpad
+#
+# Opções em ~/.config/carinaeos/sessao.conf (ver /usr/local/share/carinaeos/sessao.conf.exemplo).
+# Registo em ~/.cache/carinaeos/sessao.log
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+# os substitutos dos programas do KDE ficam no fim: só se usam quando o verdadeiro não existe
+for c in /usr/local/lib/carinaeos/compat /usr/local/lib/x86_64-linux-gnu/carinaeos/compat /usr/lib/carinaeos/compat; do
+    [ -d "$c" ] && case ":$PATH:" in *":$c:"*) ;; *) PATH="$PATH:$c" ;; esac
+done
+export PATH
+
+
+# sem barramento D-Bus de sessão (raro com systemd): arranja um e recomeça
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && command -v dbus-run-session >/dev/null; then
+    exec dbus-run-session "$0" "$@"
+fi
+
+PARTILHA="$(cd "$(dirname "$(readlink -f "$0")")/../share/carinaeos" && pwd)"
+mkdir -p "$HOME/.cache/carinaeos" "$HOME/.config/carinaeos"
+REGISTO="$HOME/.cache/carinaeos/sessao.log"
+[ -f "$REGISTO" ] && mv -f "$REGISTO" "$REGISTO.anterior"
+exec >"$REGISTO" 2>&1
+echo "== CarinaeOS: sessão a começar $(date)"
+T0=$(date +%s%N)
+marca() { echo "[+$(( ($(date +%s%N) - T0) / 1000000 )) ms] $*"; }
+marca "início da sessão ($(cut -d" " -f1 /proc/uptime) s depois de ligar o PC)"
+
+# --- opções -----------------------------------------------------------------------------
+COMPOSITOR=picom           # picom | nenhum
+PICOM_BACKEND=glx          # glx | xrender  (xrender se a placa der problemas)
+DESENHO=opengl             # opengl | software  (como a Aurora desenha)
+# modo leve (Configurações › Aparência; sozinho nas máquinas virtuais): sem compositor
+command -v carinaeos-modo-leve >/dev/null && carinaeos-modo-leve ativo && COMPOSITOR=nenhum
+[ -f "$HOME/.config/carinaeos/sessao.conf" ] && . "$HOME/.config/carinaeos/sessao.conf"
+
+# --- ambiente ---------------------------------------------------------------------------
+export XDG_CURRENT_DESKTOP="CarinaeOS"
+export XDG_SESSION_DESKTOP=carinaeos
+export DESKTOP_SESSION=carinaeos
+export XDG_SESSION_TYPE=x11
+# a aparência das apps Qt (cores, ícones, letra, estilo) vem do qt6ct, que não é do KDE.
+# Só se o qt6ct não estiver instalado é que se usa o tema do Plasma, como antes.
+unset KDE_SESSION_VERSION KDE_FULL_SESSION
+if [ -z "$QT_QPA_PLATFORMTHEME" ]; then
+    if ls /usr/lib/*/qt6/plugins/platformthemes/libqt6ct.so >/dev/null 2>&1; then
+        command -v carinae-aparencia-qt >/dev/null && carinae-aparencia-qt >/dev/null 2>&1
+        export QT_QPA_PLATFORMTHEME=qt6ct
+    elif ls /usr/lib/*/qt6/plugins/platformthemes/KDEPlasmaPlatformTheme6.so >/dev/null 2>&1; then
+        export QT_QPA_PLATFORMTHEME=kde
+        export KDE_SESSION_VERSION=6
+    fi
+fi
+if command -v dbus-update-activation-environment >/dev/null; then
+    dbus-update-activation-environment --systemd DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP \
+        DESKTOP_SESSION XDG_SESSION_TYPE QT_QPA_PLATFORMTHEME 2>/dev/null
+    # o systemd do utilizador ainda podia ter o KDE_SESSION_VERSION de uma sessão Plasma antiga
+    [ -z "$KDE_SESSION_VERSION" ] && systemctl --user unset-environment KDE_SESSION_VERSION 2>/dev/null
+fi
+# o vigia da bandeja (ícones dos apps em segundo plano): sempre ligado, antes de qualquer app
+command -v carinae-vigia-bandeja >/dev/null && carinae-vigia-bandeja &
+# serviços do Plasma que acordam sozinhos e aqui não servem (o kscreen até desfazia a disposição do Telas)
+(sleep 15; systemctl --user stop plasma-kscreen.service plasma-kactivitymanagerd.service 2>/dev/null) &
+[ -f "$HOME/.Xresources" ] && command -v xrdb >/dev/null && xrdb -merge "$HOME/.Xresources"
+command -v xsetroot >/dev/null && xsetroot -cursor_name left_ptr
+# repor a posição/resolução dos monitores guardada pela ferramenta Telas
+# corre em paralelo com o arranque da Gravidade (ler os monitores com a NVIDIA leva 2–5 s num disco
+# mecânico); se mudar alguma coisa, a Gravidade e a Aurora recebem o aviso do RandR e reajustam-se
+if command -v carinae-telas >/dev/null; then (carinae-telas --aplicar && marca "telas repostas") & fi
+
+# tema escuro, ícones e letra também para os apps GTK/Electron (Firefox, Claude, diálogos do portal)
+command -v carinae-aparencia-gtk >/dev/null && carinae-aparencia-gtk >/dev/null 2>&1 &
+
+# teclado e rato como escolhido nas Configurações (disposições, Num Lock, velocidade, touchpad)
+command -v carinae-entrada >/dev/null && carinae-entrada --aplicar >/dev/null 2>&1 &
+
+# o primeiro arranque: copia os atalhos para poderem ser mudados
+[ -f "$HOME/.config/carinaeos/atalhos.conf" ] || cp "$PARTILHA/atalhos.conf" "$HOME/.config/carinaeos/atalhos.conf"
+
+# --- 1. gestor de janelas (se cair, volta logo) -----------------------------------------
+(
+    falhas=0
+    while true; do
+        inicio=$(date +%s)
+        gravidade
+        codigo=$?
+        [ "$codigo" -eq 0 ] && break                       # saída pedida: acaba a sessão
+        echo "!! a Gravidade caiu (código $codigo)"
+        [ $(( $(date +%s) - inicio )) -lt 10 ] && falhas=$((falhas + 1)) || falhas=0
+        if [ "$falhas" -ge 5 ]; then
+            echo "!! a Gravidade cai sempre; a usar o kwin_x11 para não ficares sem janelas"
+            command -v kwin_x11 >/dev/null && kwin_x11 --replace
+            break
+        fi
+        sleep 1
+    done
+) &
+VIGIA_WM=$!
+sleep 0.4
+marca "Gravidade arrancada"
+
+# --- 2. compositor ----------------------------------------------------------------------
+if [ "$COMPOSITOR" = picom ] && command -v picom >/dev/null; then
+    CONF="$HOME/.config/carinaeos/picom.conf"
+    [ -f "$CONF" ] || CONF="$PARTILHA/picom.conf"
+    picom --config "$CONF" --backend "$PICOM_BACKEND" &
+    PICOM=$!
+    marca "picom arrancado ($PICOM_BACKEND)"
+fi
+
+# --- 3. serviços de fundo ---------------------------------------------------------------
+# agente de autenticação (a janela "Autorizar" quando uma app precisa de root): o nosso, carinae-senha.
+# Se cair, volta. Só se ele não existir é que se usa o do KDE.
+if command -v carinae-senha >/dev/null; then
+    (
+        falhas=0
+        while [ $falhas -lt 5 ]; do
+            inicio=$(date +%s)
+            carinae-senha
+            [ $(( $(date +%s) - inicio )) -lt 10 ] && falhas=$((falhas + 1)) || falhas=0
+            sleep 1
+        done
+    ) &
+else
+    for agente in /usr/lib/*/libexec/polkit-kde-authentication-agent-1 /usr/lib/polkit-kde-authentication-agent-1 \
+                  /usr/libexec/polkit-kde-authentication-agent-1; do
+        [ -x "$agente" ] && { "$agente" & break; }
+    done
+fi
+# energia: ecrã, suspender, botão de ligar e "não apagar durante os vídeos" (no lugar do powerdevil)
+if command -v carinae-energia >/dev/null; then
+    ( while true; do carinae-energia; sleep 2; done ) &
+fi
+# bloquear o ecrã (loginctl lock-session, suspender, Super+L)
+command -v xss-lock >/dev/null && xss-lock --transfer-sleep-lock -- carinae-sessao bloquear-agora &
+
+# --- 4. shell (se cair, volta; "recarregar" também volta) -------------------------------
+(
+    export CARINAE_VIGIADO=1
+    falhas=0
+    while true; do
+        inicio=$(date +%s)
+        marca "Aurora a arrancar"
+        if [ "$DESENHO" = software ]; then QT_QUICK_BACKEND=software aurora; else aurora; fi
+        codigo=$?
+        [ "$codigo" -eq 0 ] && break
+        [ "$codigo" -eq 42 ] && { echo "-- Aurora recarregada"; continue; }
+        echo "!! a Aurora caiu (código $codigo)"
+        [ $(( $(date +%s) - inicio )) -lt 15 ] && falhas=$((falhas + 1)) || falhas=0
+        if [ "$falhas" -ge 3 ] && [ "$DESENHO" != software ]; then
+            echo "!! a passar a Aurora para desenho por software (a placa não está a aguentar o OpenGL)"
+            DESENHO=software
+            falhas=0
+        elif [ "$falhas" -ge 4 ]; then
+            echo "!! a Aurora não consegue arrancar; desisto (vê os erros acima). Ctrl+Alt+T abre um terminal."
+            break
+        fi
+        sleep 2
+    done
+) &
+
+# --- 5. quando a Dock já está no ecrã: os programas de arranque ---------------------------
+# (antes disto, o Chrome, o kdeconnect, o powerdevil... disputavam o processador com o shell)
+(
+    for i in $(seq 1 150); do
+        if xwininfo -root -tree 2>/dev/null | grep -q '"CarinaeOS Dock"'; then
+            marca "Dock no ecrã"
+            break
+        fi
+        sleep 0.2
+    done
+    sleep 1
+    marca "programas de arranque (~/.config/autostart, /etc/xdg/autostart)"
+    carinae-autostart
+    # sessão sem rastro: avisar logo (o aviso fica até ser fechado)
+    if [ "$(id -un)" = convidado ] && command -v notify-send >/dev/null; then
+        sleep 2
+        notify-send -a "CarinaeOS" -i preferences-system-privacy -t 0 "Sessão sem rastro" \
+            "Tudo o que fizer aqui fica só na memória e é <b>apagado ao sair</b>: arquivos, downloads, histórico e senhas. Para guardar alguma coisa, copie-a para um pen drive antes de terminar a sessão."
+    fi
+) &
+
+# a sessão dura enquanto o gestor de janelas durar
+wait "$VIGIA_WM"
+echo "== CarinaeOS: sessão a acabar $(date)"
+aurora --enviar sair 2>/dev/null
+[ -n "$PICOM" ] && kill "$PICOM" 2>/dev/null
+kill $(jobs -p) 2>/dev/null
+exit 0

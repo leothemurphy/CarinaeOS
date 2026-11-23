@@ -1,0 +1,11 @@
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(WMDEPS REQUIRED IMPORTED_TARGET xcb xcb-randr xcb-icccm xcb-keysyms xcb-cursor cairo)
+include(GNUInstallDirs)
+add_executable(carinae-wm carinae-wm.cpp)
+target_compile_features(carinae-wm PRIVATE cxx_std_17)
+target_link_libraries(carinae-wm PRIVATE PkgConfig::WMDEPS m)
+set_target_properties(carinae-wm PROPERTIES OUTPUT_NAME gravidade)
+install(TARGETS carinae-wm RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+# o nome antigo continua a funcionar
+install(CODE "execute_process(COMMAND \${CMAKE_COMMAND} -E rm -f \$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/carinae-wm)
+              execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink gravidade \$ENV{DESTDIR}${CMAKE_INSTALL_FULL_BINDIR}/carinae-wm)")

@@ -1,0 +1,8 @@
+[Unit]
+Description=CarinaeOS: ligar as pastas de rede quando o outro PC responde
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/carinaeos/montar-rede

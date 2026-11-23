@@ -1,5 +1,5 @@
 #!/bin/sh
-# CarinaeOS - sessao sem rastro: conta "convidado" sem senha, com a pasta pessoal so na memoria.
+# CarinaeOS - sessão sem rastro: conta "convidado" sem senha, com a pasta pessoal so na memoria.
 #   convidado ligar | desligar     (corre como root, pelo pkexec)
 #   convidado pam                  (chamado pelo PAM ao entrar/sair; PAM_USER e PAM_TYPE)
 set -e
@@ -27,10 +27,7 @@ case "$1" in
           mount -t tmpfs -o size=25%,mode=0700,uid=$(id -u $U),gid=$(id -g $U) carinaeos-convidado $H
           cp -a /etc/skel/. $H/
           chown -R $U:$U $H
-          # aviso no ambiente de trabalho
-          mkdir -p "$H/Área de trabalho"
-          printf '[Desktop Entry]\nType=Link\nName=LEIA-ME: sessão sem rastro\nIcon=preferences-system-privacy\nURL=file:///usr/share/carinaeos/convidado-leia-me.txt\n' > "$H/Área de trabalho/sem-rastro.desktop"
-          chown -R $U:$U "$H/Área de trabalho"
+          # (o aviso "sessão sem rastro" é mostrado pela sessão CarinaeOS ao entrar)
         fi ;;
       close_session)
         # so apaga quando ja nao ha processos do convidado

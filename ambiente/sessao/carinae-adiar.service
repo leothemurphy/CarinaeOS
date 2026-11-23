@@ -1,0 +1,6 @@
+[Unit]
+Description=CarinaeOS: serviços que podem arrancar depois do login (partilha de pastas)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'for s in $(cat /var/lib/carinaeos/adiar 2>/dev/null); do systemctl start "$s"; done'

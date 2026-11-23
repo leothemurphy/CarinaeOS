@@ -103,7 +103,7 @@ def principal():
     if os.fork() == 0:
         os.setsid()
         if avisar('%s instalado ✓' % nome, 'Está no menu de aplicativos. Quer fixá-lo na Dock?', icone,
-                  [('dock', 'Pôr na Dock')]) == 'dock':
+                  [('dock', 'Colocar na Dock')]) == 'dock':
             subprocess.run(['carinaeos-dock-adicionar', desktop])
         os._exit(0)
     return 0

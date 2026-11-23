@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Carinae Energia
+Comment=Desligar o ecrã, suspender e o botão de ligar
+Icon=preferences-system-power
+Exec=carinae-energia-ajustes
+Terminal=false
+StartupWMClass=carinae-energia-ajustes
+Categories=Settings;HardwareSettings;
+Keywords=energia;ecrã;tela;suspender;desligar;bloquear;botão;

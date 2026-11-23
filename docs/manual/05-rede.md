@@ -53,13 +53,13 @@ password=SUA_SENHA
 domain=WORKGROUP
 $ sudo chmod 600 /etc/samba/credenciais-nas    # só o root lê a senha
 $ sudo nano /etc/fstab                          # acrescente (uma linha):
-//192.168.1.20/fotos  /mnt/nas  cifs  credentials=/etc/samba/credenciais-nas,uid=1000,gid=1000,iocharset=utf8,vers=3.0,_netdev,nofail,x-systemd.automount  0  0
+//192.168.1.20/fotos  /mnt/nas  cifs  credentials=/etc/samba/credenciais-nas,uid=1000,gid=1000,iocharset=utf8,vers=3.0,_netdev,nofail,noauto  0  0
 $ sudo systemctl daemon-reload
 $ ls /mnt/nas                                   # monta no primeiro acesso
 ```
 
 - `uid=1000,gid=1000` faz com que os arquivos sejam seus (veja os seus números com `id`).
-- `x-systemd.automount` monta só quando a pasta é usada; se a rede faltar, o arranque não fica parado.
+- `noauto`: quem liga a pasta é o serviço **carinaeos-montar-rede**, que de 30 em 30 s vê se o servidor responde. Servidor desligado → a pasta fica vazia e nada fica à espera; servidor ligado → a pasta aparece sozinha. (Evite `x-systemd.automount`: com o servidor desligado, cada programa que toque na pasta fica pendurado.)
 - **Montar só agora, sem fstab:** `sudo mount -t cifs //192.168.1.20/fotos /mnt/nas -o username=SEU_USUARIO,uid=$(id -u),gid=$(id -g)`
 - **Sem sudo (como os Arquivos):** `gio mount smb://192.168.1.20/fotos` → fica em `/run/user/1000/gvfs/`.
 - **Ver as partilhas de um aparelho:** `smbclient -L //192.168.1.20 -U SEU_USUARIO`
@@ -73,7 +73,7 @@ $ ls /mnt/nas                                   # monta no primeiro acesso
 | O NAS não aparece em Rede | Escreva o IP diretamente (`smb://192.168.1.20`). Descobrir o IP: na app do router, ou `avahi-browse -art` / `nmap -sn 192.168.1.0/24` (instale `nmap`). |
 | “Permission denied” num programa | Monte com `uid=` e `gid=` (acima) ou ajuste as permissões da partilha no NAS. |
 | Lento | Prefira cabo; no fstab use `vers=3.1.1`; desative SMB1 no NAS. |
-| Funcionou, mas falha no arranque | Use `_netdev,nofail,x-systemd.automount` no fstab. |
+| Funcionou, mas falha no arranque | Use `_netdev,nofail,noauto` no fstab (o carinaeos-montar-rede liga-a quando o servidor responder). |
 
 ## NFS (NAS com Linux, TrueNAS, Synology com NFS)
 

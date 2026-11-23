@@ -1,0 +1,13 @@
+#!/bin/bash
+# CarinaeOS - tirar o Plasma e os programas do KDE que vieram por arrasto (os "Recommends" do KDE Connect,
+# das contas online e do akonadi puxam o plasma-desktop inteiro). É o mesmo limpar-kde.sh que limpou o
+# sistema de referência; aqui sem perguntas e sem autoremove. Se a remoção levasse alguma coisa nossa, ou
+# se no fim faltar alguma peça para entrar no CarinaeOS, o script sai com erro e a ISO não é feita.
+set -e
+export HOME=/root
+cd /usr/src/carinaeos-ambiente
+bash ferramentas/limpar-kde.sh --automatico
+# o menu de arranque e os atalhos que apontavam para o KDE
+update-desktop-database -q /usr/share/applications 2>/dev/null || true
+echo "== KDE que ficou (bibliotecas e o que o KDE Connect / contas online / scanner precisam):"
+dpkg-query -W -f='${db:Status-Status} ${Package}\n' | awk '$1=="installed"{print $2}' | grep -E '^(plasma|kwin|systemsettings|dolphin|konsole|kscreen|powerdevil|kde-)' || true

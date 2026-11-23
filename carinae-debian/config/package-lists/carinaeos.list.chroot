@@ -8,34 +8,64 @@ locales
 console-setup
 keyboard-configuration
 
-# ---- ambiente de trabalho (KDE Plasma 6) -----------------------------------
-kde-plasma-desktop
-plasma-workspace
-kwin-wayland
+# ---- ambiente de trabalho: o do CarinaeOS (Gravidade + Aurora), sem o KDE Plasma ----
+# (a Gravidade, a Aurora e os apps são compilados no hook 8000-ambiente; aqui vai o que precisam para correr)
+xserver-xorg
+xserver-xorg-input-all
+xserver-xorg-video-all
+x11-xkb-utils
+x11-utils
+x11-xserver-utils
+xinit
+dbus-x11
 sddm
-sddm-theme-breeze
+qml6-module-qtquick
 qml6-module-qtquick-effects
 qml6-module-qtquick-controls
 qml6-module-qtquick-layouts
-plasma-nm
-plasma-pa
-powerdevil
-bluedevil
-kscreen
-kde-config-gtk-style
-breeze-gtk-theme
-xdg-desktop-portal-kde
-kwalletmanager
-plasma-vault
-cryfs
-gocryptfs
-plasma-discover
-plasma-discover-backend-flatpak
+qml6-module-qtquick-window
+qml6-module-qtquick-templates
+qml6-module-qtqml-models
+qml6-module-qtqml-workerscript
+qml6-module-qtcore
+qml6-module-qt-labs-folderlistmodel
+qml6-module-qtquick-pdf
+qml6-module-qtquick-dialogs
+qml6-module-qtmultimedia
+libqt6multimedia6
+qt6-image-formats-plugins
+qt6ct
+python3-pyside6.qtnetwork
+python3-psutil
+python3-pil
+xdg-desktop-portal
+xdg-desktop-portal-gtk
+xdg-utils
+gnome-keyring
+polkitd
+pkexec
+upower
+picom
+xss-lock
+i3lock
+xdotool
+xclip
+maim
+playerctl
+imagemagick
+ffmpeg
+ffmpegthumbnailer
+iputils-ping
+avahi-utils
+xinput
+cups-client
+7zip
+libarchive-tools
+breeze-cursor-theme
+breeze-icon-theme
+adwaita-icon-theme
+gnome-themes-extra
 flatpak
-kinfocenter
-systemsettings
-kwin-addons
-kdialog
 gnupg
 
 # ---- aplicativos do CarinaeOS (Supernova, Orbita) -------------------------
@@ -54,13 +84,9 @@ poppler-utils
 qml6-module-qtquick-dialogs
 python3-paho-mqtt
 libnotify-bin
-# Mapas e Calendario (com contas Google pelo Akonadi)
-marble
-merkuro
+# calendários com contas Google (Akonadi; a Central usa)
 kdepim-runtime
-kdepim-addons
 akonadi-server
-plasma-calendar-addons
 python3-gi
 qml6-module-qt-labs-folderlistmodel
 qml6-module-qtcore
@@ -74,19 +100,8 @@ qml6-module-qtquick-templates
 qml6-module-qtqml-workerscript
 libgomp1
 plocate
-plasma-widgets-addons
 
 # ---- aplicacoes --------------------------------------------------------------
-dolphin
-konsole
-kate
-ark
-gwenview
-okular
-kcalc
-kde-spectacle
-ffmpegthumbs
-kdegraphics-thumbnailers
 firefox-esr
 firefox-esr-l10n-pt-br
 vlc
@@ -119,14 +134,12 @@ calamares-settings-debian
 # rc8: visual Vidro (Kvantum), rede SMB/NAS, impressoras, mais firmware, janelas de senha
 qt6-style-kvantum
 qt-style-kvantum
-kio-fuse
 smbclient
 cifs-utils
 wsdd2
 avahi-daemon
 libnss-mdns
 cups
-print-manager
 printer-driver-all
 sane-airscan
 ipp-usb
@@ -171,3 +184,42 @@ libgstreamer-plugins-base1.0-0
 gstreamer1.0-plugins-good
 libfuse2t64
 power-profiles-daemon
+# telemóvel: KDE Connect (Android e iPhone sem fios) e iPhone por cabo (fotos, internet partilhada)
+kdeconnect
+usbmuxd
+libimobiledevice-utils
+ifuse
+
+# o que o sistema de referência (o HD do Leo) tem e os nossos apps usam
+# Atualizações (pontos de restauro), firewall, afinação de disco mecânico, memória comprimida
+ufw
+timeshift
+unattended-upgrades
+profile-sync-daemon
+systemd-zram-generator
+lm-sensors
+# compactar e ver imagens modernas
+zip
+unar
+gocryptfs
+webp-pixbuf-loader
+heif-gdk-pixbuf
+heif-thumbnailer
+kimageformat6-plugins
+gstreamer1.0-plugins-ugly
+gstreamer1.0-pipewire
+# impressoras, leitor de impressões digitais, sensores (portáteis)
+cups-pk-helper
+system-config-printer-udev
+fprintd
+iio-sensor-proxy
+# agenda e contas (Calendários), partilha de pastas
+kdepim-addons
+kdenetwork-filesharing
+# ferramentas
+python3-numpy
+dconf-cli
+inxi
+tree
+bind9-dnsutils
+xdg-user-dirs-gtk
