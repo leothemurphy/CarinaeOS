@@ -44,17 +44,10 @@ kepler)
     if dpkg -s nvidia-driver >/dev/null 2>&1 || dpkg -s nvidia-open-kernel-dkms >/dev/null 2>&1; then
         apt-get purge -y '~nnvidia' glx-diversions glx-alternative-mesa update-glx || true
     fi
-    apt-get install -y linux-headers-amd64 nvidia-tesla-470-driver/sid kwin-x11
-    # o 470 não tem Wayland: a sessão passa a ser a X11, com as afinações que tiram os solavancos
+    apt-get install -y linux-headers-amd64 nvidia-tesla-470-driver/sid
+    # o 470 não tem Wayland (a sessão do CarinaeOS já é X11): só as afinações que tiram os solavancos
     mkdir -p /etc/environment.d
     printf 'KWIN_TRIPLE_BUFFER=1\n__GL_MaxFramesAllowed=1\n__GL_YIELD=USLEEP\n' > /etc/environment.d/90-carinaeos-nvidia.conf
-    mkdir -p /var/lib/sddm
-    if [ -f /var/lib/sddm/state.conf ] && grep -q '^Session=' /var/lib/sddm/state.conf; then
-        sed -i 's|^Session=.*|Session=/usr/share/xsessions/plasmax11.desktop|' /var/lib/sddm/state.conf
-    else
-        printf '[Last]\nSession=/usr/share/xsessions/plasmax11.desktop\n' >> /var/lib/sddm/state.conf
-    fi
-    chown sddm:sddm /var/lib/sddm/state.conf 2>/dev/null || true
     # o driver 470 vem do sid: um núcleo novo só pelo app Atualizações (com ponto de restauro),
     # nunca sozinho de madrugada, para nunca acordar sem imagem se o módulo não compilar
     mkdir -p /etc/apt/apt.conf.d
