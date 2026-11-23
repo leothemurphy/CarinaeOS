@@ -104,3 +104,6 @@ install(PROGRAMS sessao/carinae-convidado DESTINATION /usr/lib/carinaeos RENAME 
 install(PROGRAMS sessao/carinae-remover-pacote DESTINATION /usr/lib/carinaeos RENAME remover-pacote)
 install(FILES sessao/org.carinaeos.convidado.policy DESTINATION /usr/share/polkit-1/actions)
 install(FILES sessao/convidado-leia-me.txt DESTINATION /usr/share/carinaeos)
+
+# papel de parede padrão (Fusão, até 8K): a área de trabalho usa-o enquanto não se escolhe outro
+install(DIRECTORY marca/papeis/CarinaeOS-Fusao DESTINATION /usr/share/wallpapers)

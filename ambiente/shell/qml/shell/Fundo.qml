@@ -62,7 +62,7 @@ Window {
     C.Menu {
         id: menu
         visualParent: fundo.contentItem
-        C.MenuItem { text: "Mudar o papel de parede…"; icon: "preferences-desktop-wallpaper"; onClicked: Sistema.executar("carinaeos-supernova") }
+        C.MenuItem { text: "Mudar o papel de parede…"; icon: "preferences-desktop-wallpaper"; onClicked: Sistema.executar("command -v carinaeos-supernova >/dev/null && exec carinaeos-supernova || exec carinaeos-configuracoes aparencia") }
         C.MenuItem { text: "Telas…"; icon: "preferences-desktop-display"; onClicked: Sistema.executar("carinae-telas") }
         C.MenuItem { text: "Abrir o terminal aqui"; icon: "utilities-terminal"; onClicked: Sistema.executar("cd \"$HOME/Área de trabalho\" 2>/dev/null; x-terminal-emulator") }
         C.MenuItem { text: "Configurações…"; icon: "preferences-system"; onClicked: Sistema.executar("carinaeos-configuracoes") }

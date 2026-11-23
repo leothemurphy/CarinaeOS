@@ -1,0 +1,78 @@
+# CarinaeOS - compila e instala o ambiente (Gravidade + Aurora) noutras distribuições,
+# confirma que tudo arranca (QML, módulos Python) e publica o pacote do código-fonte.
+name: Ambiente noutras distros
+
+on:
+  workflow_dispatch:
+    inputs:
+      publicar:
+        description: "Publicar o pacote (release ambiente-v...)"
+        type: boolean
+        default: true
+  push:
+    branches: [main, ambiente-proprio]
+    paths: ['ambiente/**', '.github/workflows/ambiente-distros.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  distro:
+    strategy:
+      fail-fast: false
+      matrix:
+        imagem: ["debian:trixie", "ubuntu:25.10", "fedora:latest", "archlinux:latest", "opensuse/tumbleweed"]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar em ${{ matrix.imagem }}
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src/ambiente ${{ matrix.imagem }} bash -c '
+            set -e
+            case "${{ matrix.imagem }}" in
+              archlinux*) pacman -Syu --noconfirm >/dev/null ;;
+              opensuse*) zypper --non-interactive refresh >/dev/null ;;
+            esac
+            cp -r /src/ambiente /tmp/amb && cd /tmp/amb
+            ./instalar-universal.sh
+            echo "== verificação"
+            falta=0
+            for b in gravidade aurora carinae-terminal carinae-bloqueio carinae-senha startcarinae carinaeos-configuracoes carinaeos-arquivos; do
+              if [ -x /usr/local/bin/$b ]; then echo "  ok  $b"; else echo "  FALTA  $b"; falta=1; fi
+            done
+            for b in /usr/local/bin/gravidade /usr/local/bin/aurora /usr/local/bin/carinae-terminal; do
+              if ldd $b | grep -q "not found"; then echo "  biblioteca em falta em $b:"; ldd $b | grep "not found"; falta=1; fi
+            done
+            [ -f /usr/share/xsessions/carinae.desktop ] && echo "  ok  sessão na tela de entrada" || { echo "  FALTA sessão"; falta=1; }
+            [ -f /usr/share/wallpapers/CarinaeOS-Fusao/contents/images/7680x4320.jpg ] && echo "  ok  papel Fusão 8K" || { echo "  FALTA papel"; falta=1; }
+            python3 -c "import PySide6.QtCore, PySide6.QtGui, PySide6.QtQml, PySide6.QtQuick, PySide6.QtNetwork; print(\"  ok  PySide6\", PySide6.__version__)" || falta=1
+            # a Aurora e as apps carregam todo o QML sem erros de módulos (ecrã virtual)
+            export QT_QPA_PLATFORM=offscreen HOME=/tmp/casa XDG_RUNTIME_DIR=/tmp/run; mkdir -p $HOME $XDG_RUNTIME_DIR; chmod 700 $XDG_RUNTIME_DIR
+            timeout 15 /usr/local/bin/aurora > /tmp/aurora.log 2>&1 || true
+            timeout 15 /usr/local/bin/carinaeos-configuracoes > /tmp/config.log 2>&1 || true
+            for l in /tmp/aurora.log /tmp/config.log; do
+              if grep -E "is not installed|module .* not found|No module named|plugin cannot be loaded|failed to load component" $l; then
+                echo "  ERRO de módulos em $l"; falta=1
+              else echo "  ok  sem módulos em falta ($(basename $l))"; fi
+            done
+            exit $falta
+          '
+
+  publicar:
+    needs: distro
+    if: github.event_name == 'workflow_dispatch' && inputs.publicar
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pacote do código-fonte e release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(head -1 carinae-debian/VERSAO | tr -d ' \n')
+          N=carinaeos-ambiente-$V
+          git archive --format=tar.gz --prefix=$N/ -o $N.tar.gz HEAD:ambiente
+          sha256sum $N.tar.gz > $N.tar.gz.sha256
+          gh release delete ambiente-v$V --yes --cleanup-tag 2>/dev/null || true
+          gh release create ambiente-v$V --title "Ambiente CarinaeOS $V (Gravidade + Aurora) para outras distros" \
+            --notes-file .github/notas-ambiente.md $N.tar.gz $N.tar.gz.sha256

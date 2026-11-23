@@ -87,8 +87,8 @@ PlasmoidItem {
         PlasmaExtras.MenuItem { separator: true }
         PlasmaExtras.MenuItem { text: "Comando…  (Ctrl+Espaço)"; icon: "search"; onClicked: raiz.correr("carinaeos-comando") }
         PlasmaExtras.MenuItem { text: "Configurações…"; icon: "preferences-system"; onClicked: raiz.correr("carinaeos-configuracoes") }
-        PlasmaExtras.MenuItem { text: "Supernova — personalizar…"; icon: "carinaeos-supernova"; onClicked: raiz.correr("carinaeos-supernova") }
-        PlasmaExtras.MenuItem { text: "Órbita — loja de aplicativos…"; icon: "carinaeos-orbita"; onClicked: raiz.correr("carinaeos-orbita") }
+        PlasmaExtras.MenuItem { text: "Supernova — personalizar…"; icon: "carinaeos-supernova"; onClicked: raiz.correr("command -v carinaeos-supernova >/dev/null && exec carinaeos-supernova || exec carinaeos-configuracoes aparencia") }
+        PlasmaExtras.MenuItem { text: "Órbita — loja de aplicativos…"; icon: "carinaeos-orbita"; onClicked: raiz.correr("command -v carinaeos-orbita >/dev/null && exec carinaeos-orbita || command -v gnome-software >/dev/null && exec gnome-software || exec plasma-discover") }
         PlasmaExtras.MenuItem { text: "Recarregar o ambiente"; icon: "document-edit"; onClicked: raiz.correr("carinae-shell --enviar recarregar") }
         PlasmaExtras.MenuItem { separator: true }
         PlasmaExtras.MenuItem { text: "Forçar encerramento…"; icon: "process-stop"; onClicked: raiz.correr("xkill") }
