@@ -751,8 +751,8 @@ class Central(QObject):
         pasta = os.path.join(HOME, 'Imagens') if os.path.isdir(os.path.join(HOME, 'Imagens')) else HOME
 
         def trabalho():
-            return subprocess.run(['kdialog', '--title', titulo, '--getopenfilename', pasta,
-                                   'image/jpeg image/png image/webp image/bmp'], capture_output=True, text=True)
+            return subprocess.run(['carinae-escolher', 'ficheiro', titulo, pasta, 'Imagens',
+                                   '*.jpg *.jpeg *.png *.webp *.bmp'], capture_output=True, text=True)
 
         def depois(r):
             self._ocupado = False
@@ -1015,8 +1015,8 @@ class Central(QObject):
                 subprocess.run(base + ['--share-text', txt], check=True, capture_output=True, timeout=15)
                 return 'Texto enviado para o %s ✓' % nome
             if acao == 'arquivo':
-                r = subprocess.run(['kdialog', '--title', 'Enviar para ' + nome, '--multiple', '--separate-output',
-                                    '--getopenfilename', HOME], capture_output=True, text=True)
+                r = subprocess.run(['zenity', '--file-selection', '--multiple', '--separator=\n',
+                                    '--title=Enviar para ' + nome, '--filename=' + HOME + '/'], capture_output=True, text=True)
                 arqs = [a for a in r.stdout.splitlines() if a.strip()]
                 if not arqs:
                     return ''

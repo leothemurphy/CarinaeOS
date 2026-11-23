@@ -860,8 +860,15 @@ class Musica(QObject):
     @Slot()
     def escolherPasta(self):
         def trabalho():
-            return subprocess.run(['kdialog', '--title', 'Escolha uma pasta com música', '--getexistingdirectory', HOME],
-                                  capture_output=True, text=True)
+            # carinae-escolher (zenity); o kdialog do KDE só se não houver outro
+            for c in (['carinae-escolher', 'pasta', 'Escolha uma pasta com música', HOME],
+                      ['zenity', '--file-selection', '--directory', '--title=Escolha uma pasta com música', '--filename=' + HOME + '/'],
+                      ['kdialog', '--title', 'Escolha uma pasta com música', '--getexistingdirectory', HOME]):
+                try:
+                    return subprocess.run(c, capture_output=True, text=True)
+                except FileNotFoundError:
+                    continue
+            raise RuntimeError('sem janela para escolher pastas')
 
         def depois(r):
             if isinstance(r, Exception) or r.returncode != 0 or not r.stdout.strip():

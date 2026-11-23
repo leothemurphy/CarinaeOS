@@ -57,6 +57,29 @@ Kicker.DashboardWindow {
     //   novos: [{nome, icone, cor}]  colocar: {chave: cartão}  fixos: [cartão...] (em primeiro)
     //   nomes: {original: novo}  cores: {cartão: n}  ocultos: [cartão...]
     property var cartoesCfg: ({ novos: [], colocar: {}, fixos: [], nomes: {}, cores: {}, ocultos: [], ordem: [], imagens: {} })
+    property bool cartoesLidos: false
+    // aplicativos instalados depois: ficam "soltos" no cartão Novos aplicativos até a pessoa os pôr num
+    // ambiente (ou os deixar na categoria sugerida). cartoesCfg.conhecidos = os que já lá estavam.
+    readonly property var soltos: {
+        const k = cartoesCfg.conhecidos, col = cartoesCfg.colocar || {};
+        if (!Array.isArray(k)) return [];
+        const conh = {};
+        for (const c of k) conh[c] = true;
+        return itens.filter(a => a.chave && !conh[a.chave] && !col[a.chave] && !/^carinaeos/i.test(a.chave))
+                    .sort((a, b) => a.nome.localeCompare(b.nome));
+    }
+    function registarConhecidos(): void {
+        if (!cartoesLidos || itens.length === 0 || Array.isArray(cartoesCfg.conhecidos)) return;
+        mudarCartoes(c => { c.conhecidos = itens.map(a => a.chave).filter(x => !!x); });
+    }
+    onItensChanged: registarConhecidos()
+    onCartoesLidosChanged: registarConhecidos()
+    function conhecer(chaves: var): void {
+        mudarCartoes(c => {
+            if (!Array.isArray(c.conhecidos)) c.conhecidos = [];
+            for (const k of chaves) if (k && c.conhecidos.indexOf(k) === -1) c.conhecidos.push(k);
+        });
+    }
     // [{ orig, nome, icone, apps, cor, propria, fixo }]
     readonly property var categorias: {
         const cfg = cartoesCfg, col = cfg.colocar || {}, nomes = cfg.nomes || {}, cores = cfg.cores || {};
@@ -68,6 +91,8 @@ Kicker.DashboardWindow {
         const doCarinae = itens.filter(a => /^carinaeos/i.test(a.chave || "") && !col[a.chave])
                                .sort((a, b) => a.nome.localeCompare(b.nome));
         for (const a of doCarinae) visto[a.chave] = true;
+        const listaSoltos = soltos;
+        for (const a of listaSoltos) visto[a.chave] = true;
         for (const c of catSistema) {
             const apps = c.apps.filter(a => {
                 if (col[a.chave] || visto[a.chave]) return false;
@@ -106,11 +131,15 @@ Kicker.DashboardWindow {
         const imagens = cfg.imagens || {};
         for (const c of lista) c.imagem = imagens[c.orig] || "";
         const r = lista.filter(c => c.propria || c.carinae || c.apps.length > 0);
+        if (listaSoltos.length > 0)
+            r.unshift({ orig: "__novos", nome: "Novos aplicativos", icone: "document-new", cor: ["#ffb74d", "#ff7043"],
+                        propria: false, soltos: true, apps: listaSoltos, imagem: "" });
         const ord = cfg.ordem || [];
         r.forEach((c, i) => { c.fixo = fx.indexOf(c.orig) !== -1; c.ordem = i; });
         r.sort((a, b) => {
             // 1.º os fixados em primeiro, 2.º a ordem arrastada no modo Editar, 3.º a ordem natural
             const ia = fx.indexOf(a.orig), ib = fx.indexOf(b.orig);
+            if (!!a.soltos !== !!b.soltos) return a.soltos ? -1 : 1;    // os Novos aplicativos, sempre à cabeça
             if (ia !== -1 || ib !== -1) return (ia === -1 ? 1e6 : ia) - (ib === -1 ? 1e6 : ib);
             const oa = ord.indexOf(a.orig), ob = ord.indexOf(b.orig);
             if (oa !== -1 || ob !== -1) return (oa === -1 ? 1e6 + a.ordem : oa) - (ob === -1 ? 1e6 + b.ordem : ob);
@@ -501,6 +530,7 @@ Kicker.DashboardWindow {
             if (d && typeof d === "object") {
                 lp.cartoesCfg = Object.assign({ novos: [], colocar: {}, fixos: [], nomes: {}, cores: {}, ocultos: [], ordem: [], imagens: {} }, d);
             }
+            lp.cartoesLidos = true;
         }
     }
     function gravarCartoes(): void {
@@ -526,7 +556,7 @@ Kicker.DashboardWindow {
     }
     function ambientesPara(app: var): var {
         const atual = cartaoDe(app);
-        return categorias.map(c => ({ orig: c.orig, nome: c.nome,
+        return categorias.filter(c => !c.soltos).map(c => ({ orig: c.orig, nome: c.nome,
             marcado: app !== null && (atual === c.orig || (atual === "" && lp.temApp(c.apps, app))) }));
     }
     // o ambiente onde o aplicativo aparece agora (ou "" se não está em nenhum)
@@ -550,12 +580,17 @@ Kicker.DashboardWindow {
         });
     }
     function colocarNoCartao(app: var, orig: string): void {
+        if (orig === "__novos") return;
         if (!app || !app.chave) return;
         mudarCartoes(c => { c.colocar[app.chave] = orig; });
     }
     function tirarDoCartao(app: var): void {
         if (!app || !app.chave) return;
-        mudarCartoes(c => { delete c.colocar[app.chave]; });
+        mudarCartoes(c => {
+            delete c.colocar[app.chave];
+            if (!Array.isArray(c.conhecidos)) c.conhecidos = [];
+            if (c.conhecidos.indexOf(app.chave) === -1) c.conhecidos.push(app.chave);
+        });
     }
     function alternarFixo(orig: string): void {
         mudarCartoes(c => {
@@ -1225,6 +1260,12 @@ Kicker.DashboardWindow {
                     }
                 }
             }
+        }
+        // menu do cartão Novos aplicativos
+        QQC2.Menu {
+            id: menuSoltos
+            QQC2.MenuItem { text: "Deixar todos nas categorias sugeridas"; onTriggered: { const l = lp.soltos.map(a => a.chave); Qt.callLater(() => lp.conhecer(l)); } }
+            QQC2.MenuItem { text: "Novo ambiente…"; onTriggered: formCartao.abrir("novo", "", false, null) }
         }
         // menu do botão direito de um cartão
         QQC2.Menu {
@@ -2101,14 +2142,16 @@ Kicker.DashboardWindow {
                                             cursorShape: Qt.PointingHandCursor
                                             acceptedButtons: Qt.LeftButton | Qt.RightButton
                                             onClicked: (m) => {
-                                                if (m.button === Qt.RightButton) {
+                                                if (m.button === Qt.RightButton && cartao.modelData.soltos) {
+                                                    menuSoltos.popup();
+                                                } else if (m.button === Qt.RightButton) {
                                                     menuCartao.c = cartao.modelData;
                                                     menuCartao.popup();
                                                 } else {
                                                     lp.mudarVista("cat", cartao.index);
                                                 }
                                             }
-                                            onPressAndHold: { menuCartao.c = cartao.modelData; menuCartao.popup(); }
+                                            onPressAndHold: { if (cartao.modelData.soltos) { menuSoltos.popup(); return; } menuCartao.c = cartao.modelData; menuCartao.popup(); }
                                         }
                                         // modo Editar: o cartão inteiro arrasta-se; os botões ficam por cima
                                         MouseArea {

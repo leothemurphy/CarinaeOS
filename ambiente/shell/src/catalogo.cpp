@@ -260,6 +260,16 @@ void Catalogo::vigiar() {
         QDirIterator it(p, QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
         while (it.hasNext()) dirs << it.next();
     }
+    // as pastas que ainda não existem (a primeira app Flatpak cria ~/.local/share/flatpak/exports/...,
+    // /var/lib/flatpak/exports/...): vigia-se a pasta-mãe mais próxima, para dar pela criação
+    const QString casa = QDir::homePath();
+    for (const QString &falta : {casa + QStringLiteral("/.local/share/applications"),
+                                 casa + QStringLiteral("/.local/share/flatpak/exports/share/applications"),
+                                 QStringLiteral("/var/lib/flatpak/exports/share/applications")}) {
+        QString p = falta;
+        while (!p.isEmpty() && p != QStringLiteral("/") && !QFileInfo(p).isDir()) p = QFileInfo(p).path();
+        if (!p.isEmpty() && p != QStringLiteral("/") && !dirs.contains(p)) dirs << p;
+    }
     const QStringList atuais = m_vigia->directories();
     for (const QString &d : std::as_const(dirs))
         if (!atuais.contains(d)) m_vigia->addPath(d);

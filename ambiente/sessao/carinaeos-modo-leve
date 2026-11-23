@@ -14,6 +14,8 @@ else
     [ "$(nproc)" -le 2 ] && motivo="${motivo:+$motivo, }poucos processadores"
 fi
 escolha=$(cat "$F" 2>/dev/null)
+# o modo leve antigo marcava "ligado" só com o ficheiro (vazio)
+[ -f "$F" ] && [ -z "$escolha" ] && escolha=ligado
 if [ "$escolha" = ligado ] || { [ -z "$escolha" ] && [ -n "$motivo" ]; }; then ligado=true; else ligado=false; fi
 case "$1" in
     estado)

@@ -743,6 +743,10 @@ class Config(QObject):
         except (OSError, ValueError):
             j = {}
         j[chave] = valor
+        if chave == 'estilo':
+            # o modelo escolhido manda: "Sem efeitos" desliga-os, os outros voltam a ligá-los
+            # (um "semEfeitos" antigo, do modo leve ou do Supernova, deixava todos os modelos iguais)
+            j['semEfeitos'] = (valor == 'simples')
         os.makedirs(os.path.dirname(DOCK_JSON), exist_ok=True)
         tmp = DOCK_JSON + '.tmp'
         with open(tmp, 'w', encoding='utf-8') as f:

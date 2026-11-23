@@ -13,6 +13,54 @@ import re
 import subprocess
 import sys
 
+def kdialog(args):
+    """As janelas que antes eram do kdialog (KDE), agora com o zenity.
+    Devolve um objeto com returncode como o kdialog: 0 = sim/ok, 1 = não, 2 = cancelar."""
+    class R:
+        returncode = 2
+        stdout = ''
+    if args and args[0] == 'kdialog':
+        args = args[1:]
+    titulo, modo, texto, rot = 'CarinaeOS', None, '', {}
+    i = 0
+    while i < len(args):
+        x = args[i]
+        if x == '--title':
+            titulo = args[i + 1]; i += 2; continue
+        if x in ('--yes-label', '--no-label', '--cancel-label'):
+            rot[x] = args[i + 1]; i += 2; continue
+        if x.startswith('--') and modo is None:
+            modo = x
+        elif not x.startswith('--') and not texto:
+            texto = x
+        i += 1
+    z = ['zenity', '--title=' + titulo, '--width=460']
+    if modo in ('--msgbox', '--sorry'):
+        z += ['--info' if modo == '--msgbox' else '--warning', '--text=' + texto]
+    elif modo == '--error':
+        z += ['--error', '--text=' + texto]
+    elif modo in ('--yesno', '--yesnocancel'):
+        z += ['--question', '--text=' + texto, '--ok-label=' + rot.get('--yes-label', 'Sim')]
+        if modo == '--yesno':
+            z += ['--cancel-label=' + rot.get('--no-label', 'Não')]
+        else:
+            z += ['--cancel-label=' + rot.get('--cancel-label', 'Cancelar'), '--extra-button=' + rot.get('--no-label', 'Não')]
+    else:
+        return R()
+    try:
+        p = subprocess.run(z, capture_output=True, text=True)
+    except OSError:
+        return R()
+    r = R()
+    if p.returncode == 0:
+        r.returncode = 0
+    elif modo == '--yesnocancel' and p.stdout.strip() == rot.get('--no-label', 'Não'):
+        r.returncode = 1
+    else:
+        r.returncode = 1 if modo == '--yesno' else 2
+    return r
+
+
 BOTTLES = 'com.usebottles.bottles'
 FLATHUB = 'https://dl.flathub.org/repo/flathub.flatpakrepo'
 
@@ -86,14 +134,19 @@ def ajustar_garrafa(nome):
 
 
 def progresso(texto):
-    ref = subprocess.run(['kdialog', '--title', 'Bottles', '--progressbar', texto, '0'],
-                         capture_output=True, text=True).stdout.split()
-    return ref
+    try:
+        return subprocess.Popen(['zenity', '--progress', '--pulsate', '--no-cancel', '--auto-close',
+                                 '--title=Bottles', '--width=460', '--text=' + texto], stdin=subprocess.PIPE)
+    except OSError:
+        return None
 
 
 def fechar(ref):
-    if len(ref) == 2:
-        subprocess.run(['qdbus6', ref[0], ref[1], 'close'], capture_output=True)
+    if ref is not None:
+        try:
+            ref.terminate()
+        except Exception:
+            pass
 
 
 def abrir_no_bottles(arquivo):
@@ -102,7 +155,7 @@ def abrir_no_bottles(arquivo):
     dados = os.path.expanduser('~/.var/app/%s/data/bottles' % BOTTLES)
     if not os.path.isdir(os.path.join(dados, 'runners')) or not os.listdir(os.path.join(dados, 'runners')):
         # o Bottles nunca foi aberto: primeiro a configuração inicial dele (baixa os componentes do Windows)
-        subprocess.run(['kdialog', '--title', 'Bottles', '--msgbox',
+        kdialog(['kdialog', '--title', 'Bottles', '--msgbox',
                         'Na primeira vez, o Bottles precisa de baixar os componentes do Windows.\n\n'
                         'Ele vai abrir agora: siga os passos até ao fim e depois dê de novo dois cliques no .exe.'])
         os.execvp('flatpak', ['flatpak', 'run', BOTTLES])
@@ -116,7 +169,7 @@ def abrir_no_bottles(arquivo):
         lista = garrafas()
         if not lista:
             erro = ((p.stderr or p.stdout).strip().splitlines()[-1:] if p else []) or ['']
-            subprocess.run(['kdialog', '--title', 'Bottles', '--msgbox',
+            kdialog(['kdialog', '--title', 'Bottles', '--msgbox',
                             'O Bottles ainda precisa de terminar a configuração inicial.\n\n'
                             'Ele vai abrir agora: siga os passos (baixa os componentes) e depois dê de novo dois cliques no .exe.'
                             + ('\n\n' + erro[0] if erro[0] else '')])
@@ -252,20 +305,17 @@ def nome_para_procurar(arquivo):
 
 
 def instalar():
-    """Instala o Bottles mostrando uma barra de progresso (kdialog). Devolve True se ficou instalado."""
-    ref = subprocess.run(['kdialog', '--title', 'Bottles', '--progressbar',
-                          'Instalando o Bottles (pode levar alguns minutos)…', '0'],
-                         capture_output=True, text=True).stdout.split()
+    """Instala o Bottles mostrando uma barra de progresso. Devolve True se ficou instalado."""
+    ref = progresso('Instalando o Bottles (pode levar alguns minutos)…')
     try:
         subprocess.run(['flatpak', 'remote-add', '--user', '--if-not-exists', 'flathub', FLATHUB], capture_output=True)
         p = subprocess.run(['flatpak', 'install', '--user', '-y', '--noninteractive', 'flathub', BOTTLES],
                            capture_output=True, text=True)
     finally:
-        if len(ref) == 2:
-            subprocess.run(['qdbus6', ref[0], ref[1], 'close'], capture_output=True)
+        fechar(ref)
     if p.returncode != 0:
         erro = (p.stderr or p.stdout).strip().splitlines()[-1:] or ['sem conexão com a internet?']
-        subprocess.run(['kdialog', '--title', 'Bottles', '--error', 'Não foi possível instalar o Bottles:\n' + erro[0]])
+        kdialog(['kdialog', '--title', 'Bottles', '--error', 'Não foi possível instalar o Bottles:\n' + erro[0]])
         return False
     return True
 
@@ -417,7 +467,7 @@ def main():
     finally:
         fechar(ref)
     if info:
-        r = subprocess.run(['kdialog', '--title', info['nome'], '--yesno',
+        r = kdialog(['kdialog', '--title', info['nome'], '--yesno',
                             '“%s” é feito com Electron e pode rodar direto no Linux, sem o Wine: '
                             'mais rápido e integrado no CarinaeOS.\n\nInstalar a versão para Linux?' % info['nome'],
                             '--yes-label', 'Instalar para Linux', '--no-label', 'Usar o Bottles'])
@@ -425,7 +475,7 @@ def main():
             try:
                 binario = instalar_nativo(info)
             except Exception as e:
-                subprocess.run(['kdialog', '--title', info['nome'], '--error', 'Não foi possível: %s' % e])
+                kdialog(['kdialog', '--title', info['nome'], '--error', 'Não foi possível: %s' % e])
                 return 1
             subprocess.Popen(['notify-send', '-a', 'CarinaeOS', '-i', 'emblem-ok-symbolic', '%s instalado ✓' % info['nome'],
                               'Versão para Linux, já no Launchpad.'], start_new_session=True)
@@ -433,7 +483,7 @@ def main():
     if tem_bottles():
         abrir_no_bottles(arquivo)
     nome = os.path.basename(arquivo)
-    r = subprocess.run([
+    r = kdialog([
         'kdialog', '--title', 'Programa do Windows', '--yesnocancel',
         '“%s” é um programa feito para o Windows.\n\n'
         'O CarinaeOS pode abrir muitos deles com o Bottles (gratuito, cerca de 300 MB, instalado só para você).\n'
