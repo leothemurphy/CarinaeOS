@@ -1,0 +1,13 @@
+#!/bin/bash
+# CarinaeOS - liga as pastas de rede do /etc/fstab (cifs com "noauto") só quando o outro PC responde,
+# e desliga-as quando ele desaparece. Assim nada fica pendurado à espera de um PC desligado.
+awk '$1 !~ /^#/ && $3=="cifs" && $4 ~ /(^|,)noauto(,|$)/ {print $1, $2}' /etc/fstab | while read -r src dst; do
+    host=$(echo "$src" | cut -d/ -f3)
+    timeout 3 mountpoint -q "$dst"; m=$?          # 0 montado, 124 pendurado
+    if timeout 2 bash -c "</dev/tcp/$host/445" 2>/dev/null; then
+        [ $m -eq 0 ] || { mkdir -p "$dst"; timeout 20 mount "$dst" 2>/dev/null && echo "ligado $dst"; }
+    else
+        { [ $m -eq 0 ] || [ $m -eq 124 ]; } && umount -l -f "$dst" 2>/dev/null && echo "desligado $dst ($host não responde)"
+    fi
+done
+exit 0

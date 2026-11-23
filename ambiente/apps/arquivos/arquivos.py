@@ -2930,10 +2930,23 @@ def religar_partilhas():
         redes = json.load(open(Arquivos.CFG_REDES, encoding='utf-8'))
     except Exception:
         return 0
+    redes = [r for r in redes if r.get('religar') and r.get('url')]
+    if not redes:
+        return 0
+    # ao entrar na sessão a rede pode ainda não estar pronta: espera por ela (até 60 s)
+    import time
+    try:
+        subprocess.run(['nm-online', '-q', '-t', '60'], timeout=70)
+    except Exception:
+        time.sleep(10)
     for r in redes:
-        if r.get('religar') and r.get('url'):
+        for tentativa in range(4):
             ok, erro = Arquivos._montar_gio(r['url'], r.get('utilizador', ''), '', r.get('dominio', ''))
-            print('%s: %s' % (r['url'], 'ligada' if ok else erro))
+            baixo = (erro or '').lower()
+            if ok or not any(t in baixo for t in ('alcance', 'unreachable', 'timed out', 'tempo', 'resolve', 'host')):
+                break
+            time.sleep(8)       # rede ainda a subir: tenta outra vez
+        print('%s: %s' % (r['url'], 'ligada' if ok else erro))
     return 0
 
 

@@ -1,0 +1,10 @@
+[Unit]
+Description=CarinaeOS: verificar as pastas de rede de 30 em 30 segundos
+
+[Timer]
+OnBootSec=20s
+OnUnitActiveSec=30s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
