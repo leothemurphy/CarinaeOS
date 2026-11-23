@@ -33,6 +33,7 @@ Item {
     readonly property var papeisPadrao: [
         Sistema.casa + "/.local/share/carinaeos/papeis/tigre.jpg",
         Sistema.casa + "/.local/share/carinaeos/papeis/abstrato.jpg",
+        "/usr/share/wallpapers/CarinaeOS-Fusao/contents/images/3840x2160.jpg",
         "/usr/share/backgrounds/carinaeos/eta-carinae.jpg",
         "/usr/local/share/carinaeos/papeis/nebulosa.jpg",
         "/usr/local/share/carinaeos/papeis/aurora.jpg",

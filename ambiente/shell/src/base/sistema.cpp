@@ -220,6 +220,7 @@ void Sistema::papelSeguinte() {
     if (lista.isEmpty())
         lista = {casa + QStringLiteral("/.local/share/carinaeos/papeis/tigre.jpg"),
                  casa + QStringLiteral("/.local/share/carinaeos/papeis/abstrato.jpg"),
+                 QStringLiteral("/usr/share/wallpapers/CarinaeOS-Fusao/contents/images/3840x2160.jpg"),
                  QStringLiteral("/usr/share/backgrounds/carinaeos/eta-carinae.jpg"),
                  QStringLiteral("/usr/local/share/carinaeos/papeis/nebulosa.jpg"),
                  QStringLiteral("/usr/local/share/carinaeos/papeis/aurora.jpg"),

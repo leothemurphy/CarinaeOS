@@ -310,7 +310,7 @@ class Config(QObject):
                     img = os.path.join(base, d, 'contents/images')
                     if os.path.exists(sc) and os.path.isdir(img):
                         fundos.append(dict(id=d, miniatura='file://' + sc, caminho=os.path.join(base, d)))
-                ordem = ['CarinaeOS-Seda', 'CarinaeOS-Orbe', 'CarinaeOS-Crista', 'CarinaeOS-Aurora']
+                ordem = ['CarinaeOS-Fusao', 'CarinaeOS-Seda', 'CarinaeOS-Orbe', 'CarinaeOS-Crista', 'CarinaeOS-Aurora']
                 fundos.sort(key=lambda x: (ordem.index(x['id']) if x['id'] in ordem else 9, x['id']))
                 e['fundos'] = fundos
             elif pagina == 'pesquisa':

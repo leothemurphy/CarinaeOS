@@ -15,8 +15,14 @@ Window {
     readonly property bool principal: ecra && ecra.name === Sistema.nomePrincipal
     readonly property string papel: {
         const s = Sistema.shell || {};
-        const p = principal ? (s.papel || "") : (s.papel2 || s.papel || "");
-        return p === "" ? "" : (p.startsWith("/") ? "file://" + p : p);
+        let p = principal ? (s.papel || "") : (s.papel2 || s.papel || "");
+        if (p === "") {     // sem papel escolhido: o padrão do CarinaeOS, no tamanho mais próximo do ecrã
+            const w = ecra ? ecra.width * (ecra.devicePixelRatio || 1) : 1920;
+            const t = w > 5120 ? "7680x4320" : w > 3840 ? "5120x2880" : w > 2560 ? "3840x2160"
+                    : w > 1920 ? "2560x1440" : w > 1366 ? "1920x1080" : "1366x768";
+            p = "/usr/share/wallpapers/CarinaeOS-Fusao/contents/images/" + t + ".jpg";
+        }
+        return p.startsWith("/") ? "file://" + p : p;
     }
 
     screen: ecra

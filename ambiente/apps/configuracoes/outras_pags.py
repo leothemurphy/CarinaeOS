@@ -60,11 +60,15 @@ def aparencia_estado():
     for d in sorted(glob.glob('/usr/share/wallpapers/*/contents/images')):
         imgs = sorted(glob.glob(os.path.join(d, '*.jpg')) + glob.glob(os.path.join(d, '*.png')))
         if imgs:
-            candidatos.append(next((i for i in imgs if '1920x1080' in i), imgs[-1]))
+            candidatos.append(next((i for i in imgs if '3840x2160' in i), next((i for i in imgs if '1920x1080' in i), imgs[-1])))
     for c in candidatos:
         if c not in vistos:
             vistos.add(c)
-            papeis.append(dict(caminho=c, nome=os.path.splitext(os.path.basename(c))[0]))
+            if '/usr/share/wallpapers/' in c:       # pacote de papel: o nome é o da pasta (Fusão, Crista…), não "3840x2160"
+                nome = c.split('/usr/share/wallpapers/', 1)[1].split('/', 1)[0].replace('CarinaeOS-', '').replace('Fusao', 'Fusão')
+            else:
+                nome = os.path.splitext(os.path.basename(c))[0]
+            papeis.append(dict(caminho=c, nome=nome))
     return dict(tema=a['tema'], claro=a['tema'] == 'claro', papel=shell.get('papel', ''), papeis=papeis[:40],
                 luzNoturna=_texto(os.path.join(CFG, 'luz-noturna')) == '1')
 

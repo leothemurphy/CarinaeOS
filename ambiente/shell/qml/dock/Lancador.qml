@@ -1072,7 +1072,7 @@ Kicker.DashboardWindow {
         Image {
             id: fundo
             anchors.fill: parent
-            source: lp.fundoAtual !== "" ? lp.fundoAtual : "file:///usr/share/wallpapers/CarinaeOS-Crista/contents/images/1920x1080.jpg"
+            source: lp.fundoAtual !== "" ? lp.fundoAtual : "file:///usr/share/wallpapers/CarinaeOS-Fusao/contents/images/1920x1080.jpg"
             fillMode: Image.PreserveAspectCrop
             sourceSize.width: 1920
             asynchronous: true
