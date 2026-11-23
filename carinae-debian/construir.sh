@@ -64,8 +64,8 @@ if [ ! -s cache/artcraft-launcher-$ACV.deb ]; then
 fi
 [ -s cache/artcraft-launcher-$ACV.deb ] && cp cache/artcraft-launcher-$ACV.deb config/packages.chroot/artcraft-launcher_${ACV}_amd64.deb || echo "AVISO: sem o ArtCraft Launcher"
 
-# colecao de papeis de parede 8K (fotos do Webb/Hubble + desenhos do CarinaeOS) para Plasma, GNOME e XFCE
-python3 fundos/fundos.py "$PWD/$I" "$PWD/cache/fundos"
+# papéis de parede: os mesmos do sistema de referência (CarinaeOS-Ardosia, Areia, Aurora, ... em sistema/),
+# e já não a coleção de fotos do fundos.py
 cp -a $T/sddm/carinaeos                       $U/sddm/themes/
 cp -a $T/plymouth/carinaeos                   $U/plymouth/themes/
 # fundo do arranque: o ceu do papel de parede, escuro e desfocado (PNG pequeno para o initramfs)
@@ -75,6 +75,7 @@ im = Image.open('$U/wallpapers/CarinaeOS/contents/images/1920x1080.jpg').resize(
 im = ImageEnhance.Brightness(im.filter(ImageFilter.GaussianBlur(6))).enhance(0.55)
 im.convert('P', palette=Image.ADAPTIVE, colors=200).save('$U/plymouth/themes/carinaeos/fundo.png', optimize=True)
 " || cp $T/plymouth/carinaeos/barra-fundo.png $U/plymouth/themes/carinaeos/fundo.png
+rm -rf $U/wallpapers/CarinaeOS          # só servia para o fundo acima; não está no sistema de referência
 install -m644 arte/grub.png                   $U/carinaeos/grub.png
 install -m644 arte/calamares-*.png arte/calamares-*.jpg $I/etc/calamares/branding/carinaeos/
 

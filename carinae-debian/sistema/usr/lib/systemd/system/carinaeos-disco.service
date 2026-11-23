@@ -1,0 +1,10 @@
+[Unit]
+Description=CarinaeOS - afinar o sistema num disco mecânico
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/carinaeos/disco-mecanico
+
+[Install]
+WantedBy=multi-user.target

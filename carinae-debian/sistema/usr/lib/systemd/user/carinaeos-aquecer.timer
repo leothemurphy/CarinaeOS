@@ -1,0 +1,8 @@
+[Unit]
+Description=CarinaeOS - aquecer os apps um pouco depois de entrar
+
+[Timer]
+OnStartupSec=90s
+
+[Install]
+WantedBy=timers.target

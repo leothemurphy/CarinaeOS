@@ -1,6 +1,6 @@
 [SddmGreeterTheme]
 Name=CarinaeOS
-Description=Ecra de entrada do CarinaeOS (estilo macOS)
+Description=Tela de entrada do CarinaeOS (estilo macOS)
 Author=CarinaeOS
 License=GPL-3.0-or-later
 Type=sddm-theme

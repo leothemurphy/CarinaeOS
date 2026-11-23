@@ -54,6 +54,22 @@ case "$XDG_CURRENT_DESKTOP" in *KDE*)
   ;;
 esac
 
+# o ecrã principal escolhido no Plasma, para a tela de entrada aparecer nele (sddm-ecras)
+(sleep 20; python3 - <<'EOT' 2>/dev/null
+import json, os, subprocess
+try:
+    d = json.loads(subprocess.run(['kscreen-doctor', '-j'], capture_output=True, text=True, timeout=10).stdout)
+    s = [o for o in d.get('outputs', []) if o.get('enabled') and o.get('connected')]
+    s.sort(key=lambda o: o.get('priority', 99) or 99)
+    if len(s) > 1:
+        f = os.path.expanduser('~/.config/carinaeos/ecra-principal')
+        os.makedirs(os.path.dirname(f), exist_ok=True)
+        open(f, 'w').write(s[0]['name'] + '\n')
+except Exception:
+    pass
+EOT
+) &
+
 # etiquetas (as 7 cores) na barra lateral dos Arquivos, em todos os ambientes
 (carinaeos-etiquetas iniciar >/dev/null 2>&1 &)
 
@@ -77,6 +93,16 @@ for perfil, proc, fp in PERFIS:
             b['carinaeos_frame'] = True
             json.dump(d, open(f, 'w'))
 EOT
+
+# Ctrl+Alt+Del abre "Forçar o encerramento" (com Bloquear / Sair / Desligar), como no Windows; uma vez
+# (nas instalações novas já vem de /etc/xdg/kglobalshortcutsrc; isto é para quem já tinha o sistema)
+CADF="${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/ctrl-alt-del-feito"
+if [ ! -e "$CADF" ] && command -v carinaeos-encerrar >/dev/null 2>&1; then
+  kwriteconfig6 --file kglobalshortcutsrc --group ksmserver --key "Log Out" "none,Ctrl+Alt+Del,Mostrar a tela de sair" 2>/dev/null
+  kwriteconfig6 --file kglobalshortcutsrc --group services --group carinaeos-encerrar.desktop --key _launch "$(printf 'Ctrl+Alt+Del\tCtrl+Shift+Esc')" 2>/dev/null
+  systemctl --user restart plasma-kglobalaccel.service 2>/dev/null
+  mkdir -p "$(dirname "$CADF")"; touch "$CADF"
+fi
 
 # GTK com o mesmo visual (botoes do Mac a esquerda), uma vez
 GTKF="${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/gtk-feito"
@@ -149,6 +175,14 @@ case "$XDG_CURRENT_DESKTOP" in
     command -v numlockx >/dev/null && numlockx on
     ;;
   *KDE*)
+    # computador fraco: no primeiro login liga o modo leve (só uma vez; depois decide o usuário)
+    command -v carinaeos-modo-leve >/dev/null && (sleep 25; carinaeos-modo-leve auto) >/dev/null 2>&1 &
+    # sistema num disco mecânico: perfil do Chrome/Firefox na memória (profile-sync-daemon), uma vez
+    R=$(lsblk -no PKNAME "$(findmnt -no SOURCE /)" 2>/dev/null | head -1)
+    if [ -n "$R" ] && [ "$(cat /sys/block/$R/queue/rotational 2>/dev/null)" = 1 ] && command -v psd >/dev/null \
+       && ! systemctl --user -q is-enabled psd.service 2>/dev/null && [ ! -e "$HOME/.config/carinaeos/sem-psd" ]; then
+      systemctl --user enable psd.service >/dev/null 2>&1
+    fi
     # trocou de estilo (Mac / Windows 11) a partir de outro ambiente: aplicar agora
     P="${XDG_CONFIG_HOME:-$HOME/.config}/carinaeos/plasma-visual-pendente"
     if [ -s "$P" ]; then

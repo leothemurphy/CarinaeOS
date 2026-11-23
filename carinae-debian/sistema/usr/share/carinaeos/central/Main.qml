@@ -15,11 +15,26 @@ ApplicationWindow {
     readonly property color rosa: "#ff6f91"
     readonly property color texto: "#f6f2ff"
     readonly property color suave: "#b9b0cc"
+    // botão em pílula (página Celular)
+    component Pilula: Rectangle {
+        id: pil
+        property string texto: ""
+        property bool principal: false
+        signal carregado()
+        width: tPil.implicitWidth + 32; height: 36; radius: 18
+        color: principal ? janela.ambar : Qt.rgba(1, 1, 1, mPil.containsMouse ? 0.13 : 0.08)
+        opacity: central.ocupado ? 0.5 : 1
+        Text { id: tPil; anchors.centerIn: parent; text: pil.texto; color: pil.principal ? "#1a0f14" : janela.texto; font.weight: pil.principal ? Font.Bold : Font.Normal }
+        MouseArea { id: mPil; anchors.fill: parent; hoverEnabled: true; enabled: !central.ocupado; cursorShape: Qt.PointingHandCursor; onClicked: pil.carregado() }
+    }
     property string pagina: central.paginaInicial || "inicio"
     function carregar() {
         if (pagina === "calendarios") central.lerCalendarios()
         if (pagina === "drivers") central.lerHardware()
-        if (pagina === "ssh") central.lerSSH()
+        if (pagina === "ssh" || pagina === "firewall") central.lerSSH()
+        if (pagina === "jogos") central.lerJogos()
+        if (pagina === "celular") central.lerCelular()
+        if (pagina === "windows") central.lerWindows()
     }
     onPaginaChanged: carregar()
     Component.onCompleted: carregar()
@@ -82,6 +97,57 @@ ApplicationWindow {
             BusyIndicator { running: central.ocupado; visible: central.ocupado; width: 22; height: 22 }
             Text { id: avisoTxt; text: central.mensagem; color: janela.texto; font.pixelSize: 13; anchors.verticalCenter: parent.verticalCenter
                    width: Math.min(implicitWidth, 540); elide: Text.ElideRight }
+        }
+    }
+
+    // ---- Secure Boot: o código para o ecrã azul (MOK) do próximo arranque --------------------------
+    Rectangle {
+        visible: central.codigoMok !== ""
+        z: 20
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.55)
+        MouseArea { anchors.fill: parent }
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(parent.width - 60, 560)
+            height: colMok.implicitHeight + 48
+            radius: 20
+            color: "#211a33"
+            border.color: Qt.rgba(1, 0.7, 0.45, 0.4)
+            Column {
+                id: colMok
+                x: 28; y: 24; width: parent.width - 56
+                spacing: 12
+                Text { text: "Falta um passo para o Secure Boot"; color: janela.texto; font.pixelSize: 20; font.weight: Font.DemiBold }
+                Text {
+                    width: parent.width; wrapMode: Text.Wrap; color: janela.suave; font.pixelSize: 13
+                    text: "O controlador da placa de vídeo está assinado com uma chave deste computador. Para o firmware a aceitar, "
+                        + "reinicie e, na tela azul que aparece (tem só 10 segundos, pressione uma tecla):"
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.Wrap; color: janela.texto; font.pixelSize: 14; textFormat: Text.StyledText
+                    text: "1. <b>Enroll MOK</b> › <b>Continue</b> › <b>Yes</b><br>2. Escreva o código abaixo (não aparece nada enquanto escreve)<br>3. <b>Reboot</b>"
+                }
+                Rectangle {
+                    width: parent.width; height: 74; radius: 14
+                    color: Qt.rgba(1, 1, 1, 0.07)
+                    Text {
+                        anchors.centerIn: parent
+                        text: central.codigoMok.replace(/(\d{4})(\d{4})/, "$1 $2")
+                        color: "#ffb46e"; font.pixelSize: 38; font.weight: Font.Bold; font.letterSpacing: 4
+                    }
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.Wrap; color: janela.suave; font.pixelSize: 12
+                    text: "Tire uma foto do código. Se a tela azul passar sem registrar, o pedido fica válido: volte à Central › Drivers e peça de novo."
+                }
+                Row {
+                    anchors.right: parent.right
+                    spacing: 10
+                    Button { text: "Reiniciar agora"; onClicked: central.abrir("qdbus6 org.kde.LogoutPrompt /LogoutPrompt promptReboot") }
+                    Button { text: "Entendi"; highlighted: true; onClicked: central.esquecerMok() }
+                }
+            }
         }
     }
 
@@ -163,7 +229,7 @@ ApplicationWindow {
                         x: 18; y: 16; width: parent.width - 36; spacing: 10
                         Text { text: "Pelo endereço do calendário (Google, iCloud, Outlook, escola, feriados…)"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
                         Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 12
-                               text: "Google Calendar: Definições › o seu calendário › “Endereço secreto em formato iCal”. iCloud: na app Calendário, partilhe o calendário como “Calendário público” e copie o link webcal://. Outlook: Definições › Calendários partilhados › Publicar › ICS." }
+                               text: "Google Calendar: Configurações › o seu calendário › “Endereço secreto em formato iCal”. iCloud: na app Calendário, compartilhe o calendário como “Calendário público” e copie o link webcal://. Outlook: Configurações › Calendários compartilhados › Publicar › ICS." }
                         Row {
                             spacing: 10; width: parent.width
                             TextField { id: icalUrl; width: parent.width - icalNome.width - 140; placeholderText: "https://… ou webcal://…" }
@@ -202,7 +268,7 @@ ApplicationWindow {
                 width: conteudo.largura; spacing: 16
                 Text { text: "Janelas em zonas"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
                 Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave
-                       text: "Escolha um esquema. Depois, arraste uma janela com a tecla Shift carregada e solte-a numa zona: encaixa sozinha. Meta+← / → encostam a janela a meio ecrã; Meta+↑ maximiza (maximizar de verdade)." }
+                       text: "Escolha um esquema. Depois, arraste uma janela com a tecla Shift pressionada e solte-a numa zona: encaixa sozinha. Meta+← / → encostam a janela na metade da tela; Meta+↑ maximiza (maximizar de verdade)." }
                 Flow {
                     width: parent.width; spacing: 14
                     Repeater {
@@ -269,7 +335,7 @@ ApplicationWindow {
                 Text { text: "Cadeado"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
                 Repeater {
                     model: [
-                        { t: "Pastas e arquivos", d: "Nos Arquivos, botão direito › “Trancar com senha”. A pasta fica no mesmo sítio, com um cadeado, e só abre com a senha (duplo clique). Por dentro fica cifrada (AES-256): sem a senha ninguém lê nada. Funciona também em pastas de rede.", b: "" },
+                        { t: "Pastas e arquivos", d: "Nos Arquivos, botão direito › “Trancar com senha”. A pasta fica no mesmo lugar, com um cadeado, e só abre com a senha (duplo clique). Por dentro fica cifrada (AES-256): sem a senha ninguém lê nada. Funciona também em pastas de rede.", b: "" },
                         { t: "Aplicativos", d: "Escolha aplicativos que pedem uma senha para abrir (por exemplo, o WhatsApp ou o navegador).", b: "carinaeos-cadeado aplicativos" },
                         { t: "Cofres", d: "Pastas cifradas que abre e fecha pelo ícone de cadeado na barra de cima (Plasma Vault).", b: "kcmshell6 kcm_plasmavault 2>/dev/null || plasma-vault" }
                     ]
@@ -299,7 +365,7 @@ ApplicationWindow {
                 width: conteudo.largura; spacing: 16
                 Text { text: "Histórico do Ctrl+C"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
                 Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave
-                       text: "O CarinaeOS guarda o que copia (textos e imagens). Carregue em Meta+V em qualquer lado para ver a lista e escolher o que colar. Também está no ícone da prancheta na barra de cima, onde pode fixar itens ou limpar o histórico." }
+                       text: "O CarinaeOS guarda o que copia (textos e imagens). Pressione Meta+V em qualquer lado para ver a lista e escolher o que colar. Também está no ícone da prancheta na barra de cima, onde pode fixar itens ou limpar o histórico." }
                 Rectangle {
                     width: 240; height: 40; radius: 20
                     gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: janela.rosa } GradientStop { position: 1; color: janela.ambar } }
@@ -356,7 +422,7 @@ ApplicationWindow {
                     Column {
                         anchors.verticalCenter: parent.verticalCenter; spacing: 8
                         Text { text: "A sua foto"; color: janela.texto; font.pixelSize: 18; font.weight: Font.DemiBold }
-                        Text { text: "Aparece na tela de entrada, no ecrã de bloqueio e no menu."; color: janela.suave }
+                        Text { text: "Aparece na tela de entrada, na tela de bloqueio e no menu."; color: janela.suave }
                         Rectangle {
                             width: 170; height: 38; radius: 19; color: janela.ambar
                             Text { anchors.centerIn: parent; text: "Escolher foto…"; color: "#1a0f14"; font.weight: Font.Bold }
@@ -383,6 +449,339 @@ ApplicationWindow {
                 }
             }
 
+            // ===== vindo do Windows =====
+            Column {
+                visible: janela.pagina === "windows"
+                width: conteudo.largura; spacing: 16
+                Text { text: "Vindo do Windows"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                    text: "Três coisas para se sentir em casa: trazer os seus arquivos, achar os programas equivalentes e os atalhos que mudam."
+                }
+                // 1. arquivos
+                Rectangle {
+                    width: parent.width; height: colW1.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: colW1
+                        x: 18; y: 16; width: parent.width - 36; spacing: 10
+                        Text { text: "1. Trazer os seus arquivos"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: "Do disco do Windows (se ele está neste computador) ou de um disco externo com a cópia. Copia a Área de Trabalho, Documentos, Imagens, Músicas, Vídeos e Downloads para as pastas daqui. O Windows só é lido: nada lá é apagado nem mudado, e o que já existe aqui fica como está." }
+                        Pilula {
+                            visible: !((central.windows || {}).contas || []).length
+                            texto: (central.windows || {}).procurado ? "Procurar de novo" : "Procurar o Windows nos discos"
+                            principal: true
+                            onCarregado: central.procurarWindows()
+                        }
+                        Repeater {
+                            model: (central.windows || {}).contas || []
+                            delegate: Rectangle {
+                                id: contaW
+                                required property var modelData
+                                width: colW1.width; height: 58; radius: 14
+                                color: Qt.rgba(1, 1, 1, 0.05)
+                                Image { x: 12; anchors.verticalCenter: parent.verticalCenter; width: 30; height: 30; source: "image://icone/user-identity"; sourceSize: Qt.size(60, 60) }
+                                Column {
+                                    x: 54; anchors.verticalCenter: parent.verticalCenter
+                                    Text { text: contaW.modelData.nome; color: janela.texto; font.pixelSize: 15; font.weight: Font.DemiBold }
+                                    Text { text: contaW.modelData.disco; color: janela.suave; font.pixelSize: 12 }
+                                }
+                                Pilula {
+                                    anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
+                                    texto: "Trazer para aqui"; principal: true
+                                    onCarregado: central.trazerWindows(contaW.modelData.caminho)
+                                }
+                            }
+                        }
+                    }
+                }
+                // 2. programas
+                Rectangle {
+                    width: parent.width; height: colW2.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: colW2
+                        x: 18; y: 16; width: parent.width - 36; spacing: 6
+                        Text { text: "2. Os programas que você usava"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold; bottomPadding: 6 }
+                        Repeater {
+                            model: (central.windows || {}).programas || []
+                            delegate: Item {
+                                id: progW
+                                required property var modelData
+                                width: colW2.width; height: 46
+                                Text { width: parent.width * 0.3; anchors.verticalCenter: parent.verticalCenter; text: progW.modelData.windows; color: janela.suave; font.pixelSize: 13; elide: Text.ElideRight }
+                                Text { x: parent.width * 0.3; anchors.verticalCenter: parent.verticalCenter; text: "→"; color: janela.ambar }
+                                Column {
+                                    x: parent.width * 0.3 + 22; anchors.verticalCenter: parent.verticalCenter; width: parent.width * 0.7 - 170
+                                    Text { text: progW.modelData.nome; color: janela.texto; font.pixelSize: 14; font.weight: Font.DemiBold }
+                                    Text { width: parent.width; text: progW.modelData.desc; color: janela.suave; font.pixelSize: 11; elide: Text.ElideRight }
+                                }
+                                Text {
+                                    visible: progW.modelData.instalado
+                                    anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
+                                    text: "Instalado ✓"; color: janela.ambar; font.pixelSize: 13
+                                }
+                                Pilula {
+                                    visible: !progW.modelData.instalado && progW.modelData.flatpak !== ""
+                                    anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                                    texto: "Instalar"
+                                    onCarregado: central.instalarPrograma(progW.modelData.flatpak)
+                                }
+                            }
+                        }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 12; topPadding: 6
+                               text: "Outros programas: procure na Órbita. Um .exe que não tenha versão para Linux: dois cliques nele e o CarinaeOS oferece o Bottles." }
+                    }
+                }
+                // 3. atalhos
+                Rectangle {
+                    width: parent.width; height: colW3.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: colW3
+                        x: 18; y: 16; width: parent.width - 36; spacing: 8
+                        Text { text: "3. Os atalhos que mudam"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold; bottomPadding: 4 }
+                        Repeater {
+                            model: [
+                                ["Tecla Windows", "Abre o Launchpad (todos os aplicativos, como o menu Iniciar)"],
+                                ["Ctrl + Espaço", "Pesquisa: aplicativos, arquivos, contas e configurações"],
+                                ["Alt + Tab", "Trocar de janela, como no Windows"],
+                                ["Windows + W", "Ver todas as janelas e áreas de trabalho"],
+                                ["Windows + T", "Encaixar as janelas em zonas (como o Snap Layouts)"],
+                                ["Print", "Captura de tela"],
+                                ["Windows + V", "Histórico do Ctrl+C"],
+                                ["Windows + L", "Bloquear a tela"],
+                                ["Ctrl + Alt + Esc", "Fechar à força uma janela que travou (clique nela)"]
+                            ]
+                            delegate: Row {
+                                required property var modelData
+                                spacing: 14
+                                Rectangle {
+                                    width: 150; height: 28; radius: 8; color: Qt.rgba(1, 1, 1, 0.08); border.color: Qt.rgba(1, 1, 1, 0.14)
+                                    Text { anchors.centerIn: parent; text: modelData[0]; color: janela.texto; font.pixelSize: 12; font.weight: Font.DemiBold }
+                                }
+                                Text { anchors.verticalCenter: parent.verticalCenter; text: modelData[1]; color: janela.suave; font.pixelSize: 13 }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ===== celular (KDE Connect) =====
+            Column {
+                visible: janela.pagina === "celular"
+                width: conteudo.largura; spacing: 16
+                readonly property var c: central.celular || {}
+                Row {
+                    spacing: 12
+                    Text { text: "Celular"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
+                    Pilula { anchors.verticalCenter: parent.verticalCenter; texto: "Atualizar"; onCarregado: central.lerCelular() }
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                    text: "Com o app KDE Connect no celular (App Store ou Google Play), na mesma rede Wi-Fi, envie arquivos e texto, faça o celular tocar para encontrá-lo e, no Android, veja os arquivos dele."
+                }
+                // aparelhos
+                Repeater {
+                    model: (central.celular || {}).aparelhos || []
+                    delegate: Rectangle {
+                        id: cartaoCel
+                        required property var modelData
+                        width: parent ? parent.width : 0
+                        height: colCel.implicitHeight + 32; radius: 20
+                        color: Qt.rgba(1, 1, 1, 0.05); border.color: modelData.ligado ? Qt.rgba(1, 0.7, 0.43, 0.35) : Qt.rgba(1, 1, 1, 0.08)
+                        Column {
+                            id: colCel
+                            x: 18; y: 16; width: parent.width - 36; spacing: 12
+                            Row {
+                                spacing: 12
+                                Image { width: 34; height: 34; source: "image://icone/" + (cartaoCel.modelData.tipo === "tablet" ? "tablet" : "smartphone"); sourceSize: Qt.size(68, 68); opacity: cartaoCel.modelData.ligado ? 1 : 0.5 }
+                                Column {
+                                    Text { text: cartaoCel.modelData.nome; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                                    Text {
+                                        color: cartaoCel.modelData.ligado ? janela.ambar : janela.suave; font.pixelSize: 13
+                                        text: !cartaoCel.modelData.pareado ? "Não pareado"
+                                            : !cartaoCel.modelData.ligado ? "Fora de alcance (abra o KDE Connect no celular, na mesma rede)"
+                                            : "Ligado" + (cartaoCel.modelData.bateria >= 0 ? " · bateria " + cartaoCel.modelData.bateria + "%" : "")
+                                    }
+                                }
+                            }
+                            Flow {
+                                width: parent.width; spacing: 8
+                                visible: cartaoCel.modelData.ligado
+                                Pilula { texto: "Enviar arquivo…"; principal: true; onCarregado: central.celularAcao(cartaoCel.modelData.id, "arquivo") }
+                                Pilula { texto: "Enviar texto copiado"; onCarregado: central.celularAcao(cartaoCel.modelData.id, "texto") }
+                                Pilula { texto: "Tocar (encontrar)"; onCarregado: central.celularAcao(cartaoCel.modelData.id, "tocar") }
+                                Pilula { visible: cartaoCel.modelData.arquivos; texto: "Ver arquivos do celular"; onCarregado: central.celularAcao(cartaoCel.modelData.id, "ver") }
+                            }
+                            Pilula { visible: !cartaoCel.modelData.pareado; texto: "Parear…"; principal: true; onCarregado: central.celularAcao(cartaoCel.modelData.id, "parear") }
+                        }
+                    }
+                }
+                Rectangle {
+                    visible: (((central.celular || {}).aparelhos) || []).length === 0
+                    width: parent.width; height: colVazio.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: colVazio
+                        x: 18; y: 16; width: parent.width - 36; spacing: 10
+                        Text { text: "Nenhum celular encontrado"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: "1. Instale o KDE Connect no celular (App Store ou Google Play).\n2. Ligue o celular à mesma rede Wi-Fi deste computador e abra o app.\n3. Toque no nome deste computador e em Parear; aceite aqui o pedido que aparece." }
+                        Pilula { texto: "Abrir o KDE Connect"; onCarregado: central.abrir("kdeconnect-app") }
+                    }
+                }
+                // arquivos pelo app Arquivos do iPhone (Samba)
+                Rectangle {
+                    width: parent.width; height: colArq.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: colArq
+                        x: 18; y: 16; width: parent.width - 36; spacing: 10
+                        Text { text: "Arquivos entre o iPhone e este computador"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: (central.celular || {}).samba
+                                     ? "No iPhone, abra o app Arquivos › ··· (em cima) › Conectar ao servidor e escreva o endereço abaixo. Entre com o seu usuário (" + central.usuario + ") e a senha da rede. Vê e copia as pastas que compartilhou, nos dois sentidos, sem o KDE Connect aberto."
+                                     : "O app Arquivos do iPhone abre as pastas compartilhadas deste computador (também serve no Android, com um gerenciador de arquivos que abra SMB). Ligue primeiro o compartilhamento de pastas." }
+                        Text {
+                            visible: !!(central.celular || {}).samba && !!(central.celular || {}).ip
+                            text: "smb://" + ((central.celular || {}).ip || "")
+                            color: janela.ambar; font.pixelSize: 26; font.weight: Font.Bold; font.family: "monospace"
+                        }
+                        Pilula {
+                            texto: (central.celular || {}).samba ? "Escolher as pastas…" : "Ligar o compartilhamento de pastas"
+                            principal: !(central.celular || {}).samba
+                            onCarregado: central.abrir("carinaeos-configuracoes compartilhamento")
+                        }
+                    }
+                }
+                // limites do iPhone, ditos com franqueza
+                Rectangle {
+                    width: parent.width; height: colLim.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.03); border.color: Qt.rgba(1, 1, 1, 0.06)
+                    Column {
+                        id: colLim
+                        x: 18; y: 16; width: parent.width - 36; spacing: 8
+                        Text { text: "O que o iPhone não deixa fazer"; color: janela.texto; font.pixelSize: 15; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: "A Apple não deixa nenhum app (o KDE Connect incluído) mostrar no computador as notificações, SMS e chamadas do iPhone, sincronizar a área de transferência sozinho, abrir os arquivos do iPhone a partir daqui, nem funcionar com o app fechado. Não é uma falha do CarinaeOS: no Android, tudo isto funciona.\nPara contornar: arquivos pelo app Arquivos (acima), texto copiado pelo botão do aparelho, e a música do computador pelo Home Assistant ou por um app de MPD." }
+                    }
+                }
+            }
+
+            // ===== jogos =====
+            Column {
+                visible: janela.pagina === "jogos"
+                width: conteudo.largura; spacing: 16
+                Text { text: "Jogos"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
+                Rectangle {
+                    width: parent.width; height: jCol1.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: jCol1
+                        x: 18; y: 16; width: parent.width - 36; spacing: 10
+                        Text { text: (central.jogos || {}).steam ? "Pronto para jogar" : "Preparar este computador para jogos"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: (central.jogos || {}).steam
+                                     ? "O Steam está instalado, com o Proton para os jogos do Windows. No Steam, em Configurações › Compatibilidade, ative o Steam Play para todos os títulos."
+                                     : "O CarinaeOS não traz nada de jogos: só instala se pedir. Um clique instala o Steam (com o Proton para os jogos do Windows), o GameMode e o MangoHud. O Steam fica isolado (Flatpak) e sai por inteiro se o remover." }
+                        Row {
+                            visible: !(central.jogos || {}).steam
+                            spacing: 18
+                            CheckBox { id: jHeroic; text: "Heroic (Epic e GOG)"; palette.windowText: janela.texto }
+                            CheckBox { id: jProton; text: "ProtonUp-Qt (Proton GE)"; palette.windowText: janela.texto }
+                        }
+                        Row {
+                            spacing: 10
+                            Rectangle {
+                                width: 230; height: 40; radius: 20; color: janela.ambar
+                                opacity: central.ocupado ? 0.5 : 1
+                                Text { anchors.centerIn: parent; color: "#1a0f14"; font.weight: Font.Bold
+                                       text: (central.jogos || {}).steam ? "Abrir o Steam" : "Preparar para jogos" }
+                                MouseArea { anchors.fill: parent; enabled: !central.ocupado; cursorShape: Qt.PointingHandCursor
+                                            onClicked: (central.jogos || {}).steam ? central.abrir("flatpak run com.valvesoftware.Steam")
+                                                                                  : central.prepararJogos(jHeroic.checked, jProton.checked) }
+                            }
+                            Rectangle {
+                                visible: !!(central.jogos || {}).steam
+                                width: 190; height: 40; radius: 20; color: Qt.rgba(1, 1, 1, 0.08)
+                                Text { anchors.centerIn: parent; text: "Remover tudo"; color: janela.texto }
+                                MouseArea { anchors.fill: parent; enabled: !central.ocupado; cursorShape: Qt.PointingHandCursor; onClicked: central.removerJogos() }
+                            }
+                        }
+                    }
+                }
+                Rectangle {
+                    visible: !!(central.jogos || {}).steam
+                    width: parent.width; height: jCol2.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: jCol2
+                        x: 18; y: 16; width: parent.width - 36; spacing: 14
+                        Repeater {
+                            model: [
+                                { chave: "mangohud", titulo: "Mostrar FPS e temperaturas nos jogos", sub: "MangoHud (Shift direito + F12 esconde e mostra)", ver: true },
+                                { chave: "desempenho", titulo: "Processador no máximo com o Steam aberto", sub: "GameMode: mais desempenho, mais consumo (desligue num notebook na bateria)", ver: true },
+                                { chave: "wined3d", titulo: "Modo para placas antigas", sub: "A sua placa não tem Vulkan 1.3: os jogos do Windows usam OpenGL (WineD3D)", ver: !!(central.jogos || {}).kepler }
+                            ]
+                            delegate: Item {
+                                required property var modelData
+                                visible: modelData.ver
+                                width: jCol2.width; height: visible ? 44 : 0
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter; width: parent.width - 80
+                                    Text { text: modelData.titulo; color: janela.texto; font.pixelSize: 15 }
+                                    Text { text: modelData.sub; color: janela.suave; font.pixelSize: 12; width: parent.width; elide: Text.ElideRight }
+                                }
+                                Switch {
+                                    anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                                    enabled: !central.ocupado
+                                    checked: !!(central.jogos || {})[modelData.chave]
+                                    onToggled: central.definirJogos(modelData.chave, checked)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ===== firewall =====
+            Column {
+                visible: janela.pagina === "firewall"
+                width: conteudo.largura; spacing: 16
+                Text { text: "Firewall"; color: janela.texto; font.pixelSize: 30; font.weight: Font.Bold }
+                Rectangle {
+                    width: parent.width; height: fCol1.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: fCol1
+                        x: 18; y: 16; width: parent.width - 160; spacing: 6
+                        Text { text: central.firewall === 1 ? "Firewall ligado" : "Firewall desligado"; color: central.firewall === 1 ? janela.texto : janela.rosa; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
+                               text: central.firewall < 0 ? "O firewall (ufw) não está instalado."
+                                   : central.firewall === 1 ? "Ninguém de fora consegue se conectar a este computador. Navegar, jogos, atualizações e tudo o que sai daqui funciona normalmente. Quando liga o compartilhamento de pastas, o SSH ou a música na rede, o CarinaeOS abre só o necessário, e só para a rede de casa (nunca para a internet)."
+                                   : "Recomendamos deixá-lo ligado: sem firewall, qualquer serviço que fique à escuta pode ser alcançado por outros na mesma rede (num café, hotel ou aeroporto, por exemplo)." }
+                    }
+                    Switch {
+                        anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter
+                        enabled: !central.ocupado && central.firewall >= 0
+                        checked: central.firewall === 1
+                        onToggled: central.definirFirewall(checked)
+                    }
+                }
+                Rectangle {
+                    visible: central.firewall === 1
+                    width: parent.width; height: fCol2.implicitHeight + 32; radius: 20; color: Qt.rgba(1, 1, 1, 0.05); border.color: Qt.rgba(1, 1, 1, 0.08)
+                    Column {
+                        id: fCol2
+                        x: 18; y: 16; width: parent.width - 36; spacing: 8
+                        Text { text: "Abertos só para a rede de casa"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
+                        Repeater {
+                            model: central.firewallAbertos
+                            delegate: Text { required property string modelData; text: "•  " + modelData; color: janela.suave; font.pixelSize: 14 }
+                        }
+                        Text { visible: central.firewallAbertos.length === 0; text: "Nada: tudo fechado."; color: janela.suave; font.pixelSize: 14 }
+                        Rectangle {
+                            width: 230; height: 38; radius: 19; color: Qt.rgba(1, 1, 1, 0.08)
+                            Text { anchors.centerIn: parent; text: "Regras avançadas…"; color: janela.texto }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: central.abrir("systemsettings kcm_firewall") }
+                        }
+                    }
+                }
+            }
+
             // ===== acesso remoto (SSH) =====
             Column {
                 visible: janela.pagina === "ssh"
@@ -395,7 +794,7 @@ ApplicationWindow {
                         x: 18; y: 16; width: parent.width - 160; spacing: 6
                         Text { text: "Permitir entrar neste computador por SSH"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
                         Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
-                               text: central.ssh < 0 ? "O servidor SSH ainda não está instalado: ao ligar, é instalado (precisa de internet) e fica a funcionar já e em cada arranque."
+                               text: central.ssh < 0 ? "O servidor SSH ainda não está instalado: ao ligar, é instalado (precisa de internet) e fica funcionando já e em cada inicialização."
                                                      : "Outro computador da rede pode abrir um terminal aqui, ou copiar arquivos (SFTP), com o seu usuário e a sua senha. Desligue quando não precisar." }
                     }
                     Switch {
@@ -439,7 +838,7 @@ ApplicationWindow {
                         x: 18; y: 16; width: parent.width - 160; spacing: 6
                         Text { text: "Sessão sem rastro"; color: janela.texto; font.pixelSize: 17; font.weight: Font.DemiBold }
                         Text { width: parent.width; wrapMode: Text.WordWrap; color: janela.suave; font.pixelSize: 13
-                               text: "Na tela de entrada aparece “Convidado (sem rastro)”, sem senha. Tudo o que se fizer nessa sessão (arquivos, histórico, senhas guardadas, downloads) vive só na memória e desaparece ao sair. Ideal para emprestar o computador ou para usar num sítio público." }
+                               text: "Na tela de entrada aparece “Convidado (sem rastro)”, sem senha. Tudo o que se fizer nessa sessão (arquivos, histórico, senhas guardadas, downloads) vive só na memória e desaparece ao sair. Ideal para emprestar o computador ou para usar num lugar público." }
                     }
                     Switch {
                         anchors.right: parent.right; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter

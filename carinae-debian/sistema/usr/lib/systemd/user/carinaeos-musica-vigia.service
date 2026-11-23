@@ -1,5 +1,6 @@
 [Unit]
 Description=CarinaeOS - vigia da música (listas de pastas e Home Assistant)
+PartOf=mpd.service
 After=mpd.service
 Wants=mpd.service
 
@@ -8,5 +9,4 @@ ExecStart=/usr/lib/carinaeos/musica-vigia
 Restart=always
 RestartSec=5
 
-[Install]
-WantedBy=default.target
+# (sem [Install]: é o aplicativo Música que o liga, junto com o mpd, quando abre)

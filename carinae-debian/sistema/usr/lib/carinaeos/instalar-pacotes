@@ -1,0 +1,17 @@
+#!/bin/sh
+# CarinaeOS - instala pacotes do Debian pedidos pela Central (drivers e firmware). Corre como root (pkexec).
+#   instalar-pacotes PACOTE...
+# Só aceita nomes de pacotes válidos que existam nos repositórios configurados (nada de comandos).
+set -e
+[ $# -gt 0 ] || { echo "uso: $0 PACOTE..." >&2; exit 2; }
+for p in "$@"; do
+  case "$p" in
+    -*|*[!a-z0-9+.:-]*|"") echo "nome de pacote inválido: $p" >&2; exit 2 ;;
+  esac
+done
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -q || true
+for p in "$@"; do
+  apt-cache show -- "$p" >/dev/null 2>&1 || { echo "pacote não encontrado: $p" >&2; exit 3; }
+done
+apt-get install -y -q -- "$@"

@@ -1,0 +1,14 @@
+{
+  "KPackageStructure": "Wallpaper/Images",
+  "KPlugin": {
+    "Id": "CarinaeOS-Musgo",
+    "Name": "Ameixa",
+    "Description": "Low-poly ameixa profunda.",
+    "License": "CC-BY-SA-4.0",
+    "Authors": [
+      {
+        "Name": "CarinaeOS"
+      }
+    ]
+  }
+}

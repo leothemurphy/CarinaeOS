@@ -284,7 +284,7 @@ ApplicationWindow {
 
             readonly property var titulos: ({
                 perfis: ["Perfis", "Mude o visual inteiro com um clique."],
-                dock: ["Dock", "Estilo, tamanho, lupa e o que faz o rato na Dock."],
+                dock: ["Dock", "Estilo, tamanho, lupa e o que faz o mouse na Dock."],
                 janelas: ["Janelas", "Animações, Alt+Tab, botões, sombras e transparência."],
                 mesa: ["Área de trabalho", "Papel de parede, cantos, cursor, luz noturna e velocidade."],
                 ambiente: ["Ambiente de trabalho", "Use o CarinaeOS com KDE Plasma, GNOME ou XFCE."]
@@ -305,7 +305,7 @@ ApplicationWindow {
                     id: avisoTxt
                     x: 16; y: 14; width: parent.width - 32; wrapMode: Text.WordWrap
                     color: janela.texto; font.pixelSize: 13
-                    text: "Está a usar o " + supernova.nomeAmbiente + ". As opções esbatidas só existem no KDE Plasma; as outras funcionam aqui."
+                    text: "Está usando o " + supernova.nomeAmbiente + ". As opções esmaecidas só existem no KDE Plasma; as outras funcionam aqui."
                 }
             }
 

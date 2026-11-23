@@ -1,0 +1,14 @@
+#!/bin/sh
+# CarinaeOS — desinstalar um programa do Debian (chamado pelas Configurações › Aplicativos, pelo pkexec).
+# Só aceita um nome de pacote válido e nunca remove peças essenciais do sistema.
+set -e
+p="$1"
+case "$p" in
+    ''|*[!a-z0-9+.-]*) echo "nome de pacote inválido" >&2; exit 2 ;;
+esac
+if dpkg-query -W -f='${Essential} ${Priority}\n' "$p" 2>/dev/null | grep -qE '^yes|required'; then
+    echo "$p é essencial ao sistema" >&2; exit 3
+fi
+export DEBIAN_FRONTEND=noninteractive
+apt-get -o DPkg::Lock::Timeout=300 remove -y "$p"
+apt-get -o DPkg::Lock::Timeout=300 autoremove -y >/dev/null 2>&1 || true

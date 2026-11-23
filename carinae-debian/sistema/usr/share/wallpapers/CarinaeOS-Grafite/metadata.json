@@ -1,0 +1,14 @@
+{
+  "KPackageStructure": "Wallpaper/Images",
+  "KPlugin": {
+    "Id": "CarinaeOS-Grafite",
+    "Name": "Faceta",
+    "Description": "Low-poly com facetas frias.",
+    "License": "CC-BY-SA-4.0",
+    "Authors": [
+      {
+        "Name": "CarinaeOS"
+      }
+    ]
+  }
+}

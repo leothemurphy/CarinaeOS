@@ -189,3 +189,37 @@ kdeconnect
 usbmuxd
 libimobiledevice-utils
 ifuse
+
+# o que o sistema de referência (o HD do Leo) tem e os nossos apps usam
+# Atualizações (pontos de restauro), firewall, afinação de disco mecânico, memória comprimida
+ufw
+timeshift
+unattended-upgrades
+profile-sync-daemon
+systemd-zram-generator
+lm-sensors
+# compactar e ver imagens modernas
+zip
+unar
+gocryptfs
+webp-pixbuf-loader
+heif-gdk-pixbuf
+heif-thumbnailer
+kimageformat6-plugins
+gstreamer1.0-plugins-ugly
+gstreamer1.0-pipewire
+# impressoras, leitor de impressões digitais, sensores (portáteis)
+cups-pk-helper
+system-config-printer-udev
+fprintd
+iio-sensor-proxy
+# agenda e contas (Calendários), partilha de pastas
+kdepim-addons
+kdenetwork-filesharing
+# ferramentas
+python3-numpy
+dconf-cli
+inxi
+tree
+bind9-dnsutils
+xdg-user-dirs-gtk

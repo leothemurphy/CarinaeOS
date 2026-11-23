@@ -409,6 +409,9 @@ update-alternatives --set x-terminal-emulator /usr/local/bin/carinae-terminal ||
 # pré-aquecer a sessão enquanto a tela de entrada espera; partilhas de rede depois de entrar
 systemctl enable carinae-preaquecer.service 2>/dev/null || true
 systemctl enable carinae-adiar.timer 2>/dev/null || true
+# como no sistema de referência: firewall ligado no 1.º arranque, afinação de disco mecânico, apps pré-aquecidos
+systemctl enable ufw.service carinaeos-firewall.service carinaeos-disco.service 2>/dev/null || true
+systemctl --global enable carinaeos-aquecer.timer carinaeos-atualizacoes.timer 2>/dev/null || true
 # cada coisa abre no app Carinae certo
 python3 - <<'EOT'
 import configparser

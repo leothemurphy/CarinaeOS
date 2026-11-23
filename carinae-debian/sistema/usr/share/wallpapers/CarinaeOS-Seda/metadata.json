@@ -1,0 +1,14 @@
+{
+  "KPackageStructure": "Wallpaper/Images",
+  "KPlugin": {
+    "Id": "CarinaeOS-Seda",
+    "Name": "Seda",
+    "Description": "Seda: ondulada, escura.",
+    "License": "CC-BY-SA-4.0",
+    "Authors": [
+      {
+        "Name": "CarinaeOS"
+      }
+    ]
+  }
+}

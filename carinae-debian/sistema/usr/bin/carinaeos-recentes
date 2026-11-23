@@ -1,0 +1,290 @@
+#!/usr/bin/python3
+"""CarinaeOS - o que foi aberto recentemente com um aplicativo (Launchpad, painel do aplicativo).
+
+  carinaeos-recentes CHAVE              JSON: [{"t": título, "u": arquivo ou endereço, "i": ícone, "q": "há 2 h"}]
+  carinaeos-recentes abrir CHAVE ALVO   abre ALVO com esse aplicativo
+
+De onde vem (tudo local, nada sai do computador):
+  - documentos: o histórico do KDE (kactivitymanagerd) e o recently-used.xbel (LibreOffice, GTK…)
+  - navegadores: o histórico do próprio navegador (Firefox, Chrome, Chromium, Brave, Edge, Vivaldi)
+  - ChatGPT, Claude, Gemini e outros sites-aplicativo: as últimas conversas no histórico dos navegadores
+Desligar: Configurações › Privacidade › "Mostrar recentes no Launchpad" (~/.config/carinaeos/sem-recentes).
+"""
+import configparser
+import glob
+import json
+import mimetypes
+import os
+import re
+import shlex
+import sqlite3
+import subprocess
+import sys
+import time
+import urllib.parse
+import xml.etree.ElementTree as ET
+
+HOME = os.path.expanduser('~')
+DESLIGADO = os.path.join(HOME, '.config/carinaeos/sem-recentes')
+MAX = 6
+PASTAS = [os.path.join(HOME, '.local/share/applications'),
+          os.path.join(HOME, '.local/share/flatpak/exports/share/applications'),
+          '/var/lib/flatpak/exports/share/applications', '/usr/local/share/applications',
+          '/usr/share/applications']
+
+# navegadores: (perfis Firefox ou ficheiros History do Chromium)
+FF = [HOME + '/.mozilla/firefox/*/places.sqlite',
+      HOME + '/.var/app/org.mozilla.firefox/.mozilla/firefox/*/places.sqlite']
+CR = {
+    'chrome': [HOME + '/.config/google-chrome/*/History', HOME + '/.var/app/com.google.Chrome/config/google-chrome/*/History'],
+    'chromium': [HOME + '/.config/chromium/*/History', HOME + '/.var/app/org.chromium.Chromium/config/chromium/*/History'],
+    'brave': [HOME + '/.config/BraveSoftware/Brave-Browser/*/History',
+              HOME + '/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/*/History'],
+    'edge': [HOME + '/.config/microsoft-edge/*/History', HOME + '/.var/app/com.microsoft.Edge/config/microsoft-edge/*/History'],
+    'vivaldi': [HOME + '/.config/vivaldi/*/History'],
+}
+NAVEGADORES = {   # chave (sem .desktop, minúsculas) -> histórico
+    'firefox': 'ff', 'firefox-esr': 'ff', 'org.mozilla.firefox': 'ff',
+    'google-chrome': 'chrome', 'com.google.chrome': 'chrome', 'chromium': 'chromium', 'org.chromium.chromium': 'chromium',
+    'brave-browser': 'brave', 'com.brave.browser': 'brave', 'microsoft-edge': 'edge', 'com.microsoft.edge': 'edge',
+    'vivaldi-stable': 'vivaldi',
+}
+# sites-aplicativo: domínio e caminho das conversas
+SITES = {
+    'chatgpt': ('chatgpt.com', r'^/c/'), 'claude': ('claude.ai', r'^/chat/'), 'gemini': ('gemini.google.com', r'^/app/.'),
+    'perplexity': ('www.perplexity.ai', r'^/search/'), 'deepseek': ('chat.deepseek.com', r'^/a/chat/'),
+    'copilot': ('copilot.microsoft.com', r'^/chats/'), 'notion': ('www.notion.so', r'^/.'),
+    'whatsapp': None, 'youtube': ('www.youtube.com', r'^/watch'), 'figma': ('www.figma.com', r'^/(file|design)/'),
+}
+
+
+def desligado():
+    return os.path.exists(DESLIGADO)
+
+
+def desktop(chave):
+    for p in PASTAS:
+        f = os.path.join(p, chave)
+        if os.path.exists(f):
+            c = configparser.RawConfigParser(strict=False, interpolation=None)
+            c.optionxform = str
+            try:
+                c.read(f, encoding='utf-8')
+                return f, dict(c['Desktop Entry'])
+            except (configparser.Error, UnicodeDecodeError, KeyError):
+                return f, {}
+    return None, {}
+
+
+def quando(t):
+    d = max(0, time.time() - t)
+    if d < 90:
+        return 'agora'
+    if d < 3600:
+        return 'há %d min' % (d // 60)
+    if d < 86400:
+        return 'há %d h' % (d // 3600)
+    if d < 172800:
+        return 'ontem'
+    if d < 86400 * 30:
+        return 'há %d dias' % (d // 86400)
+    return time.strftime('%d/%m', time.localtime(t))
+
+
+def sqlite_ler(caminho, sql, args=()):
+    # imutável: lê mesmo com o navegador aberto (base de dados bloqueada), sem copiar nada
+    try:
+        con = sqlite3.connect('file:%s?immutable=1' % urllib.parse.quote(caminho), uri=True, timeout=1)
+        try:
+            return con.execute(sql, args).fetchall()
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return []
+
+
+def hist_firefox(filtro_dominio=None, limite=40):
+    r = []
+    for f in sum((glob.glob(g) for g in FF), []):
+        sql = ('SELECT p.title, p.url, MAX(v.visit_date) / 1000000 FROM moz_historyvisits v JOIN moz_places p ON p.id = v.place_id '
+               'WHERE p.hidden = 0 AND p.url LIKE ? GROUP BY p.id ORDER BY 3 DESC LIMIT ?')
+        r += sqlite_ler(f, sql, ('%' + (filtro_dominio or '') + '%' if filtro_dominio else 'http%', limite))
+    return r
+
+
+def hist_chromium(qual=None, filtro_dominio=None, limite=40):
+    r = []
+    globs = sum(CR.values(), []) if qual is None else CR.get(qual, [])
+    for f in sum((glob.glob(g) for g in globs), []):
+        # o tempo do Chromium conta em microssegundos desde 1601
+        sql = ('SELECT title, url, last_visit_time / 1000000 - 11644473600 FROM urls WHERE hidden = 0 AND url LIKE ? '
+               'ORDER BY last_visit_time DESC LIMIT ?')
+        r += sqlite_ler(f, sql, ('%' + (filtro_dominio or '') + '%' if filtro_dominio else 'http%', limite))
+    return r
+
+
+def de_navegador(tipo):
+    linhas = hist_firefox() if tipo == 'ff' else hist_chromium(tipo)
+    vistos, r = set(), []
+    for titulo, url, t in sorted(linhas, key=lambda x: -(x[2] or 0)):
+        dom = urllib.parse.urlparse(url).netloc
+        if not dom or dom in vistos or url.startswith(('about:', 'chrome:')):
+            continue
+        vistos.add(dom)        # um por site: mostra os sites, não as páginas do mesmo site
+        r.append(dict(t=(titulo or dom).strip()[:80], u=url, i='internet-web-browser', q=quando(t or 0), s=dom.replace('www.', '')))
+        if len(r) >= MAX:
+            break
+    return r
+
+
+def de_site(dominio, padrao):
+    linhas = hist_firefox(dominio) + hist_chromium(None, dominio)
+    vistos, r = set(), []
+    for titulo, url, t in sorted(linhas, key=lambda x: -(x[2] or 0)):
+        u = urllib.parse.urlparse(url)
+        if u.netloc != dominio or not re.search(padrao, u.path) or u.path in vistos:
+            continue
+        vistos.add(u.path)
+        t_limpo = re.sub(r'\s*[-|–]\s*(ChatGPT|Claude|Gemini|Perplexity|DeepSeek|YouTube|Figma|Notion)\s*$', '', titulo or '').strip()
+        if not t_limpo or t_limpo.lower() in ('chatgpt', 'claude', 'gemini', 'new chat', 'nova conversa'):
+            continue
+        r.append(dict(t=t_limpo[:80], u=url, i='dialog-messages', q=quando(t or 0)))
+        if len(r) >= MAX:
+            break
+    return r
+
+
+def de_kde(id_app):
+    """Histórico do KDE: documentos abertos por esse aplicativo (Kate, Okular, Gwenview, Dolphin…)."""
+    db = os.path.join(HOME, '.local/share/kactivitymanagerd/resources/database')
+    sql = ('SELECT e.targettedResource, MAX(e.start), i.title, i.mimetype FROM ResourceEvent e '
+           'LEFT JOIN ResourceInfo i ON i.targettedResource = e.targettedResource '
+           'WHERE e.initiatingAgent = ? GROUP BY e.targettedResource ORDER BY 2 DESC LIMIT 30')
+    r = []
+    for alvo, t, titulo, mime in sqlite_ler(db, sql, (id_app,)):
+        r.append((alvo, t or 0, titulo, mime))
+    return r
+
+
+def de_xbel(nomes, binario):
+    """recently-used.xbel (LibreOffice, apps GTK…): documentos com o nome ou o executável do aplicativo."""
+    f = os.path.join(HOME, '.local/share/recently-used.xbel')
+    r = []
+    try:
+        raiz = ET.parse(f).getroot()
+    except (OSError, ET.ParseError):
+        return r
+    ns = {'bookmark': 'http://www.freedesktop.org/standards/desktop-bookmarks'}
+    for b in raiz.findall('bookmark'):
+        apps = b.findall('.//bookmark:application', ns)
+        bate = False
+        for a in apps:
+            n = (a.get('name') or '').lower()
+            ex = (a.get('exec') or '').strip("'\"").split(' ')[0]
+            if n in nomes or (binario and os.path.basename(ex) == binario):
+                bate = True
+                break
+        if not bate:
+            continue
+        t = b.get('modified') or b.get('visited') or ''
+        try:
+            ts = time.mktime(time.strptime(t[:19], '%Y-%m-%dT%H:%M:%S')) - time.timezone
+        except ValueError:
+            ts = 0
+        m = b.find('.//{http://www.freedesktop.org/standards/shared-mime-info}mime-type')
+        r.append((b.get('href') or '', ts, None, m.get('type') if m is not None else None))
+    return r
+
+
+def icone_mime(caminho, mime):
+    if mime:
+        return mime.replace('/', '-')
+    e = caminho.rsplit('.', 1)[-1].lower() if '.' in caminho else ''
+    return {'pdf': 'application-pdf', 'odt': 'x-office-document', 'docx': 'x-office-document', 'doc': 'x-office-document',
+            'ods': 'x-office-spreadsheet', 'xlsx': 'x-office-spreadsheet', 'xls': 'x-office-spreadsheet', 'csv': 'text-csv',
+            'odp': 'x-office-presentation', 'pptx': 'x-office-presentation', 'png': 'image-png', 'jpg': 'image-jpeg',
+            'jpeg': 'image-jpeg', 'svg': 'image-svg+xml', 'stl': 'model', '3mf': 'model', 'blend': 'application-x-blender',
+            'txt': 'text-plain', 'md': 'text-markdown', 'py': 'text-x-python', 'mp3': 'audio-x-generic',
+            'mp4': 'video-x-generic', 'mkv': 'video-x-generic'}.get(e, 'text-x-generic')
+
+
+def de_documentos(chave, d):
+    id_app = chave[:-8] if chave.endswith('.desktop') else chave
+    nome = (d.get('Name') or '').lower()
+    try:
+        binario = os.path.basename(shlex.split(d.get('Exec', ''))[0])
+    except (ValueError, IndexError):
+        binario = ''
+    nomes = {nome, id_app.lower(), binario.lower()}
+    if binario.startswith('libreoffice') or binario == 'soffice' or id_app.startswith('libreoffice'):
+        nomes |= {'libreoffice', 'soffice'}
+    itens = de_kde(id_app) + de_kde(chave) + de_xbel(nomes, binario)
+    # só os tipos que o aplicativo abre (o Calc mostra planilhas, não todos os documentos do LibreOffice)
+    tipos = {m for m in (d.get('MimeType') or '').split(';') if m}
+    vistos, r = set(), []
+    for alvo, t, titulo, mime in sorted(itens, key=lambda x: -x[1]):
+        caminho = urllib.parse.unquote(alvo[7:]) if alvo.startswith('file://') else alvo
+        if not caminho or caminho in vistos or caminho.startswith(('applications:', 'activities:')):
+            continue
+        if tipos and not mime:
+            mime = mimetypes.guess_type(caminho)[0]
+        if tipos and mime and mime not in tipos and not os.path.isdir(caminho):
+            continue
+        if caminho.startswith('/') and not os.path.exists(caminho):
+            continue                       # já foi apagado ou movido
+        vistos.add(caminho)
+        r.append(dict(t=titulo or os.path.basename(caminho.rstrip('/')) or caminho, u=caminho,
+                      i=icone_mime(caminho, mime), q=quando(t)))
+        if len(r) >= MAX:
+            break
+    return r
+
+
+def site_do_app(chave, d):
+    base = (chave[:-8] if chave.endswith('.desktop') else chave).lower()
+    nome = (d.get('Name') or '').lower().strip()
+    for k, v in SITES.items():
+        if v and (k == nome or k in base.split('.') or base.startswith(k) or nome.startswith(k + ' ')):
+            return v
+    m = re.search(r'--app=(https?://[^\s"\']+)', d.get('Exec', ''))
+    if m:
+        return (urllib.parse.urlparse(m.group(1)).netloc, r'^/.')
+    return None
+
+
+def recentes(chave):
+    if desligado():
+        return []
+    f, d = desktop(chave)
+    base = (chave[:-8] if chave.endswith('.desktop') else chave).lower()
+    if base in NAVEGADORES:
+        return de_navegador(NAVEGADORES[base])
+    s = site_do_app(chave, d)
+    if s:
+        return de_site(*s)
+    return de_documentos(chave, d)
+
+
+def abrir(chave, alvo):
+    f, d = desktop(chave)
+    eh_url = re.match(r'^[a-z]+://', alvo) and not alvo.startswith('file://')
+    if f and (not eh_url or (chave[:-8] if chave.endswith('.desktop') else chave).lower() in NAVEGADORES):
+        # com o próprio aplicativo
+        if subprocess.run(['gio', 'launch', f, alvo], capture_output=True).returncode == 0:
+            return 0
+    subprocess.Popen(['xdg-open', alvo], start_new_session=True)
+    return 0
+
+
+if __name__ == '__main__':
+    a = sys.argv[1:]
+    if len(a) == 3 and a[0] == 'abrir':
+        sys.exit(abrir(a[1], a[2]))
+    if len(a) == 1:
+        try:
+            sys.stdout.write(json.dumps(recentes(a[0]), ensure_ascii=True))
+        except Exception:
+            sys.stdout.write('[]')
+        sys.exit(0)
+    print(__doc__)
+    sys.exit(2)

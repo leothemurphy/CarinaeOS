@@ -1,0 +1,8 @@
+[Unit]
+Description=Ver se há atualizações (CarinaeOS)
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/carinaeos-atualizacoes verificar
+TimeoutStartSec=2h
