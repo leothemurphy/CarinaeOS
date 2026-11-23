@@ -3,11 +3,7 @@ Options -Indexes
 DirectoryIndex index.html
 ErrorDocument 404 /404.html
 
-RewriteEngine On
-# sempre HTTPS e sem www
-RewriteCond %{HTTPS} off [OR]
-RewriteCond %{HTTP_HOST} ^www\. [NC]
-RewriteRule ^ https://carinae-os.pt%{REQUEST_URI} [L,R=301]
+# (o redirecionamento para HTTPS liga-se depois de o certificado do domínio estar emitido)
 
 <IfModule mod_mime.c>
   AddType image/webp .webp
