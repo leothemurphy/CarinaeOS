@@ -1,0 +1,6 @@
+---
+# Publicação do site carinae-os.pt no alojamento (cPanel → Git Version Control → Deploy)
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/carinaeo/public_html/
+    - /bin/cp -R site/. $DEPLOYPATH
