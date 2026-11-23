@@ -1,0 +1,18 @@
+#!/bin/sh
+# CarinaeOS - os módulos de configuração do KDE abrem a página certa da Carinae Configurações
+k=""; for x in "$@"; do case "$x" in -*) ;; *) k=$x ;; esac; done
+case "$k" in
+  *networkmanagement*|*wifi*) p=wifi ;;
+  *bluetooth*) p=bluetooth ;;
+  *pulseaudio*|*sound*) p=som ;;
+  *kscreen*|*display*) command -v carinae-telas >/dev/null && exec carinae-telas; p=ecras ;;
+  *powerdevil*|*energy*) p=energia ;;
+  *kaccounts*) command -v carinaeos-contas >/dev/null && exec carinaeos-contas; p=contas ;;
+  *plasmavault*) command -v carinaeos-cadeado >/dev/null && exec carinaeos-cadeado; p="" ;;
+  *printer*) p=impressoras ;;
+  *keyboard*|*keys*|*shortcuts*) p=teclado ;;
+  *notifications*) p=notificacoes ;;
+  *users*|*user_manager*) p=utilizadores ;;
+  *) p="" ;;
+esac
+exec carinaeos-configuracoes $p

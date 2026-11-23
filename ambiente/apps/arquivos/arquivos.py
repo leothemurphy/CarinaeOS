@@ -1230,10 +1230,21 @@ class Arquivos(QObject):
             partes = [x for x in sem_esquema.split('/') if x]
             host = partes[0]
             share = partes[1] if len(partes) > 1 else ''
-            base = os.path.join(os.environ.get('XDG_RUNTIME_DIR', '/run/user/1000'), 'gvfs')
+            base = os.path.join(os.environ.get('XDG_RUNTIME_DIR', '/run/user/%d' % os.getuid()), 'gvfs')
             nome = 'smb-share:server=%s' % host
             if share:
                 nome += ',share=%s' % share
+            # o gvfs acrescenta ",user=..." (e às vezes ",domain=...") e põe tudo em minúsculas:
+            # procura-se a pasta com o mesmo servidor e a mesma partilha
+            try:
+                for n in os.listdir(base):
+                    if not n.startswith('smb-share:'):
+                        continue
+                    campos = dict(x.split('=', 1) for x in n[len('smb-share:'):].split(',') if '=' in x)
+                    if campos.get('server', '').lower() == host.lower() and campos.get('share', '').lower() == share.lower():
+                        return os.path.join(base, n)
+            except OSError:
+                pass
             return os.path.join(base, nome)
         except Exception:
             return ''

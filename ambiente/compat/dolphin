@@ -1,0 +1,4 @@
+#!/bin/sh
+# CarinaeOS - o Dolphin passa para os Carinae Documentos
+for a in "$@"; do case "$a" in -*) ;; *) exec carinaeos-arquivos "$a" ;; esac; done
+exec carinaeos-arquivos

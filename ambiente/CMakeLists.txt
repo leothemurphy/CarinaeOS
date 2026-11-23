@@ -13,6 +13,10 @@ install(PROGRAMS
     sessao/startcarinae sessao/carinae-sessao sessao/carinae-autostart
     sessao/carinae-experimentar sessao/carinae-voltar sessao/carinae-captura sessao/carinae-preaquecer sessao/carinae-aparencia-gtk sessao/carinae-aparencia-qt sessao/carinae-entrada sessao/carinae-escolher sessao/carinaeos-modo-leve
     DESTINATION ${CMAKE_INSTALL_BINDIR})
+# substitutos dos programas do KDE (kdialog, kcmshell6, spectacle...): no fim do PATH da sessão, só valem
+# quando o programa verdadeiro não está instalado
+install(PROGRAMS compat/kcmshell6 compat/kbuildsycoca6 compat/spectacle compat/plasma-apply-wallpaperimage
+        compat/systemsettings compat/dolphin compat/konsole DESTINATION ${CMAKE_INSTALL_LIBDIR}/carinaeos/compat)
 install(PROGRAMS ferramentas/portar-do-plasma.py DESTINATION ${CMAKE_INSTALL_BINDIR} RENAME carinae-portar)
 install(FILES sessao/atalhos.conf sessao/picom.conf sessao/sessao.conf.exemplo
     DESTINATION ${CMAKE_INSTALL_DATADIR}/carinaeos)

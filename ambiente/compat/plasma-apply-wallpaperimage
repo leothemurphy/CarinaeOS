@@ -1,0 +1,17 @@
+#!/usr/bin/python3
+# CarinaeOS - pôr uma imagem como papel de parede da Aurora (no lugar do plasma-apply-wallpaperimage)
+import json, os, sys
+a = [x for x in sys.argv[1:] if not x.startswith('-')]
+if not a:
+    sys.exit(1)
+p = os.path.abspath(a[0].replace('file://', ''))
+f = os.path.expanduser('~/.config/carinaeos-shell.json')
+try:
+    c = json.load(open(f, encoding='utf-8'))
+except (OSError, ValueError):
+    c = {}
+c['papel'] = c['papel2'] = p
+os.makedirs(os.path.dirname(f), exist_ok=True)
+with open(f + '.tmp', 'w', encoding='utf-8') as o:
+    json.dump(c, o, ensure_ascii=False)
+os.replace(f + '.tmp', f)

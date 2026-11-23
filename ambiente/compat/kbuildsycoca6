@@ -1,0 +1,4 @@
+#!/bin/sh
+# CarinaeOS - sem o KDE não há cache de serviços: basta refazer a base dos .desktop do utilizador
+update-desktop-database -q "$HOME/.local/share/applications" 2>/dev/null
+exit 0

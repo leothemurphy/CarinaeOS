@@ -9,6 +9,13 @@
 # Registo em ~/.cache/carinaeos/sessao.log
 # SPDX-License-Identifier: GPL-2.0-or-later
 
+# os substitutos dos programas do KDE ficam no fim: só se usam quando o verdadeiro não existe
+for c in /usr/local/lib/carinaeos/compat /usr/local/lib/x86_64-linux-gnu/carinaeos/compat /usr/lib/carinaeos/compat; do
+    [ -d "$c" ] && case ":$PATH:" in *":$c:"*) ;; *) PATH="$PATH:$c" ;; esac
+done
+export PATH
+
+
 # sem barramento D-Bus de sessão (raro com systemd): arranja um e recomeça
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && command -v dbus-run-session >/dev/null; then
     exec dbus-run-session "$0" "$@"
