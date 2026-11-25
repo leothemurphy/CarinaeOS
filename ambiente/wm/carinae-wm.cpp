@@ -88,7 +88,7 @@ enum {
     NET_WM_STRUT, NET_WM_STRUT_PARTIAL, NET_WORKAREA, NET_NUMBER_OF_DESKTOPS, NET_CURRENT_DESKTOP,
     NET_DESKTOP_NAMES, NET_DESKTOP_VIEWPORT, NET_DESKTOP_GEOMETRY, NET_WM_DESKTOP, NET_FRAME_EXTENTS,
     NET_REQUEST_FRAME_EXTENTS, NET_WM_MOVERESIZE, NET_MOVERESIZE_WINDOW, NET_WM_PID, NET_SHOWING_DESKTOP,
-    MOTIF_WM_HINTS, NUM_ATOMOS
+    MOTIF_WM_HINTS, CARINAE_ALTERNAR, NUM_ATOMOS
 };
 static const char *nomesAtomos[NUM_ATOMOS] = {
     "WM_PROTOCOLS", "WM_DELETE_WINDOW", "WM_TAKE_FOCUS", "WM_STATE", "WM_CHANGE_STATE", "WM_S0", "MANAGER", "UTF8_STRING",
@@ -104,7 +104,7 @@ static const char *nomesAtomos[NUM_ATOMOS] = {
     "_NET_WM_STRUT", "_NET_WM_STRUT_PARTIAL", "_NET_WORKAREA", "_NET_NUMBER_OF_DESKTOPS", "_NET_CURRENT_DESKTOP",
     "_NET_DESKTOP_NAMES", "_NET_DESKTOP_VIEWPORT", "_NET_DESKTOP_GEOMETRY", "_NET_WM_DESKTOP", "_NET_FRAME_EXTENTS",
     "_NET_REQUEST_FRAME_EXTENTS", "_NET_WM_MOVERESIZE", "_NET_MOVERESIZE_WINDOW", "_NET_WM_PID", "_NET_SHOWING_DESKTOP",
-    "_MOTIF_WM_HINTS",
+    "_MOTIF_WM_HINTS", "_CARINAE_ALTERNAR",
 };
 static xcb_atom_t A[NUM_ATOMOS];
 
@@ -394,6 +394,9 @@ static void corCairo(cairo_t *cr, Cor c) { cairo_set_source_rgba(cr, c.r, c.g, c
 // onde ficam os botões (~/.config/carinaeos/gravidade.conf, "botoes = mac | windows | fechar"; a Supernova escolhe)
 //   mac: fechar, minimizar, maximizar à esquerda;  windows: minimizar, maximizar, fechar à direita;  fechar: só o fechar, à direita
 static std::string disposicaoBotoes = "mac";
+// Alt+Tab: "simples" (a janela escolhida vem logo para a frente) ou "painel" (a Aurora mostra o painel
+// com as janelas e só no fim a escolhida vem para a frente)
+static std::string modoAlternar = "simples";
 static bool botaoExiste(int i) { return disposicaoBotoes != "fechar" || i == 0; }
 static int centroBotaoX(Cliente *c, int i) {
     if (disposicaoBotoes == "mac") return BORDA + 16 + i * 22;
@@ -409,6 +412,7 @@ static bool naZonaBotoes(Cliente *c, int x) {
 }
 static void lerGravidadeConf() {
     disposicaoBotoes = "mac";
+    modoAlternar = "simples";
     const char *home = getenv("HOME");
     std::ifstream f(std::string(home ? home : "") + "/.config/carinaeos/gravidade.conf");
     std::string l;
@@ -420,6 +424,7 @@ static void lerGravidadeConf() {
                                          return a == std::string::npos ? std::string() : x.substr(a, b - a + 1); };
         k = apara(k); v = apara(v);
         if (k == "botoes" && (v == "mac" || v == "windows" || v == "fechar")) disposicaoBotoes = v;
+        if (k == "alttab" && (v == "simples" || v == "painel")) modoAlternar = v;
     }
 }
 
@@ -1032,8 +1037,13 @@ static void gerir(xcb_window_t w, bool jaMapeada) {
     desenhar(c);
 }
 
+static Cliente *alternarInicio = nullptr;
+static Cliente *alternarEscolhida = nullptr;   // no modo "painel": a janela escolhida (ainda sem foco)
+
 static void largar(Cliente *c, bool destruida) {
     if (!c) return;
+    if (c == alternarEscolhida) alternarEscolhida = nullptr;
+    if (c == alternarInicio) alternarInicio = nullptr;
     if (c->sup) { cairo_surface_destroy(c->sup); c->sup = nullptr; }
     if (c->comMoldura()) {
         if (!destruida) {
@@ -1379,8 +1389,6 @@ static void agarrarTeclas() {
 // Alt+Tab
 static bool alternando = false;
 static size_t alternarIndice = 0;
-static Cliente *alternarInicio = nullptr;
-
 static std::vector<Cliente *> paraAlternar() {
     std::vector<Cliente *> v;
     for (Cliente *c : recentes)
@@ -1399,6 +1407,11 @@ static void alternar(int passo) {
     }
     alternarIndice = (alternarIndice + v.size() + passo) % v.size();
     Cliente *c = v[alternarIndice];
+    // a Aurora desenha o painel do Alt+Tab a partir disto: [índice escolhido, janelas…]
+    std::vector<uint32_t> estado = {uint32_t(alternarIndice)};
+    for (Cliente *x : v) estado.push_back(x->win);
+    definirU32(R, A[CARINAE_ALTERNAR], XCB_ATOM_CARDINAL, estado);
+    if (modoAlternar == "painel") { alternarEscolhida = c; xcb_flush(X); return; }
     // durante o Alt+Tab só se mostra; a lista dos recentes só muda no fim
     if (c->minimizada) { c->minimizada = false; atualizarVisibilidade(c); }
     pilha.erase(std::remove(pilha.begin(), pilha.end(), c), pilha.end());
@@ -1415,8 +1428,11 @@ static void acabarAlternar(bool cancelar) {
     if (!alternando) return;
     alternando = false;
     xcb_ungrab_keyboard(X, XCB_CURRENT_TIME);
+    xcb_delete_property(X, R, A[CARINAE_ALTERNAR]);
     Cliente *c = focada;
-    if (cancelar && alternarInicio && clienteDe(alternarInicio->win)) c = alternarInicio;
+    if (modoAlternar == "painel" && alternarEscolhida) c = alternarEscolhida;
+    alternarEscolhida = nullptr;
+    if (cancelar && alternarInicio) c = alternarInicio;
     if (c) ativar(c);
 }
 

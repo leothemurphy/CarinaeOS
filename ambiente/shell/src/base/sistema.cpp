@@ -12,6 +12,8 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QCursor>
+#include <QDateTime>
 #include <QProcess>
 #include <QTimer>
 #include <QUrl>
@@ -46,7 +48,125 @@ Sistema::Sistema(QObject *parent) : QObject(parent) {
         ouvir(this);
         selecionar(raiz(), XCB_EVENT_MASK_PROPERTY_CHANGE);
         lerAtiva();
+        lerAlternar();
     }
+    m_rato = new QTimer(this);
+    connect(m_rato, &QTimer::timeout, this, &Sistema::ratoTique);
+    connect(this, &Sistema::shellChanged, this, &Sistema::vigiarRato);
+    vigiarRato();
+}
+
+// o rato só é seguido quando a Supernova ligou o canto ativo ou o "agitar para achar o cursor"
+void Sistema::vigiarRato() {
+    if (!m_rato) return;
+    const QString canto = m_shell.value(QStringLiteral("canto")).toString();
+    const bool agitar = m_shell.value(QStringLiteral("agitarCursor")).toBool();
+    const bool cantoLigado = !canto.isEmpty() && canto != QLatin1String("nada");
+    if (!cantoLigado && !agitar && m_seguirAte <= 0) { m_rato->stop(); return; }
+    const int intervalo = (agitar || m_seguirAte > 0) ? 30 : 120;
+    if (!m_rato->isActive() || m_rato->interval() != intervalo) m_rato->start(intervalo);
+}
+
+void Sistema::ratoTique() {
+    const QPoint p = QCursor::pos();
+    const qint64 agora = QDateTime::currentMSecsSinceEpoch();
+    if (m_seguirAte > 0) {
+        Q_EMIT cursorMoveu(p.x(), p.y());
+        if (--m_seguirAte == 0) vigiarRato();
+    }
+    // canto superior esquerdo do ecrã todo: parar lá ~150 ms ativa
+    const QString canto = m_shell.value(QStringLiteral("canto")).toString();
+    if (!canto.isEmpty() && canto != QLatin1String("nada")) {
+        QRect todo;
+        for (QScreen *s : QGuiApplication::screens()) todo = todo.united(s->geometry());
+        const bool ali = p.x() <= todo.left() + 1 && p.y() <= todo.top() + 1;
+        if (ali && !m_noCanto) { m_noCanto = true; m_cantoDesde = agora; }
+        else if (ali && m_cantoDesde && agora - m_cantoDesde >= 150) { m_cantoDesde = 0; Q_EMIT cantoAtivado(); }
+        else if (!ali) m_noCanto = false;
+    }
+    // agitar: várias mudanças de direção largas em pouco tempo
+    if (m_shell.value(QStringLiteral("agitarCursor")).toBool()) {
+        if (m_rastro.isEmpty() || m_rastro.last().second != p.x()) m_rastro.append({agora, p.x()});
+        while (!m_rastro.isEmpty() && agora - m_rastro.first().first > 700) m_rastro.removeFirst();
+        int viragens = 0, percurso = 0, dir = 0;
+        for (int i = 1; i < m_rastro.size(); ++i) {
+            const int d = m_rastro[i].second - m_rastro[i - 1].second;
+            percurso += qAbs(d);
+            const int s = d > 0 ? 1 : d < 0 ? -1 : 0;
+            if (s && dir && s != dir && qAbs(d) > 8) ++viragens;
+            if (s) dir = s;
+        }
+        if (viragens >= 4 && percurso > 900 && agora - m_ultimoAgito > 1500) {
+            m_ultimoAgito = agora;
+            m_rastro.clear();
+            Q_EMIT cursorAgitado(p.x(), p.y());
+        }
+    }
+}
+
+void Sistema::lerAlternar() {
+    const QVector<quint32> v = cardinais(raiz(), atomo("_CARINAE_ALTERNAR"), XCB_ATOM_CARDINAL);
+    QVariantList lista;
+    int indice = 0;
+    if (v.size() >= 2) {
+        indice = int(v.first());
+        for (int i = 1; i < v.size(); ++i) lista.append(infoJanela(v[i]));
+    }
+    if (lista != m_alternar || indice != m_alternarIndice) {
+        m_alternar = lista;
+        m_alternarIndice = indice;
+        Q_EMIT alternarChanged();
+    }
+}
+
+QVariantMap Sistema::infoJanela(qulonglong id) const {
+    const xcb_window_t w = xcb_window_t(id);
+    QVariantMap m;
+    m[QStringLiteral("id")] = id;
+    const QString t = X11::titulo(w);
+    const auto cl = classe(w);
+    QByteArray dica = bytes(w, atomo("_KDE_NET_WM_DESKTOP_FILE"));
+    if (dica.isEmpty()) dica = bytes(w, atomo("_GTK_APPLICATION_ID"));
+    const QString appId = Catalogo::instancia()->idParaJanela(cl.first, cl.second, QString::fromUtf8(dica));
+    QString nome, icone;
+    if (const App *a = Catalogo::instancia()->porId(appId)) { nome = a->nome; icone = a->icone; }
+    if (nome.isEmpty()) nome = cl.second.isEmpty() ? t : cl.second;
+    if (icone.isEmpty()) icone = cl.second.toLower();
+    m[QStringLiteral("titulo")] = t.isEmpty() ? nome : t;
+    m[QStringLiteral("nomeApp")] = nome;
+    m[QStringLiteral("icone")] = icone;
+    return m;
+}
+
+QVariantList Sistema::janelasAbertas() const {
+    QVariantList r;
+    if (!disponivel()) return r;
+    const QVector<quint32> pilha = cardinais(raiz(), atomo("_NET_CLIENT_LIST_STACKING"), XCB_ATOM_WINDOW);
+    const QVector<quint32> atual = cardinais(raiz(), atomo("_NET_CURRENT_DESKTOP"), XCB_ATOM_CARDINAL);
+    const quint32 area = atual.isEmpty() ? 0 : atual.first();
+    for (int i = pilha.size() - 1; i >= 0; --i) {
+        const xcb_window_t w = pilha[i];
+        if (pid(w) == quint32(::getpid())) continue;
+        bool esconder = false;
+        for (quint32 a : cardinais(w, atomo("_NET_WM_STATE"), XCB_ATOM_ATOM))
+            if (a == atomo("_NET_WM_STATE_SKIP_TASKBAR") || a == atomo("_NET_WM_STATE_HIDDEN")) esconder = true;
+        if (esconder) continue;
+        quint32 t = 0;
+        for (quint32 x : cardinais(w, atomo("_NET_WM_WINDOW_TYPE"), XCB_ATOM_ATOM))
+            if (x != atomo("_KDE_NET_WM_WINDOW_TYPE_OVERRIDE")) { t = x; break; }
+        if (t && t != atomo("_NET_WM_WINDOW_TYPE_NORMAL") && t != atomo("_NET_WM_WINDOW_TYPE_DIALOG")) continue;
+        const QVector<quint32> d = cardinais(w, atomo("_NET_WM_DESKTOP"), XCB_ATOM_CARDINAL);
+        if (!d.isEmpty() && d.first() != area && d.first() != 0xFFFFFFFFu) continue;
+        if (classe(w).second == QLatin1String("carinae-shell")) continue;
+        r.append(infoJanela(w));
+    }
+    return r;
+}
+
+void Sistema::ativarJanela(qulonglong id) {
+    if (!disponivel() || !id) return;
+    X11::pedirAoGestor(xcb_window_t(id), X11::atomo("_NET_ACTIVE_WINDOW"), 2, XCB_CURRENT_TIME, 0);
+    X11::flush();
 }
 
 QString Sistema::casa() const { return QDir::homePath(); }
@@ -128,6 +248,7 @@ void Sistema::lerAtiva() {
 void Sistema::eventoX(xcb_generic_event_t *ev) {
     if ((ev->response_type & ~0x80) != XCB_PROPERTY_NOTIFY) return;
     auto *e = reinterpret_cast<xcb_property_notify_event_t *>(ev);
+    if (e->window == raiz() && e->atom == atomo("_CARINAE_ALTERNAR")) { lerAlternar(); return; }
     if ((e->window == raiz() && e->atom == atomo("_NET_ACTIVE_WINDOW")) ||
         (e->window == m_ativa && (e->atom == atomo("_NET_WM_NAME") || e->atom == XCB_ATOM_WM_NAME)))
         lerAtiva();

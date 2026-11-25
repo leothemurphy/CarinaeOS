@@ -171,6 +171,8 @@ def gerar_picom(esc, backend):
             an += [_anim(['hide'], 'disappear', d(.22), scale=0.3), _anim(['show'], 'appear', d(.22), scale=0.3)]
         elif mini == 'suave':
             an += [_anim(['hide'], 'disappear', d(.15), scale=1.0), _anim(['show'], 'appear', d(.15), scale=1.0)]
+        if esc.get('gelatina', 'nao') in GELATINA:
+            an.append(_elastico(esc['gelatina'], vel))
     regras = []
     janelas = "(window_type = 'normal' || window_type = 'dialog') && class_g != 'carinae-shell'"
     if an:
@@ -239,6 +241,26 @@ def picom(mudanca):
     return False
 
 
+# Alt+Tab: os modelos da Supernova -> os painéis da Aurora (Alternar.qml)
+ALTTAB_CARINAE = {'simples': 'simples', 'thumbnail_grid': 'grade', 'big_icons': 'icones', 'sidebar': 'lista',
+                  'compact': 'compacto', 'coverswitch': 'coverflow', 'flipswitch': 'flip'}
+# janelas de gelatina: quanto a janela "passa do sítio" e volta, e quanto tempo leva
+GELATINA = {'0': (1.15, 0.25), '1': (1.45, 0.35), '3': (1.85, 0.45), '4': (2.3, 0.55)}
+
+
+def _elastico(nivel, vel):
+    y, dur = GELATINA[nivel]
+    dur *= vel
+    curva = 'cubic-bezier(0.3, %.2f, 0.5, 1)' % y
+    def v(nome, ini, fim):
+        return '%s = { curve = "%s"; duration = %.3f; start = "%s"; end = %s; }; ' % (nome, curva, dur, ini, fim)
+    return ('{ triggers = [ "geometry" ]; ' + v('offset-x', 'window-x-before - window-x', 0)
+            + v('offset-y', 'window-y-before - window-y', 0)
+            + v('scale-x', 'window-width-before / window-width', 1) + v('scale-y', 'window-height-before / window-height', 1)
+            + 'saved-image-blend = { duration = %.3f; start = 1; end = 0; }; ' % dur
+            + 'shadow-offset-x = "offset-x"; shadow-offset-y = "offset-y"; shadow-scale-x = "scale-x"; shadow-scale-y = "scale-y"; }')
+
+
 CURSORES = {'escuro': ('breeze_cursors', 24), 'claro': ('Breeze_Light', 24), 'escuro-grande': ('breeze_cursors', 36),
             'claro-grande': ('Breeze_Light', 36), 'enorme': ('breeze_cursors', 48)}
 
@@ -294,6 +316,11 @@ def a_visivel(m):
 
 
 def a_troca(m):
+    if AMB == 'carinae':
+        estilo = ALTTAB_CARINAE.get(m, 'simples')
+        shell(altTab=estilo)
+        gravidade('alttab', 'simples' if estilo == 'simples' else 'painel')
+        return
     kw('kwinrc', 'TabBox', 'LayoutName', m)
     kwin()
 
@@ -334,6 +361,9 @@ def a_mesa(m):
 
 
 def a_canto(m):
+    if AMB == 'carinae':
+        shell(canto=m)
+        return
     if AMB == 'gnome':
         gs('org.gnome.desktop.interface', 'enable-hot-corners', 'true' if m == 'visao' else 'false')
         return
@@ -488,6 +518,9 @@ def a_noite(m):
 
 
 def a_achar(m):
+    if AMB == 'carinae':
+        shell(agitarCursor=(m == 'sim'))
+        return
     efeito('shakecursor', m == 'sim')
 
 
@@ -507,6 +540,9 @@ def a_janela_foco(m):
 
 
 def a_gelatina(m):
+    if AMB == 'carinae':
+        picom({'gelatina': m})
+        return
     efeito('wobblywindows', m != 'nao')
     if m != 'nao':
         kw('kwinrc', 'Effect-wobblywindows', 'WobblynessLevel', m)   # 0 (pouco) .. 4 (muito)
@@ -705,19 +741,27 @@ def gravar_escolhas(d):
 
 ONDE = {   # mods que tambem funcionam fora do Plasma
     'carinae': {'estilo_dock', 'roda', 'meio', 'minimizar', 'abrir', 'botoes', 'sombra', 'transparencia', 'desfoque',
-                'velocidade', 'foco', 'mesa', 'cursor', 'noite'},
+                'velocidade', 'foco', 'mesa', 'cursor', 'noite', 'troca', 'canto', 'achar', 'gelatina'},
     'gnome': {'visivel', 'estilo_dock', 'botoes', 'cursor', 'noite', 'velocidade', 'canto'},
     'xfce': {'visivel', 'botoes', 'cursor'},
 }
 
 
 # no CarinaeOS, o padrão é o que a sessão já faz sem a Supernova
-PADRAO_CARINAE = {'abrir': 'desvanecer', 'minimizar': 'suave', 'sombra': 'ShadowMedium', 'desfoque': '0'}
+PADRAO_CARINAE = {'abrir': 'desvanecer', 'minimizar': 'suave', 'sombra': 'ShadowMedium', 'desfoque': '0',
+                  'troca': 'simples', 'canto': 'nada', 'achar': 'nao', 'gelatina': 'nao'}
 # o que cada modelo faz na Gravidade/picom, quando é diferente do Plasma
 DESC_CARINAE = {('abrir', 'tresd'): ('Voar', 'A janela sobe ao abrir e desce ao fechar.'),
                 ('abrir', 'supernova'): ('Supernova', 'Zoom ao abrir; ao fechar a janela expande-se e desvanece.'),
                 ('minimizar', 'lampada'): ('Descer para a Dock', 'A janela desce para a Dock.'),
-                ('mesa', 'minimizar'): ('Esconder tudo', 'Esconde as janelas; outro clique volta a mostrá-las.')}
+                ('mesa', 'minimizar'): ('Esconder tudo', 'Esconde as janelas; outro clique volta a mostrá-las.'),
+                ('troca', 'flipswitch'): ('Flip 3D', 'As janelas em pilha, em perspetiva, como no Windows Vista.'),
+                ('troca', 'coverswitch'): ('Cover Flow', 'Carrossel em 3D: a escolhida de frente, as outras de lado.'),
+                ('canto', 'visao'): ('Visão geral', 'Todas as janelas lado a lado, para escolher uma.'),
+                ('gelatina', '0'): ('Firme', 'Um pequeno balanço ao largar a janela.'),
+                ('gelatina', '1'): ('Normal', 'A janela passa um pouco do sítio e volta.'),
+                ('gelatina', '3'): ('Mole', 'Balança bem ao mover e ao mudar de tamanho.'),
+                ('gelatina', '4'): ('Gelatina!', 'Muito elástica.')}
 
 
 def padrao(m):
@@ -740,12 +784,16 @@ def lista():
             for x in m['modelos']:
                 if m['id'] == 'mesa' and x['id'] == 'afastar':
                     continue
+                if m['id'] == 'canto' and x['id'] == 'janelas':
+                    continue
                 if m['id'] == 'cursor' and not cursor_existe(CURSORES[x['id']][0]):
                     continue
                 x = dict(x)
                 if (m['id'], x['id']) in DESC_CARINAE:
                     x['nome'], x['desc'] = DESC_CARINAE[(m['id'], x['id'])]
                 mods_.append(x)
+            if m['id'] == 'troca':
+                mods_.insert(0, dict(id='simples', nome='Só trocar', desc='Sem painel: a janela escolhida vem logo para a frente.'))
             r['modelos'] = mods_
             r['inspirado'] = m.get('inspirado', '')
         elif m['id'] == 'minimizar':
@@ -760,7 +808,8 @@ def lista():
 
 def escolher(ident, modelo):
     m = next((x for x in MODS if x['id'] == ident), None)
-    if not m or modelo not in [x['id'] for x in m['modelos']]:
+    extra = ['simples'] if (AMB == 'carinae' and ident == 'troca') else []
+    if not m or modelo not in [x['id'] for x in m['modelos']] + extra:
         return False
     m['aplicar'](modelo)
     esc = ler_escolhas()

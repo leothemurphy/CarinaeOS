@@ -15,6 +15,7 @@
 #include "../x11.h"
 
 class QFileSystemWatcher;
+class QTimer;
 
 class Sistema : public QObject, public X11::Ouvinte {
     Q_OBJECT
@@ -33,6 +34,10 @@ class Sistema : public QObject, public X11::Ouvinte {
     Q_PROPERTY(QString nomeUtilizador READ nomeUtilizador CONSTANT)
     Q_PROPERTY(QString fotoUtilizador READ fotoUtilizador CONSTANT)
     Q_PROPERTY(QString pastaQml READ pastaQml CONSTANT)
+    // Alt+Tab da Gravidade (_CARINAE_ALTERNAR): as janelas pela ordem e a escolhida
+    Q_PROPERTY(bool alternando READ alternando NOTIFY alternarChanged)
+    Q_PROPERTY(QVariantList alternarJanelas READ alternarJanelas NOTIFY alternarChanged)
+    Q_PROPERTY(int alternarIndice READ alternarIndice NOTIFY alternarChanged)
 public:
     static Sistema *instancia();
     static Sistema *create(QQmlEngine *, QJSEngine *);
@@ -48,6 +53,9 @@ public:
     QString nomeUtilizador() const;
     QString fotoUtilizador() const;
     QString pastaQml() const { return m_pastaQml; }
+    bool alternando() const { return !m_alternar.isEmpty(); }
+    QVariantList alternarJanelas() const { return m_alternar; }
+    int alternarIndice() const { return m_alternarIndice; }
     void setPastaQml(const QString &p) { m_pastaQml = p; }
 
     // 1 = em cima, 2 = em baixo (como Types.TopEdge/BottomEdge: 3 e 4 também servem)
@@ -67,6 +75,12 @@ public:
     Q_INVOKABLE void papelSeguinte();
     // corre um comando sem bloquear e chama depois(saida, codigo) com o que ele escreveu
     Q_INVOKABLE void correr(const QString &comando, const QJSValue &depois);
+    // as janelas dos aplicativos na área de trabalho atual, de cima para baixo (para a Visão geral)
+    Q_INVOKABLE QVariantList janelasAbertas() const;
+    // traz uma janela para a frente (e tira-a de minimizada)
+    Q_INVOKABLE void ativarJanela(qulonglong id);
+    // {id, titulo, nomeApp, icone} de uma janela
+    Q_INVOKABLE QVariantMap infoJanela(qulonglong id) const;
 
     void eventoX(xcb_generic_event_t *ev) override;
     void pedirTarefa(int n) { Q_EMIT ativarTarefa(n); }
@@ -78,12 +92,29 @@ Q_SIGNALS:
     void ativaChanged();
     void ativarTarefa(int n);
     void desligarPedido(const QString &opcao);          // o botão de ligar / "aurora --enviar desligar": o ecrã de desligar
+    void alternarChanged();
+    void cantoAtivado();                // o rato encostou ao canto superior esquerdo (Supernova › canto)
+    void cursorAgitado(int x, int y);   // o rato foi agitado (Supernova › agitar para achar o cursor)
+    void cursorMoveu(int x, int y);     // posição do rato, enquanto o cursor grande está à vista
 
 private:
     explicit Sistema(QObject *parent = nullptr);
     void lerShell();
     void lerAtiva();
+    void lerAlternar();
+    void vigiarRato();
+    void ratoTique();
     QVariantMap m_shell;
+    QVariantList m_alternar;
+    int m_alternarIndice = 0;
+    QTimer *m_rato = nullptr;
+    bool m_noCanto = false;
+    qint64 m_cantoDesde = 0, m_ultimoAgito = 0;
+    QList<QPair<qint64, int>> m_rastro;     // (tempo, x) dos últimos movimentos
+    int m_seguirAte = 0;                    // tiques em que ainda se manda cursorMoveu
+public:
+    Q_INVOKABLE void seguirCursor(int ms) { m_seguirAte = ms / 30; vigiarRato(); }
+private:
     QString m_titulo, m_nomeApp, m_iconeApp;
     xcb_window_t m_ativa = 0;
     QFileSystemWatcher *m_vigia = nullptr;
