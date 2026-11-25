@@ -56,8 +56,12 @@ Window {
 
     MouseArea {
         anchors.fill: parent
-        acceptedButtons: Qt.RightButton
-        onClicked: (rato) => menu.open(rato.x, rato.y)
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onClicked: (rato) => {
+            if (rato.button === Qt.RightButton) menu.open(rato.x, rato.y)
+            // Supernova › "Clicar no papel de parede": esconder (ou voltar a mostrar) as janelas
+            else if ((Sistema.shell || {}).cliqueMesa === "esconder") Sistema.alternarMesa()
+        }
     }
     C.Menu {
         id: menu

@@ -285,7 +285,7 @@ ApplicationWindow {
             readonly property var titulos: ({
                 perfis: ["Perfis", "Mude o visual inteiro com um clique."],
                 dock: ["Dock", "Estilo, tamanho, lupa e o que faz o mouse na Dock."],
-                janelas: ["Janelas", "Animações, Alt+Tab, botões, sombras e transparência."],
+                janelas: ["Janelas", supernova.ambiente === "carinae" ? "Animações, botões, sombras e transparência." : "Animações, Alt+Tab, botões, sombras e transparência."],
                 mesa: ["Área de trabalho", "Papel de parede, cantos, cursor, luz noturna e velocidade."],
                 ambiente: ["Ambiente de trabalho", "Use o CarinaeOS com KDE Plasma, GNOME ou XFCE."]
             })
@@ -298,7 +298,7 @@ ApplicationWindow {
 
             // aviso fora do Plasma
             Rectangle {
-                visible: supernova.ambiente !== "plasma" && janela.secao !== "ambiente"
+                visible: supernova.ambiente !== "plasma" && supernova.ambiente !== "carinae" && janela.secao !== "ambiente"
                 width: area.availableWidth - 72; height: avisoTxt.implicitHeight + 28; radius: 14
                 color: Qt.rgba(1, 0.7, 0.43, 0.12); border.color: Qt.rgba(1, 0.7, 0.43, 0.4)
                 Text {

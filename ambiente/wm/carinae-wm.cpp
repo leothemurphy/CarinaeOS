@@ -391,7 +391,37 @@ static Monitor &monitorDoRato() {
 // ---------------------------------------------------------------------------------------------
 static void corCairo(cairo_t *cr, Cor c) { cairo_set_source_rgba(cr, c.r, c.g, c.b, 1.0); }
 
-static int centroBotaoX(int i) { return BORDA + 16 + i * 22; }
+// onde ficam os botões (~/.config/carinaeos/gravidade.conf, "botoes = mac | windows | fechar"; a Supernova escolhe)
+//   mac: fechar, minimizar, maximizar à esquerda;  windows: minimizar, maximizar, fechar à direita;  fechar: só o fechar, à direita
+static std::string disposicaoBotoes = "mac";
+static bool botaoExiste(int i) { return disposicaoBotoes != "fechar" || i == 0; }
+static int centroBotaoX(Cliente *c, int i) {
+    if (disposicaoBotoes == "mac") return BORDA + 16 + i * 22;
+    const int dir = c->mw() - BORDA - 16;               // o botão mais à direita
+    if (disposicaoBotoes == "fechar") return dir;
+    return dir - (i == 0 ? 0 : i == 2 ? 22 : 44);       // minimizar, maximizar, fechar
+}
+// a zona dos botões na barra do título (para mostrar os símbolos ao passar o rato)
+static bool naZonaBotoes(Cliente *c, int x) {
+    if (disposicaoBotoes == "mac") return x > BORDA && x < centroBotaoX(c, 2) + 12;
+    const int esq = disposicaoBotoes == "fechar" ? centroBotaoX(c, 0) : centroBotaoX(c, 1);
+    return x > esq - 12 && x < c->mw() - BORDA;
+}
+static void lerGravidadeConf() {
+    disposicaoBotoes = "mac";
+    const char *home = getenv("HOME");
+    std::ifstream f(std::string(home ? home : "") + "/.config/carinaeos/gravidade.conf");
+    std::string l;
+    while (std::getline(f, l)) {
+        size_t eq = l.find('=');
+        if (l.empty() || l[0] == '#' || eq == std::string::npos) continue;
+        std::string k = l.substr(0, eq), v = l.substr(eq + 1);
+        auto apara = [](std::string x) { size_t a = x.find_first_not_of(" \t\r"), b = x.find_last_not_of(" \t\r");
+                                         return a == std::string::npos ? std::string() : x.substr(a, b - a + 1); };
+        k = apara(k); v = apara(v);
+        if (k == "botoes" && (v == "mac" || v == "windows" || v == "fechar")) disposicaoBotoes = v;
+    }
+}
 
 static void desenhar(Cliente *c) {
     if (!c->comMoldura() || !c->mapeada) return;
@@ -418,7 +448,8 @@ static void desenhar(Cliente *c) {
         const Cor cores[3] = {COR_FECHAR, COR_MINIMIZAR, COR_MAXIMIZAR};
         bool mostrarSimbolos = c->hover >= 0;
         for (int i = 0; i < 3; ++i) {
-            double cx = centroBotaoX(i), cy = TITULO / 2.0;
+            if (!botaoExiste(i)) continue;
+            double cx = centroBotaoX(c, i), cy = TITULO / 2.0;
             corCairo(cr, (ativa || mostrarSimbolos) ? cores[i] : COR_BOTAO_INATIVO);
             cairo_arc(cr, cx, cy, 6.5, 0, 2 * M_PI);
             cairo_fill(cr);
@@ -442,7 +473,7 @@ static void desenhar(Cliente *c) {
         cairo_select_font_face(cr, "Sans", CAIRO_FONT_SLANT_NORMAL, ativa ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL);
         cairo_set_font_size(cr, 12.5);
         std::string t = c->titulo;
-        double maxLarg = W - 2 * (centroBotaoX(2) + 20);
+        double maxLarg = W - 2 * (BORDA + 16 + 44 + 20);
         cairo_text_extents_t ext;
         cairo_text_extents(cr, t.c_str(), &ext);
         bool cortado = false;
@@ -1108,7 +1139,8 @@ static int bordasEm(Cliente *c, int lx, int ly) {
 static int botaoEm(Cliente *c, int lx, int ly) {
     if (c->topo() == 0) return -1;
     for (int i = 0; i < 3; ++i) {
-        int dx = lx - centroBotaoX(i), dy = ly - TITULO / 2;
+        if (!botaoExiste(i)) continue;
+        int dx = lx - centroBotaoX(c, i), dy = ly - TITULO / 2;
         if (dx * dx + dy * dy <= 9 * 9) return i;
     }
     return -1;
@@ -1419,7 +1451,7 @@ static void acao(const std::string &a) {
     else if (nome == "@area-seguinte") mudarArea((areaAtual + 1) % NAREAS);
     else if (nome == "@levar-area-anterior") { if (c) { uint32_t n = (areaAtual + NAREAS - 1) % NAREAS; moverParaArea(c, n); mudarArea(n); ativar(c); } }
     else if (nome == "@levar-area-seguinte") { if (c) { uint32_t n = (areaAtual + 1) % NAREAS; moverParaArea(c, n); mudarArea(n); ativar(c); } }
-    else if (nome == "@recarregar") { lerAtalhos(); agarrarTeclas(); }
+    else if (nome == "@recarregar") { lerAtalhos(); lerGravidadeConf(); agarrarTeclas(); for (Cliente *x : pilha) desenhar(x); }
     else if (nome == "@sair") exit(0);
     else fprintf(stderr, "gravidade: ação desconhecida %s\n", a.c_str());
 }
@@ -1622,8 +1654,9 @@ static void noMovimento(xcb_motion_notify_event_t *e) {
         c->cursorAtual = cur;
         xcb_change_window_attributes(X, c->moldura, XCB_CW_CURSOR, &cur);
     }
-    int hv = (e->event_y < c->topo() && e->event_x < centroBotaoX(2) + 12) ? botaoEm(c, e->event_x, e->event_y) : -1;
-    if (e->event_y < c->topo() && e->event_x < centroBotaoX(2) + 12 && e->event_x > BORDA) hv = std::max(hv, 3);
+    const bool zona = e->event_y < c->topo() && naZonaBotoes(c, e->event_x);
+    int hv = zona ? botaoEm(c, e->event_x, e->event_y) : -1;
+    if (zona) hv = std::max(hv, 3);
     if ((hv >= 0) != (c->hover >= 0)) { c->hover = hv; desenhar(c); }
     else c->hover = hv;
 }
@@ -1878,6 +1911,7 @@ int main(int argc, char **argv) {
     anunciar();
     lerMonitores();
     lerAtalhos();
+    lerGravidadeConf();
     agarrarTeclas();
     gerirExistentes();
     focarOutra();
@@ -1888,7 +1922,7 @@ int main(int argc, char **argv) {
     while (!pedidoSair) {
         xcb_flush(X);
         poll(&pfd, 1, 1000);
-        if (pedidoRecarregar) { pedidoRecarregar = 0; lerAtalhos(); agarrarTeclas(); }
+        if (pedidoRecarregar) { pedidoRecarregar = 0; lerAtalhos(); lerGravidadeConf(); agarrarTeclas(); for (Cliente *x : pilha) desenhar(x); }
         xcb_generic_event_t *ev;
         while ((ev = xcb_poll_for_event(X))) {
             tratar(ev);

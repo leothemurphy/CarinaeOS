@@ -11,6 +11,8 @@ DOCK_JSON = os.path.expanduser('~/.config/carinaeos-dock.json')
 
 def ambiente():
     d = (os.environ.get('XDG_CURRENT_DESKTOP', '') + ':' + os.environ.get('DESKTOP_SESSION', '')).lower()
+    if 'carinae' in d:
+        return 'carinae'     # o ambiente próprio: Gravidade (janelas) + Aurora (Dock, barra) + picom
     if 'gnome' in d or 'ubuntu' in d:
         return 'gnome'
     if 'xfce' in d:
@@ -19,7 +21,7 @@ def ambiente():
 
 
 AMB = ambiente()
-NOME_AMB = {'plasma': 'KDE Plasma', 'gnome': 'GNOME', 'xfce': 'XFCE'}
+NOME_AMB = {'carinae': 'CarinaeOS (Gravidade)', 'plasma': 'KDE Plasma', 'gnome': 'GNOME', 'xfce': 'XFCE'}
 
 
 def gs(esquema, chave, valor):
@@ -67,6 +69,186 @@ def dock(**valores):
     os.replace(tmp, DOCK_JSON)
 
 
+# ---- CarinaeOS: Gravidade, Aurora e o compositor (picom) ----------------------------------------
+PASTA = os.path.join(os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config')), 'carinaeos')
+SHELL_JSON = os.path.expanduser('~/.config/carinaeos-shell.json')
+PICOM_USER = os.path.join(PASTA, 'picom.conf')
+
+
+def gravidade(chave, valor):
+    """Grava uma opção em ~/.config/carinaeos/gravidade.conf e pede à Gravidade para reler (kill -HUP)."""
+    f = os.path.join(PASTA, 'gravidade.conf')
+    linhas = []
+    try:
+        with open(f, encoding='utf-8') as x:
+            linhas = [l for l in x.read().splitlines() if l.split('=')[0].strip() != chave]
+    except OSError:
+        linhas = ['# CarinaeOS — opções da Gravidade (escritas pela Supernova)']
+    linhas.append('%s = %s' % (chave, valor))
+    os.makedirs(PASTA, exist_ok=True)
+    with open(f, 'w', encoding='utf-8') as x:
+        x.write('\n'.join(linhas) + '\n')
+    _c(['pkill', '-HUP', '-x', 'gravidade'])
+
+
+def shell(**valores):
+    try:
+        with open(SHELL_JSON, encoding='utf-8') as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        d = {}
+    d.update(valores)
+    tmp = SHELL_JSON + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(d, f)
+    os.replace(tmp, SHELL_JSON)
+
+
+SOMBRAS = {'ShadowNone': None, 'ShadowSmall': (10, 0.30), 'ShadowMedium': (18, 0.42),
+           'ShadowLarge': (26, 0.50), 'ShadowVeryLarge': (38, 0.58)}
+BLUR = {'4': 3, '10': 5, '15': 8}
+
+
+def _picom_backend():
+    """O backend do picom que está a correr (glx/xrender), ou None se não houver picom."""
+    try:
+        r = subprocess.run(['ps', '-C', 'picom', '-o', 'args='], capture_output=True, text=True, timeout=5)
+    except Exception:
+        return None
+    for l in r.stdout.splitlines():
+        p = l.split()
+        if '--backend' in p and p.index('--backend') + 1 < len(p):
+            return p[p.index('--backend') + 1]
+        return 'glx'
+    return None
+
+
+def _anim(gatilhos, preset, dur, **extra):
+    x = ''.join('%s = %s; ' % (k, ('"%s"' % v) if isinstance(v, str) else ('%.2f' % v)) for k, v in extra.items())
+    return '{ triggers = [ %s ]; preset = "%s"; duration = %.3f; %s}' % (
+        ', '.join('"%s"' % g for g in gatilhos), preset, dur, x)
+
+
+def gerar_picom(esc, backend):
+    """O picom.conf do utilizador (formato do picom 12, com "rules"), a partir das escolhas da Supernova."""
+    vel = float(esc.get('velocidade', '1'))
+    sombra = SOMBRAS.get(esc.get('sombra', 'ShadowMedium'), (18, 0.42))
+    opac = int(esc.get('transparencia', '100')) / 100.0
+    dim = 0.0 if esc.get('foco', 'nao') == 'nao' else int(esc['foco']) / 100.0
+    blur = BLUR.get(esc.get('desfoque', '0')) if backend == 'glx' else None
+    l = ['# CarinaeOS — compositor (picom 12). Gerado pela Supernova: mude as opções lá, não aqui.',
+         'vsync = true;', 'use-damage = true;', 'unredir-if-possible = true;',
+         'detect-client-opacity = true;', 'detect-transient = true;', 'corner-radius = 10;']
+    if sombra:
+        l += ['shadow = true;', 'shadow-radius = %d;' % sombra[0], 'shadow-opacity = %.2f;' % sombra[1],
+              'shadow-offset-x = %d;' % -int(sombra[0] * 0.9), 'shadow-offset-y = %d;' % -int(sombra[0] * 0.65)]
+    else:
+        l.append('shadow = false;')
+    if vel <= 0:
+        l.append('fading = false;')
+    else:
+        passo = min(0.3, 0.07 / vel)
+        l += ['fading = true;', 'fade-in-step = %.3f;' % passo, 'fade-out-step = %.3f;' % passo, 'fade-delta = 5;']
+    if blur:
+        l += ['blur-method = "dual_kawase";', 'blur-strength = %d;' % blur]
+    # animações só nas janelas dos aplicativos (a Dock, a barra e os menus têm as suas)
+    an = []
+    if vel > 0:
+        d = lambda t: t * vel  # noqa: E731
+        abrir = esc.get('abrir', 'desvanecer')
+        if abrir == 'zoom':
+            an += [_anim(['open'], 'appear', d(.20), scale=0.85), _anim(['close'], 'disappear', d(.16), scale=0.85)]
+        elif abrir == 'desvanecer':
+            an += [_anim(['open'], 'appear', d(.18), scale=1.0), _anim(['close'], 'disappear', d(.15), scale=1.0)]
+        elif abrir == 'tresd':
+            an += [_anim(['open'], 'fly-in', d(.28), direction='up'), _anim(['close'], 'fly-out', d(.22), direction='down')]
+        elif abrir == 'supernova':
+            an += [_anim(['open'], 'appear', d(.30), scale=0.6), _anim(['close'], 'disappear', d(.28), scale=1.35)]
+        mini = esc.get('minimizar', 'suave')
+        if mini == 'lampada':
+            an += [_anim(['hide'], 'fly-out', d(.30), direction='down'), _anim(['show'], 'appear', d(.22), scale=0.8)]
+        elif mini == 'encolher':
+            an += [_anim(['hide'], 'disappear', d(.22), scale=0.3), _anim(['show'], 'appear', d(.22), scale=0.3)]
+        elif mini == 'suave':
+            an += [_anim(['hide'], 'disappear', d(.15), scale=1.0), _anim(['show'], 'appear', d(.15), scale=1.0)]
+    regras = []
+    janelas = "(window_type = 'normal' || window_type = 'dialog') && class_g != 'carinae-shell'"
+    if an:
+        regras.append('{ match = "%s"; animations = ( %s ); }' % (janelas, ', '.join(an)))
+    if opac < 1 or dim > 0:
+        x = ('opacity = %.2f; ' % opac if opac < 1 else '') + ('dim = %.2f; ' % dim if dim > 0 else '')
+        regras.append('{ match = "window_type = \'normal\' && class_g != \'carinae-shell\' && !focused && !group_focused"; %s}' % x)
+    regras.append('{ match = "window_type = \'dock\' || window_type = \'desktop\' || class_g = \'carinae-shell\' || '
+                  '_GTK_FRAME_EXTENTS@ || _NET_WM_STATE@[*] = \'_NET_WM_STATE_HIDDEN\'"; shadow = false; }')
+    regras.append('{ match = "window_type = \'dock\' || window_type = \'desktop\' || window_type = \'menu\' || '
+                  'window_type = \'popup_menu\' || window_type = \'dropdown_menu\' || window_type = \'tooltip\' || '
+                  'class_g = \'carinae-shell\' || fullscreen"; corner-radius = 0; }')
+    if blur:
+        regras.append('{ match = "class_g = \'carinae-shell\' || window_type = \'menu\' || window_type = \'popup_menu\' || '
+                      'window_type = \'dropdown_menu\'"; blur-background = true; }')
+    l.append('rules = (\n    ' + ',\n    '.join(regras) + '\n);')
+    return '\n'.join(l) + '\n'
+
+
+def picom(mudanca):
+    """Regenera o picom.conf com a escolha nova e reinicia o picom. Se o picom não arrancar
+    com o ficheiro novo, volta ao anterior (o ambiente nunca fica sem compositor por causa disto)."""
+    import time
+    esc = ler_escolhas()
+    esc.update(mudanca)
+    backend = _picom_backend()
+    texto = gerar_picom(esc, backend or 'glx')
+    try:
+        with open(PICOM_USER, encoding='utf-8') as f:
+            antes = f.read()
+    except OSError:
+        antes = None
+    os.makedirs(PASTA, exist_ok=True)
+    with open(PICOM_USER, 'w', encoding='utf-8') as f:
+        f.write(texto)
+    if backend is None:          # sem compositor (modo leve): fica para a próxima sessão
+        return True
+
+    def arrancar():
+        _c(['pkill', '-x', 'picom'])
+        for _ in range(20):
+            if subprocess.run(['pgrep', '-x', 'picom'], capture_output=True).returncode != 0:
+                break
+            time.sleep(0.1)
+        log = open(os.path.expanduser('~/.cache/carinaeos/picom.log'), 'a')
+        p = subprocess.Popen(['picom', '--config', PICOM_USER, '--backend', backend],
+                             stdout=log, stderr=log, start_new_session=True)
+        time.sleep(1.5)
+        return p.poll() is None
+
+    os.makedirs(os.path.expanduser('~/.cache/carinaeos'), exist_ok=True)
+    if arrancar():
+        return True
+    if antes is None:
+        os.remove(PICOM_USER)
+    else:
+        with open(PICOM_USER, 'w', encoding='utf-8') as f:
+            f.write(antes)
+    if not os.path.exists(PICOM_USER):
+        for c in ('/usr/local/share/carinaeos/picom.conf', '/usr/share/carinaeos/picom.conf'):
+            if os.path.exists(c):
+                import shutil
+                shutil.copy(c, PICOM_USER)
+                break
+    arrancar()
+    return False
+
+
+CURSORES = {'escuro': ('breeze_cursors', 24), 'claro': ('Breeze_Light', 24), 'escuro-grande': ('breeze_cursors', 36),
+            'claro-grande': ('Breeze_Light', 36), 'enorme': ('breeze_cursors', 48)}
+
+
+def cursor_existe(tema):
+    return any(os.path.isdir(os.path.join(b, tema, 'cursors'))
+               for b in ('/usr/share/icons', '/usr/local/share/icons', os.path.expanduser('~/.icons'),
+                         os.path.expanduser('~/.local/share/icons')))
+
+
 # ---- como aplicar cada modelo -----------------------------------------------------------------
 DTD = 'org.gnome.shell.extensions.dash-to-dock'
 DTD_ESTILOS = {   # cor de fundo, opacidade (0..1)
@@ -79,6 +261,9 @@ DTD_ESTILOS = {   # cor de fundo, opacidade (0..1)
 
 
 def a_estilo_dock(m):
+    if AMB == 'carinae':
+        dock(estilo=m, semEfeitos=(m == 'simples'))
+        return
     if AMB == 'gnome':
         cor, op = DTD_ESTILOS.get(m, DTD_ESTILOS['mac'])
         gs(DTD, 'dock-position', 'BOTTOM')
@@ -114,6 +299,9 @@ def a_troca(m):
 
 
 def a_minimizar(m):
+    if AMB == 'carinae':
+        picom({'minimizar': m})
+        return
     if AMB != 'plasma':
         return
     efeito('magiclamp', m == 'lampada')
@@ -122,6 +310,9 @@ def a_minimizar(m):
 
 
 def a_abrir(m):
+    if AMB == 'carinae':
+        picom({'abrir': m})
+        return
     efeito('scale', m in ('zoom', 'supernova'))
     efeito('fade', m == 'desvanecer')
     efeito('glide', m == 'tresd')
@@ -130,6 +321,9 @@ def a_abrir(m):
 
 
 def a_mesa(m):
+    if AMB == 'carinae':
+        shell(cliqueMesa='' if m == 'nao' else 'esconder')
+        return
     kw('kwinrc', 'Script-carinaeos-mesa', 'mostrarMesaAoClicar', 'false' if m == 'nao' else 'true')
     efeito('windowaperture', m == 'afastar')
     efeito('slidingpopups', True)
@@ -151,6 +345,9 @@ def a_canto(m):
 
 
 def a_botoes(m):
+    if AMB == 'carinae':
+        gravidade('botoes', m if m in ('mac', 'windows', 'fechar') else 'mac')
+        return
     if AMB == 'gnome':
         gs('org.gnome.desktop.wm.preferences', 'button-layout',
            {'mac': 'close,minimize,maximize:', 'windows': ':minimize,maximize,close', 'fechar': ':close'}[m])
@@ -165,11 +362,17 @@ def a_botoes(m):
 
 
 def a_sombra(m):
+    if AMB == 'carinae':
+        picom({'sombra': m})
+        return
     kw('breezerc', 'Common', 'ShadowSize', m)
     kwin()
 
 
 def a_transparencia(m):
+    if AMB == 'carinae':
+        picom({'transparencia': m})
+        return
     sim = m != '100'
     efeito('translucency', sim)
     kw('kwinrc', 'Effect-translucency', 'Inactive', m)
@@ -178,6 +381,9 @@ def a_transparencia(m):
 
 
 def a_desfoque(m):
+    if AMB == 'carinae':
+        picom({'desfoque': m})
+        return
     efeito('blur', m != '0')
     if m != '0':
         kw('kwinrc', 'Effect-blur', 'BlurStrength', m)
@@ -185,6 +391,9 @@ def a_desfoque(m):
 
 
 def a_velocidade(m):
+    if AMB == 'carinae':
+        picom({'velocidade': m})
+        return
     if AMB == 'gnome':
         gs('org.gnome.desktop.interface', 'enable-animations', 'false' if m == '0' else 'true')
         return
@@ -204,6 +413,28 @@ def a_meio(m):
 
 
 def a_cursor(m):
+    if AMB == 'carinae':
+        tema, tam = CURSORES[m]
+        d = os.path.expanduser('~/.icons/default')
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, 'index.theme'), 'w') as f:
+            f.write('[Icon Theme]\nName=Default\nInherits=%s\n' % tema)
+        with open(os.path.expanduser('~/.Xresources.carinaeos-cursor'), 'w') as f:
+            f.write('Xcursor.theme: %s\nXcursor.size: %d\n' % (tema, tam))
+        _c(['xrdb', '-merge', os.path.expanduser('~/.Xresources.carinaeos-cursor')])
+        for g in ('gtk-3.0', 'gtk-4.0'):
+            ini = os.path.expanduser('~/.config/%s/settings.ini' % g)
+            try:
+                with open(ini, encoding='utf-8') as f:
+                    linhas = [l for l in f.read().splitlines() if not l.startswith(('gtk-cursor-theme-name', 'gtk-cursor-theme-size'))]
+            except OSError:
+                linhas = ['[Settings]']
+            linhas += ['gtk-cursor-theme-name=%s' % tema, 'gtk-cursor-theme-size=%d' % tam]
+            os.makedirs(os.path.dirname(ini), exist_ok=True)
+            with open(ini, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(linhas) + '\n')
+        _c(['xsetroot', '-cursor_name', 'left_ptr'])
+        return
     tema, tam = {'escuro': ('breeze_cursors', 24), 'claro': ('Breeze_Light', 24),
                  'escuro-grande': ('breeze_cursors', 36), 'claro-grande': ('Breeze_Light', 36),
                  'enorme': ('breeze_cursors', 48)}[m]
@@ -221,6 +452,21 @@ def a_cursor(m):
 
 
 def a_noite(m):
+    if AMB == 'carinae':
+        # a mesma luz noturna da central da barra (gama do xrandr), com a força escolhida
+        gama = {'nao': '1:1:1', '4500': '1.0:0.90:0.80', '3500': '1.0:0.84:0.66', '2700': '1.0:0.75:0.52'}[m]
+        os.makedirs(PASTA, exist_ok=True)
+        with open(os.path.join(PASTA, 'luz-noturna'), 'w') as f:
+            f.write('0\n' if m == 'nao' else '1\n')
+        try:
+            brilho = open(os.path.join(PASTA, 'brilho')).read().strip() or '1.0'
+        except OSError:
+            brilho = '1.0'
+        r = subprocess.run(['xrandr', '--query'], capture_output=True, text=True)
+        for linha in r.stdout.splitlines():
+            if ' connected' in linha:
+                _c(['xrandr', '--output', linha.split()[0], '--gamma', gama, '--brightness', brilho])
+        return
     if AMB == 'gnome':
         cor = 'org.gnome.settings-daemon.plugins.color'
         gs(cor, 'night-light-enabled', 'false' if m == 'nao' else 'true')
@@ -251,6 +497,9 @@ def a_deslizar(m):
 
 
 def a_janela_foco(m):
+    if AMB == 'carinae':
+        picom({'foco': m})
+        return
     efeito('diminactive', m != 'nao')
     if m != 'nao':
         kw('kwinrc', 'Effect-diminactive', 'Strength', m)
@@ -300,6 +549,7 @@ MODS = [
          modelos=[
              dict(id='lampada', nome='Lâmpada mágica', desc='A janela escorre para a Dock, como no Mac.'),
              dict(id='encolher', nome='Encolher', desc='Encolhe direto para o ícone, como no Windows.'),
+             dict(id='suave', nome='Desvanecer', desc='A janela desaparece suavemente.'),
              dict(id='nada', nome='Nenhuma', desc='Desaparece logo (mais rápido).'),
          ]),
     dict(id='abrir', cat='janelas', nome='Abrir e fechar janelas', icone='window-new', aplicar=a_abrir, padrao='zoom',
@@ -454,18 +704,52 @@ def gravar_escolhas(d):
 
 
 ONDE = {   # mods que tambem funcionam fora do Plasma
+    'carinae': {'estilo_dock', 'roda', 'meio', 'minimizar', 'abrir', 'botoes', 'sombra', 'transparencia', 'desfoque',
+                'velocidade', 'foco', 'mesa', 'cursor', 'noite'},
     'gnome': {'visivel', 'estilo_dock', 'botoes', 'cursor', 'noite', 'velocidade', 'canto'},
     'xfce': {'visivel', 'botoes', 'cursor'},
 }
+
+
+# no CarinaeOS, o padrão é o que a sessão já faz sem a Supernova
+PADRAO_CARINAE = {'abrir': 'desvanecer', 'minimizar': 'suave', 'sombra': 'ShadowMedium', 'desfoque': '0'}
+# o que cada modelo faz na Gravidade/picom, quando é diferente do Plasma
+DESC_CARINAE = {('abrir', 'tresd'): ('Voar', 'A janela sobe ao abrir e desce ao fechar.'),
+                ('abrir', 'supernova'): ('Supernova', 'Zoom ao abrir; ao fechar a janela expande-se e desvanece.'),
+                ('minimizar', 'lampada'): ('Descer para a Dock', 'A janela desce para a Dock.'),
+                ('mesa', 'minimizar'): ('Esconder tudo', 'Esconde as janelas; outro clique volta a mostrá-las.')}
+
+
+def padrao(m):
+    return PADRAO_CARINAE.get(m['id'], m['padrao']) if AMB == 'carinae' else m['padrao']
 
 
 def lista():
     esc = ler_escolhas()
     res = []
     for m in MODS:
+        disponivel = AMB == 'plasma' or m['id'] in ONDE.get(AMB, set())
+        if AMB == 'carinae' and not disponivel:
+            continue        # no CarinaeOS só aparece o que funciona
         r = {k: v for k, v in m.items() if k != 'aplicar'}
-        r['escolhido'] = esc.get(m['id'], m['padrao'])
-        r['disponivel'] = AMB == 'plasma' or m['id'] in ONDE.get(AMB, set())
+        r['padrao'] = padrao(m)
+        r['escolhido'] = esc.get(m['id'], r['padrao'])
+        r['disponivel'] = disponivel
+        if AMB == 'carinae':
+            mods_ = []
+            for x in m['modelos']:
+                if m['id'] == 'mesa' and x['id'] == 'afastar':
+                    continue
+                if m['id'] == 'cursor' and not cursor_existe(CURSORES[x['id']][0]):
+                    continue
+                x = dict(x)
+                if (m['id'], x['id']) in DESC_CARINAE:
+                    x['nome'], x['desc'] = DESC_CARINAE[(m['id'], x['id'])]
+                mods_.append(x)
+            r['modelos'] = mods_
+            r['inspirado'] = m.get('inspirado', '')
+        elif m['id'] == 'minimizar':
+            r['modelos'] = [x for x in m['modelos'] if x['id'] != 'suave']
         if AMB == 'gnome' and m['id'] == 'canto':
             r['modelos'] = [x for x in m['modelos'] if x['id'] in ('nada', 'visao')]
         if AMB == 'gnome' and m['id'] == 'velocidade':
@@ -489,18 +773,22 @@ def escolher(ident, modelo):
 PERFIS = [
     dict(id='mac', nome='Mac clássico', icone='carinaeos-estrela',
          desc='Lâmpada mágica, botões à esquerda e Alt+Tab em grade.',
+         desc_carinae='Zoom ao abrir, janelas a descer para a Dock, botões à esquerda e sombra grande.',
          escolhas=dict(estilo_dock='fluent', minimizar='lampada', abrir='zoom', botoes='mac', troca='thumbnail_grid',
                        sombra='ShadowLarge', desfoque='10', mesa='afastar', canto='visao', gelatina='nao', velocidade='1')),
     dict(id='vista', nome='Vista retrô', icone='preferences-desktop-effects',
          desc='Flip 3D no Alt+Tab, janelas a entrar em 3D e botões à direita.',
+         desc_carinae='Janelas a voar, botões à direita e sombra enorme.',
          escolhas=dict(estilo_dock='fluent', minimizar='encolher', abrir='tresd', botoes='windows', troca='flipswitch',
                        sombra='ShadowVeryLarge', desfoque='15', mesa='minimizar', canto='nada', gelatina='nao', velocidade='1')),
     dict(id='xp', nome='Nostalgia XP', icone='computer',
          desc='Botões à direita, Alt+Tab compacto e animações rápidas.',
+         desc_carinae='Botões à direita, Dock sem efeitos e animações rápidas.',
          escolhas=dict(estilo_dock='simples', minimizar='encolher', abrir='desvanecer', botoes='windows', troca='compact',
                        sombra='ShadowMedium', desfoque='0', mesa='minimizar', canto='nada', gelatina='nao', velocidade='0.5')),
     dict(id='supernova', nome='Supernova total', icone='carinaeos-supernova',
          desc='Gelatina, explosão ao fechar, Cover Flow e Foco estelar.',
+         desc_carinae='Explosão ao fechar, vidro fosco forte, Foco estelar e animações lentas.',
          escolhas=dict(estilo_dock='fluent', minimizar='lampada', abrir='supernova', botoes='mac', troca='coverswitch',
                        sombra='ShadowLarge', desfoque='15', mesa='afastar', canto='visao', gelatina='3', foco='15', velocidade='1.6')),
     dict(id='rosepine', nome='Rosé Pine', icone='color-management',
@@ -509,6 +797,7 @@ PERFIS = [
                        transparencia='92', noite='4500', gelatina='nao')),
     dict(id='leve', nome='Leve e rápido', icone='speedometer',
          desc='Quase sem efeitos: ideal para computadores mais fracos.',
+         desc_carinae='Quase sem efeitos: ideal para computadores mais fracos.',
          escolhas=dict(estilo_dock='simples', minimizar='nada', abrir='nada', troca='compact', sombra='ShadowSmall',
                        desfoque='0', transparencia='100', gelatina='nao', foco='nao', velocidade='0.5')),
 ]
@@ -528,4 +817,4 @@ def aplicar_perfil(ident):
 def restaurar():
     for m in MODS:
         if AMB == 'plasma' or m['id'] in ONDE.get(AMB, set()):
-            escolher(m['id'], m['padrao'])
+            escolher(m['id'], padrao(m))

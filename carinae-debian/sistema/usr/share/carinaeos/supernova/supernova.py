@@ -53,7 +53,9 @@ class Supernova(QObject):
         threading.Thread(target=t, daemon=True).start()
 
     mods = Property('QVariantList', lambda s: s._mods, notify=mudou)
-    perfis = Property('QVariantList', lambda s: [{k: v for k, v in p.items() if k != 'escolhas'} for p in M.PERFIS], constant=True)
+    perfis = Property('QVariantList', lambda s: [
+        dict({k: v for k, v in p.items() if k not in ('escolhas', 'desc_carinae')},
+             desc=p.get('desc_carinae', p['desc']) if M.AMB == 'carinae' else p['desc']) for p in M.PERFIS], constant=True)
     ambiente = Property(str, lambda s: M.AMB, constant=True)
     nomeAmbiente = Property(str, lambda s: M.NOME_AMB[M.AMB], constant=True)
     ocupado = Property(str, lambda s: s._ocupado, notify=mudou)
